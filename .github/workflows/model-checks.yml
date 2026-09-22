@@ -1,0 +1,29 @@
+name: Model proofs and incomplete-qualification guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  model-checks-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: ocaml/setup-ocaml@93303b622b2522e4411e295f9e77411a24912ac7
+        with:
+          ocaml-compiler: "5.2.1"
+          opam-pin: false
+      - name: Install pinned checker build dependencies
+        run: opam install --yes dune.3.24.2 zarith.1.14
+      - name: Build the locked checker
+        run: opam exec -- python3 -I tools/bootstrap.py
+      - name: Check model proofs, provenance and semantic mutations
+        run: opam exec -- python3 -I tools/check.py
+      - name: Ensure incomplete qualification cannot pass
+        run: opam exec -- python3 -I tools/check_gate.py

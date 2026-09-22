@@ -1,0 +1,6 @@
+.build/
+.cache/
+.kanon-exec/
+.kanon-wait/
+.kanon-replies/
+__pycache__/

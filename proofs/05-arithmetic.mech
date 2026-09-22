@@ -1,0 +1,175 @@
+-- Reusable equality and order lemmas for transition-system proofs.
+def equalSymmetry : (0 A : Type 0) -> (0 x : A) -> (0 y : A) ->
+    Equal A x y -> Equal A y x :=
+  fun (0 A : Type 0) (0 x : A) (0 y : A) (proof : Equal A x y) =>
+    case proof as witness in Equal right return Equal A right x with
+    | same => same
+
+def equalTransitivity : (0 A : Type 0) -> (0 x : A) -> (0 y : A) -> (0 z : A) ->
+    Equal A x y -> Equal A y z -> Equal A x z :=
+  fun (0 A : Type 0) (0 x : A) (0 y : A) (0 z : A)
+      (first : Equal A x y) (second : Equal A y z) =>
+    case second as witness in Equal right return Equal A x right with
+    | same => first
+
+def equalTransport : (0 A : Type 0) -> (0 family : A -> Type 0) ->
+    (0 x : A) -> (0 y : A) -> Equal A x y -> family x -> family y :=
+  fun (0 A : Type 0) (0 family : A -> Type 0) (0 x : A) (0 y : A)
+      (proof : Equal A x y) (value : family x) =>
+    case proof as witness in Equal right return family right with
+    | same => value
+
+def predecessor : Count -> Count :=
+  fun (n : Count) =>
+    case n as self in Count return Count with
+    | zero => zero
+    | next previous => previous
+
+def rec reflexiveBound : (n : Count) -> AtMost n n :=
+  fun (n : Count) =>
+    case n as self in Count return AtMost self self with
+    | zero => least zero
+    | next previous => lift previous previous (reflexiveBound previous)
+
+def predecessorBound : (a : Count) -> (b : Count) -> AtMost a b ->
+    AtMost (predecessor a) (predecessor b) :=
+  fun (a : Count) (b : Count) (proof : AtMost a b) =>
+    case proof as witness in AtMost used cap
+        return AtMost (predecessor used) (predecessor cap) with
+    | least cap => least (predecessor cap)
+    | lift used cap previous => previous
+
+def dropLeftBound : (a : Count) -> (b : Count) -> AtMost a b ->
+    AtMost (predecessor a) b :=
+  fun (a : Count) (b : Count) (proof : AtMost a b) =>
+    case proof as witness in AtMost used cap return AtMost (predecessor used) cap with
+    | least cap => least cap
+    | lift used cap previous => weakenBound used cap previous
+
+mu TrueProof : Prop with
+| trueProof : TrueProof
+
+def zeroUpperConsequence : Count -> Count -> Prop :=
+  fun (used : Count) (cap : Count) =>
+    case cap as self in Count return Prop with
+    | zero => Equal Count used zero
+    | next previous => TrueProof
+
+def zeroUpperWitness : (used : Count) -> (cap : Count) -> AtMost used cap ->
+    zeroUpperConsequence used cap :=
+  fun (used : Count) (cap : Count) (proof : AtMost used cap) =>
+    case proof as witness in AtMost amount limit return zeroUpperConsequence amount limit with
+    | least limit =>
+      (case limit as self in Count return zeroUpperConsequence zero self with
+      | zero => same
+      | next previous => trueProof)
+    | lift amount limit previous => trueProof
+
+def zeroUpperEquality : (used : Count) -> AtMost used zero -> Equal Count used zero :=
+  fun (used : Count) (proof : AtMost used zero) => zeroUpperWitness used zero proof
+
+def rec boundTransitiveCore : (middle : Count) -> (upper : Count) -> AtMost middle upper ->
+    (lower : Count) -> AtMost lower middle -> AtMost lower upper :=
+  fun (middle : Count) (upper : Count) (right : AtMost middle upper) =>
+    case right as witness in AtMost mid cap
+        return (lower : Count) -> AtMost lower mid -> AtMost lower cap with
+    | least cap =>
+      fun (lower : Count) (left : AtMost lower zero) =>
+        equalTransport Count (fun (amount : Count) => AtMost amount cap) zero lower
+          (equalSymmetry Count lower zero (zeroUpperEquality lower left)) (least cap)
+    | lift mid cap previous =>
+      fun (lower : Count) =>
+        case lower as self in Count return AtMost self (next mid) -> AtMost self (next cap) with
+        | zero => fun (left : AtMost zero (next mid)) => least (next cap)
+        | next amount =>
+          fun (left : AtMost (next amount) (next mid)) =>
+            lift amount cap
+              (boundTransitiveCore mid cap previous amount
+                (predecessorBound (next amount) (next mid) left))
+
+def boundTransitive : (a : Count) -> (b : Count) -> (c : Count) ->
+    AtMost a b -> AtMost b c -> AtMost a c :=
+  fun (a : Count) (b : Count) (c : Count) (left : AtMost a b) (right : AtMost b c) =>
+    boundTransitiveCore b c right a left
+
+def rec boundedWorkRightBound : (limit : Count) -> (demand : Count) ->
+    AtMost (boundedWork limit demand) demand :=
+  fun (limit : Count) (demand : Count) =>
+    case limit as self in Count return AtMost (boundedWork self demand) demand with
+    | zero => least demand
+    | next remaining =>
+      case demand as request in Count return AtMost (boundedWork (next remaining) request) request with
+      | zero => least zero
+      | next rest => lift (boundedWork remaining rest) rest (boundedWorkRightBound remaining rest)
+
+def rec addRightZero : (n : Count) -> Equal Count (add n zero) n :=
+  fun (n : Count) =>
+    case n as self in Count return Equal Count (add self zero) self with
+    | zero => same
+    | next previous =>
+      congruent Count Count (fun (x : Count) => next x) (add previous zero) previous
+        (addRightZero previous)
+
+def rec addRightNext : (a : Count) -> (b : Count) -> Equal Count (add a (next b)) (next (add a b)) :=
+  fun (a : Count) (b : Count) =>
+    case a as self in Count return Equal Count (add self (next b)) (next (add self b)) with
+    | zero => same
+    | next previous =>
+      congruent Count Count (fun (x : Count) => next x)
+        (add previous (next b)) (next (add previous b)) (addRightNext previous b)
+
+def rec addAssociative : (a : Count) -> (b : Count) -> (c : Count) ->
+    Equal Count (add (add a b) c) (add a (add b c)) :=
+  fun (a : Count) (b : Count) (c : Count) =>
+    case a as self in Count return Equal Count (add (add self b) c) (add self (add b c)) with
+    | zero => same
+    | next previous =>
+      congruent Count Count (fun (x : Count) => next x)
+        (add (add previous b) c) (add previous (add b c)) (addAssociative previous b c)
+
+def rec sameCount : Count -> Count -> Flag :=
+  fun (a : Count) (b : Count) =>
+    case a as self in Count return Flag with
+    | zero =>
+      (case b as other in Count return Flag with
+      | zero => on
+      | next previous => off)
+    | next previous =>
+      case b as other in Count return Flag with
+      | zero => off
+      | next rest => sameCount previous rest
+
+def rec sameCountReflexive : (n : Count) -> Equal Flag (sameCount n n) on :=
+  fun (n : Count) =>
+    case n as self in Count return Equal Flag (sameCount self self) on with
+    | zero => same
+    | next previous => sameCountReflexive previous
+
+def rec sameCountSuccessorOff : (n : Count) -> Equal Flag (sameCount n (next n)) off :=
+  fun (n : Count) =>
+    case n as self in Count return Equal Flag (sameCount self (next self)) off with
+    | zero => same
+    | next previous => sameCountSuccessorOff previous
+
+def rec sameCountBeyondOff : (n : Count) -> (offset : Count) ->
+    Equal Flag (sameCount n (next (add n offset))) off :=
+  fun (n : Count) (offset : Count) =>
+    case n as self in Count return Equal Flag (sameCount self (next (add self offset))) off with
+    | zero => same
+    | next previous => sameCountBeyondOff previous offset
+
+def rec boundSlack : (used : Count) -> (cap : Count) -> AtMost used cap -> Count :=
+  fun (used : Count) (cap : Count) (proof : AtMost used cap) =>
+    case proof as witness in AtMost amount limit return Count with
+    | least limit => limit
+    | lift amount limit previous => boundSlack amount limit previous
+
+def rec boundSlackReconstructs : (used : Count) -> (cap : Count) -> (proof : AtMost used cap) ->
+    Equal Count (add used (boundSlack used cap proof)) cap :=
+  fun (used : Count) (cap : Count) (proof : AtMost used cap) =>
+    case proof as witness in AtMost amount limit
+        return Equal Count (add amount (boundSlack amount limit witness)) limit with
+    | least limit => same
+    | lift amount limit previous =>
+      congruent Count Count (fun (n : Count) => next n)
+        (add amount (boundSlack amount limit previous)) limit (boundSlackReconstructs amount limit previous)

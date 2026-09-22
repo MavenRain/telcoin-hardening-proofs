@@ -1,0 +1,46 @@
+{
+  "model_checked": true,
+  "axioms": [],
+  "modules": 6,
+  "checked_proof_declarations": 51,
+  "negative_checks_rejected": [
+    "retry_bypass",
+    "poll_over_budget",
+    "release_reoccupies_slot",
+    "authentication_bypass",
+    "trusted_violation_exempt",
+    "batch_admitted",
+    "overload_demotes",
+    "early_endpoint_retirement",
+    "firewall_omits_current",
+    "model_claims_implementation",
+    "false_equality",
+    "false_bound",
+    "nonterminating_proof"
+  ],
+  "claim_groups": 34,
+  "source_units": 1383,
+  "claim_decomposition_complete": false,
+  "source_sha256": "d3f4e76b4257f110b51c821cc74205926e25f9dc924e6b5ec371350ec9b94f52",
+  "compiler": {
+    "revision": "a86e84b742ac51ac3d72ad40210ae45a8a5aa371",
+    "vendor_veil_revision": "a7534cedeac82d396de8e23058ee6bc990560f65",
+    "compiler_sha256": "41daf825231748d8100403f450282be4e9631e77d6ce25e95a0e4045189f1194",
+    "ocaml": "5.2.1",
+    "dune": "3.24.2"
+  },
+  "implementation_links": {
+    "status": "source_links_checked",
+    "revision": "579aa551fe39593e32a48e1dbcfeccbccab64e3e",
+    "entries": 6,
+    "refinement_proved": false
+  },
+  "implementation_proved": false,
+  "deployment_qualified": false,
+  "blockers": [
+    "Complete atomic claim decomposition and model coverage",
+    "Machine-checked refinement from pinned Rust and transport dependencies",
+    "Resolve D01-D12 and record the accepted numerical envelope",
+    "Supply required M1-M6, topology, storage and operator evidence"
+  ]
+}

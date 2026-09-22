@@ -1,0 +1,331 @@
+-- A1/T4a: generation-tagged pending ownership. Transitions are atomic.
+-- Tokens originate in internal callbacks, not in unauthenticated packets.
+-- Count generations do not wrap; a machine implementation must establish that.
+mu Lease : Type 0 with
+| freeLease : Count -> Lease
+| heldLease : Count -> Lease
+
+mu CompletionToken : Type 0 with
+| noOwnedLease : CompletionToken
+| ownedGeneration : Count -> CompletionToken
+
+mu Reservation : Type 0 with
+| deniedReservation : Lease -> Reservation
+| obtainedReservation : Count -> Reservation
+
+def tryReserve : Lease -> Reservation :=
+  fun (lease : Lease) =>
+    case lease as self in Lease return Reservation with
+    | freeLease generation => obtainedReservation generation
+    | heldLease generation => deniedReservation (heldLease generation)
+
+def reservationState : Reservation -> Lease :=
+  fun (result : Reservation) =>
+    case result as self in Reservation return Lease with
+    | deniedReservation lease => lease
+    | obtainedReservation generation => heldLease generation
+
+def reservationToken : Reservation -> CompletionToken :=
+  fun (result : Reservation) =>
+    case result as self in Reservation return CompletionToken with
+    | deniedReservation lease => noOwnedLease
+    | obtainedReservation generation => ownedGeneration generation
+
+def reserveLease : Lease -> Lease :=
+  fun (lease : Lease) => reservationState (tryReserve lease)
+
+def freeReservationOwnsSlot : (generation : Count) ->
+    Equal Lease (reserveLease (freeLease generation)) (heldLease generation) :=
+  fun (generation : Count) => same
+
+def heldReservationDenied : (generation : Count) ->
+    Equal CompletionToken (reservationToken (tryReserve (heldLease generation))) noOwnedLease :=
+  fun (generation : Count) => same
+
+def heldReservationPreserved : (generation : Count) ->
+    Equal Lease (reserveLease (heldLease generation)) (heldLease generation) :=
+  fun (generation : Count) => same
+
+def releaseDecision : Count -> Flag -> Lease :=
+  fun (generation : Count) (matches : Flag) =>
+    case matches as self in Flag return Lease with
+    | off => heldLease generation
+    | on => freeLease (next generation)
+
+def releaseOwned : Count -> Lease -> Lease :=
+  fun (token : Count) (lease : Lease) =>
+    case lease as self in Lease return Lease with
+    | freeLease generation => freeLease generation
+    | heldLease generation => releaseDecision generation (sameCount token generation)
+
+def freeLeaseNotRefunded : (token : Count) -> (generation : Count) ->
+    Equal Lease (releaseOwned token (freeLease generation)) (freeLease generation) :=
+  fun (token : Count) (generation : Count) => same
+
+def matchingGenerationReleased : (generation : Count) ->
+    Equal Lease (releaseOwned generation (heldLease generation)) (freeLease (next generation)) :=
+  fun (generation : Count) =>
+    congruent Flag Lease (fun (matches : Flag) => releaseDecision generation matches)
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def staleGenerationPreserved : (generation : Count) ->
+    Equal Lease (releaseOwned generation (heldLease (next generation))) (heldLease (next generation)) :=
+  fun (generation : Count) =>
+    congruent Flag Lease (fun (matches : Flag) => releaseDecision (next generation) matches)
+      (sameCount generation (next generation)) off (sameCountSuccessorOff generation)
+
+def completedLeaseReusedWithNewGeneration : (generation : Count) ->
+    Equal Lease (reserveLease (releaseOwned generation (heldLease generation))) (heldLease (next generation)) :=
+  fun (generation : Count) =>
+    congruent Lease Lease reserveLease (releaseOwned generation (heldLease generation))
+      (freeLease (next generation)) (matchingGenerationReleased generation)
+
+def staleCompletionAfterActualReuse : (generation : Count) ->
+    Equal Lease
+      (releaseOwned generation (reserveLease (releaseOwned generation (heldLease generation))))
+      (reserveLease (releaseOwned generation (heldLease generation))) :=
+  fun (generation : Count) =>
+    equalTransitivity Lease
+      (releaseOwned generation (reserveLease (releaseOwned generation (heldLease generation))))
+      (heldLease (next generation)) (reserveLease (releaseOwned generation (heldLease generation)))
+      (equalTransitivity Lease
+        (releaseOwned generation (reserveLease (releaseOwned generation (heldLease generation))))
+        (releaseOwned generation (heldLease (next generation))) (heldLease (next generation))
+        (congruent Lease Lease (fun (lease : Lease) => releaseOwned generation lease)
+          (reserveLease (releaseOwned generation (heldLease generation))) (heldLease (next generation))
+          (completedLeaseReusedWithNewGeneration generation)) (staleGenerationPreserved generation))
+      (equalSymmetry Lease (reserveLease (releaseOwned generation (heldLease generation)))
+        (heldLease (next generation)) (completedLeaseReusedWithNewGeneration generation))
+
+def arbitrarilyOldGenerationPreserved : (generation : Count) -> (gap : Count) ->
+    Equal Lease (releaseOwned generation (heldLease (next (add generation gap))))
+      (heldLease (next (add generation gap))) :=
+  fun (generation : Count) (gap : Count) =>
+    congruent Flag Lease
+      (fun (matches : Flag) => releaseDecision (next (add generation gap)) matches)
+      (sameCount generation (next (add generation gap))) off (sameCountBeyondOff generation gap)
+
+def releaseOwnedCaseIdempotent : (token : Count) -> (generation : Count) -> (matches : Flag) ->
+    Equal Flag (sameCount token generation) matches ->
+    Equal Lease (releaseOwned token (releaseOwned token (heldLease generation)))
+      (releaseOwned token (heldLease generation)) :=
+  fun (token : Count) (generation : Count) (matches : Flag) =>
+    case matches as self in Flag return Equal Flag (sameCount token generation) self ->
+        Equal Lease (releaseOwned token (releaseOwned token (heldLease generation)))
+          (releaseOwned token (heldLease generation)) with
+    | off =>
+      fun (decision : Equal Flag (sameCount token generation) off) =>
+        congruent Lease Lease (fun (lease : Lease) => releaseOwned token lease)
+          (releaseOwned token (heldLease generation)) (heldLease generation)
+          (congruent Flag Lease (fun (value : Flag) => releaseDecision generation value)
+            (sameCount token generation) off decision)
+    | on =>
+      fun (decision : Equal Flag (sameCount token generation) on) =>
+        equalTransitivity Lease
+          (releaseOwned token (releaseOwned token (heldLease generation)))
+          (freeLease (next generation)) (releaseOwned token (heldLease generation))
+          (congruent Lease Lease (fun (lease : Lease) => releaseOwned token lease)
+            (releaseOwned token (heldLease generation)) (freeLease (next generation))
+            (congruent Flag Lease (fun (value : Flag) => releaseDecision generation value)
+              (sameCount token generation) on decision))
+          (equalSymmetry Lease (releaseOwned token (heldLease generation)) (freeLease (next generation))
+            (congruent Flag Lease (fun (value : Flag) => releaseDecision generation value)
+              (sameCount token generation) on decision))
+
+def releaseOwnedIdempotent : (token : Count) -> (lease : Lease) ->
+    Equal Lease (releaseOwned token (releaseOwned token lease)) (releaseOwned token lease) :=
+  fun (token : Count) (lease : Lease) =>
+    case lease as self in Lease return Equal Lease (releaseOwned token (releaseOwned token self))
+        (releaseOwned token self) with
+    | freeLease generation => same
+    | heldLease generation => releaseOwnedCaseIdempotent token generation (sameCount token generation) same
+
+mu PendingEnd : Type 0 with
+| handshakeFailed : PendingEnd
+| connectionEstablished : PendingEnd
+| establishedHookRefused : PendingEnd
+| handshakeTimedOut : PendingEnd
+| handshakeCancelled : PendingEnd
+
+def pendingCompletion : CompletionToken -> PendingEnd -> Lease -> Lease :=
+  fun (token : CompletionToken) (reason : PendingEnd) (lease : Lease) =>
+    case token as self in CompletionToken return Lease with
+    | noOwnedLease => lease
+    | ownedGeneration generation => releaseOwned generation lease
+
+def unownedCompletionNoRefund : (reason : PendingEnd) -> (lease : Lease) ->
+    Equal Lease (pendingCompletion noOwnedLease reason lease) lease :=
+  fun (reason : PendingEnd) (lease : Lease) => same
+
+def everyTerminalReasonReleases : (generation : Count) -> (reason : PendingEnd) ->
+    Equal Lease (pendingCompletion (ownedGeneration generation) reason (heldLease generation))
+      (freeLease (next generation)) :=
+  fun (generation : Count) (reason : PendingEnd) => matchingGenerationReleased generation
+
+def repeatedTerminalReasonsIdempotent : (token : CompletionToken) ->
+    (first : PendingEnd) -> (second : PendingEnd) -> (lease : Lease) ->
+    Equal Lease (pendingCompletion token second (pendingCompletion token first lease))
+      (pendingCompletion token first lease) :=
+  fun (token : CompletionToken) (first : PendingEnd) (second : PendingEnd) (lease : Lease) =>
+    case token as self in CompletionToken return
+        Equal Lease (pendingCompletion self second (pendingCompletion self first lease))
+          (pendingCompletion self first lease) with
+    | noOwnedLease => same
+    | ownedGeneration generation => releaseOwnedIdempotent generation lease
+
+mu LeasePool : Type 0 with
+| emptyLeasePool : LeasePool
+| leaseCell : Lease -> LeasePool -> LeasePool
+
+def rec leaseCapacity : LeasePool -> Count :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool return Count with
+    | emptyLeasePool => zero
+    | leaseCell lease rest => next (leaseCapacity rest)
+
+def rec leaseOccupancy : LeasePool -> Count :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool return Count with
+    | emptyLeasePool => zero
+    | leaseCell lease rest =>
+      case lease as state in Lease return Count with
+      | freeLease generation => leaseOccupancy rest
+      | heldLease generation => next (leaseOccupancy rest)
+
+def rec leaseAvailability : LeasePool -> Count :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool return Count with
+    | emptyLeasePool => zero
+    | leaseCell lease rest =>
+      case lease as state in Lease return Count with
+      | freeLease generation => next (leaseAvailability rest)
+      | heldLease generation => leaseAvailability rest
+
+def rec leasePoolBound : (pool : LeasePool) -> AtMost (leaseOccupancy pool) (leaseCapacity pool) :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool return AtMost (leaseOccupancy self) (leaseCapacity self) with
+    | emptyLeasePool => least zero
+    | leaseCell lease rest =>
+      case lease as state in Lease
+          return AtMost (leaseOccupancy (leaseCell state rest)) (leaseCapacity (leaseCell state rest)) with
+      | freeLease generation => weakenBound (leaseOccupancy rest) (leaseCapacity rest) (leasePoolBound rest)
+      | heldLease generation => lift (leaseOccupancy rest) (leaseCapacity rest) (leasePoolBound rest)
+
+def rec leaseConservation : (pool : LeasePool) ->
+    Equal Count (add (leaseOccupancy pool) (leaseAvailability pool)) (leaseCapacity pool) :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool
+        return Equal Count (add (leaseOccupancy self) (leaseAvailability self)) (leaseCapacity self) with
+    | emptyLeasePool => same
+    | leaseCell lease rest =>
+      case lease as state in Lease return
+          Equal Count (add (leaseOccupancy (leaseCell state rest)) (leaseAvailability (leaseCell state rest)))
+            (leaseCapacity (leaseCell state rest)) with
+      | freeLease generation =>
+        equalTransitivity Count
+          (add (leaseOccupancy rest) (next (leaseAvailability rest)))
+          (next (add (leaseOccupancy rest) (leaseAvailability rest))) (next (leaseCapacity rest))
+          (addRightNext (leaseOccupancy rest) (leaseAvailability rest))
+          (congruent Count Count (fun (n : Count) => next n)
+            (add (leaseOccupancy rest) (leaseAvailability rest)) (leaseCapacity rest) (leaseConservation rest))
+      | heldLease generation =>
+        congruent Count Count (fun (n : Count) => next n)
+          (add (leaseOccupancy rest) (leaseAvailability rest)) (leaseCapacity rest) (leaseConservation rest)
+
+def rec updateLease : Count -> (Lease -> Lease) -> LeasePool -> LeasePool :=
+  fun (index : Count) (change : Lease -> Lease) (pool : LeasePool) =>
+    case index as self in Count return LeasePool with
+    | zero =>
+      (case pool as state in LeasePool return LeasePool with
+      | emptyLeasePool => emptyLeasePool
+      | leaseCell lease rest => leaseCell (change lease) rest)
+    | next previous =>
+      case pool as state in LeasePool return LeasePool with
+      | emptyLeasePool => emptyLeasePool
+      | leaseCell lease rest => leaseCell lease (updateLease previous change rest)
+
+def rec updateLeaseCapacity : (index : Count) -> (change : Lease -> Lease) -> (pool : LeasePool) ->
+    Equal Count (leaseCapacity (updateLease index change pool)) (leaseCapacity pool) :=
+  fun (index : Count) (change : Lease -> Lease) (pool : LeasePool) =>
+    case index as self in Count return
+        Equal Count (leaseCapacity (updateLease self change pool)) (leaseCapacity pool) with
+    | zero =>
+      (case pool as state in LeasePool return
+          Equal Count (leaseCapacity (updateLease zero change state)) (leaseCapacity state) with
+      | emptyLeasePool => same
+      | leaseCell lease rest => same)
+    | next previous =>
+      case pool as state in LeasePool return
+          Equal Count (leaseCapacity (updateLease (next previous) change state)) (leaseCapacity state) with
+      | emptyLeasePool => same
+      | leaseCell lease rest =>
+        congruent Count Count (fun (n : Count) => next n)
+          (leaseCapacity (updateLease previous change rest)) (leaseCapacity rest)
+          (updateLeaseCapacity previous change rest)
+
+def staleCompletionAfterReuse : (generation : Count) -> (reason : PendingEnd) -> (rest : LeasePool) ->
+    Equal LeasePool
+      (updateLease zero (fun (lease : Lease) => pendingCompletion (ownedGeneration generation) reason lease)
+        (leaseCell (heldLease (next generation)) rest))
+      (leaseCell (heldLease (next generation)) rest) :=
+  fun (generation : Count) (reason : PendingEnd) (rest : LeasePool) =>
+    congruent Lease LeasePool (fun (lease : Lease) => leaseCell lease rest)
+      (releaseOwned generation (heldLease (next generation))) (heldLease (next generation))
+      (staleGenerationPreserved generation)
+
+mu PoolAction : Type 0 with
+| reserveAt : Count -> PoolAction
+| completeAt : Count -> CompletionToken -> PendingEnd -> PoolAction
+
+def poolStep : PoolAction -> LeasePool -> LeasePool :=
+  fun (action : PoolAction) (pool : LeasePool) =>
+    case action as self in PoolAction return LeasePool with
+    | reserveAt index => updateLease index reserveLease pool
+    | completeAt index token reason =>
+      updateLease index (fun (lease : Lease) => pendingCompletion token reason lease) pool
+
+def poolStepCapacity : (action : PoolAction) -> (pool : LeasePool) ->
+    Equal Count (leaseCapacity (poolStep action pool)) (leaseCapacity pool) :=
+  fun (action : PoolAction) (pool : LeasePool) =>
+    case action as self in PoolAction return
+        Equal Count (leaseCapacity (poolStep self pool)) (leaseCapacity pool) with
+    | reserveAt index => updateLeaseCapacity index reserveLease pool
+    | completeAt index token reason =>
+      updateLeaseCapacity index (fun (lease : Lease) => pendingCompletion token reason lease) pool
+
+mu PoolTrace : Type 0 with
+| poolDone : PoolTrace
+| poolEvent : PoolAction -> PoolTrace -> PoolTrace
+
+def rec runPool : PoolTrace -> LeasePool -> LeasePool :=
+  fun (trace : PoolTrace) (pool : LeasePool) =>
+    case trace as self in PoolTrace return LeasePool with
+    | poolDone => pool
+    | poolEvent action rest => runPool rest (poolStep action pool)
+
+def rec poolTraceCapacity : (trace : PoolTrace) -> (pool : LeasePool) ->
+    Equal Count (leaseCapacity (runPool trace pool)) (leaseCapacity pool) :=
+  fun (trace : PoolTrace) (pool : LeasePool) =>
+    case trace as self in PoolTrace return
+        Equal Count (leaseCapacity (runPool self pool)) (leaseCapacity pool) with
+    | poolDone => same
+    | poolEvent action rest =>
+      equalTransitivity Count (leaseCapacity (runPool rest (poolStep action pool)))
+        (leaseCapacity (poolStep action pool)) (leaseCapacity pool)
+        (poolTraceCapacity rest (poolStep action pool)) (poolStepCapacity action pool)
+
+def pendingOccupancyTraceBound : (trace : PoolTrace) -> (pool : LeasePool) ->
+    AtMost (leaseOccupancy (runPool trace pool)) (leaseCapacity pool) :=
+  fun (trace : PoolTrace) (pool : LeasePool) =>
+    equalTransport Count (fun (cap : Count) => AtMost (leaseOccupancy (runPool trace pool)) cap)
+      (leaseCapacity (runPool trace pool)) (leaseCapacity pool) (poolTraceCapacity trace pool)
+      (leasePoolBound (runPool trace pool))
+
+def pendingConservationTrace : (trace : PoolTrace) -> (pool : LeasePool) ->
+    Equal Count (add (leaseOccupancy (runPool trace pool)) (leaseAvailability (runPool trace pool)))
+      (leaseCapacity pool) :=
+  fun (trace : PoolTrace) (pool : LeasePool) =>
+    equalTransitivity Count
+      (add (leaseOccupancy (runPool trace pool)) (leaseAvailability (runPool trace pool)))
+      (leaseCapacity (runPool trace pool)) (leaseCapacity pool)
+      (leaseConservation (runPool trace pool)) (poolTraceCapacity trace pool)

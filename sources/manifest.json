@@ -1,0 +1,105 @@
+{
+  "version": 1,
+  "files": [
+    {
+      "path": "sources/w1/00-INDEX.md",
+      "sha256": "f7fbd61e780e098fd7d9aeb0da00ad910f7832bfeab8ad2b1326a0ee54e74545",
+      "bytes": 40430
+    },
+    {
+      "path": "sources/w1/T01-quic-initial-unvalidated-cost.md",
+      "sha256": "d4da87f8949ae35fea93e91368bd125db8373c12b80cd126b87471ca701a8758",
+      "bytes": 24389
+    },
+    {
+      "path": "sources/w1/T02-quic-listener-interop-tests.md",
+      "sha256": "967dc93bdc41d6b7da60cd4cd82af83a22df1ec25708246e36ea403dbc93bd32",
+      "bytes": 17531
+    },
+    {
+      "path": "sources/w1/T03-patched-transport-crate-upkeep.md",
+      "sha256": "71483b5cea8d41195ebc4d1d6b3e710a6bd912a5fa413036566716c0ddccdcb5",
+      "bytes": 19078
+    },
+    {
+      "path": "sources/w1/T04-pending-inbound-unbounded.md",
+      "sha256": "10f148dff9c91d9f32201dfd5a1b3ace3f632b66163100229c029043bdac7b79",
+      "bytes": 21003
+    },
+    {
+      "path": "sources/w1/T05-per-peer-ceilings.md",
+      "sha256": "fec2c0778807bf86a20b4922d41c31d67e1c7cec75246676442aa6179d976855",
+      "bytes": 22697
+    },
+    {
+      "path": "sources/w1/T06-accepts-unbounded-per-poll.md",
+      "sha256": "88e5982b7fb206722a4c74682c868d25e27bfe339783690599246b6d41e35cb9",
+      "bytes": 22831
+    },
+    {
+      "path": "sources/w1/T07-endpoint-driver-contention.md",
+      "sha256": "9e7bb5dfef375518bef88a8b1809249588fba47c68c1c526b6b846701162ee19",
+      "bytes": 21357
+    },
+    {
+      "path": "sources/w1/T08-validated-address-handshake-rate.md",
+      "sha256": "e14818866245e1b257c637942816061a57f5c69a3fa24bd1cb19e71721a97577",
+      "bytes": 21679
+    },
+    {
+      "path": "sources/w1/T09-redundant-cert-verification.md",
+      "sha256": "137a5dba6edd4852055bc38366a8aa0da0dfc88bd40dac572b56a1ae1514d404",
+      "bytes": 23180
+    },
+    {
+      "path": "sources/w1/T10-late-refusal-of-strangers.md",
+      "sha256": "f33ebf7937e155458d742c0fc925be451eed276eb405609f9bcd32f1eda96197",
+      "bytes": 20670
+    },
+    {
+      "path": "sources/w1/T11-dialer-chosen-kx-group.md",
+      "sha256": "0b0d6f84667269c176fa08840fe201d0060ab49a9717a88a3a5801f3db9baa05",
+      "bytes": 19592
+    },
+    {
+      "path": "sources/w1/T12-single-inbound-socket.md",
+      "sha256": "b3921d7faf4ef87286c7183a55f2bde1525491557292573810b36c55b6304eb9",
+      "bytes": 23659
+    },
+    {
+      "path": "sources/w1-modified/00-INDEX.md",
+      "sha256": "7f4dbcb7e2299027002efd02f95b7baf948b1239e3a8b0f488ed3078351836a9",
+      "bytes": 3555
+    },
+    {
+      "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+      "sha256": "656892f0a2313f2e18b5d5061621c8946bc7568ea434d2dff262d43a35606160",
+      "bytes": 26782
+    },
+    {
+      "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+      "sha256": "0db14cdf853540df9447c7488e9855391c48a8e326e393356b34d0e4fe004a3d",
+      "bytes": 18490
+    },
+    {
+      "path": "sources/w1-modified/03-RATIONALE-AND-CROSSWALK.md",
+      "sha256": "d04a44ad4e6d583a161ed699fd01c7fb07ed185efa715f2f6a2661fadabf29e4",
+      "bytes": 21935
+    },
+    {
+      "path": "sources/w1-modified/04-DECISIONS-AND-ACCEPTANCE.md",
+      "sha256": "7eed29387484064328a73b3de5ab99a6eee7f64a6005076e48654269e2ab0b7c",
+      "bytes": 17414
+    },
+    {
+      "path": "sources/w1-modified/05-SOURCE-MANIFEST.json",
+      "sha256": "41988a823d217497597e2186d10ac9fcec5b8d9a51c1f5bf2acd5b3fe3fc13e1",
+      "bytes": 4288
+    },
+    {
+      "path": "sources/w1-modified/06-DOCUMENT-CHECKS.md",
+      "sha256": "3704ee64cf587786193d5578978f1fa4e1f81008fa4176c6d82e78a08ee0d40d",
+      "bytes": 1079
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "compiler": {
+    "repository": "https://github.com/MavenRain/mechanism-lang.git",
+    "revision": "a86e84b742ac51ac3d72ad40210ae45a8a5aa371",
+    "vendor_veil_revision": "a7534cedeac82d396de8e23058ee6bc990560f65",
+    "dune": "3.24.2",
+    "zarith": "1.14"
+  },
+  "implementation": {
+    "repository": "https://github.com/Telcoin-Association/telcoin-network.git",
+    "revision": "579aa551fe39593e32a48e1dbcfeccbccab64e3e",
+    "observed_date": "2026-09-22"
+  }
+}

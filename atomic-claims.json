@@ -1,0 +1,587 @@
+{
+  "version": 1,
+  "coverage_complete": false,
+  "shared_assumptions": {
+    "atomic_transitions": "Lease and rate transitions are serialized. A Rust implementation must establish the corresponding lock, actor or atomic-operation discipline.",
+    "internal_callback_tokens": "Completion tokens originate in the internal reservation lifecycle. The model does not expose a completion API to unauthenticated network senders.",
+    "nonwrapping_generations": "Count generations are mathematical naturals. A finite machine identifier needs a no-wrap or generation-collision argument.",
+    "complete_event_refinement": "Every relevant implementation event and error path is represented by the modeled transition.",
+    "trusted_clock": "Only the trusted monotonic clock issues ticks. One modeled tick has a specified real duration and is never replayed or fabricated by peer traffic.",
+    "cost_dominance": "Each supplied weight bounds real per-entry or per-start cost in a common unit, including the allocated state charged to that component.",
+    "fifo_projection": "The waiting rank correctly projects a critical FIFO queue; later critical work is enqueued behind the fixed target request.",
+    "scheduled_rounds": "A completed modeled round really services one critical request. The runtime must execute enough such rounds to establish a wall-clock bound.",
+    "executor_wakeup": "The executor honors the modeled wakeup request and eventually gives a pending poll another turn.",
+    "authenticated_membership": "The verified flag includes full signature checking and authenticated binding of the record to its committee identity and presented epoch.",
+    "stable_committee_index": "Each current committee member has one stable, unique slot. Record senders cannot choose another member slot or create new roster slots."
+  },
+  "claims": [
+    {
+      "id": "P01",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          61,
+          65
+        ]
+      },
+      "property": "A free lease becomes owned, while an already held lease refuses another reservation and keeps its state.",
+      "theorems": [
+        "freeReservationOwnsSlot",
+        "heldReservationDenied",
+        "heldReservationPreserved"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens"
+      ],
+      "open_implementation_obligations": [
+        "Refine the real reservation point and ConnectionId ownership."
+      ]
+    },
+    {
+      "id": "P02",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          61,
+          65
+        ]
+      },
+      "property": "A completion without an owned reservation cannot refund or alter a lease.",
+      "theorems": [
+        "unownedCompletionNoRefund",
+        "freeLeaseNotRefunded"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens"
+      ],
+      "open_implementation_obligations": [
+        "Connect refusal-before-reservation and free-slot callbacks to the no-owner case."
+      ]
+    },
+    {
+      "id": "P03",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Failure, establishment, established-hook refusal, timeout and cancellation each release the matching pending lease.",
+      "theorems": [
+        "everyTerminalReasonReleases"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove coverage of every Rust terminal callback and cancellation path."
+      ]
+    },
+    {
+      "id": "P04",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Repeated terminal callbacks with the same token have no further effect, even when their reason differs.",
+      "theorems": [
+        "releaseOwnedIdempotent",
+        "repeatedTerminalReasonsIdempotent"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens"
+      ],
+      "open_implementation_obligations": [
+        "Refine duplicate callbacks and their ordering to serialized transitions."
+      ]
+    },
+    {
+      "id": "P05",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "After release and reuse, an old token cannot release the new owner; the result extends to arbitrarily later generations.",
+      "theorems": [
+        "completedLeaseReusedWithNewGeneration",
+        "staleCompletionAfterActualReuse",
+        "arbitrarilyOldGenerationPreserved"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens",
+        "nonwrapping_generations"
+      ],
+      "open_implementation_obligations": [
+        "Establish the actual ConnectionId/generation mapping and reuse discipline."
+      ]
+    },
+    {
+      "id": "P06",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          109,
+          113
+        ]
+      },
+      "property": "Every finite sequence of reserve and completion actions preserves the original pool capacity and bounds pending occupancy by it.",
+      "theorems": [
+        "poolTraceCapacity",
+        "pendingOccupancyTraceBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine real connection maps, total capacity and all release paths."
+      ]
+    },
+    {
+      "id": "P07",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Available slots plus occupied slots equal the original capacity after any lifecycle trace.",
+      "theorems": [
+        "pendingConservationTrace"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Connect both implementation counters to the same authoritative ownership map."
+      ]
+    },
+    {
+      "id": "M01",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Distinct queue, pending and established entry costs compose into a weighted retained-resource bound.",
+      "theorems": [
+        "retainedCostBound"
+      ],
+      "assumptions": [
+        "cost_dominance",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Establish each counter cap, each measured or proved cost bound, and every omitted allocation."
+      ]
+    },
+    {
+      "id": "M02",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          109,
+          113
+        ]
+      },
+      "property": "Pending retained cost remains bounded throughout arbitrary modeled lifecycle traces on both swarms.",
+      "theorems": [
+        "pendingRetainedCostTraceBound",
+        "bothSwarmsRetainedCostTraceBound"
+      ],
+      "assumptions": [
+        "cost_dominance",
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Link every actual swarm and worker pool, including shared allocations, to the aggregate accounting."
+      ]
+    },
+    {
+      "id": "R01",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "Handshake starts over any finite trace cannot exceed initial credit plus issued trusted credit.",
+      "theorems": [
+        "handshakeCreditTraceBound",
+        "noNewCreditTraceBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "trusted_clock",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine every real handshake-start site and credit debit to the shared state."
+      ]
+    },
+    {
+      "id": "R02",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "Refill and attempt transitions preserve the token bucket capacity throughout any trace.",
+      "theorems": [
+        "rateStepCapacityBound",
+        "rateTraceCapacityBound",
+        "timedBucketCapacityBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine initial credit, saturating arithmetic and the configured capacity."
+      ]
+    },
+    {
+      "id": "R03",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          125
+        ]
+      },
+      "property": "Eviction and new identities do not reset or replenish the process-wide handshake allowance.",
+      "theorems": [
+        "sourceEvictionCannotMintCredits",
+        "newIdentityDoesNotResetAggregate"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove real source-table eviction, prefix normalization, restart and anti-reset behavior. Per-source penalties are not covered by this global-budget property."
+      ]
+    },
+    {
+      "id": "R04",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "Policy invalidation or recovery cannot replenish the global handshake budget.",
+      "theorems": [
+        "policyChangeCannotMintCredits"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine actual policy transitions without reinitializing rate state."
+      ]
+    },
+    {
+      "id": "R05",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "Peer-claimed clock values cannot issue credit; trusted ticks issue exactly the configured rate per tick.",
+      "theorems": [
+        "untrustedClockCannotMintCredits",
+        "uniformClockCredits"
+      ],
+      "assumptions": [
+        "trusted_clock",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Connect modeled ticks to monotonic elapsed time and exclude tick replay, wrap and peer-controlled input."
+      ]
+    },
+    {
+      "id": "R06",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "The shared process admits at most burst plus rate times trusted ticks, across arbitrary source and swarm interleavings.",
+      "theorems": [
+        "burstPlusRateEnvelope",
+        "swarmsUseSameBalance",
+        "exhaustedBucketRejectsEverySwarm"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "trusted_clock",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Use one authoritative balance in all real swarms, choose production burst/rate values and qualify honest reconnect fairness."
+      ]
+    },
+    {
+      "id": "R07",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "A per-handshake cost bound lifts the burst-plus-rate envelope to a weighted work bound.",
+      "theorems": [
+        "handshakeCostEnvelope"
+      ],
+      "assumptions": [
+        "cost_dominance",
+        "trusted_clock",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Establish worst-case cost for actual crypto/parsing paths and separately bound prevalidation work."
+      ]
+    },
+    {
+      "id": "T01",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Bounded polling partitions a finite input into processed events and retained backlog without losing events.",
+      "theorems": [
+        "allOutcomesPollBound",
+        "pollBacklogConservation",
+        "exhaustedPollPreservesBacklog"
+      ],
+      "assumptions": [
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine the real inner transport poll, including Accept, Retry, Refuse and Ignore outcomes."
+      ]
+    },
+    {
+      "id": "T02",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Budget exhaustion with remaining work requests another wakeup, including a Retry-only backlog.",
+      "theorems": [
+        "everyOutcomeBacklogRequestsWake",
+        "retryOnlyBacklogRequestsWake"
+      ],
+      "assumptions": [
+        "executor_wakeup",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Connect the modeled flag to a real registered waker and prove the runtime progress premise."
+      ]
+    },
+    {
+      "id": "S01",
+      "parent": "H10",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          77,
+          77
+        ]
+      },
+      "property": "A fixed critical request with n predecessors is served after at least n+1 completed service rounds, independently of later bulk arrivals.",
+      "theorems": [
+        "criticalRequestServedWithinRounds"
+      ],
+      "assumptions": [
+        "fifo_projection",
+        "scheduled_rounds",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove real queue ordering, one critical service per round, and the wall-clock scheduling/hold-time bounds."
+      ]
+    },
+    {
+      "id": "S02",
+      "parent": "H10",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          129,
+          131
+        ]
+      },
+      "property": "Bulk arrivals and critical arrivals enqueued behind a waiting request do not increase its waiting rank.",
+      "theorems": [
+        "bulkArrivalPreservesWaitingRank",
+        "criticalArrivalPreservesWaitingRank",
+        "serviceTraceReducesToRounds"
+      ],
+      "assumptions": [
+        "fifo_projection",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine the actual per-class service queues and admission paths."
+      ]
+    },
+    {
+      "id": "A01",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "Unverified records and records from an older epoch do not alter current-committee evidence.",
+      "theorems": [
+        "unverifiedRecordIgnored",
+        "staleCommitteeRecordIgnored",
+        "currentVerifiedRecordRecorded"
+      ],
+      "assumptions": [
+        "authenticated_membership",
+        "stable_committee_index",
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine signature/epoch binding and the actual current-committee lookup."
+      ]
+    },
+    {
+      "id": "A02",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "Repeating a record for the same member is idempotent and cannot advance the close decision.",
+      "theorems": [
+        "duplicateCommitteeRecordIdempotent",
+        "duplicateRecordsDoNotAdvanceClosure"
+      ],
+      "assumptions": [
+        "authenticated_membership",
+        "stable_committee_index",
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove that all duplicate wire records map to the same verified committee slot."
+      ]
+    },
+    {
+      "id": "A03",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "An epoch reset clears old resolution evidence and cannot close with a positive required record count.",
+      "theorems": [
+        "epochResetClearsResolution",
+        "epochResetPreservesRosterSize",
+        "newEpochCannotCloseWithoutRecords"
+      ],
+      "assumptions": [
+        "authenticated_membership",
+        "stable_committee_index",
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine committee transition ordering, roster replacement and the selected recovery threshold."
+      ]
+    },
+    {
+      "id": "A04",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "Record updates preserve roster capacity and bound resolution by the number of roster slots.",
+      "theorems": [
+        "committeeMarkPreservesRosterSize",
+        "distinctCommitteeResolutionBound"
+      ],
+      "assumptions": [
+        "authenticated_membership",
+        "stable_committee_index",
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine the actual roster cardinality, storage and membership-to-slot mapping."
+      ]
+    }
+  ]
+}

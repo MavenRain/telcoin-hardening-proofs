@@ -1,0 +1,64 @@
+-- Count caps become resource caps only with per-entry cost bounds in one unit.
+-- Runtime cost dominance and all omitted allocations remain refinement duties.
+def rec multiply : Count -> Count -> Count :=
+  fun (entries : Count) (weight : Count) =>
+    case entries as self in Count return Count with
+    | zero => zero
+    | next previous => add weight (multiply previous weight)
+
+def rec multipliedBounds : (used : Count) -> (capacity : Count) -> (weight : Count) ->
+    AtMost used capacity -> AtMost (multiply used weight) (multiply capacity weight) :=
+  fun (used : Count) (capacity : Count) (weight : Count) (bound : AtMost used capacity) =>
+    case bound as witness in AtMost entries cap
+        return AtMost (multiply entries weight) (multiply cap weight) with
+    | least cap => least (multiply cap weight)
+    | lift entries cap previous =>
+      addBounds weight weight (multiply entries weight) (multiply cap weight)
+        (reflexiveBound weight) (multipliedBounds entries cap weight previous)
+
+def retainedCost : Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (queued : Count) (pending : Count) (established : Count)
+      (queueCost : Count) (pendingCost : Count) (establishedCost : Count) =>
+    add (multiply queued queueCost)
+      (add (multiply pending pendingCost) (multiply established establishedCost))
+
+def retainedCostBound : (queued : Count) -> (pending : Count) -> (established : Count) ->
+    (queueCap : Count) -> (pendingCap : Count) -> (establishedCap : Count) ->
+    (queueCost : Count) -> (pendingCost : Count) -> (establishedCost : Count) ->
+    AtMost queued queueCap -> AtMost pending pendingCap -> AtMost established establishedCap ->
+    AtMost (retainedCost queued pending established queueCost pendingCost establishedCost)
+      (retainedCost queueCap pendingCap establishedCap queueCost pendingCost establishedCost) :=
+  fun (queued : Count) (pending : Count) (established : Count)
+      (queueCap : Count) (pendingCap : Count) (establishedCap : Count)
+      (queueCost : Count) (pendingCost : Count) (establishedCost : Count)
+      (queueBound : AtMost queued queueCap) (pendingBound : AtMost pending pendingCap)
+      (establishedBound : AtMost established establishedCap) =>
+    addBounds (multiply queued queueCost) (multiply queueCap queueCost)
+      (add (multiply pending pendingCost) (multiply established establishedCost))
+      (add (multiply pendingCap pendingCost) (multiply establishedCap establishedCost))
+      (multipliedBounds queued queueCap queueCost queueBound)
+      (addBounds (multiply pending pendingCost) (multiply pendingCap pendingCost)
+        (multiply established establishedCost) (multiply establishedCap establishedCost)
+        (multipliedBounds pending pendingCap pendingCost pendingBound)
+        (multipliedBounds established establishedCap establishedCost establishedBound))
+
+def pendingRetainedCostTraceBound : (trace : PoolTrace) -> (pool : LeasePool) -> (entryCost : Count) ->
+    AtMost (multiply (leaseOccupancy (runPool trace pool)) entryCost)
+      (multiply (leaseCapacity pool) entryCost) :=
+  fun (trace : PoolTrace) (pool : LeasePool) (entryCost : Count) =>
+    multipliedBounds (leaseOccupancy (runPool trace pool)) (leaseCapacity pool) entryCost
+      (pendingOccupancyTraceBound trace pool)
+
+def bothSwarmsRetainedCostTraceBound : (primaryTrace : PoolTrace) -> (workerTrace : PoolTrace) ->
+    (primaryPool : LeasePool) -> (workerPool : LeasePool) -> (primaryCost : Count) -> (workerCost : Count) ->
+    AtMost (add (multiply (leaseOccupancy (runPool primaryTrace primaryPool)) primaryCost)
+      (multiply (leaseOccupancy (runPool workerTrace workerPool)) workerCost))
+      (add (multiply (leaseCapacity primaryPool) primaryCost) (multiply (leaseCapacity workerPool) workerCost)) :=
+  fun (primaryTrace : PoolTrace) (workerTrace : PoolTrace) (primaryPool : LeasePool) (workerPool : LeasePool)
+      (primaryCost : Count) (workerCost : Count) =>
+    addBounds (multiply (leaseOccupancy (runPool primaryTrace primaryPool)) primaryCost)
+      (multiply (leaseCapacity primaryPool) primaryCost)
+      (multiply (leaseOccupancy (runPool workerTrace workerPool)) workerCost)
+      (multiply (leaseCapacity workerPool) workerCost)
+      (pendingRetainedCostTraceBound primaryTrace primaryPool primaryCost)
+      (pendingRetainedCostTraceBound workerTrace workerPool workerCost)

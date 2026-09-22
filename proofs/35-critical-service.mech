@@ -1,0 +1,108 @@
+-- S4: FIFO rank of a fixed consensus-critical request. Arrivals append behind
+-- this request. Every completed service round serves one critical request.
+-- Executor fairness and the wall-clock duration of a round are not assumed
+-- silently: the progress theorem requires enough completed service rounds.
+mu CriticalState : Type 0 with
+| waitingBehind : Count -> CriticalState
+| criticalServed : CriticalState
+
+def criticalTurn : CriticalState -> CriticalState :=
+  fun (state : CriticalState) =>
+    case state as self in CriticalState return CriticalState with
+    | waitingBehind ahead =>
+      (case ahead as rank in Count return CriticalState with
+      | zero => criticalServed
+      | next previous => waitingBehind previous)
+    | criticalServed => criticalServed
+
+mu ServiceEvent : Type 0 with
+| bulkArrival : Count -> ServiceEvent
+| criticalArrivalBehind : Count -> ServiceEvent
+| completedServiceRound : ServiceEvent
+
+def serviceStep : ServiceEvent -> CriticalState -> CriticalState :=
+  fun (event : ServiceEvent) (state : CriticalState) =>
+    case event as self in ServiceEvent return CriticalState with
+    | bulkArrival amount => state
+    | criticalArrivalBehind amount => state
+    | completedServiceRound => criticalTurn state
+
+mu ServiceTrace : Type 0 with
+| serviceDone : ServiceTrace
+| serviceEvent : ServiceEvent -> ServiceTrace -> ServiceTrace
+
+def rec serviceRounds : ServiceTrace -> Count :=
+  fun (trace : ServiceTrace) =>
+    case trace as self in ServiceTrace return Count with
+    | serviceDone => zero
+    | serviceEvent event rest =>
+      case event as action in ServiceEvent return Count with
+      | bulkArrival amount => serviceRounds rest
+      | criticalArrivalBehind amount => serviceRounds rest
+      | completedServiceRound => next (serviceRounds rest)
+
+def rec runService : ServiceTrace -> CriticalState -> CriticalState :=
+  fun (trace : ServiceTrace) (state : CriticalState) =>
+    case trace as self in ServiceTrace return CriticalState with
+    | serviceDone => state
+    | serviceEvent event rest => runService rest (serviceStep event state)
+
+def rec criticalRounds : Count -> CriticalState -> CriticalState :=
+  fun (rounds : Count) (state : CriticalState) =>
+    case rounds as self in Count return CriticalState with
+    | zero => state
+    | next previous => criticalRounds previous (criticalTurn state)
+
+def rec serviceTraceReducesToRounds : (trace : ServiceTrace) -> (state : CriticalState) ->
+    Equal CriticalState (runService trace state) (criticalRounds (serviceRounds trace) state) :=
+  fun (trace : ServiceTrace) (state : CriticalState) =>
+    case trace as self in ServiceTrace return
+        Equal CriticalState (runService self state) (criticalRounds (serviceRounds self) state) with
+    | serviceDone => same
+    | serviceEvent event rest =>
+      case event as action in ServiceEvent return
+          Equal CriticalState (runService (serviceEvent action rest) state)
+            (criticalRounds (serviceRounds (serviceEvent action rest)) state) with
+      | bulkArrival amount => serviceTraceReducesToRounds rest state
+      | criticalArrivalBehind amount => serviceTraceReducesToRounds rest state
+      | completedServiceRound => serviceTraceReducesToRounds rest (criticalTurn state)
+
+def rec servedRemainsServed : (rounds : Count) ->
+    Equal CriticalState (criticalRounds rounds criticalServed) criticalServed :=
+  fun (rounds : Count) =>
+    case rounds as self in Count return Equal CriticalState (criticalRounds self criticalServed) criticalServed with
+    | zero => same
+    | next previous => servedRemainsServed previous
+
+def rec rankBoundsServiceRounds : (ahead : Count) -> (extra : Count) ->
+    Equal CriticalState (criticalRounds (add (next ahead) extra) (waitingBehind ahead)) criticalServed :=
+  fun (ahead : Count) (extra : Count) =>
+    case ahead as self in Count return
+        Equal CriticalState (criticalRounds (add (next self) extra) (waitingBehind self)) criticalServed with
+    | zero => servedRemainsServed extra
+    | next previous => rankBoundsServiceRounds previous extra
+
+def criticalRequestServedWithinRounds : (trace : ServiceTrace) -> (ahead : Count) ->
+    AtMost (next ahead) (serviceRounds trace) ->
+    Equal CriticalState (runService trace (waitingBehind ahead)) criticalServed :=
+  fun (trace : ServiceTrace) (ahead : Count) (enough : AtMost (next ahead) (serviceRounds trace)) =>
+    equalTransitivity CriticalState (runService trace (waitingBehind ahead))
+      (criticalRounds (add (next ahead) (boundSlack (next ahead) (serviceRounds trace) enough)) (waitingBehind ahead))
+      criticalServed
+      (equalTransitivity CriticalState (runService trace (waitingBehind ahead))
+        (criticalRounds (serviceRounds trace) (waitingBehind ahead))
+        (criticalRounds (add (next ahead) (boundSlack (next ahead) (serviceRounds trace) enough)) (waitingBehind ahead))
+        (serviceTraceReducesToRounds trace (waitingBehind ahead))
+        (congruent Count CriticalState (fun (rounds : Count) => criticalRounds rounds (waitingBehind ahead))
+          (serviceRounds trace) (add (next ahead) (boundSlack (next ahead) (serviceRounds trace) enough))
+          (equalSymmetry Count (add (next ahead) (boundSlack (next ahead) (serviceRounds trace) enough))
+            (serviceRounds trace) (boundSlackReconstructs (next ahead) (serviceRounds trace) enough))))
+      (rankBoundsServiceRounds ahead (boundSlack (next ahead) (serviceRounds trace) enough))
+
+def bulkArrivalPreservesWaitingRank : (amount : Count) -> (ahead : Count) ->
+    Equal CriticalState (serviceStep (bulkArrival amount) (waitingBehind ahead)) (waitingBehind ahead) :=
+  fun (amount : Count) (ahead : Count) => same
+
+def criticalArrivalPreservesWaitingRank : (amount : Count) -> (ahead : Count) ->
+    Equal CriticalState (serviceStep (criticalArrivalBehind amount) (waitingBehind ahead)) (waitingBehind ahead) :=
+  fun (amount : Count) (ahead : Count) => same

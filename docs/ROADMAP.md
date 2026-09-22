@@ -1,0 +1,45 @@
+# Remaining proof and evidence work
+
+The requested final result is complete coverage of the hardening claims against
+the pinned implementation and an explicitly qualified deployment envelope.
+The current repository checks finite transition proofs for generation-tagged
+pending ownership, shared handshake credits, a discrete burst-plus-rate bound,
+weighted resource composition, poll continuations, committee-record deduplication
+and epoch reset, and critical service after enough completed rounds. Their
+contracts and boundaries are in [MODELS.md](MODELS.md).
+
+1. Decompose every normative source unit into atomic claims, assumptions and
+   completion criteria. Resolve differences between the original drafts,
+   modified packet and current source. Context and superseded requirements need
+   explicit dispositions. The current 34 groups and 24 atomic model obligations
+   are not the final atomic list.
+2. Extend the transition systems to bounded source tables with security-preserving
+   eviction, restart state, atomic policy snapshots, reconnect/bootstrap,
+   timestamp freshness and full rotation/reload behavior. Refine the committee
+   threshold and the queue scheduler. Cover the Hub, Rotation and Later tiers
+   as well as Launch, with counterexamples for weakened invariants.
+3. Define a refinement relation from the exact Rust implementation and resolved
+   transport dependencies to those systems. Prove simulation and invariant
+   preservation for relevant callbacks, polls, timers, errors and cancellations.
+   Source hashes and matching names are insufficient. First address the
+   aggregate connection-limit gap recorded as B01.
+4. Formalize parser/authentication boundaries and optimization equivalence:
+   certificate and token checks, payload signatures, early refusal, repeated
+   verification removal, gossip ordering and proof-of-possession prerequisites.
+   Model cryptographic assumptions explicitly and disclose them.
+5. Resolve D01-D12 before calling affected results passing: attack envelope,
+   honest population, per-process budget, liveness and latency thresholds,
+   admission semantics, quota scope, compatibility, test lanes, maintenance,
+   cryptographic policy, provider topology and key/rollback ownership.
+6. Collect M1a-M6 evidence with configuration and dependency hashes. Include
+   representative NICs, firewall-disabled spoofed and real-address traffic,
+   both swarms, Retry-only progress, shared NAT, committee reconnects, bulk sync
+   with votes, storage persistence, hub loss, cold startup and URL migration.
+7. Add verified evidence readers and complete release-gate evaluation. Treat a
+   threshold change as a new qualification. Only replace the currently blocked
+   full-qualification result when semantic coverage, implementation refinements
+   and all applicable empirical/operator gates have evidence.
+
+The input documents already require these distinctions. Numeric candidates such
+as 1,024 incoming attempts, 16 KiB buffers, 5-second inbound and 8-second dial
+timeouts are not accepted production settings in this repository.

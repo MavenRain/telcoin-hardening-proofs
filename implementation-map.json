@@ -1,0 +1,141 @@
+{
+  "version": 1,
+  "repository": "https://github.com/Telcoin-Association/telcoin-network",
+  "revision": "579aa551fe39593e32a48e1dbcfeccbccab64e3e",
+  "entries": [
+    {
+      "id": "B01",
+      "path": "crates/network-libp2p/src/consensus.rs",
+      "lines": [
+        124,
+        137
+      ],
+      "sha256": "f129086bfd25487a57f90439362564db7c2c5321105f6164c0ece121c1a5a51a",
+      "observation": "This connection-limit builder sets a per-peer ceiling of eight. Pending, total established and directional dimensions are left unset here. This observation is not a proof about every other component.",
+      "claim_groups": [
+        "H05",
+        "H16"
+      ],
+      "refinement_proved": false
+    },
+    {
+      "id": "B02",
+      "path": "crates/network-libp2p/src/consensus.rs",
+      "lines": [
+        563,
+        582
+      ],
+      "sha256": "f129086bfd25487a57f90439362564db7c2c5321105f6164c0ece121c1a5a51a",
+      "observation": "The current builder forwards handshake_timeout to the QUIC configuration. Effective outer deadlines and runtime propagation still need qualification; older source observations must be rechecked.",
+      "claim_groups": [
+        "H15"
+      ],
+      "refinement_proved": false
+    },
+    {
+      "id": "B03",
+      "path": "crates/network-libp2p/src/peers/behavior.rs",
+      "lines": [
+        77,
+        107
+      ],
+      "sha256": "d7bc3130556ac93af47e6420f4d12146ed3eb07dd91100b21dd2da9c88aba7c4",
+      "observation": "The pending callback ignores ConnectionId and delegates to IP sanitization. The shown established callback rejects self/banned peers. It does not provide the specified pending-ownership refinement.",
+      "claim_groups": [
+        "H06",
+        "H16",
+        "H18"
+      ],
+      "refinement_proved": false
+    },
+    {
+      "id": "B04",
+      "path": "crates/config/src/network.rs",
+      "lines": [
+        375,
+        404
+      ],
+      "sha256": "fe6d063581f19ce0fc1a957f978fd2de9bdeaa87f00ecc6145c1ae5f04ea9e0b",
+      "observation": "The local configuration default remains 65 seconds, while the documented idle limit is 30 seconds. This does not prove the effective external deadline.",
+      "claim_groups": [
+        "H15"
+      ],
+      "refinement_proved": false
+    },
+    {
+      "id": "B05",
+      "path": "Cargo.toml",
+      "lines": [
+        218,
+        224
+      ],
+      "sha256": "a5b083fb72b8144b805e5453d5e2ff2008f62b5fba40d43202e04d2d32f27dc0",
+      "observation": "The manifest declares quinn-proto at workspace scope. Resolved selection is separately recorded from Cargo.lock.",
+      "claim_groups": [
+        "H13"
+      ],
+      "refinement_proved": false
+    },
+    {
+      "id": "B06",
+      "path": "Cargo.lock",
+      "lines": [
+        1,
+        1
+      ],
+      "sha256": "04073dbf14576db48b3cc23741055631ade9ca25dfb9b78dd6210fd2381f7b31",
+      "observation": "The entire lockfile hash binds the dependency version observations below.",
+      "claim_groups": [
+        "H13",
+        "H14",
+        "H17"
+      ],
+      "refinement_proved": false
+    }
+  ],
+  "resolved_dependencies": [
+    {
+      "name": "aws-lc-rs",
+      "version": "1.16.2",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "a054912289d18629dc78375ba2c3726a3afe3ff71b4edba9dedfca0e3446d1fc"
+    },
+    {
+      "name": "libp2p-quic",
+      "version": "0.14.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "4f78ca359466657b380e469fe8c04df2f4447d1430838e6c3cef4a1c51ccb2ee"
+    },
+    {
+      "name": "libp2p-swarm",
+      "version": "0.48.0",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "57ccbe1baeaef036ffde4b265871e11c64d29464036bba635378f356bcdca854"
+    },
+    {
+      "name": "quinn",
+      "version": "0.11.9",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "b9e20a958963c291dc322d98411f541009df2ced7b5a4f2bd52337638cfccf20"
+    },
+    {
+      "name": "quinn-proto",
+      "version": "0.11.18",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "a9746dbde176634f4f2f1faf2404e30a31b2bc1e9cafb5329c95d8177a18c9fc"
+    },
+    {
+      "name": "ring",
+      "version": "0.17.14",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "a4689e6c2294d81e88dc6261c768b63bc4fcdb852be6d1352498b114f61383b7"
+    },
+    {
+      "name": "rustls",
+      "version": "0.23.37",
+      "source": "registry+https://github.com/rust-lang/crates.io-index",
+      "checksum": "758025cb5fccfd3bc2fd74708fd4682be41d99e5dff73c377c0646c6012c73a4"
+    }
+  ],
+  "refinement_proved": false
+}

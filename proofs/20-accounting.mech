@@ -1,0 +1,121 @@
+-- Fixed-capacity slots represent ownership of pending or established work.
+-- Mapping real ConnectionIds to these slots is an implementation obligation.
+mu Slots : Type 0 with
+| noSlots : Slots
+| slot : Flag -> Slots -> Slots
+
+def rec width : Slots -> Count :=
+  fun (slots : Slots) =>
+    case slots as self in Slots return Count with
+    | noSlots => zero
+    | slot state rest => next (width rest)
+
+def rec occupancy : Slots -> Count :=
+  fun (slots : Slots) =>
+    case slots as self in Slots return Count with
+    | noSlots => zero
+    | slot state rest =>
+      case state as occupied in Flag return Count with
+      | off => occupancy rest
+      | on => next (occupancy rest)
+
+def rec slotsBound : (slots : Slots) -> AtMost (occupancy slots) (width slots) :=
+  fun (slots : Slots) =>
+    case slots as self in Slots return AtMost (occupancy self) (width self) with
+    | noSlots => least zero
+    | slot state rest =>
+      case state as occupied in Flag
+          return AtMost (occupancy (slot occupied rest)) (width (slot occupied rest)) with
+      | off => weakenBound (occupancy rest) (width rest) (slotsBound rest)
+      | on => lift (occupancy rest) (width rest) (slotsBound rest)
+
+def rec release : Count -> Slots -> Slots :=
+  fun (id : Count) (slots : Slots) =>
+    case id as index in Count return Slots with
+    | zero =>
+      (case slots as self in Slots return Slots with
+      | noSlots => noSlots
+      | slot state rest => slot off rest)
+    | next previous =>
+      case slots as self in Slots return Slots with
+      | noSlots => noSlots
+      | slot state rest => slot state (release previous rest)
+
+def rec releaseIdempotent : (id : Count) -> (slots : Slots) ->
+    Equal Slots (release id (release id slots)) (release id slots) :=
+  fun (id : Count) (slots : Slots) =>
+    case id as index in Count
+        return Equal Slots (release index (release index slots)) (release index slots) with
+    | zero =>
+      (case slots as self in Slots
+          return Equal Slots (release zero (release zero self)) (release zero self) with
+      | noSlots => same
+      | slot state rest => same)
+    | next previous =>
+      case slots as self in Slots
+          return Equal Slots (release (next previous) (release (next previous) self))
+            (release (next previous) self) with
+      | noSlots => same
+      | slot state rest =>
+        congruent Slots Slots (fun (tail : Slots) => slot state tail)
+          (release previous (release previous rest)) (release previous rest)
+          (releaseIdempotent previous rest)
+
+def releaseHeadClears : (state : Flag) -> (rest : Slots) ->
+    Equal Slots (release zero (slot state rest)) (slot off rest) :=
+  fun (state : Flag) (rest : Slots) => same
+
+def releaseTailPreservesHead : (id : Count) -> (state : Flag) -> (rest : Slots) ->
+    Equal Slots (release (next id) (slot state rest)) (slot state (release id rest)) :=
+  fun (id : Count) (state : Flag) (rest : Slots) => same
+
+def rec releasePreservesCapacity : (id : Count) -> (slots : Slots) ->
+    Equal Count (width (release id slots)) (width slots) :=
+  fun (id : Count) (slots : Slots) =>
+    case id as index in Count return Equal Count (width (release index slots)) (width slots) with
+    | zero =>
+      (case slots as self in Slots return Equal Count (width (release zero self)) (width self) with
+      | noSlots => same
+      | slot state rest => same)
+    | next previous =>
+      case slots as self in Slots
+          return Equal Count (width (release (next previous) self)) (width self) with
+      | noSlots => same
+      | slot state rest =>
+        congruent Count Count (fun (n : Count) => next n) (width (release previous rest)) (width rest)
+          (releasePreservesCapacity previous rest)
+
+-- Aggregate budgets are shared independently of attacker-selected identities.
+def twoSwarmBound : (primary : Count) -> (worker : Count) ->
+    (primaryDemand : Count) -> (workerDemand : Count) ->
+    AtMost (add (boundedWork primary primaryDemand) (boundedWork worker workerDemand))
+      (add primary worker) :=
+  fun (primary : Count) (worker : Count) (primaryDemand : Count) (workerDemand : Count) =>
+    addBounds (boundedWork primary primaryDemand) primary
+      (boundedWork worker workerDemand) worker
+      (workBound primary primaryDemand) (workBound worker workerDemand)
+
+def stageCompositionBound : (queueCap : Count) -> (pendingCap : Count) -> (establishedCap : Count) ->
+    (queued : Count) -> (pending : Count) -> (established : Count) ->
+    AtMost (add (boundedWork queueCap queued)
+      (add (boundedWork pendingCap pending) (boundedWork establishedCap established)))
+      (add queueCap (add pendingCap establishedCap)) :=
+  fun (queueCap : Count) (pendingCap : Count) (establishedCap : Count)
+      (queued : Count) (pending : Count) (established : Count) =>
+    addBounds (boundedWork queueCap queued) queueCap
+      (add (boundedWork pendingCap pending) (boundedWork establishedCap established))
+      (add pendingCap establishedCap) (workBound queueCap queued)
+      (twoSwarmBound pendingCap establishedCap pending established)
+
+-- A permit is returned before waiting on a retry or backoff timer.
+mu TaskPhase : Type 0 with
+| executing : TaskPhase
+| sleeping : TaskPhase
+
+def holdsPermit : TaskPhase -> Flag :=
+  fun (phase : TaskPhase) =>
+    case phase as self in TaskPhase return Flag with
+    | executing => on
+    | sleeping => off
+
+def noSleepUnderPermit : Equal Flag (holdsPermit sleeping) off := same

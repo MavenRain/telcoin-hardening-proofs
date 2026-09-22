@@ -1,0 +1,688 @@
+{
+  "version": 1,
+  "target_document": "sources/w1-modified/01-MODIFIED-PLAN.md",
+  "coverage_policy": "This is a partial semantic decomposition. Every supplied Markdown source unit is also indexed. Model theorem links never close implementation or empirical obligations.",
+  "claims": [
+    {
+      "id": "H01",
+      "workstream": "W9",
+      "lines": [
+        9,
+        13
+      ],
+      "claim": "Qualified external attackers preserve validator liveness and resource bounds with the host firewall disabled.",
+      "theorems": [
+        "modelAloneInsufficient",
+        "unknownEnvelopeBlocks",
+        "firewallRequiredBlocksQualification",
+        "emulationAloneInsufficient"
+      ],
+      "model_scope": "Only the conditions necessary to claim qualification, not validator liveness.",
+      "required_evidence": [
+        "implementation refinement",
+        "D01-D04",
+        "M1a",
+        "M2",
+        "M3b",
+        "M4b",
+        "representative hardware"
+      ]
+    },
+    {
+      "id": "H02",
+      "workstream": "W2",
+      "lines": [
+        53,
+        53
+      ],
+      "claim": "Return reachability and public identifiers do not establish authorization.",
+      "theorems": [
+        "authenticationAlwaysRequired",
+        "unverifiedIdentityNoPrivilege"
+      ],
+      "model_scope": "Verified identity and payload authentication are abstract inputs; cryptographic correctness is not proved.",
+      "required_evidence": [
+        "certificate and payload validation refinement",
+        "negative authentication tests"
+      ]
+    },
+    {
+      "id": "H03",
+      "workstream": "W1",
+      "lines": [
+        55,
+        55
+      ],
+      "claim": "Every unvalidated attempt reaching Retry policy is challenged before full handshake acceptance.",
+      "theorems": [
+        "retryBeforeAccept"
+      ],
+      "model_scope": "Pure pre-accept decision; packet parsing, token validation and all role/swarm wiring remain open.",
+      "required_evidence": [
+        "T1a transport refinement",
+        "T2b token cases",
+        "role and swarm matrix"
+      ]
+    },
+    {
+      "id": "H04",
+      "workstream": "W1",
+      "lines": [
+        55,
+        57
+      ],
+      "claim": "Retry retains nonzero aggregate work and unvalidated traffic cannot consume privileged source quota.",
+      "theorems": [
+        "retryHasAggregateCost",
+        "noSpoofedSourceDebit"
+      ],
+      "model_scope": "Accounting units and provenance rule only; actual packet costs and accounting keys remain open.",
+      "required_evidence": [
+        "T4b",
+        "T8",
+        "bounded source table",
+        "forged-source run"
+      ]
+    },
+    {
+      "id": "H05",
+      "workstream": "W1",
+      "lines": [
+        59,
+        61
+      ],
+      "claim": "Queue, pending and established limits compose across both swarms and diverse attacker identities.",
+      "theorems": [
+        "stageCompositionBound",
+        "twoSwarmBound",
+        "slotsBound",
+        "retainedCostBound",
+        "bothSwarmsRetainedCostTraceBound",
+        "handshakeCostEnvelope"
+      ],
+      "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open.",
+      "required_evidence": [
+        "D02-D03",
+        "T4a",
+        "T4b",
+        "T5",
+        "T8",
+        "many-source and dual-swarm regression"
+      ]
+    },
+    {
+      "id": "H06",
+      "workstream": "W2",
+      "lines": [
+        65,
+        65
+      ],
+      "claim": "Closed admission, peer management and optional early refusal share one versioned admission contract.",
+      "theorems": [],
+      "model_scope": "Policy consistency and snapshot updates need a state-machine refinement.",
+      "required_evidence": [
+        "D05",
+        "W2 authoritative gate",
+        "T10 contract conformance"
+      ]
+    },
+    {
+      "id": "H07",
+      "workstream": "W2",
+      "lines": [
+        67,
+        67
+      ],
+      "claim": "Missing, stale or contradictory policy relaxes authorization without disabling authentication or resource isolation.",
+      "theorems": [
+        "stalePolicyFallsBack",
+        "authenticationAlwaysRequired",
+        "fallbackAllowsAuthenticated",
+        "everyProfileBudget",
+        "policyChangeCannotMintCredits"
+      ],
+      "model_scope": "Invalid-policy fallback preserves the modeled resource cap and shared handshake credit. Invalidity detection, atomic policy snapshots and runtime service isolation remain open.",
+      "required_evidence": [
+        "D05 invalidity predicates",
+        "A5 fallback/recovery",
+        "service class refinement"
+      ]
+    },
+    {
+      "id": "H08",
+      "workstream": "W2",
+      "lines": [
+        69,
+        71
+      ],
+      "claim": "Recovery requires valid inputs and enough current-committee records, separate from connectivity and readiness.",
+      "theorems": [
+        "invalidPolicyCannotClose",
+        "recordDeficit",
+        "unverifiedRecordIgnored",
+        "staleCommitteeRecordIgnored",
+        "duplicateRecordsDoNotAdvanceClosure",
+        "newEpochCannotCloseWithoutRecords",
+        "distinctCommitteeResolutionBound"
+      ],
+      "model_scope": "A fixed committee roster deduplicates authenticated current-epoch records, ignores old-epoch records and clears resolution on epoch reset. Real cryptographic binding, membership indexing, snapshot ordering, timestamp freshness and the committee-minus-f threshold remain open.",
+      "required_evidence": [
+        "D05",
+        "A5 recovery",
+        "A18 rotation",
+        "manual re-key procedure"
+      ]
+    },
+    {
+      "id": "H09",
+      "workstream": "W2",
+      "lines": [
+        75,
+        75
+      ],
+      "claim": "Admission, retention and load-penalty exemptions are distinct; violations still permit bans and trust never removes budgets.",
+      "theorems": [
+        "trustedViolationStillBanned",
+        "noTrustedCollateralLoadBan",
+        "everyProfileBudget"
+      ],
+      "model_scope": "Penalty and budget decisions only; retention and actual peer lifecycle remain open.",
+      "required_evidence": [
+        "A3 trust split",
+        "A11 collateral-ban regression"
+      ]
+    },
+    {
+      "id": "H10",
+      "workstream": "W3",
+      "lines": [
+        77,
+        77
+      ],
+      "claim": "Legitimate bulk service cannot starve votes, certificates or epoch records.",
+      "theorems": [
+        "bulkCannotConsumeCriticalBudget",
+        "criticalRequestServedWithinRounds",
+        "bulkArrivalPreservesWaitingRank"
+      ],
+      "model_scope": "A FIFO rank model proves completion after enough service rounds, despite later bulk arrivals. Real queue projection, scheduler fairness and wall-clock latency remain open.",
+      "required_evidence": [
+        "S4 refinement",
+        "scheduler fairness",
+        "M3 catch-up and vote latency"
+      ]
+    },
+    {
+      "id": "H11",
+      "workstream": "W1",
+      "lines": [
+        79,
+        79
+      ],
+      "claim": "All Accept, Retry, Refuse and Ignore paths have bounded poll work and preserve task progress and wakeups.",
+      "theorems": [
+        "allOutcomesPollBound",
+        "everyOutcomeConsumesFuel",
+        "noFuelNoWork",
+        "pollBacklogConservation",
+        "exhaustedPollPreservesBacklog",
+        "everyOutcomeBacklogRequestsWake",
+        "retryOnlyBacklogRequestsWake"
+      ],
+      "model_scope": "Finite polls have bounded work and preserve retained backlog with a wakeup request. Real waker registration, executor fairness, infinite arrival handling and runtime timing remain open.",
+      "required_evidence": [
+        "T6 integrated transport refinement",
+        "Retry-only progress regression",
+        "D04"
+      ]
+    },
+    {
+      "id": "H12",
+      "workstream": "W7",
+      "lines": [
+        83,
+        87
+      ],
+      "claim": "Metrics have correct stages and bounded labels, tables, retention and logging; runs record current provenance.",
+      "theorems": [
+        "metricDomainBound"
+      ],
+      "model_scope": "Three-constructor metric label domain only; internal source tables and exporters are not covered.",
+      "required_evidence": [
+        "O1-O6",
+        "O9",
+        "bounded table eviction",
+        "measurement metadata"
+      ]
+    },
+    {
+      "id": "H13",
+      "workstream": "W0",
+      "lines": [
+        93,
+        97
+      ],
+      "claim": "Resolved dependencies, advisories, carried patches and KeyLogFile behavior are explicitly maintained.",
+      "theorems": [],
+      "model_scope": "Dependency and maintenance evidence is operational, not a mathematical consequence of the model.",
+      "required_evidence": [
+        "N1 confirmation",
+        "N2a-N2d",
+        "T3 ownership and revision receipts"
+      ]
+    },
+    {
+      "id": "H14",
+      "workstream": "W1",
+      "lines": [
+        101,
+        103
+      ],
+      "claim": "Always-on Retry applies to every role and swarm while preserving stock-dialer interoperability and bounded incoming queues.",
+      "theorems": [
+        "retryBeforeAccept",
+        "slotsBound"
+      ],
+      "model_scope": "Local decision and symbolic slot capacity only; no wire interoperability proof.",
+      "required_evidence": [
+        "T1a",
+        "T2a-T2b",
+        "0.13.1/0.14.0 direction matrix",
+        "T3",
+        "O1"
+      ]
+    },
+    {
+      "id": "H15",
+      "workstream": "W1",
+      "lines": [
+        105,
+        107
+      ],
+      "claim": "Node-side progress survives the Retry fork and effective inbound/outbound deadlines are controlled and measured.",
+      "theorems": [
+        "allOutcomesPollBound",
+        "outerDeadlineDominates"
+      ],
+      "model_scope": "Abstract poll budget and minimum deadline, not actual timer propagation or separate dial/accept settings.",
+      "required_evidence": [
+        "T6",
+        "T1b configuration propagation",
+        "M4"
+      ]
+    },
+    {
+      "id": "H16",
+      "workstream": "W1",
+      "lines": [
+        109,
+        109
+      ],
+      "claim": "Pending lifecycle, validated attribution, handshake-start rate and established limits each have independent bounded accounting.",
+      "theorems": [
+        "releaseIdempotent",
+        "releasePreservesCapacity",
+        "releaseHeadClears",
+        "releaseTailPreservesHead",
+        "slotsBound",
+        "stageCompositionBound",
+        "validatedStillBounded",
+        "everyTerminalReasonReleases",
+        "unownedCompletionNoRefund",
+        "repeatedTerminalReasonsIdempotent",
+        "staleCompletionAfterActualReuse",
+        "pendingOccupancyTraceBound",
+        "pendingConservationTrace",
+        "handshakeCreditTraceBound",
+        "rateTraceCapacityBound",
+        "burstPlusRateEnvelope",
+        "sourceEvictionCannotMintCredits"
+      ],
+      "model_scope": "Serialized generation-tagged pending lifecycles and shared token-bucket traces are proved. ConnectionId refinement, machine wrap, validated per-source attribution, source-table security state, clock correspondence and honest reconnect fairness remain open.",
+      "required_evidence": [
+        "A1",
+        "T4a-T4b",
+        "T5",
+        "T8",
+        "M3",
+        "M4"
+      ]
+    },
+    {
+      "id": "H17",
+      "workstream": "W1",
+      "lines": [
+        111,
+        115
+      ],
+      "claim": "Crypto, certificate-work, early refusal and transport restructuring remain separately justified and preserve authentication and compatibility.",
+      "theorems": [],
+      "model_scope": "Cryptographic verification and optimization equivalence require additional formal models and profiling.",
+      "required_evidence": [
+        "T7",
+        "T9-T12",
+        "M1b",
+        "M6",
+        "D10",
+        "negative authentication tests",
+        "pinned patch mirror"
+      ]
+    },
+    {
+      "id": "H18",
+      "workstream": "W2",
+      "lines": [
+        119,
+        121
+      ],
+      "claim": "A1-A12 provide authoritative admission, trusted redial, seeded startup, record checks, closed-mode behavior and observer connectivity.",
+      "theorems": [
+        "closedRefusesStranger",
+        "authenticationAlwaysRequired"
+      ],
+      "model_scope": "Only pure admission decisions; each of the listed lifecycle mechanisms needs decomposition and proof.",
+      "required_evidence": [
+        "A1-A12 detailed specifications",
+        "M2",
+        "D05"
+      ]
+    },
+    {
+      "id": "H19",
+      "workstream": "W2",
+      "lines": [
+        123,
+        125
+      ],
+      "claim": "Hub, Rotation and Later work preserves bounded source accounting, eviction, record freshness, re-resolution and reload semantics.",
+      "theorems": [],
+      "model_scope": "A13-A27 are retained as open obligations, including deferred tiers.",
+      "required_evidence": [
+        "A13-A27 specifications and refinements",
+        "M5",
+        "rotation tests"
+      ]
+    },
+    {
+      "id": "H20",
+      "workstream": "W3",
+      "lines": [
+        129,
+        131
+      ],
+      "claim": "Serve paths avoid sleeping under permits and enforce Vote admission, bounded task creation, per-class work and hold-time bounds.",
+      "theorems": [
+        "noSleepUnderPermit",
+        "bulkCannotConsumeCriticalBudget",
+        "authenticationAlwaysRequired",
+        "criticalRequestServedWithinRounds"
+      ],
+      "model_scope": "The phase/permit policy and a FIFO critical-service progress bound are proved in the model. Rust task transitions, queue projection, hold times and executor scheduling remain open.",
+      "required_evidence": [
+        "S1-S6 refinements",
+        "occupancy/drop metrics",
+        "M3 regression"
+      ]
+    },
+    {
+      "id": "H21",
+      "workstream": "W3",
+      "lines": [
+        133,
+        133
+      ],
+      "claim": "Hub serve work remains bounded and aggregate-verification changes require established proof of possession.",
+      "theorems": [],
+      "model_scope": "S7-S9 are open; no proof-of-possession assumption is silently inserted.",
+      "required_evidence": [
+        "S7-S9",
+        "proof of possession"
+      ]
+    },
+    {
+      "id": "H22",
+      "workstream": "W4",
+      "lines": [
+        137,
+        139
+      ],
+      "claim": "Gossip verification work and publishing are bounded, and role-aware scoring does not replace budgets or ban needed honest hubs under load.",
+      "theorems": [
+        "fullPublishRefuses",
+        "noTrustedCollateralLoadBan"
+      ],
+      "model_scope": "A full-queue refusal decision and load-penalty rule only. No proof of real nonblocking publish, propagation or library limit ordering.",
+      "required_evidence": [
+        "G1-G7",
+        "resolved library order",
+        "publish execution proof",
+        "gossip regressions"
+      ]
+    },
+    {
+      "id": "H23",
+      "workstream": "W5",
+      "lines": [
+        143,
+        143
+      ],
+      "claim": "Live-pack and persistence latency meet an agreed criterion; failed measurements trigger required storage changes.",
+      "theorems": [],
+      "model_scope": "Empirical persistence claims and conditional interventions remain open.",
+      "required_evidence": [
+        "D1-D4",
+        "D04 persistence criterion",
+        "admitted hub-read workload"
+      ]
+    },
+    {
+      "id": "H24",
+      "workstream": "W6",
+      "lines": [
+        147,
+        149
+      ],
+      "claim": "The submit front screens methods, rejects batches, authenticates source attribution and distinguishes refusal/overload from transaction verdicts.",
+      "theorems": [
+        "batchesRejected",
+        "onlySubmitMethod",
+        "overloadIsDistinct",
+        "forgedForwardingHeaderIgnored"
+      ],
+      "model_scope": "Parsed request and trusted-proxy flags only; JSON parsing, HTTP status codes, front configuration and binds remain open.",
+      "required_evidence": [
+        "R1-R4",
+        "R7-R9",
+        "front end-to-end tests"
+      ]
+    },
+    {
+      "id": "H25",
+      "workstream": "W6",
+      "lines": [
+        149,
+        149
+      ],
+      "claim": "429/503 and Retry-After handling avoid cascading endpoint demotions.",
+      "theorems": [
+        "overload429NoDemotion",
+        "overload503NoDemotion",
+        "transactionVerdictNoDemotion"
+      ],
+      "model_scope": "Demotion counter transitions only. Backoff, Retry-After parsing and retry scheduling remain open.",
+      "required_evidence": [
+        "R5 forwarding refinement",
+        "overload endpoint regression"
+      ]
+    },
+    {
+      "id": "H26",
+      "workstream": "W6",
+      "lines": [
+        151,
+        151
+      ],
+      "claim": "Old submission paths remain until record/URL convergence and new-path tests pass; isolation follows migration.",
+      "theorems": [
+        "noEarlyRetirement",
+        "failedNewPathKeepsOld"
+      ],
+      "model_scope": "Retirement gate only; actual dissemination, convergence and origin isolation are not proved.",
+      "required_evidence": [
+        "R6",
+        "O5",
+        "R10-R13",
+        "migration run"
+      ]
+    },
+    {
+      "id": "H27",
+      "workstream": "W7",
+      "lines": [
+        155,
+        157
+      ],
+      "claim": "O1-O9 provide bounded operational metrics, logging, quorum/commit signals and private health/metrics binding.",
+      "theorems": [
+        "metricDomainBound"
+      ],
+      "model_scope": "Metric label domain only; all operational signals and private binds need implementation checks.",
+      "required_evidence": [
+        "O1-O9",
+        "private bind validation",
+        "instrumentation overhead"
+      ]
+    },
+    {
+      "id": "H28",
+      "workstream": "W8",
+      "lines": [
+        161,
+        167
+      ],
+      "claim": "Provider and host networking preserve source addresses and required ports, avoid unsafe consensus rate limits, and meet capacity/diversity requirements.",
+      "theorems": [],
+      "model_scope": "Physical networking, generated rules and provider capacity require configuration analysis and deployment evidence.",
+      "required_evidence": [
+        "P1-P4",
+        "D11-D12",
+        "mitigation-on tests",
+        "effective socket buffers",
+        "provider/ASN at most f"
+      ]
+    },
+    {
+      "id": "H29",
+      "workstream": "W8",
+      "lines": [
+        169,
+        169
+      ],
+      "claim": "Firewall projections permit all protocol peers and may pre-permit future validators without granting protocol admission.",
+      "theorems": [
+        "protocolPeersPermitted",
+        "futureCanBePrePermitted",
+        "futureStillNotProtocolMember"
+      ],
+      "model_scope": "Per-identity set inclusion only; addresses, ports, generated rule ordering and governance provenance need refinement.",
+      "required_evidence": [
+        "P2 generator refinement",
+        "functional firewall tests",
+        "rotation regression"
+      ]
+    },
+    {
+      "id": "H30",
+      "workstream": "W8",
+      "lines": [
+        171,
+        171
+      ],
+      "claim": "Hub key custody, removal, replacement and manual re-key procedures support launch and later reload/rotation.",
+      "theorems": [],
+      "model_scope": "Operational procedures and rotation-state invariants remain open.",
+      "required_evidence": [
+        "P1-P6",
+        "D12",
+        "manual re-key rehearsal"
+      ]
+    },
+    {
+      "id": "H31",
+      "workstream": "W9",
+      "lines": [
+        175,
+        181
+      ],
+      "claim": "M1-M6 qualify flood resilience, reconnects, topology, resource calibration, shared-source behavior and handshake costs.",
+      "theorems": [
+        "anyMissingGateBlocks",
+        "emulationAloneInsufficient"
+      ],
+      "model_scope": "Missing-evidence blocking policy only; none of the measurement results is fabricated.",
+      "required_evidence": [
+        "D01-D12",
+        "M1a-M6 run artifacts",
+        "thresholds fixed before acceptance"
+      ]
+    },
+    {
+      "id": "H32",
+      "workstream": "W9",
+      "lines": [
+        187,
+        193
+      ],
+      "claim": "Independent fixes and feature release do not imply completed deployment qualification.",
+      "theorems": [
+        "anyMissingGateBlocks",
+        "modelAloneInsufficient"
+      ],
+      "model_scope": "Conjunction of release evidence; engineering milestones require actual receipts.",
+      "required_evidence": [
+        "milestones A-E",
+        "Gate 1-Gate 6"
+      ]
+    },
+    {
+      "id": "H33",
+      "workstream": "W9",
+      "lines": [
+        197,
+        204
+      ],
+      "claim": "Staged closure, rollback and endpoint migration preserve budgets, connectivity and operational liveness.",
+      "theorems": [
+        "everyProfileBudget",
+        "noEarlyRetirement",
+        "failedNewPathKeepsOld"
+      ],
+      "model_scope": "Only budget independence and migration gate. Mixed-version and rollout liveness remain open.",
+      "required_evidence": [
+        "M2 mixed-version/restart/bootstrap",
+        "rollout receipts",
+        "rollback rehearsal"
+      ]
+    },
+    {
+      "id": "H34",
+      "workstream": "W9",
+      "lines": [
+        208,
+        212
+      ],
+      "claim": "The resilience claim states the qualified envelope, provider limits and residual real-address/compromised-hub risks.",
+      "theorems": [
+        "unknownEnvelopeBlocks",
+        "validatedStillBounded",
+        "everyProfileBudget"
+      ],
+      "model_scope": "Necessary limits only; external threat assumptions and the actual envelope require approval and measurements.",
+      "required_evidence": [
+        "D01-D04",
+        "provider capacity",
+        "residual-risk record"
+      ]
+    }
+  ]
+}

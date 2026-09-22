@@ -1,0 +1,49 @@
+-- T6: preserving the finite backlog when a poll exhausts its work budget.
+-- A real executor must honor the requested wakeup and give each poll a turn.
+def rec eventCount : Events -> Count :=
+  fun (events : Events) =>
+    case events as self in Events return Count with
+    | noEvents => zero
+    | event outcome rest => next (eventCount rest)
+
+def rec pollRemainder : Count -> Events -> Events :=
+  fun (fuel : Count) (events : Events) =>
+    case fuel as self in Count return Events with
+    | zero => events
+    | next remaining =>
+      case events as trace in Events return Events with
+      | noEvents => noEvents
+      | event outcome rest => pollRemainder remaining rest
+
+def backlogWake : Events -> Flag :=
+  fun (events : Events) =>
+    case events as self in Events return Flag with
+    | noEvents => off
+    | event outcome rest => on
+
+def rec pollBacklogConservation : (fuel : Count) -> (events : Events) ->
+    Equal Count (add (pollWork fuel events) (eventCount (pollRemainder fuel events))) (eventCount events) :=
+  fun (fuel : Count) (events : Events) =>
+    case fuel as self in Count return
+        Equal Count (add (pollWork self events) (eventCount (pollRemainder self events))) (eventCount events) with
+    | zero => same
+    | next remaining =>
+      case events as trace in Events return
+          Equal Count (add (pollWork (next remaining) trace) (eventCount (pollRemainder (next remaining) trace)))
+            (eventCount trace) with
+      | noEvents => same
+      | event outcome rest =>
+        congruent Count Count (fun (n : Count) => next n)
+          (add (pollWork remaining rest) (eventCount (pollRemainder remaining rest))) (eventCount rest)
+          (pollBacklogConservation remaining rest)
+
+def exhaustedPollPreservesBacklog : (events : Events) -> Equal Events (pollRemainder zero events) events :=
+  fun (events : Events) => same
+
+def everyOutcomeBacklogRequestsWake : (outcome : Outcome) -> (rest : Events) ->
+    Equal Flag (backlogWake (pollRemainder zero (event outcome rest))) on :=
+  fun (outcome : Outcome) (rest : Events) => same
+
+def retryOnlyBacklogRequestsWake : (rest : Events) ->
+    Equal Flag (backlogWake (pollRemainder (next zero) (event retry (event retry rest)))) on :=
+  fun (rest : Events) => same

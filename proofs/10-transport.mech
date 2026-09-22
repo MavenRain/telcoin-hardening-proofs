@@ -1,0 +1,85 @@
+-- The abstract listener charges all four outcomes against the same poll budget.
+mu Reachability : Type 0 with
+| unvalidated : Reachability
+| validated : Reachability
+
+mu Outcome : Type 0 with
+| accept : Outcome
+| retry : Outcome
+| refuse : Outcome
+| ignore : Outcome
+
+def preAccept : Reachability -> Flag -> Outcome :=
+  fun (source : Reachability) (hasBudget : Flag) =>
+    case source as self in Reachability return Outcome with
+    | unvalidated => retry
+    | validated =>
+      case hasBudget as quota in Flag return Outcome with
+      | off => refuse
+      | on => accept
+
+def retryBeforeAccept : (budget : Flag) ->
+    Equal Outcome (preAccept unvalidated budget) retry :=
+  fun (budget : Flag) => same
+
+def validatedStillBounded : Equal Outcome (preAccept validated off) refuse := same
+
+-- Source quota attribution starts only after return reachability validation.
+def sourceCharge : Reachability -> Count :=
+  fun (source : Reachability) =>
+    case source as self in Reachability return Count with
+    | unvalidated => zero
+    | validated => next zero
+
+def noSpoofedSourceDebit : Equal Count (sourceCharge unvalidated) zero := same
+
+-- Every packet still has a nonzero aggregate accounting charge.
+def aggregateCharge : Reachability -> Count :=
+  fun (source : Reachability) => next zero
+
+def retryHasAggregateCost : Equal Count (aggregateCharge unvalidated) (next zero) := same
+
+mu Events : Type 0 with
+| noEvents : Events
+| event : Outcome -> Events -> Events
+
+def rec pollWork : Count -> Events -> Count :=
+  fun (fuel : Count) (events : Events) =>
+    case fuel as self in Count return Count with
+    | zero => zero
+    | next remaining =>
+      case events as trace in Events return Count with
+      | noEvents => zero
+      | event outcome rest => next (pollWork remaining rest)
+
+def rec allOutcomesPollBound : (fuel : Count) -> (events : Events) ->
+    AtMost (pollWork fuel events) fuel :=
+  fun (fuel : Count) (events : Events) =>
+    case fuel as self in Count return AtMost (pollWork self events) self with
+    | zero => least zero
+    | next remaining =>
+      case events as trace in Events
+          return AtMost (pollWork (next remaining) trace) (next remaining) with
+      | noEvents => least (next remaining)
+      | event outcome rest =>
+        lift (pollWork remaining rest) remaining (allOutcomesPollBound remaining rest)
+
+-- A nonempty poll with positive fuel charges a unit on every outcome,
+-- including a Retry-only or Ignore-only stream.
+def everyOutcomeConsumesFuel : (outcome : Outcome) -> (rest : Events) -> (fuel : Count) ->
+    Equal Count (pollWork (next fuel) (event outcome rest)) (next (pollWork fuel rest)) :=
+  fun (outcome : Outcome) (rest : Events) (fuel : Count) => same
+
+def noFuelNoWork : (events : Events) -> Equal Count (pollWork zero events) zero :=
+  fun (events : Events) => same
+
+-- Numeric durations are deliberately symbolic. This is the minimum of
+-- transport, handshake, and idle deadlines, not a production timeout value.
+def effectiveDeadline : Count -> Count -> Count -> Count :=
+  fun (outer : Count) (handshake : Count) (idle : Count) =>
+    boundedWork outer (boundedWork handshake idle)
+
+def outerDeadlineDominates : (outer : Count) -> (handshake : Count) -> (idle : Count) ->
+    AtMost (effectiveDeadline outer handshake idle) outer :=
+  fun (outer : Count) (handshake : Count) (idle : Count) =>
+    workBound outer (boundedWork handshake idle)

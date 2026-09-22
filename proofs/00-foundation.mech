@@ -1,0 +1,87 @@
+-- Closed data and proof foundations. No imported axioms or numeric literals.
+mu Count : Type 0 with
+| zero : Count
+| next : Count -> Count
+
+mu Flag : Type 0 with
+| off : Flag
+| on : Flag
+
+mu Equal (0 A : Type 0) (0 x : A) : (0 y : A) -> Prop with
+| same : Equal A x x
+
+def congruent : (0 A : Type 0) -> (0 B : Type 0) -> (0 f : A -> B) ->
+    (0 x : A) -> (0 y : A) -> Equal A x y -> Equal B (f x) (f y) :=
+  fun (0 A : Type 0) (0 B : Type 0) (0 f : A -> B)
+      (0 x : A) (0 y : A) (proof : Equal A x y) =>
+    case proof as witness in Equal right return Equal B (f x) (f right) with
+    | same => same
+
+def both : Flag -> Flag -> Flag :=
+  fun (a : Flag) (b : Flag) =>
+    case a as self in Flag return Flag with
+    | off => off
+    | on => b
+
+def either : Flag -> Flag -> Flag :=
+  fun (a : Flag) (b : Flag) =>
+    case a as self in Flag return Flag with
+    | off => b
+    | on => on
+
+mu AtMost : (0 used : Count) -> (0 limit : Count) -> Type 0 with
+| least : (limit : Count) -> AtMost zero limit
+| lift : (used : Count) -> (limit : Count) ->
+    AtMost used limit -> AtMost (next used) (next limit)
+
+def rec add : Count -> Count -> Count :=
+  fun (a : Count) (b : Count) =>
+    case a as self in Count return Count with
+    | zero => b
+    | next smaller => next (add smaller b)
+
+def rec boundedWork : Count -> Count -> Count :=
+  fun (limit : Count) (demand : Count) =>
+    case limit as self in Count return Count with
+    | zero => zero
+    | next remaining =>
+      case demand as request in Count return Count with
+      | zero => zero
+      | next rest => next (boundedWork remaining rest)
+
+def rec workBound : (limit : Count) -> (demand : Count) ->
+    AtMost (boundedWork limit demand) limit :=
+  fun (limit : Count) (demand : Count) =>
+    case limit as self in Count return AtMost (boundedWork self demand) self with
+    | zero => least zero
+    | next remaining =>
+      case demand as request in Count
+          return AtMost (boundedWork (next remaining) request) (next remaining) with
+      | zero => least (next remaining)
+      | next rest => lift (boundedWork remaining rest) remaining (workBound remaining rest)
+
+def rec weakenBound : (used : Count) -> (limit : Count) ->
+    AtMost used limit -> AtMost used (next limit) :=
+  fun (used : Count) (limit : Count) (proof : AtMost used limit) =>
+    case proof as witness in AtMost amount cap return AtMost amount (next cap) with
+    | least cap => least (next cap)
+    | lift amount cap previous =>
+      lift amount (next cap) (weakenBound amount cap previous)
+
+def rec prefixBound : (prefix : Count) -> (used : Count) -> (limit : Count) ->
+    AtMost used limit -> AtMost used (add prefix limit) :=
+  fun (prefix : Count) (used : Count) (limit : Count) (proof : AtMost used limit) =>
+    case prefix as self in Count return AtMost used (add self limit) with
+    | zero => proof
+    | next rest => weakenBound used (add rest limit) (prefixBound rest used limit proof)
+
+def rec addBounds : (a : Count) -> (capA : Count) ->
+    (b : Count) -> (capB : Count) -> AtMost a capA -> AtMost b capB ->
+    AtMost (add a b) (add capA capB) :=
+  fun (a : Count) (capA : Count) (b : Count) (capB : Count)
+      (left : AtMost a capA) (right : AtMost b capB) =>
+    case left as witness in AtMost used limit
+        return AtMost (add used b) (add limit capB) with
+    | least limit => prefixBound limit b capB right
+    | lift used limit previous =>
+      lift (add used b) (add limit capB) (addBounds used limit b capB previous right)

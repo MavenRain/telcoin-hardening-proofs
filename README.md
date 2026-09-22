@@ -1,0 +1,105 @@
+# Telcoin hardening proofs
+
+A mechanism-lang proof workspace for the validator network hardening packet in
+`w1` and `w1-modified`, targeting
+[Telcoin Network at 579aa551fe39593e32a48e1dbcfeccbccab64e3e](https://github.com/Telcoin-Association/telcoin-network/tree/579aa551fe39593e32a48e1dbcfeccbccab64e3e).
+
+**Current status: checked abstract models, incomplete implementation proofs and
+deployment qualification.** This repository does not yet prove every hardening
+claim. It intentionally cannot produce a successful full-qualification result.
+Production thresholds are unresolved in the input plan, implementation
+refinements are missing, and required hardware/topology evidence is absent.
+
+The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
+with a [hash manifest](sources/manifest.json). The modified plan is the target;
+the original drafts retain provenance and unresolved details. The
+[claim ledger](claims.json) contains 34 groups across W0 through W9, with
+[24 atomic model obligations](atomic-claims.json) documenting theorem links,
+assumptions, source ranges and open implementation obligations. The
+[coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
+retain all 1,383 source units. Textual coverage is complete; atomic semantic
+decomposition is not.
+
+## Run locally
+
+The checkout used to create this repository already has the pinned checker built
+in `.cache`. Run:
+
+```sh
+make check
+make gate-regression
+make qualify
+```
+
+`check` checks every model declaration, requires empty axiom disclosure, verifies
+source hashes and coverage freshness, and requires 32 deliberately invalid
+proof/model variants to be rejected. `gate-regression` checks the blocked result.
+`qualify` exits **2** because full qualification is incomplete. Exit **1** means
+validation itself failed. A passing `check` is only a model-checking result.
+
+For a fresh checkout, install OCaml 5.2.1, Dune 3.24.2 and Zarith 1.14, then run
+`make bootstrap`. This clones the locked mechanism-lang revision and its pinned
+Veil dependency and builds `bin/mech.exe`. To reuse an existing local source:
+
+```sh
+python3 -I tools/bootstrap.py --local-source /path/to/mechanism-lang
+```
+
+The bootstrap command requires an absent `.cache/mechanism-lang` directory. It
+does not update or reset an existing cache. See [toolchain.lock.json](toolchain.lock.json).
+
+Check source links against the actual pinned Telcoin checkout with:
+
+```sh
+python3 -I tools/check.py --implementation /path/to/telcoin-network
+```
+
+The command checks the revision and file hashes in
+[implementation-map.json](implementation-map.json). Matching hashes establish
+which code was inspected; they do not establish program refinement.
+
+## What the model proves
+
+All proof terms and models are `.mech` source. Python handles reproducibility,
+bookkeeping and checker invocation. There are no source axioms, admitted proofs,
+imported Lean proofs, or external solver assertions. The current bundle contains
+131 explicit equality and order proof declarations across 14 modules. This count
+includes supporting lemmas; it is not a count of hardening claims proved.
+
+| Module | Checked model properties |
+|---|---|
+| `00-foundation.mech` | Symbolic work caps, monotonicity and additive composition. |
+| `05-arithmetic.mech` | Constructive order composition, generation comparison and remaining-capacity witnesses. |
+| `10-transport.mech` | Retry-before-accept decisions, source/aggregate accounting separation, all-outcome poll bounds and outer deadline dominance. |
+| `15-poll-continuation.mech` | Processed work plus retained backlog equals initial backlog; retained work requests another wakeup. |
+| `20-accounting.mech` | Fixed slot capacity, idempotent release, release locality, stage/swarm composition and a permit policy. |
+| `21-pending-lifecycle.mech` | Generation-tagged ownership, five terminal cleanup paths, duplicate and stale callback safety, and arbitrary finite pool traces. |
+| `22-weighted-resources.mech` | Weighted queue, pending and established resource bounds composed across both swarms. |
+| `25-handshake-budget.mech` | Shared handshake-credit conservation and capacity under admission, refill, eviction, identity changes and fallback. |
+| `26-discrete-rate-envelope.mech` | Handshake starts and weighted cost bounded by burst plus rate times trusted ticks. |
+| `30-admission-and-service.mech` | Invalid-policy fallback, mandatory authentication, bounded trusted work, resolution deficit and independent class budgets. |
+| `31-committee-records.mech` | Current-epoch authenticated record guards, distinct-member counting, duplicate idempotence and epoch reset. |
+| `35-critical-service.mech` | A queued critical request completes after enough service rounds despite subsequent bulk or critical arrivals. |
+| `40-ingress-and-operations.mech` | Parsed submit-only policy, overload demotion rules, proxy attribution, firewall inclusion, migration gates and a finite metric domain. |
+| `50-qualification.mech` | Missing evidence blocks a conjunction of qualification conditions. |
+
+These statements quantify over model inputs, including arbitrary natural-number
+caps and event lists. An abstract finite poll trace is not an operating-system
+scheduling theorem. An authenticated flag is not a cryptographic proof. A fixed
+slot vector is not a verified Rust connection map. Each claim's `model_scope`
+states the remaining boundary. [Model contracts](docs/MODELS.md) explain the
+transition systems, theorem premises and implementation obligations.
+
+## Implementation observations
+
+The pinned connection-limit builder sets a per-peer ceiling of eight while
+leaving its pending and total dimensions unset. The model's aggregate-bound
+theorem therefore cannot certify that builder. The current QUIC builder does
+forward `handshake_timeout`; older draft observations must be rechecked against
+the pinned source. Both observations and their exact ranges are in
+[the implementation map](implementation-map.json).
+
+See [the trust boundary](docs/TRUST.md) and [remaining proof work](docs/ROADMAP.md).
+Run results, the combined `.mech` bundle and negative-case diagnostics are saved
+under `.build`. The GitHub workflow checks models and the blocked gate; it does
+not run a validator flood or declare launch readiness.

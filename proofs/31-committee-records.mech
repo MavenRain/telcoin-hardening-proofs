@@ -1,0 +1,152 @@
+-- A5 recovery: one slot per current committee member, not one slot per message.
+-- Signature, epoch and identity binding are obligations of the verified flag.
+-- A committee transition clears the old evidence before collecting new records.
+def rec markCommitteeRecord : Count -> Slots -> Slots :=
+  fun (index : Count) (records : Slots) =>
+    case index as self in Count return Slots with
+    | zero =>
+      (case records as state in Slots return Slots with
+      | noSlots => noSlots
+      | slot present rest => slot on rest)
+    | next previous =>
+      case records as state in Slots return Slots with
+      | noSlots => noSlots
+      | slot present rest => slot present (markCommitteeRecord previous rest)
+
+def rec committeeMarkIdempotent : (index : Count) -> (records : Slots) ->
+    Equal Slots (markCommitteeRecord index (markCommitteeRecord index records)) (markCommitteeRecord index records) :=
+  fun (index : Count) (records : Slots) =>
+    case index as self in Count return
+        Equal Slots (markCommitteeRecord self (markCommitteeRecord self records)) (markCommitteeRecord self records) with
+    | zero =>
+      (case records as state in Slots return
+          Equal Slots (markCommitteeRecord zero (markCommitteeRecord zero state)) (markCommitteeRecord zero state) with
+      | noSlots => same
+      | slot present rest => same)
+    | next previous =>
+      case records as state in Slots return
+          Equal Slots (markCommitteeRecord (next previous) (markCommitteeRecord (next previous) state))
+            (markCommitteeRecord (next previous) state) with
+      | noSlots => same
+      | slot present rest =>
+        congruent Slots Slots (fun (tail : Slots) => slot present tail)
+          (markCommitteeRecord previous (markCommitteeRecord previous rest)) (markCommitteeRecord previous rest)
+          (committeeMarkIdempotent previous rest)
+
+def rec committeeMarkPreservesRosterSize : (index : Count) -> (records : Slots) ->
+    Equal Count (width (markCommitteeRecord index records)) (width records) :=
+  fun (index : Count) (records : Slots) =>
+    case index as self in Count return Equal Count (width (markCommitteeRecord self records)) (width records) with
+    | zero =>
+      (case records as state in Slots return Equal Count (width (markCommitteeRecord zero state)) (width state) with
+      | noSlots => same
+      | slot present rest => same)
+    | next previous =>
+      case records as state in Slots return Equal Count (width (markCommitteeRecord (next previous) state)) (width state) with
+      | noSlots => same
+      | slot present rest =>
+        congruent Count Count (fun (n : Count) => next n) (width (markCommitteeRecord previous rest)) (width rest)
+          (committeeMarkPreservesRosterSize previous rest)
+
+def recordDecision : Flag -> Count -> Slots -> Slots :=
+  fun (eligible : Flag) (index : Count) (records : Slots) =>
+    case eligible as self in Flag return Slots with
+    | off => records
+    | on => markCommitteeRecord index records
+
+def committeeRecord : Count -> Count -> Flag -> Count -> Slots -> Slots :=
+  fun (currentEpoch : Count) (recordEpoch : Count) (verified : Flag) (index : Count) (records : Slots) =>
+    recordDecision (both verified (sameCount recordEpoch currentEpoch)) index records
+
+def recordDecisionPreservesRosterSize : (eligible : Flag) -> (index : Count) -> (records : Slots) ->
+    Equal Count (width (recordDecision eligible index records)) (width records) :=
+  fun (eligible : Flag) (index : Count) (records : Slots) =>
+    case eligible as self in Flag return Equal Count (width (recordDecision self index records)) (width records) with
+    | off => same
+    | on => committeeMarkPreservesRosterSize index records
+
+def distinctCommitteeResolutionBound : (currentEpoch : Count) -> (recordEpoch : Count) -> (verified : Flag) ->
+    (index : Count) -> (records : Slots) ->
+    AtMost (occupancy (committeeRecord currentEpoch recordEpoch verified index records)) (width records) :=
+  fun (currentEpoch : Count) (recordEpoch : Count) (verified : Flag) (index : Count) (records : Slots) =>
+    equalTransport Count
+      (fun (cap : Count) => AtMost (occupancy (committeeRecord currentEpoch recordEpoch verified index records)) cap)
+      (width (committeeRecord currentEpoch recordEpoch verified index records)) (width records)
+      (recordDecisionPreservesRosterSize (both verified (sameCount recordEpoch currentEpoch)) index records)
+      (slotsBound (committeeRecord currentEpoch recordEpoch verified index records))
+
+def unverifiedRecordIgnored : (currentEpoch : Count) -> (recordEpoch : Count) -> (index : Count) -> (records : Slots) ->
+    Equal Slots (committeeRecord currentEpoch recordEpoch off index records) records :=
+  fun (currentEpoch : Count) (recordEpoch : Count) (index : Count) (records : Slots) => same
+
+def staleCommitteeRecordIgnored : (oldEpoch : Count) -> (gap : Count) -> (index : Count) -> (records : Slots) ->
+    Equal Slots (committeeRecord (next (add oldEpoch gap)) oldEpoch on index records) records :=
+  fun (oldEpoch : Count) (gap : Count) (index : Count) (records : Slots) =>
+    congruent Flag Slots (fun (eligible : Flag) => recordDecision eligible index records)
+      (sameCount oldEpoch (next (add oldEpoch gap))) off (sameCountBeyondOff oldEpoch gap)
+
+def currentVerifiedRecordRecorded : (epoch : Count) -> (index : Count) -> (records : Slots) ->
+    Equal Slots (committeeRecord epoch epoch on index records) (markCommitteeRecord index records) :=
+  fun (epoch : Count) (index : Count) (records : Slots) =>
+    congruent Flag Slots (fun (eligible : Flag) => recordDecision eligible index records)
+      (sameCount epoch epoch) on (sameCountReflexive epoch)
+
+def recordDecisionIdempotent : (eligible : Flag) -> (index : Count) -> (records : Slots) ->
+    Equal Slots (recordDecision eligible index (recordDecision eligible index records))
+      (recordDecision eligible index records) :=
+  fun (eligible : Flag) (index : Count) (records : Slots) =>
+    case eligible as self in Flag return
+        Equal Slots (recordDecision self index (recordDecision self index records)) (recordDecision self index records) with
+    | off => same
+    | on => committeeMarkIdempotent index records
+
+def duplicateCommitteeRecordIdempotent : (currentEpoch : Count) -> (recordEpoch : Count) -> (verified : Flag) ->
+    (index : Count) -> (records : Slots) ->
+    Equal Slots
+      (committeeRecord currentEpoch recordEpoch verified index (committeeRecord currentEpoch recordEpoch verified index records))
+      (committeeRecord currentEpoch recordEpoch verified index records) :=
+  fun (currentEpoch : Count) (recordEpoch : Count) (verified : Flag) (index : Count) (records : Slots) =>
+    recordDecisionIdempotent (both verified (sameCount recordEpoch currentEpoch)) index records
+
+def rec clearCommitteeRecords : Slots -> Slots :=
+  fun (records : Slots) =>
+    case records as self in Slots return Slots with
+    | noSlots => noSlots
+    | slot present rest => slot off (clearCommitteeRecords rest)
+
+def rec epochResetClearsResolution : (records : Slots) -> Equal Count (occupancy (clearCommitteeRecords records)) zero :=
+  fun (records : Slots) =>
+    case records as self in Slots return Equal Count (occupancy (clearCommitteeRecords self)) zero with
+    | noSlots => same
+    | slot present rest => epochResetClearsResolution rest
+
+def rec epochResetPreservesRosterSize : (records : Slots) -> Equal Count (width (clearCommitteeRecords records)) (width records) :=
+  fun (records : Slots) =>
+    case records as self in Slots return Equal Count (width (clearCommitteeRecords self)) (width self) with
+    | noSlots => same
+    | slot present rest =>
+      congruent Count Count (fun (n : Count) => next n) (width (clearCommitteeRecords rest)) (width rest)
+        (epochResetPreservesRosterSize rest)
+
+def resolvedProfile : Flag -> Count -> Slots -> Profile :=
+  fun (validPolicy : Flag) (required : Count) (records : Slots) =>
+    closeIfReady validPolicy required (occupancy records)
+
+def newEpochCannotCloseWithoutRecords : (requiredRemainder : Count) -> (records : Slots) ->
+    Equal Profile (resolvedProfile on (next requiredRemainder) (clearCommitteeRecords records)) graceProfile :=
+  fun (requiredRemainder : Count) (records : Slots) =>
+    congruent Count Profile (fun (count : Count) => closeIfReady on (next requiredRemainder) count)
+      (occupancy (clearCommitteeRecords records)) zero (epochResetClearsResolution records)
+
+def duplicateRecordsDoNotAdvanceClosure : (currentEpoch : Count) -> (recordEpoch : Count) -> (verified : Flag) ->
+    (index : Count) -> (records : Slots) -> (validPolicy : Flag) -> (required : Count) ->
+    Equal Profile
+      (resolvedProfile validPolicy required
+        (committeeRecord currentEpoch recordEpoch verified index (committeeRecord currentEpoch recordEpoch verified index records)))
+      (resolvedProfile validPolicy required (committeeRecord currentEpoch recordEpoch verified index records)) :=
+  fun (currentEpoch : Count) (recordEpoch : Count) (verified : Flag) (index : Count) (records : Slots)
+      (validPolicy : Flag) (required : Count) =>
+    congruent Slots Profile (fun (state : Slots) => resolvedProfile validPolicy required state)
+      (committeeRecord currentEpoch recordEpoch verified index (committeeRecord currentEpoch recordEpoch verified index records))
+      (committeeRecord currentEpoch recordEpoch verified index records)
+      (duplicateCommitteeRecordIdempotent currentEpoch recordEpoch verified index records)

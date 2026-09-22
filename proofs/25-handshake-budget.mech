@@ -1,0 +1,192 @@
+-- T8: one shared token balance across both swarms and arbitrary identities.
+-- Only trustedClockCredit issues allowance. Deriving those credits from a
+-- monotonic clock at the configured rate is a separate environment obligation.
+mu SwarmClass : Type 0 with
+| primarySwarm : SwarmClass
+| workerSwarm : SwarmClass
+
+mu RateEvent : Type 0 with
+| rateAttempt : Reachability -> SwarmClass -> Count -> Flag -> RateEvent
+| trustedClockCredit : Count -> RateEvent
+| claimedClockCredit : Count -> RateEvent
+| sourceEvicted : Count -> RateEvent
+| admissionPolicyChanged : Flag -> RateEvent
+
+def issuedNow : RateEvent -> Count :=
+  fun (event : RateEvent) =>
+    case event as self in RateEvent return Count with
+    | rateAttempt source swarm identity trusted => zero
+    | trustedClockCredit credits => credits
+    | claimedClockCredit credits => zero
+    | sourceEvicted identity => zero
+    | admissionPolicyChanged valid => zero
+
+def handshakeStartsNow : Count -> RateEvent -> Count :=
+  fun (available : Count) (event : RateEvent) =>
+    case event as self in RateEvent return Count with
+    | rateAttempt source swarm identity trusted =>
+      (case source as address in Reachability return Count with
+      | unvalidated => zero
+      | validated =>
+        case available as balance in Count return Count with
+        | zero => zero
+        | next remaining => next zero)
+    | trustedClockCredit credits => zero
+    | claimedClockCredit credits => zero
+    | sourceEvicted identity => zero
+    | admissionPolicyChanged valid => zero
+
+def creditsAfter : Count -> Count -> RateEvent -> Count :=
+  fun (capacity : Count) (available : Count) (event : RateEvent) =>
+    case event as self in RateEvent return Count with
+    | rateAttempt source swarm identity trusted =>
+      (case source as address in Reachability return Count with
+      | unvalidated => available
+      | validated => predecessor available)
+    | trustedClockCredit credits => boundedWork capacity (add available credits)
+    | claimedClockCredit credits => available
+    | sourceEvicted identity => available
+    | admissionPolicyChanged valid => available
+
+def rateStepCapacityBound : (event : RateEvent) -> (capacity : Count) -> (available : Count) ->
+    AtMost available capacity -> AtMost (creditsAfter capacity available event) capacity :=
+  fun (event : RateEvent) (capacity : Count) (available : Count) (within : AtMost available capacity) =>
+    case event as self in RateEvent return AtMost (creditsAfter capacity available self) capacity with
+    | rateAttempt source swarm identity trusted =>
+      (case source as address in Reachability return
+          AtMost (creditsAfter capacity available (rateAttempt address swarm identity trusted)) capacity with
+      | unvalidated => within
+      | validated => dropLeftBound available capacity within)
+    | trustedClockCredit credits => workBound capacity (add available credits)
+    | claimedClockCredit credits => within
+    | sourceEvicted identity => within
+    | admissionPolicyChanged valid => within
+
+mu RateTrace : Type 0 with
+| rateDone : RateTrace
+| rateEvent : RateEvent -> RateTrace -> RateTrace
+
+def rec issuedTotal : RateTrace -> Count :=
+  fun (trace : RateTrace) =>
+    case trace as self in RateTrace return Count with
+    | rateDone => zero
+    | rateEvent event rest => add (issuedNow event) (issuedTotal rest)
+
+def rec handshakeStarts : RateTrace -> Count -> Count -> Count :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) =>
+    case trace as self in RateTrace return Count with
+    | rateDone => zero
+    | rateEvent event rest =>
+      add (handshakeStartsNow available event)
+        (handshakeStarts rest capacity (creditsAfter capacity available event))
+
+def rec finalCredits : RateTrace -> Count -> Count -> Count :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) =>
+    case trace as self in RateTrace return Count with
+    | rateDone => available
+    | rateEvent event rest => finalCredits rest capacity (creditsAfter capacity available event)
+
+def rec rateTraceCapacityBound : (trace : RateTrace) -> (capacity : Count) -> (available : Count) ->
+    AtMost available capacity -> AtMost (finalCredits trace capacity available) capacity :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) (within : AtMost available capacity) =>
+    case trace as self in RateTrace return AtMost (finalCredits self capacity available) capacity with
+    | rateDone => within
+    | rateEvent event rest =>
+      rateTraceCapacityBound rest capacity (creditsAfter capacity available event)
+        (rateStepCapacityBound event capacity available within)
+
+-- Conservation bound over every finite trace. Identity churn and a policy
+-- fallback cannot mint handshake allowance. Refilling never exceeds capacity.
+def rec handshakeCreditTraceBound : (trace : RateTrace) -> (capacity : Count) -> (available : Count) ->
+    AtMost (handshakeStarts trace capacity available) (add available (issuedTotal trace)) :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) =>
+    case trace as self in RateTrace return
+        AtMost (handshakeStarts self capacity available) (add available (issuedTotal self)) with
+    | rateDone => least (add available zero)
+    | rateEvent event rest =>
+      case event as action in RateEvent return
+          AtMost (handshakeStarts (rateEvent action rest) capacity available)
+            (add available (issuedTotal (rateEvent action rest))) with
+      | rateAttempt source swarm identity trusted =>
+        (case source as address in Reachability return
+            AtMost (handshakeStarts (rateEvent (rateAttempt address swarm identity trusted) rest) capacity available)
+              (add available (issuedTotal rest)) with
+        | unvalidated => handshakeCreditTraceBound rest capacity available
+        | validated =>
+          case available as balance in Count return
+              AtMost (handshakeStarts (rateEvent (rateAttempt validated swarm identity trusted) rest) capacity balance)
+                (add balance (issuedTotal rest)) with
+          | zero => handshakeCreditTraceBound rest capacity zero
+          | next remaining =>
+            lift (handshakeStarts rest capacity remaining) (add remaining (issuedTotal rest))
+              (handshakeCreditTraceBound rest capacity remaining))
+      | trustedClockCredit credits =>
+        equalTransport Count
+          (fun (limit : Count) =>
+            AtMost (handshakeStarts rest capacity (boundedWork capacity (add available credits))) limit)
+          (add (add available credits) (issuedTotal rest)) (add available (add credits (issuedTotal rest)))
+          (addAssociative available credits (issuedTotal rest))
+          (boundTransitive
+            (handshakeStarts rest capacity (boundedWork capacity (add available credits)))
+            (add (boundedWork capacity (add available credits)) (issuedTotal rest))
+            (add (add available credits) (issuedTotal rest))
+            (handshakeCreditTraceBound rest capacity (boundedWork capacity (add available credits)))
+            (addBounds (boundedWork capacity (add available credits)) (add available credits)
+              (issuedTotal rest) (issuedTotal rest)
+              (boundedWorkRightBound capacity (add available credits)) (reflexiveBound (issuedTotal rest))))
+      | claimedClockCredit credits => handshakeCreditTraceBound rest capacity available
+      | sourceEvicted identity => handshakeCreditTraceBound rest capacity available
+      | admissionPolicyChanged valid => handshakeCreditTraceBound rest capacity available
+
+def noNewCreditTraceBound : (trace : RateTrace) -> (capacity : Count) -> (available : Count) ->
+    Equal Count (issuedTotal trace) zero -> AtMost (handshakeStarts trace capacity available) available :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) (noIssue : Equal Count (issuedTotal trace) zero) =>
+    equalTransport Count (fun (limit : Count) => AtMost (handshakeStarts trace capacity available) limit)
+      (add available (issuedTotal trace)) available
+      (equalTransitivity Count (add available (issuedTotal trace)) (add available zero) available
+        (congruent Count Count (fun (n : Count) => add available n) (issuedTotal trace) zero noIssue)
+        (addRightZero available)) (handshakeCreditTraceBound trace capacity available)
+
+def clockAllowanceTraceBound : (trace : RateTrace) -> (capacity : Count) -> (available : Count) ->
+    (clockAllowance : Count) -> AtMost (issuedTotal trace) clockAllowance ->
+    AtMost (handshakeStarts trace capacity available) (add available clockAllowance) :=
+  fun (trace : RateTrace) (capacity : Count) (available : Count) (clockAllowance : Count)
+      (clockBound : AtMost (issuedTotal trace) clockAllowance) =>
+    boundTransitive (handshakeStarts trace capacity available)
+      (add available (issuedTotal trace)) (add available clockAllowance)
+      (handshakeCreditTraceBound trace capacity available)
+      (addBounds available available (issuedTotal trace) clockAllowance (reflexiveBound available) clockBound)
+
+def exhaustedBucketRejectsEverySwarm : (source : Reachability) -> (swarm : SwarmClass) ->
+    (identity : Count) -> (trusted : Flag) ->
+    Equal Count (handshakeStartsNow zero (rateAttempt source swarm identity trusted)) zero :=
+  fun (source : Reachability) (swarm : SwarmClass) (identity : Count) (trusted : Flag) =>
+    case source as address in Reachability return
+        Equal Count (handshakeStartsNow zero (rateAttempt address swarm identity trusted)) zero with
+    | unvalidated => same
+    | validated => same
+
+def sourceEvictionCannotMintCredits : (capacity : Count) -> (available : Count) -> (identity : Count) ->
+    Equal Count (creditsAfter capacity available (sourceEvicted identity)) available :=
+  fun (capacity : Count) (available : Count) (identity : Count) => same
+
+def untrustedClockCannotMintCredits : (capacity : Count) -> (available : Count) -> (claimed : Count) ->
+    Equal Count (creditsAfter capacity available (claimedClockCredit claimed)) available :=
+  fun (capacity : Count) (available : Count) (claimed : Count) => same
+
+def policyChangeCannotMintCredits : (capacity : Count) -> (available : Count) -> (valid : Flag) ->
+    Equal Count (creditsAfter capacity available (admissionPolicyChanged valid)) available :=
+  fun (capacity : Count) (available : Count) (valid : Flag) => same
+
+def swarmsUseSameBalance : (capacity : Count) -> (available : Count) ->
+    (source : Reachability) -> (identity : Count) -> (trusted : Flag) ->
+    Equal Count (creditsAfter capacity available (rateAttempt source primarySwarm identity trusted))
+      (creditsAfter capacity available (rateAttempt source workerSwarm identity trusted)) :=
+  fun (capacity : Count) (available : Count) (source : Reachability) (identity : Count) (trusted : Flag) => same
+
+def newIdentityDoesNotResetAggregate : (capacity : Count) -> (available : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (first : Count) -> (second : Count) -> (trusted : Flag) ->
+    Equal Count (creditsAfter capacity available (rateAttempt source swarm first trusted))
+      (creditsAfter capacity available (rateAttempt source swarm second trusted)) :=
+  fun (capacity : Count) (available : Count) (source : Reachability) (swarm : SwarmClass)
+      (first : Count) (second : Count) (trusted : Flag) => same

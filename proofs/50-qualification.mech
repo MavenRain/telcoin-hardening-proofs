@@ -1,0 +1,52 @@
+-- These gates describe what a qualification checker must require.
+-- No deployment evidence is constructed here.
+mu Checks : Type 0 with
+| noChecks : Checks
+| checkItem : Flag -> Checks -> Checks
+
+def rec allChecks : Checks -> Flag :=
+  fun (checks : Checks) =>
+    case checks as self in Checks return Flag with
+    | noChecks => on
+    | checkItem passed rest => both passed (allChecks rest)
+
+def rec appendChecks : Checks -> Checks -> Checks :=
+  fun (prefix : Checks) (suffix : Checks) =>
+    case prefix as self in Checks return Checks with
+    | noChecks => suffix
+    | checkItem passed rest => checkItem passed (appendChecks rest suffix)
+
+def rec anyMissingGateBlocks : (prefix : Checks) -> (suffix : Checks) ->
+    Equal Flag (allChecks (appendChecks prefix (checkItem off suffix))) off :=
+  fun (prefix : Checks) (suffix : Checks) =>
+    case prefix as self in Checks
+        return Equal Flag (allChecks (appendChecks self (checkItem off suffix))) off with
+    | noChecks => same
+    | checkItem passed rest =>
+      case passed as status in Flag
+          return Equal Flag (allChecks (appendChecks (checkItem status rest) (checkItem off suffix))) off with
+      | off => same
+      | on => anyMissingGateBlocks rest suffix
+
+def resilienceQualified : Flag -> Flag -> Flag -> Flag -> Checks -> Flag :=
+  fun (implementationLinked : Flag) (numericEnvelopeSpecified : Flag)
+      (firewallDisabledRun : Flag) (representativeHardware : Flag) (releaseGates : Checks) =>
+    allChecks (checkItem implementationLinked (checkItem numericEnvelopeSpecified
+      (checkItem firewallDisabledRun (checkItem representativeHardware releaseGates))))
+
+def modelAloneInsufficient : (envelope : Flag) -> (firewallRun : Flag) ->
+    (hardware : Flag) -> (gates : Checks) ->
+    Equal Flag (resilienceQualified off envelope firewallRun hardware gates) off :=
+  fun (envelope : Flag) (firewallRun : Flag) (hardware : Flag) (gates : Checks) => same
+
+def unknownEnvelopeBlocks : (firewallRun : Flag) -> (hardware : Flag) -> (gates : Checks) ->
+    Equal Flag (resilienceQualified on off firewallRun hardware gates) off :=
+  fun (firewallRun : Flag) (hardware : Flag) (gates : Checks) => same
+
+def firewallRequiredBlocksQualification : (hardware : Flag) -> (gates : Checks) ->
+    Equal Flag (resilienceQualified on on off hardware gates) off :=
+  fun (hardware : Flag) (gates : Checks) => same
+
+def emulationAloneInsufficient : (gates : Checks) ->
+    Equal Flag (resilienceQualified on on on off gates) off :=
+  fun (gates : Checks) => same

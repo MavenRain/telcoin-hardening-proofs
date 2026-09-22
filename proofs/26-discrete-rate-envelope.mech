@@ -1,0 +1,68 @@
+-- A discrete trusted tick issues exactly rate credits. Neither peer messages
+-- nor policy changes advance trusted time. Real clock-to-tick correspondence
+-- and a CPU-cost upper bound must be supplied by the implementation model.
+mu TimedTrace : Type 0 with
+| timeDone : TimedTrace
+| timeAttempt : Reachability -> SwarmClass -> Count -> Flag -> TimedTrace -> TimedTrace
+| timeTick : TimedTrace -> TimedTrace
+| timeEviction : Count -> TimedTrace -> TimedTrace
+| timeClaimedTick : Count -> TimedTrace -> TimedTrace
+| timePolicyChange : Flag -> TimedTrace -> TimedTrace
+
+def rec timedEvents : TimedTrace -> Count -> RateTrace :=
+  fun (trace : TimedTrace) (rate : Count) =>
+    case trace as self in TimedTrace return RateTrace with
+    | timeDone => rateDone
+    | timeAttempt source swarm identity trusted rest =>
+      rateEvent (rateAttempt source swarm identity trusted) (timedEvents rest rate)
+    | timeTick rest => rateEvent (trustedClockCredit rate) (timedEvents rest rate)
+    | timeEviction identity rest => rateEvent (sourceEvicted identity) (timedEvents rest rate)
+    | timeClaimedTick claimed rest => rateEvent (claimedClockCredit claimed) (timedEvents rest rate)
+    | timePolicyChange valid rest => rateEvent (admissionPolicyChanged valid) (timedEvents rest rate)
+
+def rec trustedTicks : TimedTrace -> Count :=
+  fun (trace : TimedTrace) =>
+    case trace as self in TimedTrace return Count with
+    | timeDone => zero
+    | timeAttempt source swarm identity trusted rest => trustedTicks rest
+    | timeTick rest => next (trustedTicks rest)
+    | timeEviction identity rest => trustedTicks rest
+    | timeClaimedTick claimed rest => trustedTicks rest
+    | timePolicyChange valid rest => trustedTicks rest
+
+def rec uniformClockCredits : (trace : TimedTrace) -> (rate : Count) ->
+    Equal Count (issuedTotal (timedEvents trace rate)) (multiply (trustedTicks trace) rate) :=
+  fun (trace : TimedTrace) (rate : Count) =>
+    case trace as self in TimedTrace return
+        Equal Count (issuedTotal (timedEvents self rate)) (multiply (trustedTicks self) rate) with
+    | timeDone => same
+    | timeAttempt source swarm identity trusted rest => uniformClockCredits rest rate
+    | timeTick rest =>
+      congruent Count Count (fun (n : Count) => add rate n)
+        (issuedTotal (timedEvents rest rate)) (multiply (trustedTicks rest) rate) (uniformClockCredits rest rate)
+    | timeEviction identity rest => uniformClockCredits rest rate
+    | timeClaimedTick claimed rest => uniformClockCredits rest rate
+    | timePolicyChange valid rest => uniformClockCredits rest rate
+
+def burstPlusRateEnvelope : (trace : TimedTrace) -> (burst : Count) -> (rate : Count) ->
+    AtMost (handshakeStarts (timedEvents trace rate) burst burst)
+      (add burst (multiply (trustedTicks trace) rate)) :=
+  fun (trace : TimedTrace) (burst : Count) (rate : Count) =>
+    equalTransport Count
+      (fun (limit : Count) => AtMost (handshakeStarts (timedEvents trace rate) burst burst) limit)
+      (add burst (issuedTotal (timedEvents trace rate))) (add burst (multiply (trustedTicks trace) rate))
+      (congruent Count Count (fun (n : Count) => add burst n)
+        (issuedTotal (timedEvents trace rate)) (multiply (trustedTicks trace) rate) (uniformClockCredits trace rate))
+      (handshakeCreditTraceBound (timedEvents trace rate) burst burst)
+
+def timedBucketCapacityBound : (trace : TimedTrace) -> (burst : Count) -> (rate : Count) ->
+    AtMost (finalCredits (timedEvents trace rate) burst burst) burst :=
+  fun (trace : TimedTrace) (burst : Count) (rate : Count) =>
+    rateTraceCapacityBound (timedEvents trace rate) burst burst (reflexiveBound burst)
+
+def handshakeCostEnvelope : (trace : TimedTrace) -> (burst : Count) -> (rate : Count) -> (cost : Count) ->
+    AtMost (multiply (handshakeStarts (timedEvents trace rate) burst burst) cost)
+      (multiply (add burst (multiply (trustedTicks trace) rate)) cost) :=
+  fun (trace : TimedTrace) (burst : Count) (rate : Count) (cost : Count) =>
+    multipliedBounds (handshakeStarts (timedEvents trace rate) burst burst)
+      (add burst (multiply (trustedTicks trace) rate)) cost (burstPlusRateEnvelope trace burst rate)

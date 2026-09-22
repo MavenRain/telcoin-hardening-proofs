@@ -1,0 +1,108 @@
+mu Profile : Type 0 with
+| openProfile : Profile
+| graceProfile : Profile
+| closedProfile : Profile
+
+def effectiveProfile : Flag -> Profile -> Profile :=
+  fun (validPolicy : Flag) (requested : Profile) =>
+    case validPolicy as self in Flag return Profile with
+    | off => graceProfile
+    | on => requested
+
+def memberAllowed : Profile -> Flag -> Flag :=
+  fun (profile : Profile) (member : Flag) =>
+    case profile as self in Profile return Flag with
+    | openProfile => on
+    | graceProfile => on
+    | closedProfile => member
+
+def admission : Flag -> Flag -> Profile -> Flag -> Flag :=
+  fun (authenticated : Flag) (validPolicy : Flag) (requested : Profile) (member : Flag) =>
+    both authenticated (memberAllowed (effectiveProfile validPolicy requested) member)
+
+def stalePolicyFallsBack : (requested : Profile) ->
+    Equal Profile (effectiveProfile off requested) graceProfile :=
+  fun (requested : Profile) => same
+
+def authenticationAlwaysRequired : (validPolicy : Flag) -> (requested : Profile) -> (member : Flag) ->
+    Equal Flag (admission off validPolicy requested member) off :=
+  fun (validPolicy : Flag) (requested : Profile) (member : Flag) => same
+
+def fallbackAllowsAuthenticated : (requested : Profile) -> (member : Flag) ->
+    Equal Flag (admission on off requested member) on :=
+  fun (requested : Profile) (member : Flag) => same
+
+def closedRefusesStranger : Equal Flag (admission on on closedProfile off) off := same
+
+def privileged : Flag -> Flag -> Flag :=
+  fun (verifiedIdentity : Flag) (listed : Flag) => both verifiedIdentity listed
+
+def unverifiedIdentityNoPrivilege : (listed : Flag) -> Equal Flag (privileged off listed) off :=
+  fun (listed : Flag) => same
+
+-- Policy fallback and trust do not alter the shared resource budget.
+def admittedWork : Profile -> Flag -> Count -> Count -> Count :=
+  fun (profile : Profile) (trusted : Flag) (cap : Count) (demand : Count) => boundedWork cap demand
+
+def everyProfileBudget : (profile : Profile) -> (trusted : Flag) -> (cap : Count) -> (demand : Count) ->
+    AtMost (admittedWork profile trusted cap demand) cap :=
+  fun (profile : Profile) (trusted : Flag) (cap : Count) (demand : Count) => workBound cap demand
+
+def rec enoughRecords : Count -> Count -> Flag :=
+  fun (required : Count) (resolved : Count) =>
+    case required as self in Count return Flag with
+    | zero => on
+    | next remaining =>
+      case resolved as found in Count return Flag with
+      | zero => off
+      | next rest => enoughRecords remaining rest
+
+def closeIfReady : Flag -> Count -> Count -> Profile :=
+  fun (validPolicy : Flag) (required : Count) (resolved : Count) =>
+    case both validPolicy (enoughRecords required resolved) as ready in Flag return Profile with
+    | off => graceProfile
+    | on => closedProfile
+
+def invalidPolicyCannotClose : (required : Count) -> (resolved : Count) ->
+    Equal Profile (closeIfReady off required resolved) graceProfile :=
+  fun (required : Count) (resolved : Count) => same
+
+def rec recordDeficit : (records : Count) -> Equal Flag (enoughRecords (next records) records) off :=
+  fun (records : Count) =>
+    case records as self in Count return Equal Flag (enoughRecords (next self) self) off with
+    | zero => same
+    | next rest => recordDeficit rest
+
+-- Three independent trust dimensions: admission, retention, penalty exemption.
+-- The penalty decision consumes only the load-penalty exemption dimension.
+mu PenaltyCause : Type 0 with
+| loadPressure : PenaltyCause
+| protocolViolation : PenaltyCause
+
+def ban : PenaltyCause -> Flag -> Flag :=
+  fun (cause : PenaltyCause) (loadExempt : Flag) =>
+    case cause as self in PenaltyCause return Flag with
+    | loadPressure =>
+      (case loadExempt as trusted in Flag return Flag with
+      | off => on
+      | on => off)
+    | protocolViolation => on
+
+def trustedViolationStillBanned : (loadExempt : Flag) ->
+    Equal Flag (ban protocolViolation loadExempt) on :=
+  fun (loadExempt : Flag) => same
+
+def noTrustedCollateralLoadBan : Equal Flag (ban loadPressure on) off := same
+
+-- This proves budget separation. Scheduler fairness and vote latency remain
+-- implementation and measurement obligations.
+def criticalService : Count -> Count -> Count -> Count :=
+  fun (criticalCap : Count) (criticalDemand : Count) (bulkDemand : Count) =>
+    boundedWork criticalCap criticalDemand
+
+def bulkCannotConsumeCriticalBudget : (cap : Count) -> (critical : Count) ->
+    (bulkA : Count) -> (bulkB : Count) ->
+    Equal Count (criticalService cap critical bulkA) (criticalService cap critical bulkB) :=
+  fun (cap : Count) (critical : Count) (bulkA : Count) (bulkB : Count) => same
+
+def fullPublishRefuses : Equal Outcome (preAccept validated off) refuse := same

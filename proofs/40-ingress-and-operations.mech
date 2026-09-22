@@ -1,0 +1,105 @@
+mu RpcMethod : Type 0 with
+| sendRawTransaction : RpcMethod
+| otherMethod : RpcMethod
+
+mu RpcVerdict : Type 0 with
+| forwarded : RpcVerdict
+| methodRefused : RpcVerdict
+| batchRefused : RpcVerdict
+| overloaded : RpcVerdict
+
+def submitFront : Flag -> RpcMethod -> Flag -> RpcVerdict :=
+  fun (isBatch : Flag) (method : RpcMethod) (hasCapacity : Flag) =>
+    case isBatch as batch in Flag return RpcVerdict with
+    | on => batchRefused
+    | off =>
+      case method as request in RpcMethod return RpcVerdict with
+      | otherMethod => methodRefused
+      | sendRawTransaction =>
+        case hasCapacity as available in Flag return RpcVerdict with
+        | off => overloaded
+        | on => forwarded
+
+def batchesRejected : (method : RpcMethod) -> (capacity : Flag) ->
+    Equal RpcVerdict (submitFront on method capacity) batchRefused :=
+  fun (method : RpcMethod) (capacity : Flag) => same
+
+def onlySubmitMethod : (capacity : Flag) ->
+    Equal RpcVerdict (submitFront off otherMethod capacity) methodRefused :=
+  fun (capacity : Flag) => same
+
+def overloadIsDistinct : Equal RpcVerdict (submitFront off sendRawTransaction off) overloaded := same
+
+mu ForwardResult : Type 0 with
+| transactionAccepted : ForwardResult
+| transactionRejected : ForwardResult
+| http429 : ForwardResult
+| http503 : ForwardResult
+| transportFailure : ForwardResult
+
+def demotionCount : ForwardResult -> Count -> Count :=
+  fun (result : ForwardResult) (failures : Count) =>
+    case result as self in ForwardResult return Count with
+    | transactionAccepted => failures
+    | transactionRejected => failures
+    | http429 => failures
+    | http503 => failures
+    | transportFailure => next failures
+
+def overload429NoDemotion : (n : Count) -> Equal Count (demotionCount http429 n) n :=
+  fun (n : Count) => same
+
+def overload503NoDemotion : (n : Count) -> Equal Count (demotionCount http503 n) n :=
+  fun (n : Count) => same
+
+def transactionVerdictNoDemotion : (n : Count) -> Equal Count (demotionCount transactionRejected n) n :=
+  fun (n : Count) => same
+
+-- Source attribution is accepted only from an authenticated approved proxy.
+def attributedSource : Flag -> Flag -> Flag :=
+  fun (authenticatedProxy : Flag) (forwardedHeader : Flag) => both authenticatedProxy forwardedHeader
+
+def forgedForwardingHeaderIgnored : (header : Flag) -> Equal Flag (attributedSource off header) off :=
+  fun (header : Flag) => same
+
+-- Firewall projections may pre-permit future validators. They are supersets
+-- of protocol peers, not equal sets. Address completeness is checked outside.
+def firewallPermits : Flag -> Flag -> Flag :=
+  fun (current : Flag) (future : Flag) => either current future
+
+def protocolPeersPermitted : (future : Flag) -> Equal Flag (firewallPermits on future) on :=
+  fun (future : Flag) => same
+
+def futureCanBePrePermitted : Equal Flag (firewallPermits off on) on := same
+
+def futureStillNotProtocolMember : Equal Flag (admission on on closedProfile off) off := same
+
+-- Endpoint retirement requires both convergence and a passing new path.
+def retireOldEndpoint : Flag -> Flag -> Flag :=
+  fun (converged : Flag) (newPathPassed : Flag) => both converged newPathPassed
+
+def noEarlyRetirement : (newPathPassed : Flag) -> Equal Flag (retireOldEndpoint off newPathPassed) off :=
+  fun (newPathPassed : Flag) => same
+
+def failedNewPathKeepsOld : Equal Flag (retireOldEndpoint on off) off := same
+
+-- A finite metric domain has no source-address or PeerId constructor.
+mu MetricStage : Type 0 with
+| packetStage : MetricStage
+| pendingStage : MetricStage
+| establishedStage : MetricStage
+
+def metricIndex : MetricStage -> Count :=
+  fun (stage : MetricStage) =>
+    case stage as self in MetricStage return Count with
+    | packetStage => zero
+    | pendingStage => next zero
+    | establishedStage => next (next zero)
+
+def metricDomainBound : (stage : MetricStage) ->
+    AtMost (metricIndex stage) (next (next zero)) :=
+  fun (stage : MetricStage) =>
+    case stage as self in MetricStage return AtMost (metricIndex self) (next (next zero)) with
+    | packetStage => least (next (next zero))
+    | pendingStage => lift zero (next zero) (least (next zero))
+    | establishedStage => lift (next zero) (next zero) (lift zero zero (least zero))
