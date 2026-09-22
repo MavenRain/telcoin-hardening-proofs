@@ -35,7 +35,9 @@ def main() -> None:
         run("git", "clone", "--no-hardlinks", "--no-checkout", str(vendor), str(cache / "vendor" / "veil"))
         run("git", "checkout", "--detach", lock["vendor_veil_revision"], cwd=cache / "vendor" / "veil")
     else:
-        run("git", "submodule", "update", "--init", "--recursive", cwd=cache)
+        # Veil marks its nested donor submodules as data-only. They are not
+        # checker build inputs, and their URLs include a machine-local path.
+        run("git", "submodule", "update", "--init", "--", "vendor/veil", cwd=cache)
     revision = run("git", "rev-parse", "HEAD", cwd=cache)
     vendor_revision = run("git", "rev-parse", "HEAD", cwd=cache / "vendor" / "veil")
     if revision != lock["revision"] or vendor_revision != lock["vendor_veil_revision"]:

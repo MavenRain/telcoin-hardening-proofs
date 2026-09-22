@@ -7,6 +7,8 @@ command rejects all implementation and deployment certification.
 `initial-model-check.json` preserves the first model-checking receipt.
 `trace-model-check.json` records the expanded transition proofs, atomic ledger,
 semantic mutation checks and validation of the pinned implementation file hashes.
+`portable-bootstrap-model-check.json` repeats that validation after fixing fresh
+GitHub bootstrapping to fetch only the compiler's required Veil submodule.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 
