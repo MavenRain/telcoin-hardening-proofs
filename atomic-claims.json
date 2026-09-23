@@ -18,8 +18,8 @@
     "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
     "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs.",
     "canonical_source_keys": "Each Count key represents one canonical validated source or prefix under a fixed normalization policy. PeerIds cannot choose or reset this binding. The initial runtime table has unique canonical keys.",
-    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Only registration and eviction touch the table during a churn-model run. Module 28 separately models selected-cell charging and per-source restriction events; their integration with table lookup and global resources requires refinement.",
-    "fixed_source_quota": "The per-source quota is fixed during each restriction trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
+    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Only registration and eviction touch the table during a module-27 churn run. Module 28 models selected-cell charging and restriction events; module 29 composes them with first-match canonical-key lookup and table churn. Runtime lookup, atomic enforcement and global-resource composition still require refinement.",
+    "fixed_source_quota": "The per-source quota is fixed during each restriction or composed source-system trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota; composed traces require a bound for every initial resident. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
     "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event."
   },
   "claims": [
@@ -1003,7 +1003,7 @@
       ],
       "open_implementation_obligations": [
         "Refine every eviction and re-registration path, and prove admission actually enforces preserved security state.",
-        "Compose the separate charging/expiry restriction transitions with keyed table updates, global budgets, policy changes and restart persistence.",
+        "Refine the composed keyed source-system transitions and integrate global budgets, policy changes and restart persistence.",
         "Qualify retention, eviction selection, hub population and honest reconnect fairness. The model deliberately allows a fully protected table to refuse new sources."
       ]
     },
@@ -1102,7 +1102,7 @@
       ],
       "open_implementation_obligations": [
         "Prove actual lookup selects the canonical validated source cell and that admission atomically checks and consumes its quota before performing work.",
-        "Compose source quota consumption with aggregate credits, pending ownership, churn and trusted exemptions; preserve rate/occupancy separation and shared-NAT fairness."
+        "Compose source quota consumption with aggregate credits, pending ownership and trusted exemptions while preserving the modeled churn guarantees; preserve rate/occupancy separation and shared-NAT fairness."
       ]
     },
     {
@@ -1171,7 +1171,138 @@
       ],
       "open_implementation_obligations": [
         "Refine all charge, ban and expiry callbacks to the serialized restriction trace while keeping source keys and quota configuration stable.",
-        "Compose this debt invariant with keyed-table churn and the global rate model. It does not bound cumulative work across trusted expiries or establish a wall-clock rate."
+        "Compose the keyed source-system debt invariant with the global rate model. It does not bound cumulative work across trusted expiries or establish a wall-clock rate."
+      ]
+    },
+    {
+      "id": "C09",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          133
+        ]
+      },
+      "property": "Keyed source lookup skips vacancies and nonmatching residents and selects the first match. The keyed charge transition is a no-op whenever the selected-cell decision refuses, including missing and unvalidated sources. The decision refuses every unvalidated source, and a closed instance shows that it refuses a matching resident at its quota. A validated charge of a matching unbanned debt record with room at the table head consumes exactly one unit without changing the tail, and a closed trace charges a match behind a nonmatching resident and a vacancy.",
+      "theorems": [
+        "emptySourceLookupMissing",
+        "sourceLookupSkipsVacancy",
+        "sourceLookupSkipsOtherHead",
+        "sourceLookupFindsHead",
+        "sourceRestrictionTargetsHead",
+        "sourceRestrictionSkipsOtherHead",
+        "refusedSourceTableChargeIsNoOp",
+        "missingSourceTableChargeIsRefused",
+        "missingSourceTableChargeIsNoOp",
+        "unvalidatedSourceTableChargeIsRefused",
+        "unvalidatedSourceTableChargeIsNoOp",
+        "sourceTableRefusesAtQuota",
+        "sourceTableHeadChargesWithRoom",
+        "sourceSystemTraceChargesBeyondOtherHead",
+        "sourceSystemTraceRejectsUnvalidatedRegistration"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine canonical source extraction, runtime lookup and validation provenance to the same key used by the charge transition.",
+        "Establish unique initial and retained runtime keys and serialize lookup, quota consumption and admitted work.",
+        "Integrate aggregate credits, pending occupancy and exemptions; qualify shared-NAT and honest-source behavior."
+      ]
+    },
+    {
+      "id": "C10",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          133
+        ]
+      },
+      "property": "Every finite mixed trace of source registration, eviction and keyed restriction events keeps the initial slot width and bounds resident cardinality by that width. Restriction updates alone preserve resident count and never allocate or remove a cell.",
+      "theorems": [
+        "restrictSourcePreservesSize",
+        "restrictSourcePreservesWidth",
+        "sourceSystemStepWidth",
+        "sourceSystemTraceWidth",
+        "sourceSystemTraceSlotBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine all table indexes, eviction paths and restriction callbacks to the fixed-width model, including bounded auxiliary state.",
+        "Account for per-entry bytes, retention time, resizing, restart persistence and honest-source progress under a full protected table."
+      ]
+    },
+    {
+      "id": "C11",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          133
+        ]
+      },
+      "property": "Given a fixed quota and a debt bound for every initial resident, any canonical key looked up after an arbitrary finite mixed source-system trace has debt within that quota. The inductive table witness is preserved by registration, eviction, charging, bans and trusted or claimed expiry.",
+      "theorems": [
+        "sourceLookupQuotaBound",
+        "sourceSystemTraceSelectedQuota"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "trusted_source_expiry",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Construct the initial per-resident quota witness and refine every serialized runtime table and restriction event, including machine arithmetic.",
+        "Compose with the global rate envelope and pending ownership. This is a stored-debt bound, not cumulative work across expiry or a wall-clock rate.",
+        "Verify trusted expiry authority, restriction generations, deadlines, clock correspondence and restart behavior."
+      ]
+    },
+    {
+      "id": "C12",
+      "parent": "H19",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          123,
+          123
+        ]
+      },
+      "property": "Claimed expiry is a no-op for every keyed source table. Concrete mixed traces show charged residents surviving eviction and replacement attempts, each joint restriction surviving expiry of the other, and replacement plus charging after both restrictions expire.",
+      "theorems": [
+        "claimedSourceTableExpiryIsNoOp",
+        "sourceSystemTraceProtectsChargedResident",
+        "sourceSystemTraceBanSurvivesDebtExpiry",
+        "sourceSystemTraceDebtSurvivesBanExpiry",
+        "sourceSystemTraceExpiryAllowsReplacement"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "trusted_source_expiry",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine the mixed lifecycle examples to all runtime event paths; the concrete traces are not a general liveness or temporal-retention theorem.",
+        "Verify expiry authority, current restriction generations, ban policy, restart persistence and retention scheduling.",
+        "Complete Hub, Rotation and Later semantics and qualify honest reconnect behavior under saturation."
       ]
     }
   ]

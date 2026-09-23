@@ -56,9 +56,13 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   cell charge is the restriction-trace charge step; restriction traces preserve
   a fixed per-source debt bound. Trusted debt and ban expiry assume a validated
   source, current restriction generation and deadline; the model does not check
-  timer provenance or stale callbacks itself. Canonical lookup, atomic quota
-  enforcement before work, composition with table/global budgets, clock
-  correspondence, bounded retention and restart persistence remain open.
+  timer provenance or stale callbacks itself. Keyed source-system traces now
+  compose lookup, churn and restriction updates, preserving initial slot width
+  and a debt bound for every resident supplied by the initial quota witness.
+  Lookup and update select the first matching key; runtime canonical extraction,
+  unique bindings and atomic enforcement before work still require refinement.
+  Composition with global budgets, clock correspondence, bounded retention and
+  restart persistence remain open.
   Overflow refusal does not prove honest-source admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,

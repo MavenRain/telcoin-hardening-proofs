@@ -1,0 +1,484 @@
+-- Compose bounded source-table churn with keyed restriction transitions.
+-- Keys are already canonical. Updates select the first matching resident and
+-- never allocate. The fixed quota counts operations between trusted debt expiry.
+def chooseSourceCell : Flag -> SourceCell -> SourceCell -> SourceCell :=
+  fun (hit : Flag) (matched : SourceCell) (missed : SourceCell) =>
+    case hit as selected in Flag return SourceCell with
+    | off => missed
+    | on => matched
+
+def chooseSourceTable : Flag -> SourceTable -> SourceTable -> SourceTable :=
+  fun (hit : Flag) (matched : SourceTable) (missed : SourceTable) =>
+    case hit as selected in Flag return SourceTable with
+    | off => missed
+    | on => matched
+
+def rec lookupSource : Count -> SourceTable -> SourceCell :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return SourceCell with
+    | noSourceSlots => vacantSource
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return SourceCell with
+      | vacantSource => lookupSource key rest
+      | trackedSource resident restriction => chooseSourceCell (sameCount key resident)
+          (trackedSource resident restriction) (lookupSource key rest)
+
+def emptySourceLookupMissing : (key : Count) ->
+    Equal SourceCell (lookupSource key noSourceSlots) vacantSource :=
+  fun (key : Count) => same
+
+def sourceLookupSkipsVacancy : (key : Count) -> (rest : SourceTable) ->
+    Equal SourceCell (lookupSource key (sourceSlot vacantSource rest)) (lookupSource key rest) :=
+  fun (key : Count) (rest : SourceTable) => same
+
+def sourceLookupSkipsOtherHead : (key : Count) -> (resident : Count) ->
+    (restriction : SourceRestriction) -> (rest : SourceTable) -> Equal Flag (sameCount key resident) off ->
+    Equal SourceCell (lookupSource key (sourceSlot (trackedSource resident restriction) rest)) (lookupSource key rest) :=
+  fun (key : Count) (resident : Count) (restriction : SourceRestriction) (rest : SourceTable)
+      (different : Equal Flag (sameCount key resident) off) =>
+    congruent Flag SourceCell
+      (fun (hit : Flag) => chooseSourceCell hit (trackedSource resident restriction) (lookupSource key rest))
+      (sameCount key resident) off different
+
+def sourceTableChargeAllowed : Reachability -> Count -> Count -> SourceTable -> Flag :=
+  fun (source : Reachability) (capacity : Count) (key : Count) (table : SourceTable) =>
+    sourceCellChargeAllowed source capacity (lookupSource key table)
+
+def unvalidatedSourceTableChargeIsRefused : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceTableChargeAllowed unvalidated capacity key table) off :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) => same
+
+def rec restrictSource : Count -> Count -> SourceRestrictionEvent -> SourceTable -> SourceTable :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent) (table : SourceTable) =>
+    case table as self in SourceTable return SourceTable with
+    | noSourceSlots => noSourceSlots
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return SourceTable with
+      | vacantSource => sourceSlot vacantSource (restrictSource capacity key event rest)
+      | trackedSource resident restriction => chooseSourceTable (sameCount key resident)
+          (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+          (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest))
+
+def sourceLookupFindsHead : (key : Count) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    Equal SourceCell (lookupSource key (sourceSlot (trackedSource key restriction) rest))
+      (trackedSource key restriction) :=
+  fun (key : Count) (restriction : SourceRestriction) (rest : SourceTable) =>
+    congruent Flag SourceCell
+      (fun (hit : Flag) => chooseSourceCell hit (trackedSource key restriction) (lookupSource key rest))
+      (sameCount key key) on (sameCountReflexive key)
+
+def sourceRestrictionTargetsHead : (capacity : Count) -> (key : Count) ->
+    (event : SourceRestrictionEvent) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    Equal SourceTable (restrictSource capacity key event (sourceSlot (trackedSource key restriction) rest))
+      (sourceSlot (trackedSource key (sourceRestrictionStep capacity event restriction)) rest) :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent)
+      (restriction : SourceRestriction) (rest : SourceTable) =>
+    congruent Flag SourceTable
+      (fun (hit : Flag) => chooseSourceTable hit
+        (sourceSlot (trackedSource key (sourceRestrictionStep capacity event restriction)) rest)
+        (sourceSlot (trackedSource key restriction) (restrictSource capacity key event rest)))
+      (sameCount key key) on (sameCountReflexive key)
+
+def sourceRestrictionSkipsOtherHead : (capacity : Count) -> (key : Count) -> (resident : Count) ->
+    (event : SourceRestrictionEvent) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    Equal Flag (sameCount key resident) off ->
+    Equal SourceTable (restrictSource capacity key event (sourceSlot (trackedSource resident restriction) rest))
+      (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest)) :=
+  fun (capacity : Count) (key : Count) (resident : Count) (event : SourceRestrictionEvent)
+      (restriction : SourceRestriction) (rest : SourceTable) (different : Equal Flag (sameCount key resident) off) =>
+    congruent Flag SourceTable
+      (fun (hit : Flag) => chooseSourceTable hit
+        (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+        (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest)))
+      (sameCount key resident) off different
+
+def sourceRestrictionChargeCell : (source : Reachability) -> (capacity : Count) ->
+    (key : Count) -> (restriction : SourceRestriction) ->
+    Equal SourceCell (trackedSource key (sourceRestrictionStep capacity (sourceChargeEvent source) restriction))
+      (chargeSourceCell source capacity (trackedSource key restriction)) :=
+  fun (source : Reachability) (capacity : Count) (key : Count) (restriction : SourceRestriction) =>
+    case source as reach in Reachability return
+        Equal SourceCell (trackedSource key (sourceRestrictionStep capacity (sourceChargeEvent reach) restriction))
+          (chargeSourceCell reach capacity (trackedSource key restriction)) with
+    | unvalidated => same
+    | validated => same
+
+def rec refusedSourceTableChargeIsNoOp : (source : Reachability) -> (capacity : Count) ->
+    (key : Count) -> (table : SourceTable) -> Equal Flag (sourceTableChargeAllowed source capacity key table) off ->
+    Equal SourceTable (restrictSource capacity key (sourceChargeEvent source) table) table :=
+  fun (source : Reachability) (capacity : Count) (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return Equal Flag (sourceTableChargeAllowed source capacity key self) off ->
+        Equal SourceTable (restrictSource capacity key (sourceChargeEvent source) self) self with
+    | noSourceSlots => fun (refused : Equal Flag (sourceCellChargeAllowed source capacity vacantSource) off) => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return
+          Equal Flag (sourceTableChargeAllowed source capacity key (sourceSlot entry rest)) off ->
+          Equal SourceTable (restrictSource capacity key (sourceChargeEvent source) (sourceSlot entry rest))
+            (sourceSlot entry rest) with
+      | vacantSource => fun (refused : Equal Flag (sourceTableChargeAllowed source capacity key rest) off) =>
+          sourceSlotCongruent vacantSource vacantSource (restrictSource capacity key (sourceChargeEvent source) rest)
+            rest same (refusedSourceTableChargeIsNoOp source capacity key rest refused)
+      | trackedSource resident restriction =>
+        case sameCount key resident as hit in Flag return
+            Equal Flag (sourceCellChargeAllowed source capacity
+              (chooseSourceCell hit (trackedSource resident restriction) (lookupSource key rest))) off ->
+            Equal SourceTable (chooseSourceTable hit
+              (sourceSlot (trackedSource resident (sourceRestrictionStep capacity (sourceChargeEvent source) restriction)) rest)
+              (sourceSlot (trackedSource resident restriction) (restrictSource capacity key (sourceChargeEvent source) rest)))
+              (sourceSlot (trackedSource resident restriction) rest) with
+        | off => fun (refused : Equal Flag (sourceTableChargeAllowed source capacity key rest) off) =>
+            sourceSlotCongruent (trackedSource resident restriction) (trackedSource resident restriction)
+              (restrictSource capacity key (sourceChargeEvent source) rest) rest same
+              (refusedSourceTableChargeIsNoOp source capacity key rest refused)
+        | on => fun (refused : Equal Flag (sourceCellChargeAllowed source capacity (trackedSource resident restriction)) off) =>
+            sourceSlotCongruent
+              (trackedSource resident (sourceRestrictionStep capacity (sourceChargeEvent source) restriction))
+              (trackedSource resident restriction) rest rest
+              (equalTransitivity SourceCell
+                (trackedSource resident (sourceRestrictionStep capacity (sourceChargeEvent source) restriction))
+                (chargeSourceCell source capacity (trackedSource resident restriction)) (trackedSource resident restriction)
+                (sourceRestrictionChargeCell source capacity resident restriction)
+                (refusedSourceCellChargeIsNoOp source capacity (trackedSource resident restriction) refused)) same
+
+def missingSourceTableChargeIsRefused : (source : Reachability) -> (capacity : Count) ->
+    (key : Count) -> (table : SourceTable) -> Equal SourceCell (lookupSource key table) vacantSource ->
+    Equal Flag (sourceTableChargeAllowed source capacity key table) off :=
+  fun (source : Reachability) (capacity : Count) (key : Count) (table : SourceTable)
+      (missing : Equal SourceCell (lookupSource key table) vacantSource) =>
+    equalTransitivity Flag (sourceTableChargeAllowed source capacity key table)
+      (sourceCellChargeAllowed source capacity vacantSource) off
+      (congruent SourceCell Flag (fun (cell : SourceCell) => sourceCellChargeAllowed source capacity cell)
+        (lookupSource key table) vacantSource missing) (vacantSourceCellIsRefused source capacity)
+
+def missingSourceTableChargeIsNoOp : (source : Reachability) -> (capacity : Count) ->
+    (key : Count) -> (table : SourceTable) -> Equal SourceCell (lookupSource key table) vacantSource ->
+    Equal SourceTable (restrictSource capacity key (sourceChargeEvent source) table) table :=
+  fun (source : Reachability) (capacity : Count) (key : Count) (table : SourceTable)
+      (missing : Equal SourceCell (lookupSource key table) vacantSource) =>
+    refusedSourceTableChargeIsNoOp source capacity key table
+      (missingSourceTableChargeIsRefused source capacity key table missing)
+
+def unvalidatedSourceTableChargeIsNoOp : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    Equal SourceTable (restrictSource capacity key (sourceChargeEvent unvalidated) table) table :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) =>
+    refusedSourceTableChargeIsNoOp unvalidated capacity key table (unvalidatedSourceTableChargeIsRefused capacity key table)
+
+def sourceTableRefusesAtQuota : Equal Flag
+    (sourceTableChargeAllowed validated (next zero) zero
+      (sourceSlot (trackedSource zero (sourceRateDebt (next zero))) noSourceSlots)) off := same
+
+def rec restrictSourceIdentity : (capacity : Count) -> (key : Count) -> (event : SourceRestrictionEvent) ->
+    (table : SourceTable) -> ((restriction : SourceRestriction) ->
+      Equal SourceRestriction (sourceRestrictionStep capacity event restriction) restriction) ->
+    Equal SourceTable (restrictSource capacity key event table) table :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent) (table : SourceTable)
+      (unchanged : (restriction : SourceRestriction) -> Equal SourceRestriction (sourceRestrictionStep capacity event restriction) restriction) =>
+    case table as self in SourceTable return Equal SourceTable (restrictSource capacity key event self) self with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return
+          Equal SourceTable (restrictSource capacity key event (sourceSlot entry rest)) (sourceSlot entry rest) with
+      | vacantSource => sourceSlotCongruent vacantSource vacantSource (restrictSource capacity key event rest) rest
+          same (restrictSourceIdentity capacity key event rest unchanged)
+      | trackedSource resident restriction =>
+        case sameCount key resident as hit in Flag return Equal SourceTable (chooseSourceTable hit
+            (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+            (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest)))
+            (sourceSlot (trackedSource resident restriction) rest) with
+        | off => sourceSlotCongruent (trackedSource resident restriction) (trackedSource resident restriction)
+            (restrictSource capacity key event rest) rest same (restrictSourceIdentity capacity key event rest unchanged)
+        | on => congruent SourceRestriction SourceTable
+            (fun (security : SourceRestriction) => sourceSlot (trackedSource resident security) rest)
+            (sourceRestrictionStep capacity event restriction) restriction (unchanged restriction)
+
+def claimedSourceTableExpiryIsNoOp : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    Equal SourceTable (restrictSource capacity key (sourceExpiryEvent claimedSourceExpiry) table) table :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) =>
+    restrictSourceIdentity capacity key (sourceExpiryEvent claimedSourceExpiry) table
+      (fun (restriction : SourceRestriction) => same)
+
+def sourceTableHeadChargesWithRoom : (key : Count) -> (debt : Count) -> (spare : Count) -> (rest : SourceTable) ->
+    Equal SourceTable
+      (restrictSource (add (next debt) spare) key (sourceChargeEvent validated)
+        (sourceSlot (trackedSource key (sourceRateDebt debt)) rest))
+      (sourceSlot (trackedSource key (sourceRateDebt (next debt))) rest) :=
+  fun (key : Count) (debt : Count) (spare : Count) (rest : SourceTable) =>
+    equalTransitivity SourceTable
+      (restrictSource (add (next debt) spare) key (sourceChargeEvent validated)
+        (sourceSlot (trackedSource key (sourceRateDebt debt)) rest))
+      (sourceSlot (trackedSource key (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt))) rest)
+      (sourceSlot (trackedSource key (sourceRateDebt (next debt))) rest)
+      (sourceRestrictionTargetsHead (add (next debt) spare) key (sourceChargeEvent validated) (sourceRateDebt debt) rest)
+      (congruent SourceRestriction SourceTable (fun (restriction : SourceRestriction) => sourceSlot (trackedSource key restriction) rest)
+        (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt)) (sourceRateDebt (next debt))
+        (sourceWithRoomIsCharged debt spare))
+
+def rec restrictSourcePreservesSize : (capacity : Count) -> (key : Count) ->
+    (event : SourceRestrictionEvent) -> (table : SourceTable) ->
+    Equal Count (sourceTableSize (restrictSource capacity key event table)) (sourceTableSize table) :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent) (table : SourceTable) =>
+    case table as self in SourceTable return
+        Equal Count (sourceTableSize (restrictSource capacity key event self)) (sourceTableSize self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return
+          Equal Count (sourceTableSize (restrictSource capacity key event (sourceSlot entry rest)))
+            (sourceTableSize (sourceSlot entry rest)) with
+      | vacantSource => restrictSourcePreservesSize capacity key event rest
+      | trackedSource resident restriction =>
+        case sameCount key resident as hit in Flag return
+            Equal Count (sourceTableSize (chooseSourceTable hit
+              (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+              (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest))))
+              (next (sourceTableSize rest)) with
+        | off => congruent Count Count (fun (n : Count) => next n)
+            (sourceTableSize (restrictSource capacity key event rest)) (sourceTableSize rest)
+            (restrictSourcePreservesSize capacity key event rest)
+        | on => same
+
+def rec restrictSourcePreservesWidth : (capacity : Count) -> (key : Count) ->
+    (event : SourceRestrictionEvent) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (restrictSource capacity key event table)) (sourceTableWidth table) :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent) (table : SourceTable) =>
+    case table as self in SourceTable return
+        Equal Count (sourceTableWidth (restrictSource capacity key event self)) (sourceTableWidth self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return
+          Equal Count (sourceTableWidth (restrictSource capacity key event (sourceSlot entry rest)))
+            (sourceTableWidth (sourceSlot entry rest)) with
+      | vacantSource => congruent Count Count (fun (n : Count) => next n)
+          (sourceTableWidth (restrictSource capacity key event rest)) (sourceTableWidth rest)
+          (restrictSourcePreservesWidth capacity key event rest)
+      | trackedSource resident restriction =>
+        case sameCount key resident as hit in Flag return
+            Equal Count (sourceTableWidth (chooseSourceTable hit
+              (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+              (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest))))
+              (next (sourceTableWidth rest)) with
+        | off => congruent Count Count (fun (n : Count) => next n)
+            (sourceTableWidth (restrictSource capacity key event rest)) (sourceTableWidth rest)
+            (restrictSourcePreservesWidth capacity key event rest)
+        | on => same
+
+-- Every resident has its own bound; the initial witness excludes over-quota input.
+mu SourceQuotaBound (capacity : Count) : (0 table : SourceTable) -> Type 0 with
+| sourceQuotaEmpty : SourceQuotaBound capacity noSourceSlots
+| sourceQuotaVacant : (rest : SourceTable) -> SourceQuotaBound capacity rest ->
+    SourceQuotaBound capacity (sourceSlot vacantSource rest)
+| sourceQuotaTracked : (key : Count) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    AtMost (sourceDebt restriction) capacity -> SourceQuotaBound capacity rest ->
+    SourceQuotaBound capacity (sourceSlot (trackedSource key restriction) rest)
+
+def rec insertSourceQuotaBound : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> SourceQuotaBound capacity (insertSource key table) :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case bound as witness in SourceQuotaBound current return
+        SourceQuotaBound capacity (insertSource key current) with
+    | sourceQuotaEmpty => sourceQuotaEmpty
+    | sourceQuotaVacant rest tail => sourceQuotaTracked key sourceClear rest (least capacity) tail
+    | sourceQuotaTracked resident restriction rest head tail =>
+        sourceQuotaTracked resident restriction (insertSource key rest) head
+          (insertSourceQuotaBound capacity key rest tail)
+
+def rec evictSourceQuotaBound : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> SourceQuotaBound capacity (evictSource key table) :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case bound as witness in SourceQuotaBound current return
+        SourceQuotaBound capacity (evictSource key current) with
+    | sourceQuotaEmpty => sourceQuotaEmpty
+    | sourceQuotaVacant rest tail => sourceQuotaVacant (evictSource key rest)
+        (evictSourceQuotaBound capacity key rest tail)
+    | sourceQuotaTracked resident restriction rest head tail =>
+      case sameCount key resident as hit in Flag return SourceQuotaBound capacity
+          (sourceSlot (evictMatchingSource hit (trackedSource resident restriction)) (evictSource key rest)) with
+      | off => sourceQuotaTracked resident restriction (evictSource key rest) head
+          (evictSourceQuotaBound capacity key rest tail)
+      | on =>
+        (case restriction as security in SourceRestriction return AtMost (sourceDebt security) capacity ->
+            SourceQuotaBound capacity
+              (sourceSlot (evictSourceCell (trackedSource resident security)) (evictSource key rest)) with
+        | sourceClear => fun (previous : AtMost zero capacity) =>
+            sourceQuotaVacant (evictSource key rest) (evictSourceQuotaBound capacity key rest tail)
+        | sourceDebtAndBan debt => fun (previous : AtMost debt capacity) =>
+            sourceQuotaTracked resident (sourceDebtAndBan debt) (evictSource key rest) previous
+              (evictSourceQuotaBound capacity key rest tail)
+        | sourceRateDebt debt => fun (previous : AtMost debt capacity) =>
+            sourceQuotaTracked resident (sourceRateDebt debt) (evictSource key rest) previous
+              (evictSourceQuotaBound capacity key rest tail)
+        | sourceBan => fun (previous : AtMost zero capacity) =>
+            sourceQuotaTracked resident sourceBan (evictSource key rest) previous
+              (evictSourceQuotaBound capacity key rest tail)) head
+
+def sourceChurnQuotaBound : (capacity : Count) -> (event : SourceTableEvent) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> SourceQuotaBound capacity (sourceTableStep event table) :=
+  fun (capacity : Count) (event : SourceTableEvent) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case event as action in SourceTableEvent return SourceQuotaBound capacity (sourceTableStep action table) with
+    | sourceRegistration source key =>
+      (case source as reach in Reachability return SourceQuotaBound capacity (rememberSource reach key table) with
+      | unvalidated => bound
+      | validated =>
+        case sourceKnown key table as known in Flag return
+            SourceQuotaBound capacity (rememberKnownSource known key table) with
+        | off => insertSourceQuotaBound capacity key table bound
+        | on => bound)
+    | sourceEviction key => evictSourceQuotaBound capacity key table bound
+
+def rec restrictSourceQuotaBound : (capacity : Count) -> (key : Count) ->
+    (event : SourceRestrictionEvent) -> (table : SourceTable) -> SourceQuotaBound capacity table ->
+    SourceQuotaBound capacity (restrictSource capacity key event table) :=
+  fun (capacity : Count) (key : Count) (event : SourceRestrictionEvent) (table : SourceTable)
+      (bound : SourceQuotaBound capacity table) =>
+    case bound as witness in SourceQuotaBound current return
+        SourceQuotaBound capacity (restrictSource capacity key event current) with
+    | sourceQuotaEmpty => sourceQuotaEmpty
+    | sourceQuotaVacant rest tail => sourceQuotaVacant (restrictSource capacity key event rest)
+        (restrictSourceQuotaBound capacity key event rest tail)
+    | sourceQuotaTracked resident restriction rest head tail =>
+      case sameCount key resident as hit in Flag return SourceQuotaBound capacity (chooseSourceTable hit
+          (sourceSlot (trackedSource resident (sourceRestrictionStep capacity event restriction)) rest)
+          (sourceSlot (trackedSource resident restriction) (restrictSource capacity key event rest))) with
+      | off => sourceQuotaTracked resident restriction (restrictSource capacity key event rest) head
+          (restrictSourceQuotaBound capacity key event rest tail)
+      | on => sourceQuotaTracked resident (sourceRestrictionStep capacity event restriction) rest
+          (sourceRestrictionStepBound capacity event restriction head) tail
+
+def sourceCellDebt : SourceCell -> Count :=
+  fun (cell : SourceCell) =>
+    case cell as entry in SourceCell return Count with
+    | vacantSource => zero
+    | trackedSource key restriction => sourceDebt restriction
+
+def rec sourceLookupQuotaBound : (capacity : Count) -> (key : Count) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> AtMost (sourceCellDebt (lookupSource key table)) capacity :=
+  fun (capacity : Count) (key : Count) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case bound as witness in SourceQuotaBound current return
+        AtMost (sourceCellDebt (lookupSource key current)) capacity with
+    | sourceQuotaEmpty => least capacity
+    | sourceQuotaVacant rest tail => sourceLookupQuotaBound capacity key rest tail
+    | sourceQuotaTracked resident restriction rest head tail =>
+      case sameCount key resident as hit in Flag return
+          AtMost (sourceCellDebt (chooseSourceCell hit (trackedSource resident restriction) (lookupSource key rest))) capacity with
+      | off => sourceLookupQuotaBound capacity key rest tail
+      | on => head
+
+mu SourceSystemEvent : Type 0 with
+| sourceChurnEvent : SourceTableEvent -> SourceSystemEvent
+| sourceEnforceEvent : Count -> SourceRestrictionEvent -> SourceSystemEvent
+
+def sourceSystemStep : Count -> SourceSystemEvent -> SourceTable -> SourceTable :=
+  fun (capacity : Count) (event : SourceSystemEvent) (table : SourceTable) =>
+    case event as action in SourceSystemEvent return SourceTable with
+    | sourceChurnEvent churn => sourceTableStep churn table
+    | sourceEnforceEvent key restriction => restrictSource capacity key restriction table
+
+def sourceSystemStepWidth : (capacity : Count) -> (event : SourceSystemEvent) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (sourceSystemStep capacity event table)) (sourceTableWidth table) :=
+  fun (capacity : Count) (event : SourceSystemEvent) (table : SourceTable) =>
+    case event as action in SourceSystemEvent return
+        Equal Count (sourceTableWidth (sourceSystemStep capacity action table)) (sourceTableWidth table) with
+    | sourceChurnEvent churn => sourceTableStepWidth churn table
+    | sourceEnforceEvent key restriction => restrictSourcePreservesWidth capacity key restriction table
+
+def sourceSystemStepQuotaBound : (capacity : Count) -> (event : SourceSystemEvent) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> SourceQuotaBound capacity (sourceSystemStep capacity event table) :=
+  fun (capacity : Count) (event : SourceSystemEvent) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case event as action in SourceSystemEvent return SourceQuotaBound capacity (sourceSystemStep capacity action table) with
+    | sourceChurnEvent churn => sourceChurnQuotaBound capacity churn table bound
+    | sourceEnforceEvent key restriction => restrictSourceQuotaBound capacity key restriction table bound
+
+mu SourceSystemTrace : Type 0 with
+| sourceSystemDone : SourceSystemTrace
+| sourceSystemThen : SourceSystemEvent -> SourceSystemTrace -> SourceSystemTrace
+
+def rec runSourceSystem : SourceSystemTrace -> Count -> SourceTable -> SourceTable :=
+  fun (events : SourceSystemTrace) (capacity : Count) (table : SourceTable) =>
+    case events as trace in SourceSystemTrace return SourceTable with
+    | sourceSystemDone => table
+    | sourceSystemThen event rest => runSourceSystem rest capacity (sourceSystemStep capacity event table)
+
+def rec sourceSystemTraceWidth : (events : SourceSystemTrace) -> (capacity : Count) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (runSourceSystem events capacity table)) (sourceTableWidth table) :=
+  fun (events : SourceSystemTrace) (capacity : Count) (table : SourceTable) =>
+    case events as trace in SourceSystemTrace return
+        Equal Count (sourceTableWidth (runSourceSystem trace capacity table)) (sourceTableWidth table) with
+    | sourceSystemDone => same
+    | sourceSystemThen event rest => equalTransitivity Count
+        (sourceTableWidth (runSourceSystem rest capacity (sourceSystemStep capacity event table)))
+        (sourceTableWidth (sourceSystemStep capacity event table)) (sourceTableWidth table)
+        (sourceSystemTraceWidth rest capacity (sourceSystemStep capacity event table))
+        (sourceSystemStepWidth capacity event table)
+
+def sourceSystemTraceSlotBound : (events : SourceSystemTrace) -> (capacity : Count) -> (table : SourceTable) ->
+    AtMost (sourceTableSize (runSourceSystem events capacity table)) (sourceTableWidth table) :=
+  fun (events : SourceSystemTrace) (capacity : Count) (table : SourceTable) =>
+    equalTransport Count
+      (fun (width : Count) => AtMost (sourceTableSize (runSourceSystem events capacity table)) width)
+      (sourceTableWidth (runSourceSystem events capacity table)) (sourceTableWidth table)
+      (sourceSystemTraceWidth events capacity table) (sourceTableBound (runSourceSystem events capacity table))
+
+def rec sourceSystemTraceQuotaBound : (events : SourceSystemTrace) -> (capacity : Count) -> (table : SourceTable) ->
+    SourceQuotaBound capacity table -> SourceQuotaBound capacity (runSourceSystem events capacity table) :=
+  fun (events : SourceSystemTrace) (capacity : Count) (table : SourceTable) (bound : SourceQuotaBound capacity table) =>
+    case events as trace in SourceSystemTrace return SourceQuotaBound capacity (runSourceSystem trace capacity table) with
+    | sourceSystemDone => bound
+    | sourceSystemThen event rest => sourceSystemTraceQuotaBound rest capacity (sourceSystemStep capacity event table)
+        (sourceSystemStepQuotaBound capacity event table bound)
+
+def sourceSystemTraceSelectedQuota : (events : SourceSystemTrace) -> (capacity : Count) ->
+    (key : Count) -> (table : SourceTable) -> SourceQuotaBound capacity table ->
+    AtMost (sourceCellDebt (lookupSource key (runSourceSystem events capacity table))) capacity :=
+  fun (events : SourceSystemTrace) (capacity : Count) (key : Count) (table : SourceTable)
+      (bound : SourceQuotaBound capacity table) =>
+    sourceLookupQuotaBound capacity key (runSourceSystem events capacity table)
+      (sourceSystemTraceQuotaBound events capacity table bound)
+
+-- Concrete mixed traces complement the general bounds with enabled behavior.
+def sourceSystemTraceProtectsChargedResident : Equal SourceTable
+    (runSourceSystem
+      (sourceSystemThen (sourceChurnEvent (sourceRegistration validated zero))
+        (sourceSystemThen (sourceEnforceEvent zero (sourceChargeEvent validated))
+          (sourceSystemThen (sourceChurnEvent (sourceEviction zero))
+            (sourceSystemThen (sourceChurnEvent (sourceRegistration validated (next zero))) sourceSystemDone))))
+      (next zero) (sourceSlot vacantSource noSourceSlots))
+    (sourceSlot (trackedSource zero (sourceRateDebt (next zero))) noSourceSlots) := same
+
+def sourceSystemTraceBanSurvivesDebtExpiry : Equal SourceTable
+    (runSourceSystem
+      (sourceSystemThen (sourceEnforceEvent zero sourceBanEvent)
+        (sourceSystemThen (sourceEnforceEvent zero (sourceExpiryEvent trustedDebtExpiry))
+          (sourceSystemThen (sourceEnforceEvent zero (sourceChargeEvent validated)) sourceSystemDone)))
+      (next zero) (sourceSlot (trackedSource zero (sourceRateDebt (next zero))) noSourceSlots))
+    (sourceSlot (trackedSource zero sourceBan) noSourceSlots) := same
+
+def sourceSystemTraceDebtSurvivesBanExpiry : Equal SourceTable
+    (runSourceSystem
+      (sourceSystemThen (sourceEnforceEvent zero sourceBanEvent)
+        (sourceSystemThen (sourceEnforceEvent zero (sourceExpiryEvent trustedBanExpiry))
+          (sourceSystemThen (sourceEnforceEvent zero (sourceChargeEvent validated)) sourceSystemDone)))
+      (next zero) (sourceSlot (trackedSource zero (sourceRateDebt (next zero))) noSourceSlots))
+    (sourceSlot (trackedSource zero (sourceRateDebt (next zero))) noSourceSlots) := same
+
+def sourceSystemTraceExpiryAllowsReplacement : Equal SourceTable
+    (runSourceSystem
+      (sourceSystemThen (sourceEnforceEvent zero (sourceExpiryEvent trustedDebtExpiry))
+        (sourceSystemThen (sourceEnforceEvent zero (sourceExpiryEvent trustedBanExpiry))
+          (sourceSystemThen (sourceChurnEvent (sourceEviction zero))
+            (sourceSystemThen (sourceChurnEvent (sourceRegistration validated (next zero)))
+              (sourceSystemThen (sourceEnforceEvent (next zero) (sourceChargeEvent validated)) sourceSystemDone)))))
+      (next zero) (sourceSlot (trackedSource zero (sourceDebtAndBan (next zero))) noSourceSlots))
+    (sourceSlot (trackedSource (next zero) (sourceRateDebt (next zero))) noSourceSlots) := same
+
+def sourceSystemTraceRejectsUnvalidatedRegistration : Equal SourceTable
+    (runSourceSystem
+      (sourceSystemThen (sourceChurnEvent (sourceRegistration unvalidated zero))
+        (sourceSystemThen (sourceEnforceEvent zero (sourceChargeEvent validated)) sourceSystemDone))
+      (next zero) (sourceSlot vacantSource noSourceSlots))
+    (sourceSlot vacantSource noSourceSlots) := same
+
+def sourceSystemTraceChargesBeyondOtherHead : Equal SourceTable
+    (runSourceSystem (sourceSystemThen (sourceEnforceEvent (next zero) (sourceChargeEvent validated)) sourceSystemDone)
+      (next zero) (sourceSlot (trackedSource zero sourceBan)
+        (sourceSlot vacantSource (sourceSlot (trackedSource (next zero) sourceClear) noSourceSlots))))
+    (sourceSlot (trackedSource zero sourceBan)
+      (sourceSlot vacantSource (sourceSlot (trackedSource (next zero) (sourceRateDebt (next zero))) noSourceSlots))) := same

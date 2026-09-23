@@ -24,10 +24,16 @@ The earlier receipts carry `source_links_checked`, most recently
 `source-enforcement-model-check.json` records bounded per-source charging,
 simultaneous restrictions, independent trusted expiry, four new atomic
 obligations and 27 new semantic mutation checks. It also has
-`implementation_links: not_checked_this_run`. The new receipt covers 264 proof
-declarations, 44 atomic obligations and 90 rejected negative checks. Neither
-source receipt establishes keyed-table/global-resource composition, timer
-validation, restart persistence or deployment qualification.
+`implementation_links: not_checked_this_run`. That receipt covers 264 proof
+declarations, 44 atomic obligations and 90 rejected negative checks. Those two
+source receipts do not establish keyed-table/global-resource composition.
+`source-system-model-check.json` records keyed lookup and mixed source-table
+churn, charging, bans and expiry, with four new atomic obligations and 18 new
+semantic mutation checks. It covers 293 equality and order proof declarations,
+48 atomic obligations and 108 rejected negative checks. Its
+`implementation_links` status is also `not_checked_this_run`. Global resource
+composition, timer validation, restart persistence and deployment qualification
+remain open.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 

@@ -85,9 +85,10 @@ vacant. Runtime refinement must still prove canonical source/prefix
 normalization and initial key uniqueness.
 
 This model isolates churn around supplied security state. Module 28 adds
-separate charging and expiry transitions over that restriction type. Their
-integration with keyed-table updates, global handshake and pending accounting,
-capacity changes and restart remains open. A protected full table may refuse
+separate charging and expiry transitions over that restriction type, and
+module 29 composes them with keyed-table churn. Integration with global
+handshake and pending accounting, capacity changes and restart remains open.
+A protected full table may refuse
 every new source; bounded retention time, honest reconnect fairness, shared-NAT
 behavior and real memory cost require additional proofs and qualification
 evidence.
@@ -124,13 +125,52 @@ validated or unvalidated charges, ban installation and claimed or trusted
 expiry. Given an initial debt within a fixed quota, the final debt remains
 within that quota. This is a per-source debt invariant. It does not bound
 cumulative work across trusted expiries, establish a wall-clock rate, or compose
-the restriction trace with source-table churn and global resource traces.
+the restriction trace with global resource traces. Module 29 composes these
+restriction events with source-table churn as described below.
 
 Trusted expiry constructors assume an internal decision checked against the
 correct canonical source, current restriction generation and deadline. The
 model does not itself verify timer provenance, reject stale timers or establish
 clock correspondence. Time-based retention, scheduling of expiry, quota changes,
 counter overflow, restart persistence and honest-source progress remain open.
+
+### Keyed source-system composition
+
+`29-source-system.mech` uses `lookupSource` and `restrictSource` to select the
+first matching canonical key. Both skip vacant and nonmatching cells. Lookup
+returns `vacantSource` when no resident matches; updates never allocate, remove
+or rekey a resident. A matching update keeps the entire tail unchanged, even if
+an initial table contains duplicate keys. Runtime key uniqueness and canonical
+source extraction remain refinement obligations.
+
+`sourceTableChargeAllowed` consults the selected cell. The general
+`refusedSourceTableChargeIsNoOp` theorem connects this decision to the keyed
+charge transition. `unvalidatedSourceTableChargeIsRefused` states that the
+table decision refuses unvalidated sources. Missing and unvalidated sources
+leave the table unchanged; the selected restriction enforces the existing ban
+and quota checks. `sourceTableRefusesAtQuota` shows on a closed table that the
+decision refuses a matching resident at its quota.
+`sourceTableHeadChargesWithRoom` proves an exact one-unit charge with room and
+preserves the tail. `sourceSystemTraceChargesBeyondOtherHead` additionally
+exercises a charge behind a nonmatching resident and a vacant cell.
+
+`SourceQuotaBound` supplies a debt bound for every initial resident. Registration,
+eviction and keyed restriction updates each preserve that witness, and
+`sourceSystemTraceQuotaBound` lifts it over arbitrary finite mixed traces at a
+fixed quota. `sourceSystemTraceSelectedQuota` exposes the resulting bound for
+any looked-up key. The charge bound still uses the bounded charge operation in
+module 28; refusal and exact charging are separate properties. The slot-width
+and cardinality theorems need no initial debt witness and bound final resident
+count by the original table width. These results do not bound cumulative work
+across trusted debt expiries or establish a wall-clock rate.
+
+Concrete mixed traces cover registration followed by charging, refusal of
+unvalidated registration, protected debt surviving eviction and replacement
+attempts, independent expiry of joint restrictions, and replacement after both
+restrictions expire. Claimed expiry is a no-op for every table. Trusted events
+still assume the correct source, restriction generation and deadline; the model
+does not authenticate timers. Global credits, pending ownership, policy changes,
+quota changes, restart persistence and honest-source progress remain open.
 
 ## Poll continuation and critical service
 
@@ -247,8 +287,8 @@ implementation and environmental evidence.
 
 ## Negative controls
 
-The checker rejects 90 invalid variants: three direct checks of equality,
-ordering and termination, plus 87 semantic mutations. Mutations exercise such
+The checker rejects 108 invalid variants: three direct checks of equality,
+ordering and termination, plus 105 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -276,6 +316,12 @@ other restriction during expiry, clear a lone ban on debt expiry, retain
 expired state, shift the trace charge quota, or drop charge, ban and expiry
 trace events. The checker rejects all 27 additional controls (2 source-table,
 25 source-enforcement) with semantic mismatches.
+
+The 18 source-system controls fabricate or hide lookup results, ignore keys or
+validation, shift quotas, allocate during restriction updates, stop searching at
+a vacancy, drop an update or tail search, update duplicate-key tails, and omit
+churn, enforcement or trace steps. Every control must fail with a semantic
+mismatch, including controls aimed at enabled behavior.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the
