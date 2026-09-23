@@ -45,7 +45,8 @@ This proof counts traffic from both swarms and every represented identity,
 including trusted identities. It has no trust exemption from the shared budget.
 An actual per-second envelope requires a bound relating trusted ticks to elapsed
 time, including clock jumps, suspend/resume and refill rounding. Restart handling,
-per-source charging/expiry and honest reconnect fairness require further models.
+composition with module 28's per-source charging/expiry, and honest reconnect
+fairness require further models.
 
 [22-weighted-resources.mech](../proofs/22-weighted-resources.mech) composes queue,
 pending and established counts using separate cost weights, including both swarm
@@ -66,29 +67,70 @@ is bookkeeping permission, not handshake authorization or committee identity.
 and `fullTableRefusesUnknownRegistration` states overflow refusal on the
 transition itself.
 
-Cells are clear, carry a rate-debt marker, or carry a ban. Eviction removes only
-matching clear entries. Even a zero-valued debt marker remains protected until
-a separate trusted expiry transition clears it. `protectedSources` retains
-the key, restriction payload and position of every protected entry.
-`sourceChurnPreservesProtection` proves that this projection is unchanged over
-any finite interleaving of registration and eviction. `sourceChurnCardinalityBound`
+Cells are clear, carry a rate-debt marker, carry a ban, or carry both debt and a
+ban. Eviction removes only matching clear entries. Even a zero-valued debt
+marker remains protected until a separate trusted expiry transition clears it.
+`protectedSources` retains the key, complete restriction payload and position
+of every protected entry. `sourceChurnPreservesProtection` proves that this
+projection is unchanged over any finite interleaving of registration and
+eviction, including simultaneous restrictions. `sourceChurnCardinalityBound`
 bounds the final resident count by the initial slot capacity. These statements
 hold for arbitrary starting tables, including already protected entries.
 
 Positive theorems also exercise registration into a vacant head slot and
 eviction of a matching clear head entry, both directly and through singleton
-traces. The no-op behavior for
-known registrations prevents registering a second clear copy ahead of a protected
-entry, even when an earlier slot is vacant. Runtime refinement must still prove
-canonical source/prefix normalization and initial key uniqueness.
+traces. The no-op behavior for known registrations prevents registering a
+second clear copy ahead of a protected entry, even when an earlier slot is
+vacant. Runtime refinement must still prove canonical source/prefix
+normalization and initial key uniqueness.
 
-This model isolates churn around supplied security state. It does not create
-rate debt, enforce quotas, represent simultaneous debt and bans, perform trusted
-expiry, compact entries, change capacity, or restore state after restart. Those
-transitions and their composition with the global handshake and pending models
-remain open. A protected full table may refuse every new source; bounded
-retention time, honest reconnect fairness, shared-NAT behavior and real memory
-cost require additional proofs and qualification evidence.
+This model isolates churn around supplied security state. Module 28 adds
+separate charging and expiry transitions over that restriction type. Their
+integration with keyed-table updates, global handshake and pending accounting,
+capacity changes and restart remains open. A protected full table may refuse
+every new source; bounded retention time, honest reconnect fairness, shared-NAT
+behavior and real memory cost require additional proofs and qualification
+evidence.
+
+### Source quota and independent expiry
+
+[28-source-enforcement.mech](../proofs/28-source-enforcement.mech) counts admitted
+operations as debt against a fixed per-source quota. Unbanned restrictions may
+charge only below capacity. A permitted charge consumes exactly one unit;
+`sourceWithRoomIsCharged` proves this for every debt and every additional amount
+of spare capacity. A full quota or either banned state refuses admission.
+`chargeSourceCell` additionally guards return reachability and cell presence.
+Its refusal theorem connects permission to an unchanged cell, while
+`clearSourceCellIsCharged` witnesses the first charge on a validated clear cell.
+The cell has already been selected: canonical key lookup and atomic consumption
+before performing actual work are implementation obligations.
+A validated charge on a tracked cell is the validated charge step of the
+restriction trace, so the cell theorems and the trace bound describe one
+transition.
+
+Installing a ban preserves debt and blocks charging. Debt and ban expiry are
+separate events: trusted debt expiry removes all debt in one event, and trusted
+ban expiry removes only the ban. The model has no partial decay and no clock.
+`banExpiryPreservesAllDebt` and `debtExpiryPreservesBanStatus`
+prevent clearing one restriction from removing the other. The existing
+eviction function keeps a cell while either restriction remains, including a
+zero-valued debt marker. Expiry of the sole restriction permits a clear state;
+untrusted claimed expiry leaves all state unchanged. Trace-level positive
+theorems exercise charging, ban installation and both expiry branches, so
+dropping an event does not satisfy the proof contract.
+
+`sourceRestrictionTraceBound` quantifies over arbitrary finite interleavings of
+validated or unvalidated charges, ban installation and claimed or trusted
+expiry. Given an initial debt within a fixed quota, the final debt remains
+within that quota. This is a per-source debt invariant. It does not bound
+cumulative work across trusted expiries, establish a wall-clock rate, or compose
+the restriction trace with source-table churn and global resource traces.
+
+Trusted expiry constructors assume an internal decision checked against the
+correct canonical source, current restriction generation and deadline. The
+model does not itself verify timer provenance, reject stale timers or establish
+clock correspondence. Time-based retention, scheduling of expiry, quota changes,
+counter overflow, restart persistence and honest-source progress remain open.
 
 ## Poll continuation and critical service
 
@@ -205,8 +247,8 @@ implementation and environmental evidence.
 
 ## Negative controls
 
-The checker rejects 63 invalid variants: three direct checks of equality,
-ordering and termination, plus 60 semantic mutations. Mutations exercise such
+The checker rejects 90 invalid variants: three direct checks of equality,
+ordering and termination, plus 87 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -221,8 +263,19 @@ Source-table mutations grow capacity, never recognise a resident key, register a
 known key again, bypass validation, permit unknown sources on overflow, hide a
 vacant slot from admission, evict debt or bans, forget a protected debt or ban
 entry in the protection projection, evict an unrelated clear entry, suppress
-matching eviction or head-slot allocation, or drop a churn event. Both
-safety and enabled transitions have negative controls.
+matching eviction or head-slot allocation, or drop a churn event. Two further
+source-table controls evict a simultaneous debt-and-ban entry or forget it in
+the protection projection. Both safety and enabled transitions have negative
+controls.
+
+Source-enforcement mutations bypass zero or exhausted quotas and bans, suppress
+permitted charges, omit debt increments, reset a refused source, charge an
+unvalidated cell, allow a vacant cell, drop bans or debt during ban
+installation, drop a ban on a clear source, trust claimed expiry, erase the
+other restriction during expiry, clear a lone ban on debt expiry, retain
+expired state, shift the trace charge quota, or drop charge, ban and expiry
+trace events. The checker rejects all 27 additional controls (2 source-table,
+25 source-enforcement) with semantic mismatches.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

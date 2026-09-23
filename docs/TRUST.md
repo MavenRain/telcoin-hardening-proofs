@@ -50,10 +50,16 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   trusted ticks must correspond to the real clock.
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
-  bindings and complete security-state classification. Quota enforcement, new
-  debt, simultaneous restrictions, trusted expiry, bounded retention time and
-  restart persistence remain open. Overflow refusal does not prove honest-source
-  admission or reconnect fairness.
+  bindings and complete security-state classification, including simultaneous
+  restrictions. Selected-cell charging refuses missing and unvalidated sources,
+  its tracked restriction refuses banned and exhausted sources, and a validated
+  cell charge is the restriction-trace charge step; restriction traces preserve
+  a fixed per-source debt bound. Trusted debt and ban expiry assume a validated
+  source, current restriction generation and deadline; the model does not check
+  timer provenance or stale callbacks itself. Canonical lookup, atomic quota
+  enforcement before work, composition with table/global budgets, clock
+  correspondence, bounded retention and restart persistence remain open.
+  Overflow refusal does not prove honest-source admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,
   traffic admission opportunities or wall-clock progress.

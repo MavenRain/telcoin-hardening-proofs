@@ -18,7 +18,9 @@
     "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
     "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs.",
     "canonical_source_keys": "Each Count key represents one canonical validated source or prefix under a fixed normalization policy. PeerIds cannot choose or reset this binding. The initial runtime table has unique canonical keys.",
-    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state. Only the modeled registration and eviction events touch the table during a run; trusted expiry, concurrent charging and restart require separate transitions and refinement."
+    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Only registration and eviction touch the table during a churn-model run. Module 28 separately models selected-cell charging and per-source restriction events; their integration with table lookup and global resources requires refinement.",
+    "fixed_source_quota": "The per-source quota is fixed during each restriction trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
+    "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event."
   },
   "claims": [
     {
@@ -983,13 +985,15 @@
           123
         ]
       },
-      "property": "Any finite registration/eviction churn trace preserves each pre-existing modeled rate-debt or ban record, including its key and slot.",
+      "property": "Any finite registration/eviction churn trace preserves each pre-existing modeled debt, ban or simultaneous debt-and-ban record, including its key and slot.",
       "theorems": [
         "debtSourceCannotBeEvicted",
         "bannedSourceCannotBeEvicted",
         "nonmatchingSourceCellIsPreserved",
         "evictSourcePreservesProtection",
-        "sourceChurnPreservesProtection"
+        "sourceChurnPreservesProtection",
+        "protectedJointSourceIsKept",
+        "jointSourceCannotBeEvicted"
       ],
       "assumptions": [
         "atomic_transitions",
@@ -999,7 +1003,7 @@
       ],
       "open_implementation_obligations": [
         "Refine every eviction and re-registration path, and prove admission actually enforces preserved security state.",
-        "Extend the restriction model to simultaneous rate debt and bans, new charges, trusted expiry, policy changes and restart persistence.",
+        "Compose the separate charging/expiry restriction transitions with keyed table updates, global budgets, policy changes and restart persistence.",
         "Qualify retention, eviction selection, hub population and honest reconnect fairness. The model deliberately allows a fully protected table to refuse new sources."
       ]
     },
@@ -1032,6 +1036,142 @@
       "open_implementation_obligations": [
         "Make overflow refusal explicit in the implementation and preserve the independent process-wide handshake budget.",
         "Choose and qualify a bounded retention/expiry policy and honest-source admission behavior under saturation; these safety results do not establish liveness."
+      ]
+    },
+    {
+      "id": "C05",
+      "parent": "H19",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          123,
+          123
+        ]
+      },
+      "property": "Installing a source ban preserves accumulated debt and blocks charging, including the transition from a debt-only record to simultaneous debt and ban state.",
+      "theorems": [
+        "sourceBanPreservesDebt",
+        "sourceBanBlocksCharge",
+        "sourceTraceInstallsBan"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine ban installation and all debt/ban fields to one atomic restriction update.",
+        "Establish ban authority, source selection, machine arithmetic and persistence."
+      ]
+    },
+    {
+      "id": "C06",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          133
+        ]
+      },
+      "property": "A selected source cell refuses unvalidated or vacant charging, and its tracked restriction refuses banned or quota-exhausted charging. Refusal leaves the cell unchanged; a clear validated cell with positive capacity and an unbanned debt record with room consume exactly one unit.",
+      "theorems": [
+        "unvalidatedSourceCellCannotCharge",
+        "unvalidatedSourceCellIsRefused",
+        "vacantSourceCellIsRefused",
+        "refusedSourceCellChargeIsNoOp",
+        "sourceAtCapacityIsRefused",
+        "sourceAtCapacityCannotCharge",
+        "sourceExhaustedQuotaIsRefused",
+        "zeroSourceQuotaRefusesClear",
+        "bannedSourceChargeIsRefused",
+        "jointSourceChargeIsRefused",
+        "clearSourceCellIsCharged",
+        "sourceCellWithRoomIsCharged",
+        "sourceWithRoomIsCharged",
+        "sourceTraceChargesWithRoom",
+        "chargedCellFollowsRestrictionStep"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "fixed_source_quota",
+        "source_restriction_classification",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove actual lookup selects the canonical validated source cell and that admission atomically checks and consumes its quota before performing work.",
+        "Compose source quota consumption with aggregate credits, pending ownership, churn and trusted exemptions; preserve rate/occupancy separation and shared-NAT fairness."
+      ]
+    },
+    {
+      "id": "C07",
+      "parent": "H19",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          123,
+          123
+        ]
+      },
+      "property": "Claimed expiry is a no-op. Trusted debt expiry preserves ban status, and trusted ban expiry preserves all debt. Trusted debt expiry removes all debt in one event, and trusted ban expiry removes only the ban. A remaining restriction still prevents eviction; expiry of the sole restriction allows a clear state.",
+      "theorems": [
+        "claimedSourceExpiryIsNoOp",
+        "debtExpiryKeepsBan",
+        "banExpiryKeepsDebt",
+        "banExpiryPreservesAllDebt",
+        "debtExpiryPreservesBanStatus",
+        "expiredDebtCanBeEvicted",
+        "remainingBanPreventsEviction",
+        "remainingDebtPreventsEviction",
+        "sourceTraceBanThenUnbanKeepsDebt",
+        "sourceTraceDebtExpiryKeepsBan",
+        "sourceTraceBanExpiryClearsBan",
+        "sourceTraceClaimedExpiryIsNoOp"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "trusted_source_expiry",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Validate expiry authority, restriction generation and deadlines for the actual source; the model assumes trusted events and does not reject stale timer tokens itself.",
+        "Prove clock correspondence, bounded retention, timer scheduling, restart persistence and honest reconnect fairness."
+      ]
+    },
+    {
+      "id": "C08",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          133
+        ]
+      },
+      "property": "From an initial debt within a fixed source quota, every finite interleaving of validated or unvalidated charge attempts, ban installation and claimed or trusted expiry keeps the final debt within that quota.",
+      "theorems": [
+        "sourceChargePreservesDebtBound",
+        "sourceExpiryPreservesDebtBound",
+        "sourceRestrictionStepBound",
+        "sourceRestrictionTraceBound",
+        "sourceTraceUnvalidatedChargeIsNoOp",
+        "chargedCellFollowsRestrictionStep"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "fixed_source_quota",
+        "source_restriction_classification",
+        "trusted_source_expiry",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine all charge, ban and expiry callbacks to the serialized restriction trace while keeping source keys and quota configuration stable.",
+        "Compose this debt invariant with keyed-table churn and the global rate model. It does not bound cumulative work across trusted expiries or establish a wall-clock rate."
       ]
     }
   ]

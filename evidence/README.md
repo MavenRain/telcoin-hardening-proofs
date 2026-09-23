@@ -15,12 +15,19 @@ resource traces, their negative controls and the pinned implementation source li
 of existing security state, four additional atomic obligations and 15 additional
 semantic mutation checks. It was produced without `--implementation`, so its
 `implementation_links` status is `not_checked_this_run`: that run did not compare
-the pinned implementation file hashes. It is the only receipt without that check.
+the pinned implementation file hashes.
 The earlier receipts carry `source_links_checked`, most recently
 `policy-model-check.json` (revision 579aa551fe39593e32a48e1dbcfeccbccab64e3e,
 6 entries). To restore the check, run `python3 -I tools/check.py --implementation
 /path/to/telcoin-network` against a checkout at that revision and copy
-`.build/report.json` over this receipt.
+`.build/report.json` over the receipt being refreshed.
+`source-enforcement-model-check.json` records bounded per-source charging,
+simultaneous restrictions, independent trusted expiry, four new atomic
+obligations and 27 new semantic mutation checks. It also has
+`implementation_links: not_checked_this_run`. The new receipt covers 264 proof
+declarations, 44 atomic obligations and 90 rejected negative checks. Neither
+source receipt establishes keyed-table/global-resource composition, timer
+validation, restart persistence or deployment qualification.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 

@@ -8,17 +8,19 @@ weighted resource composition, poll continuations, committee-record deduplicatio
 and epoch reset, versioned policy publication and receipts, mixed policy/resource
 traces, critical service after enough completed rounds, and bounded source-table
 churn that preserves existing rate debt and bans under registration and eviction
-without increasing slot capacity. Their
+without increasing slot capacity. Separate source-restriction traces now cover
+bounded charging, simultaneous debt and bans, and independent trusted expiry. Their
 contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 40 atomic model obligations
+   explicit dispositions. The current 34 groups and 44 atomic model obligations
    are not the final atomic list.
-2. Extend the source-table churn model with new charges, simultaneous restrictions,
-   trusted expiry, bounded retention time and restart persistence. Compose it with
-   actual source quota enforcement and the global resource models. Extend the
+2. Compose source-table churn with the separate charging and expiry transitions,
+   canonical key lookup, atomic source quota enforcement and global resources.
+   Verify expiry authority, current restriction generations, clock correspondence,
+   bounded retention time and restart persistence. Extend the
    transition systems to resource-cap changes, authoritative policy ordering,
    reconnect/bootstrap, timestamp freshness and full rotation/reload behavior.
    Refine the committee threshold, any cache-preserving policy updates and the

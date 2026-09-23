@@ -1,8 +1,9 @@
 -- Bounded source registration and eviction, separate from rate and occupancy.
 -- Keys are canonical validated source/prefix identities, not attacker PeerIds.
--- Churn cannot expire security state. Trusted expiry and restart are not modeled.
+-- Churn cannot expire security state. Module 28 models separate expiry events.
 mu SourceRestriction : Type 0 with
 | sourceClear : SourceRestriction
+| sourceDebtAndBan : Count -> SourceRestriction
 | sourceRateDebt : Count -> SourceRestriction
 | sourceBan : SourceRestriction
 
@@ -106,6 +107,7 @@ def protectedSourceCell : SourceCell -> SourceCell :=
     | trackedSource key restriction =>
       case restriction as security in SourceRestriction return SourceCell with
       | sourceClear => vacantSource
+      | sourceDebtAndBan debt => trackedSource key (sourceDebtAndBan debt)
       | sourceRateDebt debt => trackedSource key (sourceRateDebt debt)
       | sourceBan => trackedSource key sourceBan
 
@@ -125,6 +127,11 @@ def protectedBannedSourceIsKept : (key : Count) ->
     Equal SourceCell (protectedSourceCell (trackedSource key sourceBan)) (trackedSource key sourceBan) :=
   fun (key : Count) => same
 
+def protectedJointSourceIsKept : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (protectedSourceCell (trackedSource key (sourceDebtAndBan debt)))
+      (trackedSource key (sourceDebtAndBan debt)) :=
+  fun (key : Count) (debt : Count) => same
+
 def evictSourceCell : SourceCell -> SourceCell :=
   fun (cell : SourceCell) =>
     case cell as entry in SourceCell return SourceCell with
@@ -132,6 +139,7 @@ def evictSourceCell : SourceCell -> SourceCell :=
     | trackedSource key restriction =>
       case restriction as security in SourceRestriction return SourceCell with
       | sourceClear => vacantSource
+      | sourceDebtAndBan debt => trackedSource key (sourceDebtAndBan debt)
       | sourceRateDebt debt => trackedSource key (sourceRateDebt debt)
       | sourceBan => trackedSource key sourceBan
 
@@ -304,6 +312,11 @@ def bannedSourceCannotBeEvicted : (key : Count) ->
     Equal SourceCell (evictSourceCell (trackedSource key sourceBan)) (trackedSource key sourceBan) :=
   fun (key : Count) => same
 
+def jointSourceCannotBeEvicted : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key (sourceDebtAndBan debt)))
+      (trackedSource key (sourceDebtAndBan debt)) :=
+  fun (key : Count) (debt : Count) => same
+
 def nonmatchingSourceCellIsPreserved : (cell : SourceCell) ->
     Equal SourceCell (evictMatchingSource off cell) cell :=
   fun (cell : SourceCell) => same
@@ -319,6 +332,7 @@ def sourceCellEvictionPreservesProtection : (cell : SourceCell) ->
           return Equal SourceCell (protectedSourceCell (evictSourceCell (trackedSource key security)))
             (protectedSourceCell (trackedSource key security)) with
       | sourceClear => same
+      | sourceDebtAndBan debt => same
       | sourceRateDebt debt => same
       | sourceBan => same
 

@@ -1,0 +1,436 @@
+-- A fixed per-source quota, counted in admitted operations since trusted debt
+-- expiry. This is not a wall-clock rate theorem. Keys and slot selection remain
+-- implementation obligations; chargeSourceCell consumes an already selected cell.
+def sourceDebt : SourceRestriction -> Count :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return Count with
+    | sourceClear => zero
+    | sourceDebtAndBan debt => debt
+    | sourceRateDebt debt => debt
+    | sourceBan => zero
+
+def sourceBanActive : SourceRestriction -> Flag :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return Flag with
+    | sourceClear => off
+    | sourceDebtAndBan debt => on
+    | sourceRateDebt debt => off
+    | sourceBan => on
+
+def rec sourceQuotaRoom : Count -> Count -> Flag :=
+  fun (debt : Count) (capacity : Count) =>
+    case debt as used in Count return Flag with
+    | zero =>
+      (case capacity as limit in Count return Flag with
+      | zero => off
+      | next remaining => on)
+    | next previous =>
+      case capacity as limit in Count return Flag with
+      | zero => off
+      | next remaining => sourceQuotaRoom previous remaining
+
+def rec sourceQuotaAtLimit : (capacity : Count) ->
+    Equal Flag (sourceQuotaRoom capacity capacity) off :=
+  fun (capacity : Count) =>
+    case capacity as limit in Count return Equal Flag (sourceQuotaRoom limit limit) off with
+    | zero => same
+    | next remaining => sourceQuotaAtLimit remaining
+
+def zeroSourceQuotaRefusesAnyDebt : (debt : Count) ->
+    Equal Flag (sourceQuotaRoom debt zero) off :=
+  fun (debt : Count) =>
+    case debt as used in Count return Equal Flag (sourceQuotaRoom used zero) off with
+    | zero => same
+    | next previous => same
+
+def rec sourceQuotaAtOrAboveLimit : (capacity : Count) -> (excess : Count) ->
+    Equal Flag (sourceQuotaRoom (add capacity excess) capacity) off :=
+  fun (capacity : Count) (excess : Count) =>
+    case capacity as limit in Count return Equal Flag (sourceQuotaRoom (add limit excess) limit) off with
+    | zero => zeroSourceQuotaRefusesAnyDebt excess
+    | next remaining => sourceQuotaAtOrAboveLimit remaining excess
+
+def rec sourceQuotaBelowLimit : (debt : Count) -> (spare : Count) ->
+    Equal Flag (sourceQuotaRoom debt (add (next debt) spare)) on :=
+  fun (debt : Count) (spare : Count) =>
+    case debt as used in Count return Equal Flag (sourceQuotaRoom used (add (next used) spare)) on with
+    | zero => same
+    | next previous => sourceQuotaBelowLimit previous spare
+
+def rec sourceChargeAmountExact : (debt : Count) -> (spare : Count) ->
+    Equal Count (boundedWork (add (next debt) spare) (next debt)) (next debt) :=
+  fun (debt : Count) (spare : Count) =>
+    case debt as used in Count return
+        Equal Count (boundedWork (add (next used) spare) (next used)) (next used) with
+    | zero =>
+      (case spare as extra in Count return
+          Equal Count (boundedWork (add (next zero) extra) (next zero)) (next zero) with
+      | zero => same
+      | next remaining => same)
+    | next previous => congruent Count Count (fun (amount : Count) => next amount)
+        (boundedWork (add (next previous) spare) (next previous)) (next previous)
+        (sourceChargeAmountExact previous spare)
+
+def sourceChargeAllowed : Count -> SourceRestriction -> Flag :=
+  fun (capacity : Count) (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return Flag with
+    | sourceClear => sourceQuotaRoom zero capacity
+    | sourceDebtAndBan debt => off
+    | sourceRateDebt debt => sourceQuotaRoom debt capacity
+    | sourceBan => off
+
+def sourceChargeDecision : Flag -> Count -> SourceRestriction -> SourceRestriction :=
+  fun (allowed : Flag) (capacity : Count) (restriction : SourceRestriction) =>
+    case allowed as permit in Flag return SourceRestriction with
+    | off => restriction
+    | on => sourceRateDebt (boundedWork capacity (next (sourceDebt restriction)))
+
+def chargeSourceRestriction : Count -> SourceRestriction -> SourceRestriction :=
+  fun (capacity : Count) (restriction : SourceRestriction) =>
+    sourceChargeDecision (sourceChargeAllowed capacity restriction) capacity restriction
+
+def refusedSourceChargeIsNoOp : (capacity : Count) -> (restriction : SourceRestriction) ->
+    Equal Flag (sourceChargeAllowed capacity restriction) off ->
+    Equal SourceRestriction (chargeSourceRestriction capacity restriction) restriction :=
+  fun (capacity : Count) (restriction : SourceRestriction)
+      (refused : Equal Flag (sourceChargeAllowed capacity restriction) off) =>
+    congruent Flag SourceRestriction (fun (allowed : Flag) => sourceChargeDecision allowed capacity restriction)
+      (sourceChargeAllowed capacity restriction) off refused
+
+def sourceAtCapacityIsRefused : (capacity : Count) ->
+    Equal Flag (sourceChargeAllowed capacity (sourceRateDebt capacity)) off :=
+  fun (capacity : Count) => sourceQuotaAtLimit capacity
+
+def sourceExhaustedQuotaIsRefused : (capacity : Count) -> (excess : Count) ->
+    Equal Flag (sourceChargeAllowed capacity (sourceRateDebt (add capacity excess))) off :=
+  fun (capacity : Count) (excess : Count) => sourceQuotaAtOrAboveLimit capacity excess
+
+def sourceAtCapacityCannotCharge : (capacity : Count) ->
+    Equal SourceRestriction (chargeSourceRestriction capacity (sourceRateDebt capacity))
+      (sourceRateDebt capacity) :=
+  fun (capacity : Count) => refusedSourceChargeIsNoOp capacity (sourceRateDebt capacity)
+    (sourceAtCapacityIsRefused capacity)
+
+def zeroSourceQuotaRefusesClear : Equal Flag (sourceChargeAllowed zero sourceClear) off := same
+
+def bannedSourceChargeIsRefused : (capacity : Count) ->
+    Equal Flag (sourceChargeAllowed capacity sourceBan) off :=
+  fun (capacity : Count) => same
+
+def jointSourceChargeIsRefused : (capacity : Count) -> (debt : Count) ->
+    Equal Flag (sourceChargeAllowed capacity (sourceDebtAndBan debt)) off :=
+  fun (capacity : Count) (debt : Count) => same
+
+def sourceWithRoomIsCharged : (debt : Count) -> (spare : Count) ->
+    Equal SourceRestriction (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt))
+      (sourceRateDebt (next debt)) :=
+  fun (debt : Count) (spare : Count) =>
+    equalTransitivity SourceRestriction
+      (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt))
+      (sourceRateDebt (boundedWork (add (next debt) spare) (next debt))) (sourceRateDebt (next debt))
+      (congruent Flag SourceRestriction
+        (fun (allowed : Flag) => sourceChargeDecision allowed (add (next debt) spare) (sourceRateDebt debt))
+        (sourceQuotaRoom debt (add (next debt) spare)) on (sourceQuotaBelowLimit debt spare))
+      (congruent Count SourceRestriction (fun (amount : Count) => sourceRateDebt amount)
+        (boundedWork (add (next debt) spare) (next debt)) (next debt) (sourceChargeAmountExact debt spare))
+
+def sourceChargePreservesDebtBound : (capacity : Count) -> (restriction : SourceRestriction) ->
+    AtMost (sourceDebt restriction) capacity ->
+    AtMost (sourceDebt (chargeSourceRestriction capacity restriction)) capacity :=
+  fun (capacity : Count) (restriction : SourceRestriction) (bound : AtMost (sourceDebt restriction) capacity) =>
+    case sourceChargeAllowed capacity restriction as allowed in Flag return
+        AtMost (sourceDebt (sourceChargeDecision allowed capacity restriction)) capacity with
+    | off => bound
+    | on => workBound capacity (next (sourceDebt restriction))
+
+def sourceCellChargeAllowed : Reachability -> Count -> SourceCell -> Flag :=
+  fun (source : Reachability) (capacity : Count) (cell : SourceCell) =>
+    case source as reach in Reachability return Flag with
+    | unvalidated => off
+    | validated =>
+      case cell as entry in SourceCell return Flag with
+      | vacantSource => off
+      | trackedSource key restriction => sourceChargeAllowed capacity restriction
+
+def chargeSourceCell : Reachability -> Count -> SourceCell -> SourceCell :=
+  fun (source : Reachability) (capacity : Count) (cell : SourceCell) =>
+    case source as reach in Reachability return SourceCell with
+    | unvalidated => cell
+    | validated =>
+      case cell as entry in SourceCell return SourceCell with
+      | vacantSource => vacantSource
+      | trackedSource key restriction => trackedSource key (chargeSourceRestriction capacity restriction)
+
+def unvalidatedSourceCellCannotCharge : (capacity : Count) -> (cell : SourceCell) ->
+    Equal SourceCell (chargeSourceCell unvalidated capacity cell) cell :=
+  fun (capacity : Count) (cell : SourceCell) => same
+
+def unvalidatedSourceCellIsRefused : (capacity : Count) -> (cell : SourceCell) ->
+    Equal Flag (sourceCellChargeAllowed unvalidated capacity cell) off :=
+  fun (capacity : Count) (cell : SourceCell) => same
+
+def vacantSourceCellIsRefused : (source : Reachability) -> (capacity : Count) ->
+    Equal Flag (sourceCellChargeAllowed source capacity vacantSource) off :=
+  fun (source : Reachability) (capacity : Count) =>
+    case source as reach in Reachability return
+        Equal Flag (sourceCellChargeAllowed reach capacity vacantSource) off with
+    | unvalidated => same
+    | validated => same
+
+def refusedSourceCellChargeIsNoOp : (source : Reachability) -> (capacity : Count) -> (cell : SourceCell) ->
+    Equal Flag (sourceCellChargeAllowed source capacity cell) off ->
+    Equal SourceCell (chargeSourceCell source capacity cell) cell :=
+  fun (source : Reachability) (capacity : Count) (cell : SourceCell) =>
+    case source as reach in Reachability return
+        Equal Flag (sourceCellChargeAllowed reach capacity cell) off ->
+          Equal SourceCell (chargeSourceCell reach capacity cell) cell with
+    | unvalidated => fun (refused : Equal Flag off off) => same
+    | validated =>
+      case cell as entry in SourceCell return
+          Equal Flag (sourceCellChargeAllowed validated capacity entry) off ->
+            Equal SourceCell (chargeSourceCell validated capacity entry) entry with
+      | vacantSource => fun (refused : Equal Flag off off) => same
+      | trackedSource key restriction =>
+        fun (refused : Equal Flag (sourceChargeAllowed capacity restriction) off) =>
+          congruent SourceRestriction SourceCell (fun (security : SourceRestriction) => trackedSource key security)
+            (chargeSourceRestriction capacity restriction) restriction
+            (refusedSourceChargeIsNoOp capacity restriction refused)
+
+def clearSourceCellIsCharged : (key : Count) -> (spare : Count) ->
+    Equal SourceCell (chargeSourceCell validated (next spare) (trackedSource key sourceClear))
+      (trackedSource key (sourceRateDebt (next zero))) :=
+  fun (key : Count) (spare : Count) =>
+    case spare as remaining in Count return
+        Equal SourceCell (chargeSourceCell validated (next remaining) (trackedSource key sourceClear))
+          (trackedSource key (sourceRateDebt (next zero))) with
+    | zero => same
+    | next rest => same
+
+def sourceCellWithRoomIsCharged : (key : Count) -> (debt : Count) -> (spare : Count) ->
+    Equal SourceCell (chargeSourceCell validated (add (next debt) spare) (trackedSource key (sourceRateDebt debt)))
+      (trackedSource key (sourceRateDebt (next debt))) :=
+  fun (key : Count) (debt : Count) (spare : Count) =>
+    congruent SourceRestriction SourceCell (fun (restriction : SourceRestriction) => trackedSource key restriction)
+      (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt)) (sourceRateDebt (next debt))
+      (sourceWithRoomIsCharged debt spare)
+
+def imposeSourceBan : SourceRestriction -> SourceRestriction :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return SourceRestriction with
+    | sourceClear => sourceBan
+    | sourceDebtAndBan debt => sourceDebtAndBan debt
+    | sourceRateDebt debt => sourceDebtAndBan debt
+    | sourceBan => sourceBan
+
+def sourceBanPreservesDebt : (restriction : SourceRestriction) ->
+    Equal Count (sourceDebt (imposeSourceBan restriction)) (sourceDebt restriction) :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return
+        Equal Count (sourceDebt (imposeSourceBan security)) (sourceDebt security) with
+    | sourceClear => same
+    | sourceDebtAndBan debt => same
+    | sourceRateDebt debt => same
+    | sourceBan => same
+
+def sourceBanBlocksCharge : (capacity : Count) -> (restriction : SourceRestriction) ->
+    Equal Flag (sourceChargeAllowed capacity (imposeSourceBan restriction)) off :=
+  fun (capacity : Count) (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return
+        Equal Flag (sourceChargeAllowed capacity (imposeSourceBan security)) off with
+    | sourceClear => same
+    | sourceDebtAndBan debt => same
+    | sourceRateDebt debt => same
+    | sourceBan => same
+
+-- Trusted constructors mean the implementation has checked the correct source,
+-- restriction generation and deadline. The proof does not authenticate timers.
+mu SourceExpiry : Type 0 with
+| claimedSourceExpiry : SourceExpiry
+| trustedDebtExpiry : SourceExpiry
+| trustedBanExpiry : SourceExpiry
+
+def expireSourceRestriction : SourceExpiry -> SourceRestriction -> SourceRestriction :=
+  fun (expiry : SourceExpiry) (restriction : SourceRestriction) =>
+    case expiry as authority in SourceExpiry return SourceRestriction with
+    | claimedSourceExpiry => restriction
+    | trustedDebtExpiry =>
+      (case restriction as security in SourceRestriction return SourceRestriction with
+      | sourceClear => sourceClear
+      | sourceDebtAndBan debt => sourceBan
+      | sourceRateDebt debt => sourceClear
+      | sourceBan => sourceBan)
+    | trustedBanExpiry =>
+      case restriction as security in SourceRestriction return SourceRestriction with
+      | sourceClear => sourceClear
+      | sourceDebtAndBan debt => sourceRateDebt debt
+      | sourceRateDebt debt => sourceRateDebt debt
+      | sourceBan => sourceClear
+
+def claimedSourceExpiryIsNoOp : (restriction : SourceRestriction) ->
+    Equal SourceRestriction (expireSourceRestriction claimedSourceExpiry restriction) restriction :=
+  fun (restriction : SourceRestriction) => same
+
+def debtExpiryKeepsBan : (debt : Count) ->
+    Equal SourceRestriction (expireSourceRestriction trustedDebtExpiry (sourceDebtAndBan debt)) sourceBan :=
+  fun (debt : Count) => same
+
+def banExpiryKeepsDebt : (debt : Count) ->
+    Equal SourceRestriction (expireSourceRestriction trustedBanExpiry (sourceDebtAndBan debt)) (sourceRateDebt debt) :=
+  fun (debt : Count) => same
+
+def banExpiryPreservesAllDebt : (restriction : SourceRestriction) ->
+    Equal Count (sourceDebt (expireSourceRestriction trustedBanExpiry restriction)) (sourceDebt restriction) :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return
+        Equal Count (sourceDebt (expireSourceRestriction trustedBanExpiry security)) (sourceDebt security) with
+    | sourceClear => same
+    | sourceDebtAndBan debt => same
+    | sourceRateDebt debt => same
+    | sourceBan => same
+
+def debtExpiryPreservesBanStatus : (restriction : SourceRestriction) ->
+    Equal Flag (sourceBanActive (expireSourceRestriction trustedDebtExpiry restriction)) (sourceBanActive restriction) :=
+  fun (restriction : SourceRestriction) =>
+    case restriction as security in SourceRestriction return
+        Equal Flag (sourceBanActive (expireSourceRestriction trustedDebtExpiry security)) (sourceBanActive security) with
+    | sourceClear => same
+    | sourceDebtAndBan debt => same
+    | sourceRateDebt debt => same
+    | sourceBan => same
+
+def expiredDebtCanBeEvicted : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key
+      (expireSourceRestriction trustedDebtExpiry (sourceRateDebt debt)))) vacantSource :=
+  fun (key : Count) (debt : Count) => same
+
+def remainingBanPreventsEviction : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key
+      (expireSourceRestriction trustedDebtExpiry (sourceDebtAndBan debt)))) (trackedSource key sourceBan) :=
+  fun (key : Count) (debt : Count) => same
+
+def remainingDebtPreventsEviction : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key
+      (expireSourceRestriction trustedBanExpiry (sourceDebtAndBan debt))))
+      (trackedSource key (sourceRateDebt debt)) :=
+  fun (key : Count) (debt : Count) => same
+
+def sourceExpiryPreservesDebtBound : (expiry : SourceExpiry) -> (capacity : Count) ->
+    (restriction : SourceRestriction) -> AtMost (sourceDebt restriction) capacity ->
+    AtMost (sourceDebt (expireSourceRestriction expiry restriction)) capacity :=
+  fun (expiry : SourceExpiry) (capacity : Count) (restriction : SourceRestriction)
+      (bound : AtMost (sourceDebt restriction) capacity) =>
+    case expiry as authority in SourceExpiry return
+        AtMost (sourceDebt (expireSourceRestriction authority restriction)) capacity with
+    | claimedSourceExpiry => bound
+    | trustedDebtExpiry =>
+      (case restriction as security in SourceRestriction return
+          AtMost (sourceDebt (expireSourceRestriction trustedDebtExpiry security)) capacity with
+      | sourceClear => least capacity
+      | sourceDebtAndBan debt => least capacity
+      | sourceRateDebt debt => least capacity
+      | sourceBan => least capacity)
+    | trustedBanExpiry =>
+      (case restriction as security in SourceRestriction return AtMost (sourceDebt security) capacity ->
+          AtMost (sourceDebt (expireSourceRestriction trustedBanExpiry security)) capacity with
+      | sourceClear => fun (previous : AtMost zero capacity) => previous
+      | sourceDebtAndBan debt => fun (previous : AtMost debt capacity) => previous
+      | sourceRateDebt debt => fun (previous : AtMost debt capacity) => previous
+      | sourceBan => fun (previous : AtMost zero capacity) => previous) bound
+
+mu SourceRestrictionEvent : Type 0 with
+| sourceChargeEvent : Reachability -> SourceRestrictionEvent
+| sourceBanEvent : SourceRestrictionEvent
+| sourceExpiryEvent : SourceExpiry -> SourceRestrictionEvent
+
+def sourceRestrictionStep : Count -> SourceRestrictionEvent -> SourceRestriction -> SourceRestriction :=
+  fun (capacity : Count) (event : SourceRestrictionEvent) (restriction : SourceRestriction) =>
+    case event as action in SourceRestrictionEvent return SourceRestriction with
+    | sourceChargeEvent source =>
+      (case source as reach in Reachability return SourceRestriction with
+      | unvalidated => restriction
+      | validated => chargeSourceRestriction capacity restriction)
+    | sourceBanEvent => imposeSourceBan restriction
+    | sourceExpiryEvent expiry => expireSourceRestriction expiry restriction
+
+def chargedCellFollowsRestrictionStep : (key : Count) -> (capacity : Count) -> (restriction : SourceRestriction) ->
+    Equal SourceCell (chargeSourceCell validated capacity (trackedSource key restriction))
+      (trackedSource key (sourceRestrictionStep capacity (sourceChargeEvent validated) restriction)) :=
+  fun (key : Count) (capacity : Count) (restriction : SourceRestriction) => same
+
+def sourceRestrictionStepBound : (capacity : Count) -> (event : SourceRestrictionEvent) ->
+    (restriction : SourceRestriction) -> AtMost (sourceDebt restriction) capacity ->
+    AtMost (sourceDebt (sourceRestrictionStep capacity event restriction)) capacity :=
+  fun (capacity : Count) (event : SourceRestrictionEvent) (restriction : SourceRestriction)
+      (bound : AtMost (sourceDebt restriction) capacity) =>
+    case event as action in SourceRestrictionEvent return
+        AtMost (sourceDebt (sourceRestrictionStep capacity action restriction)) capacity with
+    | sourceChargeEvent source =>
+      (case source as reach in Reachability return
+          AtMost (sourceDebt (sourceRestrictionStep capacity (sourceChargeEvent reach) restriction)) capacity with
+      | unvalidated => bound
+      | validated => sourceChargePreservesDebtBound capacity restriction bound)
+    | sourceBanEvent => equalTransport Count (fun (used : Count) => AtMost used capacity)
+        (sourceDebt restriction) (sourceDebt (imposeSourceBan restriction))
+        (equalSymmetry Count (sourceDebt (imposeSourceBan restriction)) (sourceDebt restriction)
+          (sourceBanPreservesDebt restriction)) bound
+    | sourceExpiryEvent expiry => sourceExpiryPreservesDebtBound expiry capacity restriction bound
+
+mu SourceRestrictionTrace : Type 0 with
+| sourceRestrictionDone : SourceRestrictionTrace
+| sourceRestrictionThen : SourceRestrictionEvent -> SourceRestrictionTrace -> SourceRestrictionTrace
+
+def rec runSourceRestrictions : SourceRestrictionTrace -> Count -> SourceRestriction -> SourceRestriction :=
+  fun (events : SourceRestrictionTrace) (capacity : Count) (restriction : SourceRestriction) =>
+    case events as trace in SourceRestrictionTrace return SourceRestriction with
+    | sourceRestrictionDone => restriction
+    | sourceRestrictionThen event rest => runSourceRestrictions rest capacity (sourceRestrictionStep capacity event restriction)
+
+def rec sourceRestrictionTraceBound : (events : SourceRestrictionTrace) -> (capacity : Count) ->
+    (restriction : SourceRestriction) -> AtMost (sourceDebt restriction) capacity ->
+    AtMost (sourceDebt (runSourceRestrictions events capacity restriction)) capacity :=
+  fun (events : SourceRestrictionTrace) (capacity : Count) (restriction : SourceRestriction)
+      (bound : AtMost (sourceDebt restriction) capacity) =>
+    case events as trace in SourceRestrictionTrace return
+        AtMost (sourceDebt (runSourceRestrictions trace capacity restriction)) capacity with
+    | sourceRestrictionDone => bound
+    | sourceRestrictionThen event rest => sourceRestrictionTraceBound rest capacity
+        (sourceRestrictionStep capacity event restriction) (sourceRestrictionStepBound capacity event restriction bound)
+
+def sourceTraceChargesWithRoom : (debt : Count) -> (spare : Count) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen (sourceChargeEvent validated) sourceRestrictionDone) (add (next debt) spare) (sourceRateDebt debt))
+      (sourceRateDebt (next debt)) :=
+  fun (debt : Count) (spare : Count) => sourceWithRoomIsCharged debt spare
+
+def sourceTraceUnvalidatedChargeIsNoOp : (capacity : Count) -> (restriction : SourceRestriction) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen (sourceChargeEvent unvalidated) sourceRestrictionDone) capacity restriction) restriction :=
+  fun (capacity : Count) (restriction : SourceRestriction) => same
+
+def sourceTraceBanThenUnbanKeepsDebt : (capacity : Count) -> (debt : Count) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen sourceBanEvent
+        (sourceRestrictionThen (sourceExpiryEvent trustedBanExpiry) sourceRestrictionDone)) capacity (sourceRateDebt debt))
+      (sourceRateDebt debt) :=
+  fun (capacity : Count) (debt : Count) => same
+
+def sourceTraceInstallsBan : (capacity : Count) -> (debt : Count) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen sourceBanEvent sourceRestrictionDone) capacity (sourceRateDebt debt))
+      (sourceDebtAndBan debt) :=
+  fun (capacity : Count) (debt : Count) => same
+
+def sourceTraceBanExpiryClearsBan : (capacity : Count) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen (sourceExpiryEvent trustedBanExpiry) sourceRestrictionDone) capacity sourceBan) sourceClear :=
+  fun (capacity : Count) => same
+
+def sourceTraceDebtExpiryKeepsBan : (capacity : Count) -> (debt : Count) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen (sourceExpiryEvent trustedDebtExpiry) sourceRestrictionDone) capacity (sourceDebtAndBan debt)) sourceBan :=
+  fun (capacity : Count) (debt : Count) => same
+
+def sourceTraceClaimedExpiryIsNoOp : (capacity : Count) -> (restriction : SourceRestriction) ->
+    Equal SourceRestriction (runSourceRestrictions
+      (sourceRestrictionThen (sourceExpiryEvent claimedSourceExpiry) sourceRestrictionDone) capacity restriction) restriction :=
+  fun (capacity : Count) (restriction : SourceRestriction) => same
