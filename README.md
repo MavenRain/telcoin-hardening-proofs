@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[36 atomic model obligations](atomic-claims.json) documenting theorem links,
+[40 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 48 deliberately invalid
+source hashes and coverage freshness, and requires 63 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-189 explicit equality and order proof declarations across 18 modules. This count
+221 explicit equality and order proof declarations across 19 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -77,6 +77,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `22-weighted-resources.mech` | Weighted queue, pending and established resource bounds composed across both swarms. |
 | `25-handshake-budget.mech` | Shared handshake-credit conservation and capacity under admission, refill, eviction, identity changes and fallback. |
 | `26-discrete-rate-envelope.mech` | Handshake starts and weighted cost bounded by burst plus rate times trusted ticks. |
+| `27-source-table.mech` | Fixed-capacity source registration and eviction traces preserve existing rate debt and bans, refuse unknown sources on overflow, and require validated registration. |
 | `30-admission-and-service.mech` | Invalid-policy fallback, mandatory authentication, bounded trusted work, resolution deficit and independent class budgets. |
 | `31-committee-records.mech` | Current-epoch authenticated record guards, distinct-member counting, duplicate idempotence and epoch reset. |
 | `32-policy-snapshots.mech` | Whole-view generations, guarded publication, explicit policy faults and recovery updates. |

@@ -266,9 +266,11 @@
       ],
       "claim": "Metrics have correct stages and bounded labels, tables, retention and logging; runs record current provenance.",
       "theorems": [
-        "metricDomainBound"
+        "metricDomainBound",
+        "sourceTableTraceWidth",
+        "sourceChurnCardinalityBound"
       ],
-      "model_scope": "Three-constructor metric label domain only; internal source tables and exporters are not covered.",
+      "model_scope": "Finite metric label domain and fixed-capacity source-table churn are modeled. Runtime exporters, per-entry allocation costs and bounded retention time remain open.",
       "required_evidence": [
         "O1-O6",
         "O9",
@@ -361,9 +363,17 @@
         "governedHandshakeCreditBound",
         "governedCreditCapacityBound",
         "governedPendingOccupancyBound",
-        "governedPendingConservation"
+        "governedPendingConservation",
+        "unvalidatedSourceCannotRegister",
+        "unvalidatedSourceRegistrationIsRefused",
+        "refusedRegistrationIsNoOp",
+        "knownSourceRegistrationIsNoOp",
+        "fullSourceTableCannotAllocate",
+        "unknownSourceWithoutRoomIsRefused",
+        "fullTableRefusesUnknownRegistration",
+        "sourceTraceRegistersVacancy"
       ],
-      "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes over arbitrary finite traces. ConnectionId refinement, machine wrap, validated per-source attribution, security-state eviction, clock correspondence, restarts, cap changes and honest reconnect fairness remain open.",
+      "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes over arbitrary finite traces. A separate fixed-capacity source table guards registration by reachability and preserves known entries. ConnectionId refinement, machine wrap, source normalization, actual quota enforcement, clock correspondence, restarts, cap changes and honest reconnect fairness remain open.",
       "required_evidence": [
         "A1",
         "T4a-T4b",
@@ -420,8 +430,14 @@
         125
       ],
       "claim": "Hub, Rotation and Later work preserves bounded source accounting, eviction, record freshness, re-resolution and reload semantics.",
-      "theorems": [],
-      "model_scope": "A13-A27 are retained as open obligations, including deferred tiers.",
+      "theorems": [
+        "sourceChurnPreservesProtection",
+        "debtSourceCannotBeEvicted",
+        "bannedSourceCannotBeEvicted",
+        "nonmatchingSourceCellIsPreserved",
+        "sourceTraceEvictsClearEntry"
+      ],
+      "model_scope": "Finite source registration/eviction traces preserve existing modeled rate-debt and ban records. Security-state creation, simultaneous restrictions, trusted expiry, restart, real admission enforcement and the remaining A13-A27 Hub, Rotation and Later obligations remain open.",
       "required_evidence": [
         "A13-A27 specifications and refinements",
         "M5",

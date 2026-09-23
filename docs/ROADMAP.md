@@ -6,16 +6,20 @@ The current repository checks finite transition proofs for generation-tagged
 pending ownership, shared handshake credits, a discrete burst-plus-rate bound,
 weighted resource composition, poll continuations, committee-record deduplication
 and epoch reset, versioned policy publication and receipts, mixed policy/resource
-traces, and critical service after enough completed rounds. Their
+traces, critical service after enough completed rounds, and bounded source-table
+churn that preserves existing rate debt and bans under registration and eviction
+without increasing slot capacity. Their
 contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 36 atomic model obligations
+   explicit dispositions. The current 34 groups and 40 atomic model obligations
    are not the final atomic list.
-2. Extend the transition systems to bounded source tables with security-preserving
-   eviction, restart state, resource-cap changes, authoritative policy ordering,
+2. Extend the source-table churn model with new charges, simultaneous restrictions,
+   trusted expiry, bounded retention time and restart persistence. Compose it with
+   actual source quota enforcement and the global resource models. Extend the
+   transition systems to resource-cap changes, authoritative policy ordering,
    reconnect/bootstrap, timestamp freshness and full rotation/reload behavior.
    Refine the committee threshold, any cache-preserving policy updates and the
    queue scheduler. Cover the Hub, Rotation and Later tiers as well as Launch,

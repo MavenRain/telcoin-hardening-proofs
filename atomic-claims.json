@@ -16,7 +16,9 @@
     "atomic_policy_publication": "Each complete policy view is immutable; generation comparison and publication are atomic. Receipt validation and the resulting authorization linearize with publication, or retain equivalent protection through use.",
     "policy_input_validation": "Health, epoch, membership mappings, roster and the positive recovery threshold come from validated authoritative inputs. Snapshot generation orders local publication, not external governance versions. Input freshness and epoch ordering require separate validation.",
     "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
-    "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs."
+    "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs.",
+    "canonical_source_keys": "Each Count key represents one canonical validated source or prefix under a fixed normalization policy. PeerIds cannot choose or reset this binding. The initial runtime table has unique canonical keys.",
+    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state. Only the modeled registration and eviction events touch the table during a run; trusted expiry, concurrent charging and restart require separate transitions and refinement."
   },
   "claims": [
     {
@@ -916,6 +918,120 @@
       "open_implementation_obligations": [
         "Refine all ConnectionId ownership and terminal paths to the same pool, including policy transitions.",
         "Establish the configured global cap and preserve per-source attribution and honest reconnect behavior."
+      ]
+    },
+    {
+      "id": "C01",
+      "parent": "H12",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          85,
+          85
+        ]
+      },
+      "property": "Source registration and eviction over any finite churn trace preserve the initial slot capacity and keep resident cardinality within it.",
+      "theorems": [
+        "sourceTableBound",
+        "sourceTableTraceWidth",
+        "sourceChurnCardinalityBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine the allocated source map, auxiliary indexes, diagnostics and exporters to one bounded table with a configured slot capacity.",
+        "Account for per-entry byte cost and bound retention time. This model proves cardinality, not timed expiry or memory usage."
+      ]
+    },
+    {
+      "id": "C02",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          121,
+          125
+        ]
+      },
+      "property": "Unvalidated sources cannot register or receive registration permission, a refused registration leaves the table unchanged, and registering a known key leaves its existing table state unchanged.",
+      "theorems": [
+        "unvalidatedSourceCannotRegister",
+        "unvalidatedSourceRegistrationIsRefused",
+        "refusedRegistrationIsNoOp",
+        "knownSourceRegistrationIsNoOp"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Connect reachability to verified QUIC tokens and canonical source/prefix extraction in both swarms.",
+        "Prove initial key uniqueness and its preservation in the runtime map, including sources behind shared NAT.",
+        "Connect registration to actual per-source rate and pending-occupancy counters; registration permission alone does not authorize a handshake."
+      ]
+    },
+    {
+      "id": "C03",
+      "parent": "H19",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          123,
+          123
+        ]
+      },
+      "property": "Any finite registration/eviction churn trace preserves each pre-existing modeled rate-debt or ban record, including its key and slot.",
+      "theorems": [
+        "debtSourceCannotBeEvicted",
+        "bannedSourceCannotBeEvicted",
+        "nonmatchingSourceCellIsPreserved",
+        "evictSourcePreservesProtection",
+        "sourceChurnPreservesProtection"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine every eviction and re-registration path, and prove admission actually enforces preserved security state.",
+        "Extend the restriction model to simultaneous rate debt and bans, new charges, trusted expiry, policy changes and restart persistence.",
+        "Qualify retention, eviction selection, hub population and honest reconnect fairness. The model deliberately allows a fully protected table to refuse new sources."
+      ]
+    },
+    {
+      "id": "C04",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "A full table cannot allocate and refuses unknown-source registration; available head slots can register new validated keys, and matching clear entries can be evicted, including in singleton traces.",
+      "theorems": [
+        "fullSourceTableCannotAllocate",
+        "unknownSourceWithoutRoomIsRefused",
+        "fullTableRefusesUnknownRegistration",
+        "sourceRegistrationUsesVacancy",
+        "matchingClearSourceIsEvicted",
+        "sourceTraceRegistersVacancy",
+        "sourceTraceEvictsClearEntry"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Make overflow refusal explicit in the implementation and preserve the independent process-wide handshake budget.",
+        "Choose and qualify a bounded retention/expiry policy and honest-source admission behavior under saturation; these safety results do not establish liveness."
       ]
     }
   ]

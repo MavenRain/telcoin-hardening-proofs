@@ -45,7 +45,7 @@ This proof counts traffic from both swarms and every represented identity,
 including trusted identities. It has no trust exemption from the shared budget.
 An actual per-second envelope requires a bound relating trusted ticks to elapsed
 time, including clock jumps, suspend/resume and refill rounding. Restart handling,
-per-source penalties and honest reconnect fairness require further models.
+per-source charging/expiry and honest reconnect fairness require further models.
 
 [22-weighted-resources.mech](../proofs/22-weighted-resources.mech) composes queue,
 pending and established counts using separate cost weights, including both swarm
@@ -53,6 +53,42 @@ pools and arbitrary pending traces. The rate model similarly lifts the start
 bound to a weighted handshake-cost bound. Actual memory or CPU bounds require
 evidence that the selected weights dominate costs and that no resource category
 is omitted. A concurrency bound does not by itself establish a rate bound.
+
+## Bounded source-table churn
+
+[27-source-table.mech](../proofs/27-source-table.mech) uses a fixed vector of
+vacant or keyed cells. Registration requires validated return reachability,
+checks the entire table for an existing key before allocation, and fills only
+a vacant cell. A known key leaves the table unchanged. A full table cannot
+allocate and refuses registration for an unknown key. Registration permission
+is bookkeeping permission, not handshake authorization or committee identity.
+`refusedRegistrationIsNoOp` ties that permission to the registration transition,
+and `fullTableRefusesUnknownRegistration` states overflow refusal on the
+transition itself.
+
+Cells are clear, carry a rate-debt marker, or carry a ban. Eviction removes only
+matching clear entries. Even a zero-valued debt marker remains protected until
+a separate trusted expiry transition clears it. `protectedSources` retains
+the key, restriction payload and position of every protected entry.
+`sourceChurnPreservesProtection` proves that this projection is unchanged over
+any finite interleaving of registration and eviction. `sourceChurnCardinalityBound`
+bounds the final resident count by the initial slot capacity. These statements
+hold for arbitrary starting tables, including already protected entries.
+
+Positive theorems also exercise registration into a vacant head slot and
+eviction of a matching clear head entry, both directly and through singleton
+traces. The no-op behavior for
+known registrations prevents registering a second clear copy ahead of a protected
+entry, even when an earlier slot is vacant. Runtime refinement must still prove
+canonical source/prefix normalization and initial key uniqueness.
+
+This model isolates churn around supplied security state. It does not create
+rate debt, enforce quotas, represent simultaneous debt and bans, perform trusted
+expiry, compact entries, change capacity, or restore state after restart. Those
+transitions and their composition with the global handshake and pending models
+remain open. A protected full table may refuse every new source; bounded
+retention time, honest reconnect fairness, shared-NAT behavior and real memory
+cost require additional proofs and qualification evidence.
 
 ## Poll continuation and critical service
 
@@ -169,8 +205,8 @@ implementation and environmental evidence.
 
 ## Negative controls
 
-The checker rejects 48 invalid variants: three direct checks of equality,
-ordering and termination, plus 45 semantic mutations. Mutations exercise such
+The checker rejects 63 invalid variants: three direct checks of equality,
+ordering and termination, plus 60 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -180,6 +216,13 @@ crashes do not count as a successful negative control.
 Policy mutations additionally bypass generation, epoch, identity or record
 authentication checks; preserve obsolete resolution; suppress valid updates;
 diverge a consumer; skip recovery; or change resource state during reload.
+
+Source-table mutations grow capacity, never recognise a resident key, register a
+known key again, bypass validation, permit unknown sources on overflow, hide a
+vacant slot from admission, evict debt or bans, forget a protected debt or ban
+entry in the protection projection, evict an unrelated clear entry, suppress
+matching eviction or head-slot allocation, or drop a churn event. Both
+safety and enabled transitions have negative controls.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

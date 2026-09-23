@@ -47,8 +47,13 @@ third-party attestation. File hashes detect drift, not semantic correctness.
 - Work units are symbolic. Weighted resource and handshake-cost bounds require
   runtime cost dominance and complete accounting of retained allocations.
   The shared token-bucket trace proves a discrete burst-plus-rate envelope;
-  trusted ticks must correspond to the real clock. Per-source security-state
-  eviction and restart persistence remain open.
+  trusted ticks must correspond to the real clock.
+- Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
+  Runtime refinement must establish canonical validated keys, unique initial
+  bindings and complete security-state classification. Quota enforcement, new
+  debt, simultaneous restrictions, trusted expiry, bounded retention time and
+  restart persistence remain open. Overflow refusal does not prove honest-source
+  admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,
   traffic admission opportunities or wall-clock progress.

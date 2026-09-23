@@ -1,0 +1,461 @@
+-- Bounded source registration and eviction, separate from rate and occupancy.
+-- Keys are canonical validated source/prefix identities, not attacker PeerIds.
+-- Churn cannot expire security state. Trusted expiry and restart are not modeled.
+mu SourceRestriction : Type 0 with
+| sourceClear : SourceRestriction
+| sourceRateDebt : Count -> SourceRestriction
+| sourceBan : SourceRestriction
+
+mu SourceCell : Type 0 with
+| vacantSource : SourceCell
+| trackedSource : Count -> SourceRestriction -> SourceCell
+
+mu SourceTable : Type 0 with
+| noSourceSlots : SourceTable
+| sourceSlot : SourceCell -> SourceTable -> SourceTable
+
+def rec sourceTableWidth : SourceTable -> Count :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return Count with
+    | noSourceSlots => zero
+    | sourceSlot cell rest => next (sourceTableWidth rest)
+
+def rec sourceTableSize : SourceTable -> Count :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return Count with
+    | noSourceSlots => zero
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return Count with
+      | vacantSource => sourceTableSize rest
+      | trackedSource key restriction => next (sourceTableSize rest)
+
+def rec sourceTableBound : (table : SourceTable) ->
+    AtMost (sourceTableSize table) (sourceTableWidth table) :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable
+        return AtMost (sourceTableSize self) (sourceTableWidth self) with
+    | noSourceSlots => least zero
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell
+          return AtMost (sourceTableSize (sourceSlot entry rest))
+            (sourceTableWidth (sourceSlot entry rest)) with
+      | vacantSource => weakenBound (sourceTableSize rest) (sourceTableWidth rest)
+          (sourceTableBound rest)
+      | trackedSource key restriction =>
+          lift (sourceTableSize rest) (sourceTableWidth rest) (sourceTableBound rest)
+
+def rec sourceKnown : Count -> SourceTable -> Flag :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return Flag with
+    | noSourceSlots => off
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return Flag with
+      | vacantSource => sourceKnown key rest
+      | trackedSource resident restriction => either (sameCount key resident) (sourceKnown key rest)
+
+def rec sourceHasRoom : SourceTable -> Flag :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return Flag with
+    | noSourceSlots => off
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return Flag with
+      | vacantSource => on
+      | trackedSource key restriction => sourceHasRoom rest
+
+-- A resident key is recognised as known at its own slot.
+def residentSourceIsKnown : (key : Count) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    Equal Flag (sourceKnown key (sourceSlot (trackedSource key restriction) rest)) on :=
+  fun (key : Count) (restriction : SourceRestriction) (rest : SourceTable) =>
+    congruent Flag Flag (fun (hit : Flag) => either hit (sourceKnown key rest))
+      (sameCount key key) on (sameCountReflexive key)
+
+-- Allocation only fills a vacant cell. A full table is unchanged.
+def rec insertSource : Count -> SourceTable -> SourceTable :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return SourceTable with
+    | noSourceSlots => noSourceSlots
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return SourceTable with
+      | vacantSource => sourceSlot (trackedSource key sourceClear) rest
+      | trackedSource resident restriction =>
+          sourceSlot (trackedSource resident restriction) (insertSource key rest)
+
+def rememberKnownSource : Flag -> Count -> SourceTable -> SourceTable :=
+  fun (known : Flag) (key : Count) (table : SourceTable) =>
+    case known as present in Flag return SourceTable with
+    | off => insertSource key table
+    | on => table
+
+def rememberSource : Reachability -> Count -> SourceTable -> SourceTable :=
+  fun (source : Reachability) (key : Count) (table : SourceTable) =>
+    case source as reach in Reachability return SourceTable with
+    | unvalidated => table
+    | validated => rememberKnownSource (sourceKnown key table) key table
+
+def sourceRegistrationAllowed : Reachability -> Count -> SourceTable -> Flag :=
+  fun (source : Reachability) (key : Count) (table : SourceTable) =>
+    case source as reach in Reachability return Flag with
+    | unvalidated => off
+    | validated => either (sourceKnown key table) (sourceHasRoom table)
+
+-- Even a zero-valued debt marker stays protected until trusted expiry clears it.
+def protectedSourceCell : SourceCell -> SourceCell :=
+  fun (cell : SourceCell) =>
+    case cell as entry in SourceCell return SourceCell with
+    | vacantSource => vacantSource
+    | trackedSource key restriction =>
+      case restriction as security in SourceRestriction return SourceCell with
+      | sourceClear => vacantSource
+      | sourceRateDebt debt => trackedSource key (sourceRateDebt debt)
+      | sourceBan => trackedSource key sourceBan
+
+def rec protectedSources : SourceTable -> SourceTable :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return SourceTable with
+    | noSourceSlots => noSourceSlots
+    | sourceSlot cell rest => sourceSlot (protectedSourceCell cell) (protectedSources rest)
+
+-- The protection projection keeps debt and ban entries with their key and payload.
+def protectedDebtSourceIsKept : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (protectedSourceCell (trackedSource key (sourceRateDebt debt)))
+      (trackedSource key (sourceRateDebt debt)) :=
+  fun (key : Count) (debt : Count) => same
+
+def protectedBannedSourceIsKept : (key : Count) ->
+    Equal SourceCell (protectedSourceCell (trackedSource key sourceBan)) (trackedSource key sourceBan) :=
+  fun (key : Count) => same
+
+def evictSourceCell : SourceCell -> SourceCell :=
+  fun (cell : SourceCell) =>
+    case cell as entry in SourceCell return SourceCell with
+    | vacantSource => vacantSource
+    | trackedSource key restriction =>
+      case restriction as security in SourceRestriction return SourceCell with
+      | sourceClear => vacantSource
+      | sourceRateDebt debt => trackedSource key (sourceRateDebt debt)
+      | sourceBan => trackedSource key sourceBan
+
+def evictMatchingSource : Flag -> SourceCell -> SourceCell :=
+  fun (matches : Flag) (cell : SourceCell) =>
+    case matches as matched in Flag return SourceCell with
+    | off => cell
+    | on => evictSourceCell cell
+
+def rec evictSource : Count -> SourceTable -> SourceTable :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return SourceTable with
+    | noSourceSlots => noSourceSlots
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return SourceTable with
+      | vacantSource => sourceSlot vacantSource (evictSource key rest)
+      | trackedSource resident restriction =>
+          sourceSlot (evictMatchingSource (sameCount key resident) (trackedSource resident restriction))
+            (evictSource key rest)
+
+def sourceSlotCongruent : (a : SourceCell) -> (b : SourceCell) ->
+    (left : SourceTable) -> (right : SourceTable) -> Equal SourceCell a b ->
+    Equal SourceTable left right -> Equal SourceTable (sourceSlot a left) (sourceSlot b right) :=
+  fun (a : SourceCell) (b : SourceCell) (left : SourceTable) (right : SourceTable)
+      (cellProof : Equal SourceCell a b) (tailProof : Equal SourceTable left right) =>
+    equalTransitivity SourceTable (sourceSlot a left) (sourceSlot b left) (sourceSlot b right)
+      (congruent SourceCell SourceTable (fun (cell : SourceCell) => sourceSlot cell left) a b cellProof)
+      (congruent SourceTable SourceTable (fun (tail : SourceTable) => sourceSlot b tail) left right tailProof)
+
+def rec insertSourcePreservesWidth : (key : Count) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (insertSource key table)) (sourceTableWidth table) :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable
+        return Equal Count (sourceTableWidth (insertSource key self)) (sourceTableWidth self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell
+          return Equal Count (sourceTableWidth (insertSource key (sourceSlot entry rest)))
+            (sourceTableWidth (sourceSlot entry rest)) with
+      | vacantSource => same
+      | trackedSource resident restriction => congruent Count Count (fun (n : Count) => next n)
+          (sourceTableWidth (insertSource key rest)) (sourceTableWidth rest)
+          (insertSourcePreservesWidth key rest)
+
+def rec insertSourcePreservesProtection : (key : Count) -> (table : SourceTable) ->
+    Equal SourceTable (protectedSources (insertSource key table)) (protectedSources table) :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable
+        return Equal SourceTable (protectedSources (insertSource key self)) (protectedSources self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell
+          return Equal SourceTable (protectedSources (insertSource key (sourceSlot entry rest)))
+            (protectedSources (sourceSlot entry rest)) with
+      | vacantSource => same
+      | trackedSource resident restriction =>
+          congruent SourceTable SourceTable
+            (fun (tail : SourceTable) => sourceSlot (protectedSourceCell (trackedSource resident restriction)) tail)
+            (protectedSources (insertSource key rest)) (protectedSources rest)
+            (insertSourcePreservesProtection key rest)
+
+def knownSourceRegistrationIsNoOp : (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceKnown key table) on ->
+    Equal SourceTable (rememberSource validated key table) table :=
+  fun (key : Count) (table : SourceTable) (known : Equal Flag (sourceKnown key table) on) =>
+    congruent Flag SourceTable (fun (present : Flag) => rememberKnownSource present key table)
+      (sourceKnown key table) on known
+
+-- A validated re-registration of a resident key never inserts a second copy.
+def knownSourceIsNotDuplicated : (key : Count) -> (restriction : SourceRestriction) -> (rest : SourceTable) ->
+    Equal SourceTable (rememberSource validated key (sourceSlot (trackedSource key restriction) rest))
+      (sourceSlot (trackedSource key restriction) rest) :=
+  fun (key : Count) (restriction : SourceRestriction) (rest : SourceTable) =>
+    knownSourceRegistrationIsNoOp key (sourceSlot (trackedSource key restriction) rest)
+      (residentSourceIsKnown key restriction rest)
+
+def unvalidatedSourceCannotRegister : (key : Count) -> (table : SourceTable) ->
+    Equal SourceTable (rememberSource unvalidated key table) table :=
+  fun (key : Count) (table : SourceTable) => same
+
+def unvalidatedSourceRegistrationIsRefused : (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceRegistrationAllowed unvalidated key table) off :=
+  fun (key : Count) (table : SourceTable) => same
+
+def rec fullSourceTableCannotAllocate : (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceHasRoom table) off -> Equal SourceTable (insertSource key table) table :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return Equal Flag (sourceHasRoom self) off ->
+        Equal SourceTable (insertSource key self) self with
+    | noSourceSlots => fun (full : Equal Flag off off) => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return Equal Flag (sourceHasRoom (sourceSlot entry rest)) off ->
+          Equal SourceTable (insertSource key (sourceSlot entry rest)) (sourceSlot entry rest) with
+      | vacantSource => fun (full : Equal Flag on off) =>
+          congruent Flag SourceTable
+            (fun (room : Flag) => case room as available in Flag return SourceTable with
+              | off => sourceSlot vacantSource rest
+              | on => sourceSlot (trackedSource key sourceClear) rest) on off full
+      | trackedSource resident restriction => fun (full : Equal Flag (sourceHasRoom rest) off) =>
+          congruent SourceTable SourceTable
+            (fun (tail : SourceTable) => sourceSlot (trackedSource resident restriction) tail)
+            (insertSource key rest) rest (fullSourceTableCannotAllocate key rest full)
+
+def unknownSourceWithoutRoomIsRefused : (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceKnown key table) off -> Equal Flag (sourceHasRoom table) off ->
+    Equal Flag (sourceRegistrationAllowed validated key table) off :=
+  fun (key : Count) (table : SourceTable)
+      (unknown : Equal Flag (sourceKnown key table) off) (full : Equal Flag (sourceHasRoom table) off) =>
+    equalTransitivity Flag (either (sourceKnown key table) (sourceHasRoom table))
+      (sourceHasRoom table) off
+      (congruent Flag Flag (fun (known : Flag) => either known (sourceHasRoom table))
+        (sourceKnown key table) off unknown) full
+
+-- Overflow refusal holds on the registration transition itself.
+def fullTableRefusesUnknownRegistration : (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceKnown key table) off -> Equal Flag (sourceHasRoom table) off ->
+    Equal SourceTable (rememberSource validated key table) table :=
+  fun (key : Count) (table : SourceTable)
+      (unknown : Equal Flag (sourceKnown key table) off) (full : Equal Flag (sourceHasRoom table) off) =>
+    equalTransitivity SourceTable (rememberKnownSource (sourceKnown key table) key table)
+      (insertSource key table) table
+      (congruent Flag SourceTable (fun (known : Flag) => rememberKnownSource known key table)
+        (sourceKnown key table) off unknown)
+      (fullSourceTableCannotAllocate key table full)
+
+-- Registration permission is sound for the transition: a refused registration is a no-op.
+def refusedRegistrationIsNoOp : (source : Reachability) -> (key : Count) -> (table : SourceTable) ->
+    Equal Flag (sourceRegistrationAllowed source key table) off ->
+    Equal SourceTable (rememberSource source key table) table :=
+  fun (source : Reachability) (key : Count) (table : SourceTable) =>
+    case source as reach in Reachability
+        return Equal Flag (sourceRegistrationAllowed reach key table) off ->
+          Equal SourceTable (rememberSource reach key table) table with
+    | unvalidated => fun (refused : Equal Flag off off) => same
+    | validated =>
+      case sourceKnown key table as known in Flag
+          return Equal Flag (either known (sourceHasRoom table)) off ->
+            Equal SourceTable (rememberKnownSource known key table) table with
+      | off => fun (full : Equal Flag (sourceHasRoom table) off) => fullSourceTableCannotAllocate key table full
+      | on => fun (blocked : Equal Flag on off) => same
+
+def sourceRegistrationUsesVacancy : (key : Count) -> (rest : SourceTable) ->
+    Equal Flag (sourceKnown key (sourceSlot vacantSource rest)) off ->
+    Equal SourceTable (rememberSource validated key (sourceSlot vacantSource rest))
+      (sourceSlot (trackedSource key sourceClear) rest) :=
+  fun (key : Count) (rest : SourceTable)
+      (unknown : Equal Flag (sourceKnown key (sourceSlot vacantSource rest)) off) =>
+    congruent Flag SourceTable
+      (fun (known : Flag) => rememberKnownSource known key (sourceSlot vacantSource rest))
+      (sourceKnown key (sourceSlot vacantSource rest)) off unknown
+
+def clearSourceCanBeEvicted : (key : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key sourceClear)) vacantSource :=
+  fun (key : Count) => same
+
+def matchingClearSourceIsEvicted : (key : Count) -> (rest : SourceTable) ->
+    Equal SourceTable (evictSource key (sourceSlot (trackedSource key sourceClear) rest))
+      (sourceSlot vacantSource (evictSource key rest)) :=
+  fun (key : Count) (rest : SourceTable) =>
+    congruent Flag SourceTable
+      (fun (matches : Flag) => sourceSlot (evictMatchingSource matches (trackedSource key sourceClear))
+        (evictSource key rest)) (sameCount key key) on (sameCountReflexive key)
+
+def debtSourceCannotBeEvicted : (key : Count) -> (debt : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key (sourceRateDebt debt)))
+      (trackedSource key (sourceRateDebt debt)) :=
+  fun (key : Count) (debt : Count) => same
+
+def bannedSourceCannotBeEvicted : (key : Count) ->
+    Equal SourceCell (evictSourceCell (trackedSource key sourceBan)) (trackedSource key sourceBan) :=
+  fun (key : Count) => same
+
+def nonmatchingSourceCellIsPreserved : (cell : SourceCell) ->
+    Equal SourceCell (evictMatchingSource off cell) cell :=
+  fun (cell : SourceCell) => same
+
+def sourceCellEvictionPreservesProtection : (cell : SourceCell) ->
+    Equal SourceCell (protectedSourceCell (evictSourceCell cell)) (protectedSourceCell cell) :=
+  fun (cell : SourceCell) =>
+    case cell as entry in SourceCell
+        return Equal SourceCell (protectedSourceCell (evictSourceCell entry)) (protectedSourceCell entry) with
+    | vacantSource => same
+    | trackedSource key restriction =>
+      case restriction as security in SourceRestriction
+          return Equal SourceCell (protectedSourceCell (evictSourceCell (trackedSource key security)))
+            (protectedSourceCell (trackedSource key security)) with
+      | sourceClear => same
+      | sourceRateDebt debt => same
+      | sourceBan => same
+
+def matchingEvictionPreservesProtection : (matches : Flag) -> (cell : SourceCell) ->
+    Equal SourceCell (protectedSourceCell (evictMatchingSource matches cell)) (protectedSourceCell cell) :=
+  fun (matches : Flag) (cell : SourceCell) =>
+    case matches as matched in Flag
+        return Equal SourceCell (protectedSourceCell (evictMatchingSource matched cell)) (protectedSourceCell cell) with
+    | off => same
+    | on => sourceCellEvictionPreservesProtection cell
+
+def rec evictSourcePreservesProtection : (key : Count) -> (table : SourceTable) ->
+    Equal SourceTable (protectedSources (evictSource key table)) (protectedSources table) :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable
+        return Equal SourceTable (protectedSources (evictSource key self)) (protectedSources self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell
+          return Equal SourceTable (protectedSources (evictSource key (sourceSlot entry rest)))
+            (protectedSources (sourceSlot entry rest)) with
+      | vacantSource => sourceSlotCongruent vacantSource vacantSource
+          (protectedSources (evictSource key rest)) (protectedSources rest) same
+          (evictSourcePreservesProtection key rest)
+      | trackedSource resident restriction => sourceSlotCongruent
+          (protectedSourceCell (evictMatchingSource (sameCount key resident) (trackedSource resident restriction)))
+          (protectedSourceCell (trackedSource resident restriction))
+          (protectedSources (evictSource key rest)) (protectedSources rest)
+          (matchingEvictionPreservesProtection (sameCount key resident) (trackedSource resident restriction))
+          (evictSourcePreservesProtection key rest)
+
+def rec evictSourcePreservesWidth : (key : Count) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (evictSource key table)) (sourceTableWidth table) :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable
+        return Equal Count (sourceTableWidth (evictSource key self)) (sourceTableWidth self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell
+          return Equal Count (sourceTableWidth (evictSource key (sourceSlot entry rest)))
+            (sourceTableWidth (sourceSlot entry rest)) with
+      | vacantSource => congruent Count Count (fun (n : Count) => next n)
+          (sourceTableWidth (evictSource key rest)) (sourceTableWidth rest) (evictSourcePreservesWidth key rest)
+      | trackedSource resident restriction => congruent Count Count (fun (n : Count) => next n)
+          (sourceTableWidth (evictSource key rest)) (sourceTableWidth rest) (evictSourcePreservesWidth key rest)
+
+mu SourceTableEvent : Type 0 with
+| sourceRegistration : Reachability -> Count -> SourceTableEvent
+| sourceEviction : Count -> SourceTableEvent
+
+def sourceTableStep : SourceTableEvent -> SourceTable -> SourceTable :=
+  fun (event : SourceTableEvent) (table : SourceTable) =>
+    case event as action in SourceTableEvent return SourceTable with
+    | sourceRegistration source key => rememberSource source key table
+    | sourceEviction key => evictSource key table
+
+def sourceTableStepWidth : (event : SourceTableEvent) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (sourceTableStep event table)) (sourceTableWidth table) :=
+  fun (event : SourceTableEvent) (table : SourceTable) =>
+    case event as action in SourceTableEvent
+        return Equal Count (sourceTableWidth (sourceTableStep action table)) (sourceTableWidth table) with
+    | sourceRegistration source key =>
+      (case source as reach in Reachability
+          return Equal Count (sourceTableWidth (rememberSource reach key table)) (sourceTableWidth table) with
+      | unvalidated => same
+      | validated =>
+        case sourceKnown key table as known in Flag
+            return Equal Count (sourceTableWidth (rememberKnownSource known key table)) (sourceTableWidth table) with
+        | off => insertSourcePreservesWidth key table
+        | on => same)
+    | sourceEviction key => evictSourcePreservesWidth key table
+
+def sourceTableStepProtection : (event : SourceTableEvent) -> (table : SourceTable) ->
+    Equal SourceTable (protectedSources (sourceTableStep event table)) (protectedSources table) :=
+  fun (event : SourceTableEvent) (table : SourceTable) =>
+    case event as action in SourceTableEvent
+        return Equal SourceTable (protectedSources (sourceTableStep action table)) (protectedSources table) with
+    | sourceRegistration source key =>
+      (case source as reach in Reachability
+          return Equal SourceTable (protectedSources (rememberSource reach key table)) (protectedSources table) with
+      | unvalidated => same
+      | validated =>
+        case sourceKnown key table as known in Flag
+            return Equal SourceTable (protectedSources (rememberKnownSource known key table)) (protectedSources table) with
+        | off => insertSourcePreservesProtection key table
+        | on => same)
+    | sourceEviction key => evictSourcePreservesProtection key table
+
+mu SourceTableTrace : Type 0 with
+| sourceTableDone : SourceTableTrace
+| sourceTableThen : SourceTableEvent -> SourceTableTrace -> SourceTableTrace
+
+def rec runSourceTable : SourceTableTrace -> SourceTable -> SourceTable :=
+  fun (events : SourceTableTrace) (table : SourceTable) =>
+    case events as trace in SourceTableTrace return SourceTable with
+    | sourceTableDone => table
+    | sourceTableThen event rest => runSourceTable rest (sourceTableStep event table)
+
+def sourceTraceRegistersVacancy : (key : Count) -> (rest : SourceTable) ->
+    Equal Flag (sourceKnown key (sourceSlot vacantSource rest)) off ->
+    Equal SourceTable
+      (runSourceTable (sourceTableThen (sourceRegistration validated key) sourceTableDone) (sourceSlot vacantSource rest))
+      (sourceSlot (trackedSource key sourceClear) rest) :=
+  fun (key : Count) (rest : SourceTable) (unknown : Equal Flag (sourceKnown key (sourceSlot vacantSource rest)) off) =>
+    sourceRegistrationUsesVacancy key rest unknown
+
+def sourceTraceEvictsClearEntry : (key : Count) -> (rest : SourceTable) ->
+    Equal SourceTable
+      (runSourceTable (sourceTableThen (sourceEviction key) sourceTableDone) (sourceSlot (trackedSource key sourceClear) rest))
+      (sourceSlot vacantSource (evictSource key rest)) :=
+  fun (key : Count) (rest : SourceTable) => matchingClearSourceIsEvicted key rest
+
+def rec sourceTableTraceWidth : (events : SourceTableTrace) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (runSourceTable events table)) (sourceTableWidth table) :=
+  fun (events : SourceTableTrace) (table : SourceTable) =>
+    case events as trace in SourceTableTrace
+        return Equal Count (sourceTableWidth (runSourceTable trace table)) (sourceTableWidth table) with
+    | sourceTableDone => same
+    | sourceTableThen event rest => equalTransitivity Count
+        (sourceTableWidth (runSourceTable rest (sourceTableStep event table)))
+        (sourceTableWidth (sourceTableStep event table)) (sourceTableWidth table)
+        (sourceTableTraceWidth rest (sourceTableStep event table)) (sourceTableStepWidth event table)
+
+def rec sourceChurnPreservesProtection : (events : SourceTableTrace) -> (table : SourceTable) ->
+    Equal SourceTable (protectedSources (runSourceTable events table)) (protectedSources table) :=
+  fun (events : SourceTableTrace) (table : SourceTable) =>
+    case events as trace in SourceTableTrace
+        return Equal SourceTable (protectedSources (runSourceTable trace table)) (protectedSources table) with
+    | sourceTableDone => same
+    | sourceTableThen event rest => equalTransitivity SourceTable
+        (protectedSources (runSourceTable rest (sourceTableStep event table)))
+        (protectedSources (sourceTableStep event table)) (protectedSources table)
+        (sourceChurnPreservesProtection rest (sourceTableStep event table)) (sourceTableStepProtection event table)
+
+def sourceChurnCardinalityBound : (events : SourceTableTrace) -> (table : SourceTable) ->
+    AtMost (sourceTableSize (runSourceTable events table)) (sourceTableWidth table) :=
+  fun (events : SourceTableTrace) (table : SourceTable) =>
+    equalTransport Count (fun (limit : Count) => AtMost (sourceTableSize (runSourceTable events table)) limit)
+      (sourceTableWidth (runSourceTable events table)) (sourceTableWidth table)
+      (sourceTableTraceWidth events table) (sourceTableBound (runSourceTable events table))
