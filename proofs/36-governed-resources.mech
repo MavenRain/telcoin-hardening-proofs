@@ -1,0 +1,204 @@
+-- One serialized trace interleaves policy publication, shared handshake credit,
+-- and pending ownership. Policy updates cannot replenish or resize resources.
+mu GovernedState : Type 0 with
+| governedState : VersionedPolicy -> Count -> LeasePool -> GovernedState
+
+def governedPolicy : GovernedState -> VersionedPolicy :=
+  fun (current : GovernedState) =>
+    case current as self in GovernedState return VersionedPolicy with
+    | governedState policy credits pool => policy
+
+def governedCredits : GovernedState -> Count :=
+  fun (current : GovernedState) =>
+    case current as self in GovernedState return Count with
+    | governedState policy credits pool => credits
+
+def governedPool : GovernedState -> LeasePool :=
+  fun (current : GovernedState) =>
+    case current as self in GovernedState return LeasePool with
+    | governedState policy credits pool => pool
+
+mu GovernedEvent : Type 0 with
+| governedPolicyChange : Count -> PolicyAction -> GovernedEvent
+| governedRateEvent : RateEvent -> GovernedEvent
+| governedPendingEvent : PoolAction -> GovernedEvent
+
+def governedStep : Count -> GovernedEvent -> GovernedState -> GovernedState :=
+  fun (capacity : Count) (event : GovernedEvent) (current : GovernedState) =>
+    case event as self in GovernedEvent return GovernedState with
+    | governedPolicyChange observed action =>
+      governedState (commitPolicyAction observed action (governedPolicy current))
+        (governedCredits current) (governedPool current)
+    | governedRateEvent rate => governedState (governedPolicy current)
+        (creditsAfter capacity (governedCredits current) rate) (governedPool current)
+    | governedPendingEvent pending => governedState (governedPolicy current)
+        (governedCredits current) (poolStep pending (governedPool current))
+
+def policyChangePreservesCredits : (capacity : Count) -> (observed : Count) -> (action : PolicyAction) -> (current : GovernedState) ->
+    Equal Count (governedCredits (governedStep capacity (governedPolicyChange observed action) current)) (governedCredits current) :=
+  fun (capacity : Count) (observed : Count) (action : PolicyAction) (current : GovernedState) => same
+
+def policyChangePreservesPending : (capacity : Count) -> (observed : Count) -> (action : PolicyAction) -> (current : GovernedState) ->
+    Equal LeasePool (governedPool (governedStep capacity (governedPolicyChange observed action) current)) (governedPool current) :=
+  fun (capacity : Count) (observed : Count) (action : PolicyAction) (current : GovernedState) => same
+
+mu GovernedTrace : Type 0 with
+| governedDone : GovernedTrace
+| governedNext : GovernedEvent -> GovernedTrace -> GovernedTrace
+
+def rec runGoverned : GovernedTrace -> Count -> GovernedState -> GovernedState :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return GovernedState with
+    | governedDone => current
+    | governedNext event rest => runGoverned rest capacity (governedStep capacity event current)
+
+def rec governedRates : GovernedTrace -> RateTrace :=
+  fun (trace : GovernedTrace) =>
+    case trace as self in GovernedTrace return RateTrace with
+    | governedDone => rateDone
+    | governedNext event rest =>
+      case event as change in GovernedEvent return RateTrace with
+      | governedPolicyChange observed action => governedRates rest
+      | governedRateEvent rate => rateEvent rate (governedRates rest)
+      | governedPendingEvent pending => governedRates rest
+
+def rec governedPending : GovernedTrace -> PoolTrace :=
+  fun (trace : GovernedTrace) =>
+    case trace as self in GovernedTrace return PoolTrace with
+    | governedDone => poolDone
+    | governedNext event rest =>
+      case event as change in GovernedEvent return PoolTrace with
+      | governedPolicyChange observed action => governedPending rest
+      | governedRateEvent rate => governedPending rest
+      | governedPendingEvent pending => poolEvent pending (governedPending rest)
+
+def rec governedPolicies : GovernedTrace -> PolicyTrace :=
+  fun (trace : GovernedTrace) =>
+    case trace as self in GovernedTrace return PolicyTrace with
+    | governedDone => noPolicyEvents
+    | governedNext event rest =>
+      case event as change in GovernedEvent return PolicyTrace with
+      | governedPolicyChange observed action => policyTraceStep observed action (governedPolicies rest)
+      | governedRateEvent rate => governedPolicies rest
+      | governedPendingEvent pending => governedPolicies rest
+
+def rec governedStarts : GovernedTrace -> Count -> GovernedState -> Count :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return Count with
+    | governedDone => zero
+    | governedNext event rest =>
+      case event as change in GovernedEvent return Count with
+      | governedPolicyChange observed action =>
+        governedStarts rest capacity (governedStep capacity (governedPolicyChange observed action) current)
+      | governedRateEvent rate => add (handshakeStartsNow (governedCredits current) rate)
+        (governedStarts rest capacity (governedStep capacity (governedRateEvent rate) current))
+      | governedPendingEvent pending =>
+        governedStarts rest capacity (governedStep capacity (governedPendingEvent pending) current)
+
+def rec governedCreditsProjection : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    Equal Count (governedCredits (runGoverned trace capacity current))
+      (finalCredits (governedRates trace) capacity (governedCredits current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return Equal Count (governedCredits (runGoverned self capacity current))
+        (finalCredits (governedRates self) capacity (governedCredits current)) with
+    | governedDone => same
+    | governedNext event rest =>
+      case event as change in GovernedEvent
+          return Equal Count (governedCredits (runGoverned rest capacity (governedStep capacity change current)))
+            (finalCredits (governedRates (governedNext change rest)) capacity (governedCredits current)) with
+      | governedPolicyChange observed action =>
+        governedCreditsProjection rest capacity (governedStep capacity (governedPolicyChange observed action) current)
+      | governedRateEvent rate => governedCreditsProjection rest capacity (governedStep capacity (governedRateEvent rate) current)
+      | governedPendingEvent pending => governedCreditsProjection rest capacity (governedStep capacity (governedPendingEvent pending) current)
+
+def rec governedPoolProjection : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    Equal LeasePool (governedPool (runGoverned trace capacity current)) (runPool (governedPending trace) (governedPool current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return Equal LeasePool (governedPool (runGoverned self capacity current))
+        (runPool (governedPending self) (governedPool current)) with
+    | governedDone => same
+    | governedNext event rest =>
+      case event as change in GovernedEvent
+          return Equal LeasePool (governedPool (runGoverned rest capacity (governedStep capacity change current)))
+            (runPool (governedPending (governedNext change rest)) (governedPool current)) with
+      | governedPolicyChange observed action =>
+        governedPoolProjection rest capacity (governedStep capacity (governedPolicyChange observed action) current)
+      | governedRateEvent rate => governedPoolProjection rest capacity (governedStep capacity (governedRateEvent rate) current)
+      | governedPendingEvent pending => governedPoolProjection rest capacity (governedStep capacity (governedPendingEvent pending) current)
+
+def rec governedPolicyProjection : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    Equal VersionedPolicy (governedPolicy (runGoverned trace capacity current))
+      (runPolicyTrace (governedPolicies trace) (governedPolicy current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return Equal VersionedPolicy (governedPolicy (runGoverned self capacity current))
+        (runPolicyTrace (governedPolicies self) (governedPolicy current)) with
+    | governedDone => same
+    | governedNext event rest =>
+      case event as change in GovernedEvent
+          return Equal VersionedPolicy (governedPolicy (runGoverned rest capacity (governedStep capacity change current)))
+            (runPolicyTrace (governedPolicies (governedNext change rest)) (governedPolicy current)) with
+      | governedPolicyChange observed action =>
+        governedPolicyProjection rest capacity (governedStep capacity (governedPolicyChange observed action) current)
+      | governedRateEvent rate => governedPolicyProjection rest capacity (governedStep capacity (governedRateEvent rate) current)
+      | governedPendingEvent pending => governedPolicyProjection rest capacity (governedStep capacity (governedPendingEvent pending) current)
+
+def rec governedStartsProjection : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    Equal Count (governedStarts trace capacity current) (handshakeStarts (governedRates trace) capacity (governedCredits current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    case trace as self in GovernedTrace return Equal Count (governedStarts self capacity current)
+        (handshakeStarts (governedRates self) capacity (governedCredits current)) with
+    | governedDone => same
+    | governedNext event rest =>
+      case event as change in GovernedEvent
+          return Equal Count (governedStarts (governedNext change rest) capacity current)
+            (handshakeStarts (governedRates (governedNext change rest)) capacity (governedCredits current)) with
+      | governedPolicyChange observed action =>
+        governedStartsProjection rest capacity (governedStep capacity (governedPolicyChange observed action) current)
+      | governedRateEvent rate =>
+        congruent Count Count (fun (later : Count) => add (handshakeStartsNow (governedCredits current) rate) later)
+          (governedStarts rest capacity (governedStep capacity (governedRateEvent rate) current))
+          (handshakeStarts (governedRates rest) capacity (creditsAfter capacity (governedCredits current) rate))
+          (governedStartsProjection rest capacity (governedStep capacity (governedRateEvent rate) current))
+      | governedPendingEvent pending =>
+        governedStartsProjection rest capacity (governedStep capacity (governedPendingEvent pending) current)
+
+def governedCreditCapacityBound : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    AtMost (governedCredits current) capacity -> AtMost (governedCredits (runGoverned trace capacity current)) capacity :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) (within : AtMost (governedCredits current) capacity) =>
+    equalTransport Count (fun (credits : Count) => AtMost credits capacity)
+      (finalCredits (governedRates trace) capacity (governedCredits current)) (governedCredits (runGoverned trace capacity current))
+      (equalSymmetry Count (governedCredits (runGoverned trace capacity current))
+        (finalCredits (governedRates trace) capacity (governedCredits current)) (governedCreditsProjection trace capacity current))
+      (rateTraceCapacityBound (governedRates trace) capacity (governedCredits current) within)
+
+def governedHandshakeCreditBound : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    AtMost (governedStarts trace capacity current) (add (governedCredits current) (issuedTotal (governedRates trace))) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    equalTransport Count (fun (starts : Count) => AtMost starts (add (governedCredits current) (issuedTotal (governedRates trace))))
+      (handshakeStarts (governedRates trace) capacity (governedCredits current)) (governedStarts trace capacity current)
+      (equalSymmetry Count (governedStarts trace capacity current)
+        (handshakeStarts (governedRates trace) capacity (governedCredits current)) (governedStartsProjection trace capacity current))
+      (handshakeCreditTraceBound (governedRates trace) capacity (governedCredits current))
+
+def governedPendingOccupancyBound : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    AtMost (leaseOccupancy (governedPool (runGoverned trace capacity current))) (leaseCapacity (governedPool current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    equalTransport LeasePool (fun (pool : LeasePool) => AtMost (leaseOccupancy pool) (leaseCapacity (governedPool current)))
+      (runPool (governedPending trace) (governedPool current)) (governedPool (runGoverned trace capacity current))
+      (equalSymmetry LeasePool (governedPool (runGoverned trace capacity current))
+        (runPool (governedPending trace) (governedPool current)) (governedPoolProjection trace capacity current))
+      (pendingOccupancyTraceBound (governedPending trace) (governedPool current))
+
+def governedPendingConservation : (trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->
+    Equal Count (add (leaseOccupancy (governedPool (runGoverned trace capacity current)))
+      (leaseAvailability (governedPool (runGoverned trace capacity current)))) (leaseCapacity (governedPool current)) :=
+  fun (trace : GovernedTrace) (capacity : Count) (current : GovernedState) =>
+    equalTransitivity Count
+      (add (leaseOccupancy (governedPool (runGoverned trace capacity current))) (leaseAvailability (governedPool (runGoverned trace capacity current))))
+      (add (leaseOccupancy (runPool (governedPending trace) (governedPool current)))
+        (leaseAvailability (runPool (governedPending trace) (governedPool current))))
+      (leaseCapacity (governedPool current))
+      (congruent LeasePool Count (fun (pool : LeasePool) => add (leaseOccupancy pool) (leaseAvailability pool))
+        (governedPool (runGoverned trace capacity current)) (runPool (governedPending trace) (governedPool current))
+        (governedPoolProjection trace capacity current))
+      (pendingConservationTrace (governedPending trace) (governedPool current))

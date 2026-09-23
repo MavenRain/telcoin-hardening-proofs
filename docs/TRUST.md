@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-Twenty-nine further semantic mutations must
+Forty-five further semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -35,8 +35,15 @@ third-party attestation. File hashes detect drift, not semantic correctness.
 - Authentication, policy freshness, committee membership and source attribution
   are inputs. The committee model rejects unverified or old-epoch records,
   deduplicates a fixed roster and clears resolution on epoch reset. Correct
-  signature/epoch binding, stable member indices, freshness and atomic policy
-  snapshots still need refinement.
+  signature/epoch binding, stable member indices and freshness still need
+  refinement. The positive recovery threshold is supplied as a model input;
+  deriving committee size minus f remains open.
+- The policy model orders complete views with nonwrapping generations. Real
+  publication must be atomic. Receipt validation and authorization must linearize
+  with publication, or retain equivalent protection through use. A separate
+  version check followed by unprotected use is insufficient. Peer identifiers,
+  receipt provenance, fault detection and external governance ordering need
+  refinement; the local generation alone does not establish input freshness.
 - Work units are symbolic. Weighted resource and handshake-cost bounds require
   runtime cost dominance and complete accounting of retained allocations.
   The shared token-bucket trace proves a discrete burst-plus-rate envelope;

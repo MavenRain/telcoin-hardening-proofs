@@ -89,15 +89,97 @@ unique stable slot for each member. Signature verification, timestamp freshness,
 membership changes, the committee-minus-f threshold and atomic snapshot ordering
 remain implementation or additional modeling obligations.
 
+## Versioned policy publication and receipts
+
+[32-policy-snapshots.mech](../proofs/32-policy-snapshots.mech) puts configuration and
+recovery records in one immutable view. An action carries the generation it
+observed. Publication compares that generation with the current one, installs a
+complete replacement only on a match, and advances the generation. Callbacks from
+an older view cannot change the current view. Generation identifies the complete
+view, including derived recovery state; an epoch number alone is insufficient.
+
+Missing, stale and contradictory input faults select Grace. The fault
+constructors mirror the three fault classes of the plan; the fault theorems are
+universal over the class, so no consumer inspects the payload. A positive
+recovery threshold prevents an empty resolution set from closing the profile.
+The planned update for a replacement or an invalidation starts from cleared
+resolution evidence. Clearing evidence on every replacement, including updates
+within an epoch, is a conservative model choice. A variant that retains cached
+records needs a proof that their authentication, membership and freshness remain
+valid for the new view.
+
+Records must be verified, match the current epoch and identify an unresolved
+roster slot. An unverified or duplicate record yields a retained update, and a
+retained update does not advance the generation.
+
+[33-policy-readers.mech](../proofs/33-policy-readers.mech) gives admission, peer
+management and the optional TLS consumer one authenticated query over a captured
+view. Their decisions agree for that view. Internal receipts carry the view
+generation, epoch, peer identity and decision. Receipt validation checks all
+three bindings. A current receipt preserves its decision; changing the view or
+using a mismatched identity rejects it. `stalePolicyReceiptDenied` and
+`oldEpochPolicyReceiptDenied` state the later-generation and later-epoch cases
+of `receiptDecision` directly. A replacement that installs a lower epoch is also
+rejected: `installPolicyUpdate` advances the generation on every
+`replacePolicyCore`, and `everyPolicyChangeInvalidatesReceipt` rejects the
+captured receipt for any replacement core, so the generation binding covers
+epoch changes in both directions. Receipt provenance and the binding of the
+authentication flag to the actual peer remain implementation obligations.
+
+[34-policy-traces.mech](../proofs/34-policy-traces.mech) proves that generations
+never decrease and grow by at most the number of policy events in an arbitrary
+finite trace. Given a limit above that event-count bound, the final generation
+stays within the limit. A real fixed-width counter still needs such a bound or a
+safe exhaustion protocol. Local generations do not establish the freshness or
+ordering of external governance proposals.
+
+The same module proves the committed recovery properties. A committed policy
+replacement or invalidation clears resolution evidence, and a replacement uses
+the new roster's size. Committed callbacks with unverified, epoch-mismatched or
+duplicate records do not publish a new view, and a duplicate callback cannot
+advance the generation. The proofs also show an enabled update for any verified
+unresolved member at the current epoch, so recovery does not satisfy its safety
+properties by rejecting every record. Delivery, contention retries and eventual
+recovery still need progress proofs.
+
+The Rust implementation must publish views atomically and linearize receipt
+validation through authorization, or retain equivalent protection through use.
+Checking a generation and then using the result without protection permits a
+race with a later publication. The model's serialized transitions exclude that
+race, so an implementation refinement must justify this boundary explicitly.
+
+## Policy and resource interleavings
+
+[36-governed-resources.mech](../proofs/36-governed-resources.mech) combines a policy
+view, shared handshake balance and pending pool. A finite trace may interleave
+policy replacement, invalidation and recovery with arbitrary rate and pending
+events. Projection proofs show that each resulting component agrees exactly
+with its earlier individual transition model.
+
+Policy changes preserve credits and pending ownership. Across the mixed trace,
+handshake starts stay within initial credit plus trusted issuance, bounded
+credits remain within capacity, and pending occupancy and conservation retain
+their initial pool bound. The shared rate events include both swarms.
+
+Bucket and pool capacities are fixed within this model. Runtime cap changes,
+restart persistence, per-source security-state eviction and the allocation or
+processing cost of policy data require additional models. Real callback
+interleavings, all resource allocations and clock-derived issuance still need
+implementation and environmental evidence.
+
 ## Negative controls
 
-The checker rejects 32 invalid variants: three direct checks of equality,
-ordering and termination, plus 29 semantic mutations. Mutations exercise such
+The checker rejects 48 invalid variants: three direct checks of equality,
+ordering and termination, plus 45 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
 resolution. Failure must be a semantic checker diagnostic; syntax errors and
 crashes do not count as a successful negative control.
+
+Policy mutations additionally bypass generation, epoch, identity or record
+authentication checks; preserve obsolete resolution; suppress valid updates;
+diverge a consumer; skip recovery; or change resource state during reload.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

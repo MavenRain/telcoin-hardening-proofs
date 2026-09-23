@@ -1,0 +1,223 @@
+-- Generation bounds count committed view changes over arbitrary finite traces.
+def policyInstallStepBound : (update : PolicyUpdate) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration (installPolicyUpdate update current)) (next (policyGeneration current)) :=
+  fun (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case update as self in PolicyUpdate
+        return AtMost (policyGeneration (installPolicyUpdate self current)) (next (policyGeneration current)) with
+    | retainPolicy => weakenBound (policyGeneration current) (policyGeneration current) (reflexiveBound (policyGeneration current))
+    | replacePolicyCore replacement => reflexiveBound (next (policyGeneration current))
+
+def policyDecisionStepBound : (matches : Flag) -> (update : PolicyUpdate) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration (applyPolicyDecision matches update current)) (next (policyGeneration current)) :=
+  fun (matches : Flag) (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case matches as self in Flag
+        return AtMost (policyGeneration (applyPolicyDecision self update current)) (next (policyGeneration current)) with
+    | off => weakenBound (policyGeneration current) (policyGeneration current) (reflexiveBound (policyGeneration current))
+    | on => policyInstallStepBound update current
+
+def policyCommitStepBound : (observed : Count) -> (action : PolicyAction) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration (commitPolicyAction observed action current)) (next (policyGeneration current)) :=
+  fun (observed : Count) (action : PolicyAction) (current : VersionedPolicy) =>
+    policyDecisionStepBound (sameCount observed (policyGeneration current)) (planPolicyUpdate action (policyView current)) current
+
+mu PolicyTrace : Type 0 with
+| noPolicyEvents : PolicyTrace
+| policyTraceStep : Count -> PolicyAction -> PolicyTrace -> PolicyTrace
+
+def rec policyTraceLength : PolicyTrace -> Count :=
+  fun (trace : PolicyTrace) =>
+    case trace as self in PolicyTrace return Count with
+    | noPolicyEvents => zero
+    | policyTraceStep observed action rest => next (policyTraceLength rest)
+
+def rec runPolicyTrace : PolicyTrace -> VersionedPolicy -> VersionedPolicy :=
+  fun (trace : PolicyTrace) (current : VersionedPolicy) =>
+    case trace as self in PolicyTrace return VersionedPolicy with
+    | noPolicyEvents => current
+    | policyTraceStep observed action rest => runPolicyTrace rest (commitPolicyAction observed action current)
+
+def rec policyTraceGenerationMonotone : (trace : PolicyTrace) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration current) (policyGeneration (runPolicyTrace trace current)) :=
+  fun (trace : PolicyTrace) (current : VersionedPolicy) =>
+    case trace as self in PolicyTrace
+        return AtMost (policyGeneration current) (policyGeneration (runPolicyTrace self current)) with
+    | noPolicyEvents => reflexiveBound (policyGeneration current)
+    | policyTraceStep observed action rest =>
+      boundTransitive (policyGeneration current) (policyGeneration (commitPolicyAction observed action current))
+        (policyGeneration (runPolicyTrace rest (commitPolicyAction observed action current)))
+        (policyCommitMonotone observed action current)
+        (policyTraceGenerationMonotone rest (commitPolicyAction observed action current))
+
+def rec policyTraceGenerationBound : (trace : PolicyTrace) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration (runPolicyTrace trace current)) (add (policyTraceLength trace) (policyGeneration current)) :=
+  fun (trace : PolicyTrace) (current : VersionedPolicy) =>
+    case trace as self in PolicyTrace
+        return AtMost (policyGeneration (runPolicyTrace self current)) (add (policyTraceLength self) (policyGeneration current)) with
+    | noPolicyEvents => reflexiveBound (policyGeneration current)
+    | policyTraceStep observed action rest =>
+      equalTransport Count
+        (fun (limit : Count) => AtMost (policyGeneration (runPolicyTrace rest (commitPolicyAction observed action current))) limit)
+        (add (policyTraceLength rest) (next (policyGeneration current)))
+        (next (add (policyTraceLength rest) (policyGeneration current)))
+        (addRightNext (policyTraceLength rest) (policyGeneration current))
+        (boundTransitive (policyGeneration (runPolicyTrace rest (commitPolicyAction observed action current)))
+          (add (policyTraceLength rest) (policyGeneration (commitPolicyAction observed action current)))
+          (add (policyTraceLength rest) (next (policyGeneration current)))
+          (policyTraceGenerationBound rest (commitPolicyAction observed action current))
+          (addBounds (policyTraceLength rest) (policyTraceLength rest)
+            (policyGeneration (commitPolicyAction observed action current)) (next (policyGeneration current))
+            (reflexiveBound (policyTraceLength rest)) (policyCommitStepBound observed action current)))
+
+def policyGenerationFitsGivenLimit : (trace : PolicyTrace) -> (current : VersionedPolicy) -> (limit : Count) ->
+    AtMost (add (policyTraceLength trace) (policyGeneration current)) limit ->
+    AtMost (policyGeneration (runPolicyTrace trace current)) limit :=
+  fun (trace : PolicyTrace) (current : VersionedPolicy) (limit : Count)
+      (enoughSpace : AtMost (add (policyTraceLength trace) (policyGeneration current)) limit) =>
+    boundTransitive (policyGeneration (runPolicyTrace trace current))
+      (add (policyTraceLength trace) (policyGeneration current)) limit
+      (policyTraceGenerationBound trace current) enoughSpace
+
+def retainedPolicyDecision : (matches : Flag) -> (current : VersionedPolicy) ->
+    Equal VersionedPolicy (applyPolicyDecision matches retainPolicy current) current :=
+  fun (matches : Flag) (current : VersionedPolicy) =>
+    case matches as self in Flag return Equal VersionedPolicy (applyPolicyDecision self retainPolicy current) current with
+    | off => same
+    | on => same
+
+def unverifiedPolicyCallbackIsNoOp : (observed : Count) -> (recordEpoch : Count) -> (index : Count) ->
+    (current : VersionedPolicy) ->
+    Equal VersionedPolicy (commitPolicyAction observed (policyResolution recordEpoch off index) current) current :=
+  fun (observed : Count) (recordEpoch : Count) (index : Count) (current : VersionedPolicy) =>
+    equalTransitivity VersionedPolicy (commitPolicyAction observed (policyResolution recordEpoch off index) current)
+      (applyPolicyDecision (sameCount observed (policyGeneration current)) retainPolicy current) current
+      (congruent PolicyUpdate VersionedPolicy
+        (fun (update : PolicyUpdate) => applyPolicyDecision (sameCount observed (policyGeneration current)) update current)
+        (recordPolicyUpdate recordEpoch off index (policyView current)) retainPolicy
+        (unverifiedPolicyRecordIgnored recordEpoch index (policyView current)))
+      (retainedPolicyDecision (sameCount observed (policyGeneration current)) current)
+
+def currentDuplicatePolicyCallbackIsNoOp : (generation : Count) -> (recordEpoch : Count) -> (verified : Flag) ->
+    (index : Count) -> (config : PolicyConfig) -> (records : Slots) ->
+    Equal VersionedPolicy
+      (commitPolicyAction generation (policyResolution recordEpoch verified index)
+        (versionedPolicy generation (policyCore config (markCommitteeRecord index records))))
+      (versionedPolicy generation (policyCore config (markCommitteeRecord index records))) :=
+  fun (generation : Count) (recordEpoch : Count) (verified : Flag) (index : Count)
+      (config : PolicyConfig) (records : Slots) =>
+    equalTransitivity VersionedPolicy
+      (commitPolicyAction generation (policyResolution recordEpoch verified index)
+        (versionedPolicy generation (policyCore config (markCommitteeRecord index records))))
+      (installPolicyUpdate
+        (recordPolicyUpdate recordEpoch verified index (policyCore config (markCommitteeRecord index records)))
+        (versionedPolicy generation (policyCore config (markCommitteeRecord index records))))
+      (versionedPolicy generation (policyCore config (markCommitteeRecord index records)))
+      (currentPolicyActionApplied generation (policyResolution recordEpoch verified index)
+        (policyCore config (markCommitteeRecord index records)))
+      (congruent PolicyUpdate VersionedPolicy
+        (fun (update : PolicyUpdate) => installPolicyUpdate update (versionedPolicy generation (policyCore config (markCommitteeRecord index records))))
+        (recordPolicyUpdate recordEpoch verified index (policyCore config (markCommitteeRecord index records))) retainPolicy
+        (duplicatePolicyRecordRetained recordEpoch verified index config records))
+
+def currentEpochUnresolvedRecordProducesUpdate : (config : PolicyConfig) -> (records : Slots) -> (index : Count) ->
+    Equal Flag (newPolicyResolution index records) on ->
+    Equal PolicyUpdate (recordPolicyUpdate (policyEpoch config) on index (policyCore config records))
+      (replacePolicyCore (policyCore config (markCommitteeRecord index records))) :=
+  fun (config : PolicyConfig) (records : Slots) (index : Count) (fresh : Equal Flag (newPolicyResolution index records) on) =>
+    equalTransitivity PolicyUpdate (recordPolicyUpdate (policyEpoch config) on index (policyCore config records))
+      (authenticatedResolution (sameCount (policyEpoch config) (policyEpoch config)) index (policyCore config records))
+      (replacePolicyCore (policyCore config (markCommitteeRecord index records)))
+      (congruent Flag PolicyUpdate
+        (fun (unresolved : Flag) => resolutionIfNew unresolved (sameCount (policyEpoch config) (policyEpoch config))
+          index (policyCore config records))
+        (newPolicyResolution index records) on fresh)
+      (congruent Flag PolicyUpdate
+        (fun (matches : Flag) => authenticatedResolution matches index (policyCore config records))
+        (sameCount (policyEpoch config) (policyEpoch config)) on (sameCountReflexive (policyEpoch config)))
+
+def currentEpochFirstRecordProducesUpdate : (config : PolicyConfig) -> (records : Slots) ->
+    Equal PolicyUpdate (recordPolicyUpdate (policyEpoch config) on zero (policyCore config (slot off records)))
+      (replacePolicyCore (policyCore config (slot on records))) :=
+  fun (config : PolicyConfig) (records : Slots) =>
+    currentEpochUnresolvedRecordProducesUpdate config (slot off records) zero same
+
+def resolutionDeniedRetainsPolicy : (fresh : Flag) -> (index : Count) -> (core : PolicyCore) ->
+    Equal PolicyUpdate (resolutionIfNew fresh off index core) retainPolicy :=
+  fun (fresh : Flag) (index : Count) (core : PolicyCore) =>
+    case fresh as self in Flag return Equal PolicyUpdate (resolutionIfNew self off index core) retainPolicy with
+    | off => same
+    | on => same
+
+def policyRecordEpochMismatchIgnored : (recordEpoch : Count) -> (verified : Flag) -> (index : Count) -> (core : PolicyCore) ->
+    Equal Flag (sameCount recordEpoch (policyEpoch (coreConfig core))) off ->
+    Equal PolicyUpdate (recordPolicyUpdate recordEpoch verified index core) retainPolicy :=
+  fun (recordEpoch : Count) (verified : Flag) (index : Count) (core : PolicyCore)
+      (mismatch : Equal Flag (sameCount recordEpoch (policyEpoch (coreConfig core))) off) =>
+    equalTransitivity PolicyUpdate (recordPolicyUpdate recordEpoch verified index core)
+      (resolutionIfNew (newPolicyResolution index (policyRecords core)) off index core) retainPolicy
+      (congruent Flag PolicyUpdate
+        (fun (allowed : Flag) => resolutionIfNew (newPolicyResolution index (policyRecords core)) allowed index core)
+        (both verified (sameCount recordEpoch (policyEpoch (coreConfig core)))) off
+        (equalTransitivity Flag (both verified (sameCount recordEpoch (policyEpoch (coreConfig core))))
+          (both verified off) off
+          (congruent Flag Flag (fun (matches : Flag) => both verified matches)
+            (sameCount recordEpoch (policyEpoch (coreConfig core))) off mismatch)
+          (bothRightOff verified)))
+      (resolutionDeniedRetainsPolicy (newPolicyResolution index (policyRecords core)) index core)
+
+def faultyConfigUsesGrace : (fault : PolicyFault) -> (config : PolicyConfig) -> (records : Slots) ->
+    Equal Profile (configProfile (faultyConfig fault config) records) graceProfile :=
+  fun (fault : PolicyFault) (config : PolicyConfig) (records : Slots) =>
+    case config as self in PolicyConfig return Equal Profile (configProfile (faultyConfig fault self) records) graceProfile with
+    | policyConfig epoch health requested requiredRest members roster => same
+
+def currentPolicyFaultEntersGrace : (generation : Count) -> (fault : PolicyFault) -> (core : PolicyCore) ->
+    Equal Profile (coreProfile (policyView (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core))))
+      graceProfile :=
+  fun (generation : Count) (fault : PolicyFault) (core : PolicyCore) =>
+    equalTransitivity Profile
+      (coreProfile (policyView (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core))))
+      (configProfile (faultyConfig fault (coreConfig core)) (clearCommitteeRecords (policyRecords core))) graceProfile
+      (congruent VersionedPolicy Profile (fun (current : VersionedPolicy) => coreProfile (policyView current))
+        (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core))
+        (installPolicyUpdate (planPolicyUpdate (policyInvalidation fault) core) (versionedPolicy generation core))
+        (currentPolicyActionApplied generation (policyInvalidation fault) core))
+      (faultyConfigUsesGrace fault (coreConfig core) (clearCommitteeRecords (policyRecords core)))
+
+def currentPolicyFaultClearsResolution : (generation : Count) -> (fault : PolicyFault) -> (core : PolicyCore) ->
+    Equal Count (occupancy (policyRecords (policyView
+      (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core))))) zero :=
+  fun (generation : Count) (fault : PolicyFault) (core : PolicyCore) =>
+    equalTransitivity Count
+      (occupancy (policyRecords (policyView (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core)))))
+      (occupancy (clearCommitteeRecords (policyRecords core))) zero
+      (congruent VersionedPolicy Count (fun (current : VersionedPolicy) => occupancy (policyRecords (policyView current)))
+        (commitPolicyAction generation (policyInvalidation fault) (versionedPolicy generation core))
+        (installPolicyUpdate (planPolicyUpdate (policyInvalidation fault) core) (versionedPolicy generation core))
+        (currentPolicyActionApplied generation (policyInvalidation fault) core))
+      (epochResetClearsResolution (policyRecords core))
+
+def policyReplacementUsesNewRoster : (generation : Count) -> (config : PolicyConfig) -> (core : PolicyCore) ->
+    Equal Count (width (policyRecords (policyView
+      (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))))) (width (policyRoster config)) :=
+  fun (generation : Count) (config : PolicyConfig) (core : PolicyCore) =>
+    equalTransitivity Count
+      (width (policyRecords (policyView (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core)))))
+      (width (clearCommitteeRecords (policyRoster config))) (width (policyRoster config))
+      (congruent VersionedPolicy Count (fun (current : VersionedPolicy) => width (policyRecords (policyView current)))
+        (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))
+        (installPolicyUpdate (planPolicyUpdate (policyReplacement config) core) (versionedPolicy generation core))
+        (currentPolicyActionApplied generation (policyReplacement config) core))
+      (epochResetPreservesRosterSize (policyRoster config))
+
+def policyReplacementClearsResolution : (generation : Count) -> (config : PolicyConfig) -> (core : PolicyCore) ->
+    Equal Count (occupancy (policyRecords (policyView
+      (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))))) zero :=
+  fun (generation : Count) (config : PolicyConfig) (core : PolicyCore) =>
+    equalTransitivity Count
+      (occupancy (policyRecords (policyView (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core)))))
+      (occupancy (clearCommitteeRecords (policyRoster config))) zero
+      (congruent VersionedPolicy Count (fun (current : VersionedPolicy) => occupancy (policyRecords (policyView current)))
+        (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))
+        (installPolicyUpdate (planPolicyUpdate (policyReplacement config) core) (versionedPolicy generation core))
+        (currentPolicyActionApplied generation (policyReplacement config) core))
+      (epochResetClearsResolution (policyRoster config))

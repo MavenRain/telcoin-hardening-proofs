@@ -12,7 +12,11 @@
     "scheduled_rounds": "A completed modeled round really services one critical request. The runtime must execute enough such rounds to establish a wall-clock bound.",
     "executor_wakeup": "The executor honors the modeled wakeup request and eventually gives a pending poll another turn.",
     "authenticated_membership": "The verified flag includes full signature checking and authenticated binding of the record to its committee identity and presented epoch.",
-    "stable_committee_index": "Each current committee member has one stable, unique slot. Record senders cannot choose another member slot or create new roster slots."
+    "stable_committee_index": "Each current committee member has one stable, unique slot. Record senders cannot choose another member slot or create new roster slots.",
+    "atomic_policy_publication": "Each complete policy view is immutable; generation comparison and publication are atomic. Receipt validation and the resulting authorization linearize with publication, or retain equivalent protection through use.",
+    "policy_input_validation": "Health, epoch, membership mappings, roster and the positive recovery threshold come from validated authoritative inputs. Snapshot generation orders local publication, not external governance versions. Input freshness and epoch ordering require separate validation.",
+    "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
+    "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs."
   },
   "claims": [
     {
@@ -581,6 +585,337 @@
       ],
       "open_implementation_obligations": [
         "Refine the actual roster cardinality, storage and membership-to-slot mapping."
+      ]
+    },
+    {
+      "id": "V01",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "A policy action observed at an older view generation cannot replace the current view.",
+      "theorems": [
+        "stalePolicyActionIgnored",
+        "currentPolicyActionApplied"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine an atomic comparison and publication operation for every policy callback; preserve the generation actually observed."
+      ]
+    },
+    {
+      "id": "V02",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Whole-view generations advance on replacement, never decrease, and grow by at most the finite policy event count.",
+      "theorems": [
+        "policyReplacementAdvancesGeneration",
+        "policyTraceGenerationMonotone",
+        "policyTraceGenerationBound",
+        "policyGenerationFitsGivenLimit"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Advance the generation for every effective policy, recovery, membership or health change.",
+        "Establish a machine-counter limit or a safe exhaustion protocol; natural-number proofs do not justify wrapping."
+      ]
+    },
+    {
+      "id": "V03",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Admission, peer management and the optional TLS consumer return the same authenticated decision from one captured view.",
+      "theorems": [
+        "capturedPolicyReadersAgree",
+        "allPolicyReadersRequireAuthentication",
+        "closedPolicyRefusesUnlisted",
+        "resolvedClosedPolicyAdmitsMember"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_input_validation"
+      ],
+      "open_implementation_obligations": [
+        "Refine each real consumer to the same contract and coherent captured snapshot.",
+        "Prove the authentication flag belongs to the queried peer, including TLS stage ordering."
+      ]
+    },
+    {
+      "id": "V04",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "An internal admission receipt retains a current decision and cannot be retargeted to another identity or applied after its view or epoch changes.",
+      "theorems": [
+        "freshPolicyReceiptPreservesDecision",
+        "everyPolicyChangeInvalidatesReceipt",
+        "stalePolicyReceiptDenied",
+        "oldEpochPolicyReceiptDenied",
+        "policyReceiptIdentityMismatchDenied",
+        "deniedReceiptStaysDenied"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_receipt_provenance",
+        "policy_input_validation"
+      ],
+      "open_implementation_obligations": [
+        "Bind receipt identity to the actual authenticated PeerId and preserve unforgeable internal provenance.",
+        "Linearize validation and authorization with publication, or retain protection through use; a separate check followed by an unprotected use is insufficient."
+      ]
+    },
+    {
+      "id": "V05",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "Missing, stale and contradictory policy faults select Grace while every policy reader still requires authentication.",
+      "theorems": [
+        "everyPolicyFaultUsesGrace",
+        "currentPolicyFaultEntersGrace",
+        "faultPolicyAllowsAuthenticated",
+        "allPolicyReadersRequireAuthentication"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_input_validation"
+      ],
+      "open_implementation_obligations": [
+        "Implement correct fault detection and authoritative policy validation; constructors do not establish real freshness.",
+        "Retain payload signature and protocol-validity checks beyond this admission predicate."
+      ]
+    },
+    {
+      "id": "V06",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "Policy replacement initializes the new roster without resolution evidence, and invalidation clears evidence before a future Closed decision.",
+      "theorems": [
+        "freshClosedPolicyNeedsRecords",
+        "currentPolicyFaultClearsResolution",
+        "policyReplacementUsesNewRoster",
+        "policyReplacementClearsResolution"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_input_validation",
+        "authenticated_membership",
+        "stable_committee_index"
+      ],
+      "open_implementation_obligations": [
+        "Derive the positive threshold from current committee size minus f and reject invalid configurations.",
+        "Establish record timestamp freshness, safe external policy ordering and epoch provenance."
+      ]
+    },
+    {
+      "id": "V07",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "Unverified, epoch-mismatched and duplicate policy records cannot create a recovery update; duplicate callbacks do not advance the view generation.",
+      "theorems": [
+        "unverifiedPolicyCallbackIsNoOp",
+        "policyRecordEpochMismatchIgnored",
+        "currentDuplicatePolicyCallbackIsNoOp"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_input_validation",
+        "authenticated_membership",
+        "stable_committee_index"
+      ],
+      "open_implementation_obligations": [
+        "Verify signature, epoch and committee-identity binding before setting the verified flag.",
+        "Refine deduplication and the unique member-to-slot mapping across callbacks and committee changes."
+      ]
+    },
+    {
+      "id": "V08",
+      "parent": "H08",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          69,
+          71
+        ]
+      },
+      "property": "A verified current-epoch record for an unresolved roster member has an enabled resolution update.",
+      "theorems": [
+        "currentEpochUnresolvedRecordProducesUpdate",
+        "currentEpochFirstRecordProducesUpdate"
+      ],
+      "assumptions": [
+        "atomic_policy_publication",
+        "nonwrapping_generations",
+        "complete_event_refinement",
+        "policy_input_validation",
+        "authenticated_membership",
+        "stable_committee_index"
+      ],
+      "open_implementation_obligations": [
+        "Connect actual authenticated records to the modeled updates and derive the closure threshold.",
+        "Prove delivery, retry and scheduler fairness separately; this enabled transition is not a wall-clock recovery theorem."
+      ]
+    },
+    {
+      "id": "G01",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "An arbitrary finite interleaving of policy, handshake and pending events has exactly the component states of the corresponding projected traces.",
+      "theorems": [
+        "governedCreditsProjection",
+        "governedPoolProjection",
+        "governedPolicyProjection",
+        "governedStartsProjection"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "atomic_policy_publication"
+      ],
+      "open_implementation_obligations": [
+        "Refine all real events to the joint state, including failures, cancellation and concurrent callbacks.",
+        "Extend the transition system for restarts and resource-cap reconfiguration before claiming those paths."
+      ]
+    },
+    {
+      "id": "G02",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "A policy change cannot mint shared handshake credits or alter pending ownership.",
+      "theorems": [
+        "policyChangePreservesCredits",
+        "policyChangePreservesPending"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "stable_resource_configuration",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Show actual fallback, recovery and policy reload preserve counters and owned reservations.",
+        "Account for policy snapshot allocation costs separately from handshake and pending state."
+      ]
+    },
+    {
+      "id": "G03",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          133,
+          137
+        ]
+      },
+      "property": "Under mixed policy and transport traces, credits stay within capacity and handshake starts do not exceed initial credit plus trusted issuance.",
+      "theorems": [
+        "governedCreditCapacityBound",
+        "governedHandshakeCreditBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock"
+      ],
+      "open_implementation_obligations": [
+        "Wire both swarms and every real handshake start into one aggregate budget.",
+        "Relate trusted credit issuance to elapsed time and preserve debt across restart or limit changes."
+      ]
+    },
+    {
+      "id": "G04",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md",
+        "lines": [
+          109,
+          113
+        ]
+      },
+      "property": "Under mixed policy and transport traces, pending occupancy stays within initial capacity and occupied plus available slots is conserved.",
+      "theorems": [
+        "governedPendingOccupancyBound",
+        "governedPendingConservation"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "nonwrapping_generations"
+      ],
+      "open_implementation_obligations": [
+        "Refine all ConnectionId ownership and terminal paths to the same pool, including policy transitions.",
+        "Establish the configured global cap and preserve per-source attribution and honest reconnect behavior."
       ]
     }
   ]

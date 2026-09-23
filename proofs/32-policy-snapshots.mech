@@ -1,0 +1,273 @@
+-- A version identifies the whole immutable policy view, including recovery.
+-- Publication is a serialized compare-and-swap on that version.
+-- The PolicyFault constructors mirror the three fault classes of the plan: missing, stale and contradictory inputs.
+-- The fault theorems are universal over the class, so no consumer inspects the payload.
+mu PolicyFault : Type 0 with
+| missingPolicyInputs : PolicyFault
+| stalePolicyInputs : PolicyFault
+| contradictoryPolicyInputs : PolicyFault
+
+mu PolicyHealth : Type 0 with
+| healthyPolicy : PolicyHealth
+| faultyPolicy : PolicyFault -> PolicyHealth
+
+def policyHealthValid : PolicyHealth -> Flag :=
+  fun (health : PolicyHealth) =>
+    case health as self in PolicyHealth return Flag with
+    | healthyPolicy => on
+    | faultyPolicy fault => off
+
+-- requiredRest represents a positive threshold: next requiredRest.
+-- Actual membership, threshold calculation and health detection need refinement.
+mu PolicyConfig : Type 0 with
+| policyConfig : Count -> PolicyHealth -> Profile -> Count -> Slots -> Slots -> PolicyConfig
+
+def policyEpoch : PolicyConfig -> Count :=
+  fun (config : PolicyConfig) =>
+    case config as self in PolicyConfig return Count with
+    | policyConfig epoch health requested requiredRest members roster => epoch
+
+def policyMembers : PolicyConfig -> Slots :=
+  fun (config : PolicyConfig) =>
+    case config as self in PolicyConfig return Slots with
+    | policyConfig epoch health requested requiredRest members roster => members
+
+def policyRoster : PolicyConfig -> Slots :=
+  fun (config : PolicyConfig) =>
+    case config as self in PolicyConfig return Slots with
+    | policyConfig epoch health requested requiredRest members roster => roster
+
+def faultyConfig : PolicyFault -> PolicyConfig -> PolicyConfig :=
+  fun (fault : PolicyFault) (config : PolicyConfig) =>
+    case config as self in PolicyConfig return PolicyConfig with
+    | policyConfig epoch health requested requiredRest members roster =>
+      policyConfig epoch (faultyPolicy fault) requested requiredRest members roster
+
+mu PolicyCore : Type 0 with
+| policyCore : PolicyConfig -> Slots -> PolicyCore
+
+def coreConfig : PolicyCore -> PolicyConfig :=
+  fun (core : PolicyCore) =>
+    case core as self in PolicyCore return PolicyConfig with
+    | policyCore config records => config
+
+def policyRecords : PolicyCore -> Slots :=
+  fun (core : PolicyCore) =>
+    case core as self in PolicyCore return Slots with
+    | policyCore config records => records
+
+def freshPolicyCore : PolicyConfig -> PolicyCore :=
+  fun (config : PolicyConfig) => policyCore config (clearCommitteeRecords (policyRoster config))
+
+def requestedRecoveryProfile : Profile -> Count -> Count -> Profile :=
+  fun (requested : Profile) (requiredRest : Count) (resolved : Count) =>
+    case requested as self in Profile return Profile with
+    | openProfile => openProfile
+    | graceProfile => graceProfile
+    | closedProfile => closeIfReady on (next requiredRest) resolved
+
+def configProfile : PolicyConfig -> Slots -> Profile :=
+  fun (config : PolicyConfig) (records : Slots) =>
+    case config as self in PolicyConfig return Profile with
+    | policyConfig epoch health requested requiredRest members roster =>
+      effectiveProfile (policyHealthValid health)
+        (requestedRecoveryProfile requested requiredRest (occupancy records))
+
+def coreProfile : PolicyCore -> Profile :=
+  fun (core : PolicyCore) => configProfile (coreConfig core) (policyRecords core)
+
+def graceSurvivesHealthGate : (valid : Flag) ->
+    Equal Profile (effectiveProfile valid graceProfile) graceProfile :=
+  fun (valid : Flag) =>
+    case valid as self in Flag return Equal Profile (effectiveProfile self graceProfile) graceProfile with
+    | off => same
+    | on => same
+
+def everyPolicyFaultUsesGrace : (fault : PolicyFault) -> (epoch : Count) -> (requested : Profile) ->
+    (requiredRest : Count) -> (members : Slots) -> (roster : Slots) -> (records : Slots) ->
+    Equal Profile (configProfile (policyConfig epoch (faultyPolicy fault) requested requiredRest members roster) records)
+      graceProfile :=
+  fun (fault : PolicyFault) (epoch : Count) (requested : Profile) (requiredRest : Count)
+      (members : Slots) (roster : Slots) (records : Slots) => same
+
+def freshClosedPolicyNeedsRecords : (epoch : Count) -> (health : PolicyHealth) -> (requiredRest : Count) ->
+    (members : Slots) -> (roster : Slots) ->
+    Equal Profile (coreProfile (freshPolicyCore (policyConfig epoch health closedProfile requiredRest members roster)))
+      graceProfile :=
+  fun (epoch : Count) (health : PolicyHealth) (requiredRest : Count) (members : Slots) (roster : Slots) =>
+    equalTransitivity Profile
+      (coreProfile (freshPolicyCore (policyConfig epoch health closedProfile requiredRest members roster)))
+      (effectiveProfile (policyHealthValid health) graceProfile) graceProfile
+      (congruent Count Profile
+        (fun (resolved : Count) => effectiveProfile (policyHealthValid health) (closeIfReady on (next requiredRest) resolved))
+        (occupancy (clearCommitteeRecords roster)) zero (epochResetClearsResolution roster))
+      (graceSurvivesHealthGate (policyHealthValid health))
+
+def rec policyMemberAt : Count -> Slots -> Flag :=
+  fun (index : Count) (members : Slots) =>
+    case index as self in Count return Flag with
+    | zero => (case members as roster in Slots return Flag with
+      | noSlots => off
+      | slot allowed rest => allowed)
+    | next remaining =>
+      case members as roster in Slots return Flag with
+      | noSlots => off
+      | slot allowed rest => policyMemberAt remaining rest
+
+def rec newPolicyResolution : Count -> Slots -> Flag :=
+  fun (index : Count) (records : Slots) =>
+    case index as self in Count return Flag with
+    | zero => (case records as roster in Slots return Flag with
+      | noSlots => off
+      | slot resolved rest => (case resolved as present in Flag return Flag with
+        | off => on
+        | on => off))
+    | next remaining =>
+      case records as roster in Slots return Flag with
+      | noSlots => off
+      | slot resolved rest => newPolicyResolution remaining rest
+
+def rec recordedSlotIsNotNew : (index : Count) -> (records : Slots) ->
+    Equal Flag (newPolicyResolution index (markCommitteeRecord index records)) off :=
+  fun (index : Count) (records : Slots) =>
+    case index as self in Count return Equal Flag (newPolicyResolution self (markCommitteeRecord self records)) off with
+    | zero => (case records as roster in Slots
+        return Equal Flag (newPolicyResolution zero (markCommitteeRecord zero roster)) off with
+      | noSlots => same
+      | slot resolved rest => same)
+    | next remaining =>
+      case records as roster in Slots
+          return Equal Flag (newPolicyResolution (next remaining) (markCommitteeRecord (next remaining) roster)) off with
+      | noSlots => same
+      | slot resolved rest => recordedSlotIsNotNew remaining rest
+
+mu VersionedPolicy : Type 0 with
+| versionedPolicy : Count -> PolicyCore -> VersionedPolicy
+
+def policyGeneration : VersionedPolicy -> Count :=
+  fun (current : VersionedPolicy) =>
+    case current as self in VersionedPolicy return Count with
+    | versionedPolicy generation core => generation
+
+def policyView : VersionedPolicy -> PolicyCore :=
+  fun (current : VersionedPolicy) =>
+    case current as self in VersionedPolicy return PolicyCore with
+    | versionedPolicy generation core => core
+
+mu PolicyUpdate : Type 0 with
+| retainPolicy : PolicyUpdate
+| replacePolicyCore : PolicyCore -> PolicyUpdate
+
+def authenticatedResolution : Flag -> Count -> PolicyCore -> PolicyUpdate :=
+  fun (allowed : Flag) (index : Count) (core : PolicyCore) =>
+    case allowed as self in Flag return PolicyUpdate with
+    | off => retainPolicy
+    | on => replacePolicyCore (policyCore (coreConfig core) (markCommitteeRecord index (policyRecords core)))
+
+def resolutionIfNew : Flag -> Flag -> Count -> PolicyCore -> PolicyUpdate :=
+  fun (fresh : Flag) (allowed : Flag) (index : Count) (core : PolicyCore) =>
+    case fresh as self in Flag return PolicyUpdate with
+    | off => retainPolicy
+    | on => authenticatedResolution allowed index core
+
+def recordPolicyUpdate : Count -> Flag -> Count -> PolicyCore -> PolicyUpdate :=
+  fun (recordEpoch : Count) (verified : Flag) (index : Count) (core : PolicyCore) =>
+    resolutionIfNew (newPolicyResolution index (policyRecords core))
+      (both verified (sameCount recordEpoch (policyEpoch (coreConfig core)))) index core
+
+def unverifiedPolicyRecordIgnored : (recordEpoch : Count) -> (index : Count) -> (core : PolicyCore) ->
+    Equal PolicyUpdate (recordPolicyUpdate recordEpoch off index core) retainPolicy :=
+  fun (recordEpoch : Count) (index : Count) (core : PolicyCore) =>
+    case newPolicyResolution index (policyRecords core) as fresh in Flag
+        return Equal PolicyUpdate (resolutionIfNew fresh off index core) retainPolicy with
+    | off => same
+    | on => same
+
+def duplicatePolicyRecordRetained : (recordEpoch : Count) -> (verified : Flag) -> (index : Count) ->
+    (config : PolicyConfig) -> (records : Slots) ->
+    Equal PolicyUpdate
+      (recordPolicyUpdate recordEpoch verified index (policyCore config (markCommitteeRecord index records))) retainPolicy :=
+  fun (recordEpoch : Count) (verified : Flag) (index : Count) (config : PolicyConfig) (records : Slots) =>
+    congruent Flag PolicyUpdate
+      (fun (fresh : Flag) => resolutionIfNew fresh (both verified (sameCount recordEpoch (policyEpoch config)))
+        index (policyCore config (markCommitteeRecord index records)))
+      (newPolicyResolution index (markCommitteeRecord index records)) off (recordedSlotIsNotNew index records)
+
+mu PolicyAction : Type 0 with
+| policyReplacement : PolicyConfig -> PolicyAction
+| policyInvalidation : PolicyFault -> PolicyAction
+| policyResolution : Count -> Flag -> Count -> PolicyAction
+
+def planPolicyUpdate : PolicyAction -> PolicyCore -> PolicyUpdate :=
+  fun (action : PolicyAction) (core : PolicyCore) =>
+    case action as self in PolicyAction return PolicyUpdate with
+    | policyReplacement config => replacePolicyCore (freshPolicyCore config)
+    | policyInvalidation fault => replacePolicyCore
+        (policyCore (faultyConfig fault (coreConfig core)) (clearCommitteeRecords (policyRecords core)))
+    | policyResolution epoch verified index => recordPolicyUpdate epoch verified index core
+
+def installPolicyUpdate : PolicyUpdate -> VersionedPolicy -> VersionedPolicy :=
+  fun (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case update as self in PolicyUpdate return VersionedPolicy with
+    | retainPolicy => current
+    | replacePolicyCore replacement => versionedPolicy (next (policyGeneration current)) replacement
+
+def applyPolicyDecision : Flag -> PolicyUpdate -> VersionedPolicy -> VersionedPolicy :=
+  fun (matches : Flag) (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case matches as self in Flag return VersionedPolicy with
+    | off => current
+    | on => installPolicyUpdate update current
+
+def commitPolicyAction : Count -> PolicyAction -> VersionedPolicy -> VersionedPolicy :=
+  fun (observed : Count) (action : PolicyAction) (current : VersionedPolicy) =>
+    applyPolicyDecision (sameCount observed (policyGeneration current))
+      (planPolicyUpdate action (policyView current)) current
+
+def stalePolicyActionIgnored : (observed : Count) -> (later : Count) -> (action : PolicyAction) -> (core : PolicyCore) ->
+    Equal VersionedPolicy
+      (commitPolicyAction observed action (versionedPolicy (next (add observed later)) core))
+      (versionedPolicy (next (add observed later)) core) :=
+  fun (observed : Count) (later : Count) (action : PolicyAction) (core : PolicyCore) =>
+    congruent Flag VersionedPolicy
+      (fun (matches : Flag) => applyPolicyDecision matches (planPolicyUpdate action core)
+        (versionedPolicy (next (add observed later)) core))
+      (sameCount observed (next (add observed later))) off (sameCountBeyondOff observed later)
+
+def currentPolicyActionApplied : (generation : Count) -> (action : PolicyAction) -> (core : PolicyCore) ->
+    Equal VersionedPolicy (commitPolicyAction generation action (versionedPolicy generation core))
+      (installPolicyUpdate (planPolicyUpdate action core) (versionedPolicy generation core)) :=
+  fun (generation : Count) (action : PolicyAction) (core : PolicyCore) =>
+    congruent Flag VersionedPolicy
+      (fun (matches : Flag) => applyPolicyDecision matches (planPolicyUpdate action core) (versionedPolicy generation core))
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def retainedPolicyDoesNotAdvance : (current : VersionedPolicy) ->
+    Equal VersionedPolicy (installPolicyUpdate retainPolicy current) current :=
+  fun (current : VersionedPolicy) => same
+
+def policyReplacementAdvancesGeneration : (core : PolicyCore) -> (current : VersionedPolicy) ->
+    Equal Count (policyGeneration (installPolicyUpdate (replacePolicyCore core) current))
+      (next (policyGeneration current)) :=
+  fun (core : PolicyCore) (current : VersionedPolicy) => same
+
+def policyInstallMonotone : (update : PolicyUpdate) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration current) (policyGeneration (installPolicyUpdate update current)) :=
+  fun (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case update as self in PolicyUpdate
+        return AtMost (policyGeneration current) (policyGeneration (installPolicyUpdate self current)) with
+    | retainPolicy => reflexiveBound (policyGeneration current)
+    | replacePolicyCore replacement =>
+      weakenBound (policyGeneration current) (policyGeneration current) (reflexiveBound (policyGeneration current))
+
+def policyDecisionMonotone : (matches : Flag) -> (update : PolicyUpdate) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration current) (policyGeneration (applyPolicyDecision matches update current)) :=
+  fun (matches : Flag) (update : PolicyUpdate) (current : VersionedPolicy) =>
+    case matches as self in Flag
+        return AtMost (policyGeneration current) (policyGeneration (applyPolicyDecision self update current)) with
+    | off => reflexiveBound (policyGeneration current)
+    | on => policyInstallMonotone update current
+
+def policyCommitMonotone : (observed : Count) -> (action : PolicyAction) -> (current : VersionedPolicy) ->
+    AtMost (policyGeneration current) (policyGeneration (commitPolicyAction observed action current)) :=
+  fun (observed : Count) (action : PolicyAction) (current : VersionedPolicy) =>
+    policyDecisionMonotone (sameCount observed (policyGeneration current)) (planPolicyUpdate action (policyView current)) current

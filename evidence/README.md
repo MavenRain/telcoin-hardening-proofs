@@ -9,6 +9,8 @@ command rejects all implementation and deployment certification.
 semantic mutation checks and validation of the pinned implementation file hashes.
 `portable-bootstrap-model-check.json` repeats that validation after fixing fresh
 GitHub bootstrapping to fetch only the compiler's required Veil submodule.
+`policy-model-check.json` records versioned policy and receipt proofs, mixed
+resource traces, their negative controls and the pinned implementation source links.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 

@@ -118,8 +118,15 @@
         65
       ],
       "claim": "Closed admission, peer management and optional early refusal share one versioned admission contract.",
-      "theorems": [],
-      "model_scope": "Policy consistency and snapshot updates need a state-machine refinement.",
+      "theorems": [
+        "stalePolicyActionIgnored",
+        "capturedPolicyReadersAgree",
+        "policyTraceGenerationMonotone",
+        "policyTraceGenerationBound",
+        "everyPolicyChangeInvalidatesReceipt",
+        "policyReceiptIdentityMismatchDenied"
+      ],
+      "model_scope": "Whole-view generations, stale callback rejection, coherent captured readers and generation/epoch/identity-bound receipts are proved in the model. Runtime linearization through decision use, authoritative input validation, external governance ordering and cryptographic binding remain open.",
       "required_evidence": [
         "D05",
         "W2 authoritative gate",
@@ -139,9 +146,16 @@
         "authenticationAlwaysRequired",
         "fallbackAllowsAuthenticated",
         "everyProfileBudget",
-        "policyChangeCannotMintCredits"
+        "policyChangeCannotMintCredits",
+        "everyPolicyFaultUsesGrace",
+        "currentPolicyFaultEntersGrace",
+        "allPolicyReadersRequireAuthentication",
+        "policyChangePreservesCredits",
+        "policyChangePreservesPending",
+        "governedCreditsProjection",
+        "governedPolicyProjection"
       ],
-      "model_scope": "Invalid-policy fallback preserves the modeled resource cap and shared handshake credit. Invalidity detection, atomic policy snapshots and runtime service isolation remain open.",
+      "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed finite traces preserve shared handshake credit and pending ownership during policy changes. Real fault detection, atomic publication, complete accounting and service isolation remain open.",
       "required_evidence": [
         "D05 invalidity predicates",
         "A5 fallback/recovery",
@@ -163,9 +177,16 @@
         "staleCommitteeRecordIgnored",
         "duplicateRecordsDoNotAdvanceClosure",
         "newEpochCannotCloseWithoutRecords",
-        "distinctCommitteeResolutionBound"
+        "distinctCommitteeResolutionBound",
+        "freshClosedPolicyNeedsRecords",
+        "currentPolicyFaultClearsResolution",
+        "currentDuplicatePolicyCallbackIsNoOp",
+        "policyRecordEpochMismatchIgnored",
+        "currentEpochUnresolvedRecordProducesUpdate",
+        "policyReplacementUsesNewRoster",
+        "policyReplacementClearsResolution"
       ],
-      "model_scope": "A fixed committee roster deduplicates authenticated current-epoch records, ignores old-epoch records and clears resolution on epoch reset. Real cryptographic binding, membership indexing, snapshot ordering, timestamp freshness and the committee-minus-f threshold remain open.",
+      "model_scope": "Versioned recovery clears evidence on replacement or invalidation and rejects unverified, epoch-mismatched and duplicate updates. Verified unresolved members have an enabled update. Signature binding, real member indexing, timestamps, external snapshot ordering and the positive committee-minus-f threshold remain open.",
       "required_evidence": [
         "D05",
         "A5 recovery",
@@ -336,9 +357,13 @@
         "handshakeCreditTraceBound",
         "rateTraceCapacityBound",
         "burstPlusRateEnvelope",
-        "sourceEvictionCannotMintCredits"
+        "sourceEvictionCannotMintCredits",
+        "governedHandshakeCreditBound",
+        "governedCreditCapacityBound",
+        "governedPendingOccupancyBound",
+        "governedPendingConservation"
       ],
-      "model_scope": "Serialized generation-tagged pending lifecycles and shared token-bucket traces are proved. ConnectionId refinement, machine wrap, validated per-source attribution, source-table security state, clock correspondence and honest reconnect fairness remain open.",
+      "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes over arbitrary finite traces. ConnectionId refinement, machine wrap, validated per-source attribution, security-state eviction, clock correspondence, restarts, cap changes and honest reconnect fairness remain open.",
       "required_evidence": [
         "A1",
         "T4a-T4b",

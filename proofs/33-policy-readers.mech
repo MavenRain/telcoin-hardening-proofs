@@ -1,0 +1,206 @@
+-- Every consumer reads one complete captured view. Receipt validation prevents
+-- a decision from an earlier view being applied after a policy transition.
+def bothRightOff : (left : Flag) -> Equal Flag (both left off) off :=
+  fun (left : Flag) =>
+    case left as self in Flag return Equal Flag (both self off) off with
+    | off => same
+    | on => same
+
+def policyQuery : PolicyCore -> Flag -> Count -> Flag :=
+  fun (core : PolicyCore) (authenticated : Flag) (identity : Count) =>
+    both authenticated (memberAllowed (coreProfile core) (policyMemberAt identity (policyMembers (coreConfig core))))
+
+mu PolicyConsumer : Type 0 with
+| admissionConsumer : PolicyConsumer
+| peerManagerConsumer : PolicyConsumer
+| tlsPrefilterConsumer : PolicyConsumer
+
+def policyConsumerQuery : PolicyConsumer -> VersionedPolicy -> Flag -> Count -> Flag :=
+  fun (consumer : PolicyConsumer) (current : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    case consumer as self in PolicyConsumer return Flag with
+    | admissionConsumer => policyQuery (policyView current) authenticated identity
+    | peerManagerConsumer => policyQuery (policyView current) authenticated identity
+    | tlsPrefilterConsumer => policyQuery (policyView current) authenticated identity
+
+def policyConsumerCoherent : (consumer : PolicyConsumer) -> (current : VersionedPolicy) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (policyConsumerQuery consumer current authenticated identity)
+      (policyQuery (policyView current) authenticated identity) :=
+  fun (consumer : PolicyConsumer) (current : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    case consumer as self in PolicyConsumer
+        return Equal Flag (policyConsumerQuery self current authenticated identity)
+          (policyQuery (policyView current) authenticated identity) with
+    | admissionConsumer => same
+    | peerManagerConsumer => same
+    | tlsPrefilterConsumer => same
+
+def capturedPolicyReadersAgree : (first : PolicyConsumer) -> (second : PolicyConsumer) ->
+    (current : VersionedPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (policyConsumerQuery first current authenticated identity)
+      (policyConsumerQuery second current authenticated identity) :=
+  fun (first : PolicyConsumer) (second : PolicyConsumer) (current : VersionedPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    equalTransitivity Flag (policyConsumerQuery first current authenticated identity)
+      (policyQuery (policyView current) authenticated identity) (policyConsumerQuery second current authenticated identity)
+      (policyConsumerCoherent first current authenticated identity)
+      (equalSymmetry Flag (policyConsumerQuery second current authenticated identity)
+        (policyQuery (policyView current) authenticated identity) (policyConsumerCoherent second current authenticated identity))
+
+def policyQueryRequiresAuthentication : (core : PolicyCore) -> (identity : Count) ->
+    Equal Flag (policyQuery core off identity) off :=
+  fun (core : PolicyCore) (identity : Count) => same
+
+def allPolicyReadersRequireAuthentication : (consumer : PolicyConsumer) -> (current : VersionedPolicy) ->
+    (identity : Count) -> Equal Flag (policyConsumerQuery consumer current off identity) off :=
+  fun (consumer : PolicyConsumer) (current : VersionedPolicy) (identity : Count) =>
+    policyConsumerCoherent consumer current off identity
+
+def resolvedClosedPolicyAdmitsMember : (epoch : Count) -> (otherMembers : Slots) ->
+    (roster : Slots) -> (otherRecords : Slots) ->
+    Equal Flag (policyQuery
+      (policyCore (policyConfig epoch healthyPolicy closedProfile zero (slot on otherMembers) roster)
+        (slot on otherRecords)) on zero) on :=
+  fun (epoch : Count) (otherMembers : Slots) (roster : Slots) (otherRecords : Slots) => same
+
+def faultPolicyAllowsAuthenticated : (epoch : Count) -> (fault : PolicyFault) -> (requested : Profile) ->
+    (requiredRest : Count) -> (members : Slots) -> (roster : Slots) -> (records : Slots) -> (identity : Count) ->
+    Equal Flag (policyQuery (policyCore (policyConfig epoch (faultyPolicy fault) requested requiredRest members roster) records)
+      on identity) on :=
+  fun (epoch : Count) (fault : PolicyFault) (requested : Profile) (requiredRest : Count)
+      (members : Slots) (roster : Slots) (records : Slots) (identity : Count) => same
+
+def closedPolicyRefusesUnlisted : (core : PolicyCore) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (coreProfile core) closedProfile ->
+    Equal Flag (policyMemberAt identity (policyMembers (coreConfig core))) off ->
+    Equal Flag (policyQuery core authenticated identity) off :=
+  fun (core : PolicyCore) (authenticated : Flag) (identity : Count)
+      (closed : Equal Profile (coreProfile core) closedProfile)
+      (unlisted : Equal Flag (policyMemberAt identity (policyMembers (coreConfig core))) off) =>
+    equalTransitivity Flag (policyQuery core authenticated identity)
+      (both authenticated (policyMemberAt identity (policyMembers (coreConfig core)))) off
+      (congruent Profile Flag
+        (fun (profile : Profile) => both authenticated (memberAllowed profile (policyMemberAt identity (policyMembers (coreConfig core)))))
+        (coreProfile core) closedProfile closed)
+      (equalTransitivity Flag (both authenticated (policyMemberAt identity (policyMembers (coreConfig core))))
+        (both authenticated off) off
+        (congruent Flag Flag (fun (member : Flag) => both authenticated member)
+          (policyMemberAt identity (policyMembers (coreConfig core))) off unlisted)
+        (bothRightOff authenticated))
+
+mu PolicyReceipt : Type 0 with
+| policyReceipt : Count -> Count -> Count -> Flag -> PolicyReceipt
+
+def readPolicy : PolicyConsumer -> VersionedPolicy -> Flag -> Count -> PolicyReceipt :=
+  fun (consumer : PolicyConsumer) (current : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    policyReceipt (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+      identity (policyConsumerQuery consumer current authenticated identity)
+
+def receiptDecision : Count -> Count -> Count -> Count -> Flag -> Flag :=
+  fun (currentGeneration : Count) (currentEpoch : Count) (capturedGeneration : Count)
+      (capturedEpoch : Count) (allowed : Flag) =>
+    both (sameCount capturedGeneration currentGeneration) (both (sameCount capturedEpoch currentEpoch) allowed)
+
+def policyReceiptAllowed : VersionedPolicy -> Count -> PolicyReceipt -> Flag :=
+  fun (current : VersionedPolicy) (identity : Count) (receipt : PolicyReceipt) =>
+    case receipt as self in PolicyReceipt return Flag with
+    | policyReceipt capturedGeneration capturedEpoch capturedIdentity allowed =>
+      both (sameCount capturedIdentity identity)
+        (receiptDecision (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+          capturedGeneration capturedEpoch allowed)
+
+def matchingReceiptGeneration : (generation : Count) -> (currentEpoch : Count) ->
+    (capturedEpoch : Count) -> (allowed : Flag) ->
+    Equal Flag (receiptDecision generation currentEpoch generation capturedEpoch allowed)
+      (both (sameCount capturedEpoch currentEpoch) allowed) :=
+  fun (generation : Count) (currentEpoch : Count) (capturedEpoch : Count) (allowed : Flag) =>
+    congruent Flag Flag (fun (matches : Flag) => both matches (both (sameCount capturedEpoch currentEpoch) allowed))
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def currentReceiptPreservesDecision : (generation : Count) -> (epoch : Count) -> (allowed : Flag) ->
+    Equal Flag (receiptDecision generation epoch generation epoch allowed) allowed :=
+  fun (generation : Count) (epoch : Count) (allowed : Flag) =>
+    equalTransitivity Flag (receiptDecision generation epoch generation epoch allowed)
+      (both (sameCount epoch epoch) allowed) allowed
+      (matchingReceiptGeneration generation epoch epoch allowed)
+      (congruent Flag Flag (fun (matches : Flag) => both matches allowed)
+        (sameCount epoch epoch) on (sameCountReflexive epoch))
+
+def freshPolicyReceiptPreservesDecision : (consumer : PolicyConsumer) -> (current : VersionedPolicy) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (policyReceiptAllowed current identity (readPolicy consumer current authenticated identity))
+      (policyConsumerQuery consumer current authenticated identity) :=
+  fun (consumer : PolicyConsumer) (current : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    equalTransitivity Flag (policyReceiptAllowed current identity (readPolicy consumer current authenticated identity))
+      (receiptDecision (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+        (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+        (policyConsumerQuery consumer current authenticated identity))
+      (policyConsumerQuery consumer current authenticated identity)
+      (congruent Flag Flag (fun (matches : Flag) => both matches
+        (receiptDecision (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+          (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+          (policyConsumerQuery consumer current authenticated identity)))
+        (sameCount identity identity) on (sameCountReflexive identity))
+      (currentReceiptPreservesDecision (policyGeneration current) (policyEpoch (coreConfig (policyView current)))
+        (policyConsumerQuery consumer current authenticated identity))
+
+def stalePolicyReceiptDenied : (captured : Count) -> (later : Count) -> (currentEpoch : Count) ->
+    (capturedEpoch : Count) -> (allowed : Flag) ->
+    Equal Flag (receiptDecision (next (add captured later)) currentEpoch captured capturedEpoch allowed) off :=
+  fun (captured : Count) (later : Count) (currentEpoch : Count) (capturedEpoch : Count) (allowed : Flag) =>
+    congruent Flag Flag (fun (matches : Flag) => both matches (both (sameCount capturedEpoch currentEpoch) allowed))
+      (sameCount captured (next (add captured later))) off (sameCountBeyondOff captured later)
+
+def oldEpochPolicyReceiptDenied : (generation : Count) -> (capturedEpoch : Count) -> (later : Count) -> (allowed : Flag) ->
+    Equal Flag (receiptDecision generation (next (add capturedEpoch later)) generation capturedEpoch allowed) off :=
+  fun (generation : Count) (capturedEpoch : Count) (later : Count) (allowed : Flag) =>
+    equalTransitivity Flag (receiptDecision generation (next (add capturedEpoch later)) generation capturedEpoch allowed)
+      (both (sameCount capturedEpoch (next (add capturedEpoch later))) allowed) off
+      (matchingReceiptGeneration generation (next (add capturedEpoch later)) capturedEpoch allowed)
+      (congruent Flag Flag (fun (matches : Flag) => both matches allowed)
+        (sameCount capturedEpoch (next (add capturedEpoch later))) off (sameCountBeyondOff capturedEpoch later))
+
+def everyPolicyChangeInvalidatesReceipt : (generation : Count) -> (oldCore : PolicyCore) ->
+    (replacement : PolicyCore) -> (capturedEpoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->
+    Equal Flag (policyReceiptAllowed (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))
+      identity (policyReceipt generation capturedEpoch capturedIdentity allowed)) off :=
+  fun (generation : Count) (oldCore : PolicyCore) (replacement : PolicyCore) (capturedEpoch : Count)
+      (capturedIdentity : Count) (identity : Count) (allowed : Flag) =>
+    equalTransitivity Flag
+      (policyReceiptAllowed (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))
+        identity (policyReceipt generation capturedEpoch capturedIdentity allowed))
+      (both (sameCount capturedIdentity identity) off) off
+      (congruent Flag Flag
+        (fun (matches : Flag) => both (sameCount capturedIdentity identity)
+          (both matches (both (sameCount capturedEpoch (policyEpoch (coreConfig replacement))) allowed)))
+        (sameCount generation (next generation)) off (sameCountSuccessorOff generation))
+      (bothRightOff (sameCount capturedIdentity identity))
+
+def policyReceiptIdentityMismatchDenied : (current : VersionedPolicy) -> (generation : Count) -> (epoch : Count) ->
+    (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->
+    Equal Flag (sameCount capturedIdentity identity) off ->
+    Equal Flag (policyReceiptAllowed current identity (policyReceipt generation epoch capturedIdentity allowed)) off :=
+  fun (current : VersionedPolicy) (generation : Count) (epoch : Count) (capturedIdentity : Count)
+      (identity : Count) (allowed : Flag) (mismatch : Equal Flag (sameCount capturedIdentity identity) off) =>
+    congruent Flag Flag
+      (fun (matches : Flag) => both matches
+        (receiptDecision (policyGeneration current) (policyEpoch (coreConfig (policyView current))) generation epoch allowed))
+      (sameCount capturedIdentity identity) off mismatch
+
+def policyReceiptForAnotherIdentityDenied : (current : VersionedPolicy) -> (generation : Count) -> (epoch : Count) ->
+    (capturedIdentity : Count) -> (different : Count) -> (allowed : Flag) ->
+    Equal Flag (policyReceiptAllowed current (next (add capturedIdentity different))
+      (policyReceipt generation epoch capturedIdentity allowed)) off :=
+  fun (current : VersionedPolicy) (generation : Count) (epoch : Count) (capturedIdentity : Count)
+      (different : Count) (allowed : Flag) =>
+    policyReceiptIdentityMismatchDenied current generation epoch capturedIdentity (next (add capturedIdentity different)) allowed
+      (sameCountBeyondOff capturedIdentity different)
+
+def deniedReceiptStaysDenied : (currentGeneration : Count) -> (currentEpoch : Count) ->
+    (capturedGeneration : Count) -> (capturedEpoch : Count) ->
+    Equal Flag (receiptDecision currentGeneration currentEpoch capturedGeneration capturedEpoch off) off :=
+  fun (currentGeneration : Count) (currentEpoch : Count) (capturedGeneration : Count) (capturedEpoch : Count) =>
+    equalTransitivity Flag (receiptDecision currentGeneration currentEpoch capturedGeneration capturedEpoch off)
+      (both (sameCount capturedGeneration currentGeneration) off) off
+      (congruent Flag Flag (fun (allowed : Flag) => both (sameCount capturedGeneration currentGeneration) allowed)
+        (both (sameCount capturedEpoch currentEpoch) off) off (bothRightOff (sameCount capturedEpoch currentEpoch)))
+      (bothRightOff (sameCount capturedGeneration currentGeneration))
