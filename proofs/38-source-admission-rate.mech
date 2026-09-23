@@ -1,0 +1,328 @@
+-- Count receipts from the atomic source admission transition, including both
+-- swarms and arbitrary source keys and pending indices. Completion is no refund.
+def admissionReceiptCount : AdmissionReceipt -> Count :=
+  fun (receipt : AdmissionReceipt) =>
+    case receipt as owned in AdmissionReceipt return Count with
+    | noAdmissionReceipt => zero
+    | pendingAdmissionReceipt index generation => next zero
+
+def sourceAdmissionIssuedNow : SourceAdmissionEvent -> Count :=
+  fun (event : SourceAdmissionEvent) =>
+    case event as action in SourceAdmissionEvent return Count with
+    | sourceAdmissionAttempt source swarm key index => zero
+    | sourceAdmissionMaintenance maintenance => zero
+    | sourceAdmissionClock issued => issued
+    | sourceAdmissionFinish receipt reason => zero
+
+def rec sourceAdmissionIssuedTotal : SourceAdmissionTrace -> Count :=
+  fun (trace : SourceAdmissionTrace) =>
+    case trace as self in SourceAdmissionTrace return Count with
+    | sourceAdmissionsDone => zero
+    | sourceAdmissionsThen event rest => add (sourceAdmissionIssuedNow event) (sourceAdmissionIssuedTotal rest)
+
+def rec sourceAdmissionStarts : SourceAdmissionTrace -> Count -> Count -> SourceAdmission -> Count :=
+  fun (trace : SourceAdmissionTrace) (quota : Count) (capacity : Count) (current : SourceAdmission) =>
+    case trace as self in SourceAdmissionTrace return Count with
+    | sourceAdmissionsDone => zero
+    | sourceAdmissionsThen event rest =>
+        add (admissionReceiptCount (admissionAttemptReceipt quota event current))
+          (sourceAdmissionStarts rest quota capacity (sourceAdmissionStep quota capacity event current))
+
+-- The continuation can depend on the entire updated state, not just credit.
+-- A grant consumes exactly one credit; every refused plan preserves the state.
+def sourceStartContinuationBound : (quota : Count) -> (key : Count) -> (index : Count) ->
+    (allowed : Flag) -> (credits : Count) -> (token : CompletionToken) ->
+    (table : SourceTable) -> (pool : LeasePool) -> (allowance : Count) ->
+    (future : SourceAdmission -> Count) ->
+    ((after : SourceAdmission) -> AtMost (future after) (add (admissionCredits after) allowance)) ->
+    AtMost
+      (add (admissionReceiptCount (sourceStartReceipt index (sourceStartDecision allowed credits token)))
+        (future (commitSourceStart quota key index (sourceStartDecision allowed credits token)
+          (sourceAdmission table credits pool))))
+      (add credits allowance) :=
+  fun (quota : Count) (key : Count) (index : Count) (allowed : Flag) (credits : Count)
+      (token : CompletionToken) (table : SourceTable) (pool : LeasePool) (allowance : Count)
+      (future : SourceAdmission -> Count)
+      (bound : (after : SourceAdmission) -> AtMost (future after) (add (admissionCredits after) allowance)) =>
+    case allowed as decision in Flag return AtMost
+        (add (admissionReceiptCount (sourceStartReceipt index (sourceStartDecision decision credits token)))
+          (future (commitSourceStart quota key index (sourceStartDecision decision credits token)
+            (sourceAdmission table credits pool)))) (add credits allowance) with
+    | off => bound (sourceAdmission table credits pool)
+    | on =>
+      case credits as balance in Count return AtMost
+          (add (admissionReceiptCount (sourceStartReceipt index (selectSourceStart balance token)))
+            (future (commitSourceStart quota key index (selectSourceStart balance token)
+              (sourceAdmission table balance pool)))) (add balance allowance) with
+      | zero => bound (sourceAdmission table zero pool)
+      | next remaining =>
+        case token as owned in CompletionToken return AtMost
+            (add (admissionReceiptCount (sourceStartReceipt index (selectSourceStart (next remaining) owned)))
+              (future (commitSourceStart quota key index (selectSourceStart (next remaining) owned)
+                (sourceAdmission table (next remaining) pool)))) (add (next remaining) allowance) with
+        | noOwnedLease => bound (sourceAdmission table (next remaining) pool)
+        | ownedGeneration generation =>
+            lift
+              (future (commitSourceStart quota key index (grantedSourceStart generation)
+                (sourceAdmission table (next remaining) pool)))
+              (add remaining allowance)
+              (bound (commitSourceStart quota key index (grantedSourceStart generation)
+                (sourceAdmission table (next remaining) pool)))
+
+def rec sourceAdmissionCreditConservation : (trace : SourceAdmissionTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) ->
+    AtMost (sourceAdmissionStarts trace quota capacity current)
+      (add (admissionCredits current) (sourceAdmissionIssuedTotal trace)) :=
+  fun (trace : SourceAdmissionTrace) (quota : Count) (capacity : Count) (current : SourceAdmission) =>
+    case trace as self in SourceAdmissionTrace return
+        AtMost (sourceAdmissionStarts self quota capacity current)
+          (add (admissionCredits current) (sourceAdmissionIssuedTotal self)) with
+    | sourceAdmissionsDone => least (add (admissionCredits current) zero)
+    | sourceAdmissionsThen event rest =>
+      case event as action in SourceAdmissionEvent return
+          AtMost (sourceAdmissionStarts (sourceAdmissionsThen action rest) quota capacity current)
+            (add (admissionCredits current) (sourceAdmissionIssuedTotal (sourceAdmissionsThen action rest))) with
+      | sourceAdmissionAttempt source swarm key index =>
+        (case current as state in SourceAdmission return
+            AtMost (sourceAdmissionStarts (sourceAdmissionsThen
+              (sourceAdmissionAttempt source swarm key index) rest) quota capacity state)
+              (add (admissionCredits state) (sourceAdmissionIssuedTotal rest)) with
+        | sourceAdmission table credits pool => sourceStartContinuationBound quota key index
+            (sourceTableChargeAllowed source quota key table) credits (availableLeaseToken index pool)
+            table pool (sourceAdmissionIssuedTotal rest)
+            (fun (after : SourceAdmission) => sourceAdmissionStarts rest quota capacity after)
+            (fun (after : SourceAdmission) => sourceAdmissionCreditConservation rest quota capacity after))
+      | sourceAdmissionMaintenance maintenance =>
+          sourceAdmissionCreditConservation rest quota capacity
+            (sourceAdmissionStep quota capacity (sourceAdmissionMaintenance maintenance) current)
+      | sourceAdmissionClock issued =>
+          equalTransport Count
+            (fun (limit : Count) => AtMost
+              (sourceAdmissionStarts rest quota capacity
+                (sourceAdmissionStep quota capacity (sourceAdmissionClock issued) current)) limit)
+            (add (add (admissionCredits current) issued) (sourceAdmissionIssuedTotal rest))
+            (add (admissionCredits current) (add issued (sourceAdmissionIssuedTotal rest)))
+            (addAssociative (admissionCredits current) issued (sourceAdmissionIssuedTotal rest))
+            (boundTransitive
+              (sourceAdmissionStarts rest quota capacity
+                (sourceAdmissionStep quota capacity (sourceAdmissionClock issued) current))
+              (add (boundedWork capacity (add (admissionCredits current) issued)) (sourceAdmissionIssuedTotal rest))
+              (add (add (admissionCredits current) issued) (sourceAdmissionIssuedTotal rest))
+              (sourceAdmissionCreditConservation rest quota capacity
+                (sourceAdmissionStep quota capacity (sourceAdmissionClock issued) current))
+              (addBounds (boundedWork capacity (add (admissionCredits current) issued))
+                (add (admissionCredits current) issued) (sourceAdmissionIssuedTotal rest) (sourceAdmissionIssuedTotal rest)
+                (boundedWorkRightBound capacity (add (admissionCredits current) issued))
+                (reflexiveBound (sourceAdmissionIssuedTotal rest))))
+      | sourceAdmissionFinish receipt reason =>
+          equalTransport Count
+            (fun (credits : Count) => AtMost
+              (sourceAdmissionStarts rest quota capacity (finishSourceAdmission receipt reason current))
+              (add credits (sourceAdmissionIssuedTotal rest)))
+            (admissionCredits (finishSourceAdmission receipt reason current)) (admissionCredits current)
+            (completionPreservesGlobalCredits receipt reason current)
+            (sourceAdmissionCreditConservation rest quota capacity (finishSourceAdmission receipt reason current))
+
+def sourceAdmissionNoRefillBound : (trace : SourceAdmissionTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) ->
+    Equal Count (sourceAdmissionIssuedTotal trace) zero ->
+    AtMost (sourceAdmissionStarts trace quota capacity current) (admissionCredits current) :=
+  fun (trace : SourceAdmissionTrace) (quota : Count) (capacity : Count) (current : SourceAdmission)
+      (noIssue : Equal Count (sourceAdmissionIssuedTotal trace) zero) =>
+    equalTransport Count
+      (fun (limit : Count) => AtMost (sourceAdmissionStarts trace quota capacity current) limit)
+      (add (admissionCredits current) (sourceAdmissionIssuedTotal trace)) (admissionCredits current)
+      (equalTransitivity Count (add (admissionCredits current) (sourceAdmissionIssuedTotal trace))
+        (add (admissionCredits current) zero) (admissionCredits current)
+        (congruent Count Count (fun (n : Count) => add (admissionCredits current) n)
+          (sourceAdmissionIssuedTotal trace) zero noIssue) (addRightZero (admissionCredits current)))
+      (sourceAdmissionCreditConservation trace quota capacity current)
+
+def sourceAdmissionAllowanceBound : (trace : SourceAdmissionTrace) -> (quota : Count) ->
+    (capacity : Count) -> (burst : Count) -> (current : SourceAdmission) -> (allowance : Count) ->
+    AtMost (admissionCredits current) burst -> AtMost (sourceAdmissionIssuedTotal trace) allowance ->
+    AtMost (sourceAdmissionStarts trace quota capacity current) (add burst allowance) :=
+  fun (trace : SourceAdmissionTrace) (quota : Count) (capacity : Count) (burst : Count) (current : SourceAdmission)
+      (allowance : Count) (initial : AtMost (admissionCredits current) burst)
+      (issued : AtMost (sourceAdmissionIssuedTotal trace) allowance) =>
+    boundTransitive (sourceAdmissionStarts trace quota capacity current)
+      (add (admissionCredits current) (sourceAdmissionIssuedTotal trace)) (add burst allowance)
+      (sourceAdmissionCreditConservation trace quota capacity current)
+      (addBounds (admissionCredits current) burst (sourceAdmissionIssuedTotal trace) allowance initial issued)
+
+-- This closed event language has no arbitrary-credit constructor. Only a
+-- trusted tick issues rate credits; a claimed tick contributes no transition.
+mu TimedSourceAdmissionTrace : Type 0 with
+| timedAdmissionsDone : TimedSourceAdmissionTrace
+| timedAdmissionAttempt : Reachability -> SwarmClass -> Count -> Count -> TimedSourceAdmissionTrace -> TimedSourceAdmissionTrace
+| timedAdmissionMaintenance : SourceMaintenance -> TimedSourceAdmissionTrace -> TimedSourceAdmissionTrace
+| timedAdmissionFinish : AdmissionReceipt -> PendingEnd -> TimedSourceAdmissionTrace -> TimedSourceAdmissionTrace
+| timedAdmissionTick : TimedSourceAdmissionTrace -> TimedSourceAdmissionTrace
+| timedAdmissionClaimedTick : Count -> TimedSourceAdmissionTrace -> TimedSourceAdmissionTrace
+
+def rec timedSourceAdmissions : TimedSourceAdmissionTrace -> Count -> SourceAdmissionTrace :=
+  fun (trace : TimedSourceAdmissionTrace) (rate : Count) =>
+    case trace as self in TimedSourceAdmissionTrace return SourceAdmissionTrace with
+    | timedAdmissionsDone => sourceAdmissionsDone
+    | timedAdmissionAttempt source swarm key index rest => sourceAdmissionsThen
+        (sourceAdmissionAttempt source swarm key index) (timedSourceAdmissions rest rate)
+    | timedAdmissionMaintenance maintenance rest => sourceAdmissionsThen
+        (sourceAdmissionMaintenance maintenance) (timedSourceAdmissions rest rate)
+    | timedAdmissionFinish receipt reason rest => sourceAdmissionsThen
+        (sourceAdmissionFinish receipt reason) (timedSourceAdmissions rest rate)
+    | timedAdmissionTick rest => sourceAdmissionsThen (sourceAdmissionClock rate) (timedSourceAdmissions rest rate)
+    | timedAdmissionClaimedTick claimed rest => timedSourceAdmissions rest rate
+
+def rec sourceAdmissionTrustedTicks : TimedSourceAdmissionTrace -> Count :=
+  fun (trace : TimedSourceAdmissionTrace) =>
+    case trace as self in TimedSourceAdmissionTrace return Count with
+    | timedAdmissionsDone => zero
+    | timedAdmissionAttempt source swarm key index rest => sourceAdmissionTrustedTicks rest
+    | timedAdmissionMaintenance maintenance rest => sourceAdmissionTrustedTicks rest
+    | timedAdmissionFinish receipt reason rest => sourceAdmissionTrustedTicks rest
+    | timedAdmissionTick rest => next (sourceAdmissionTrustedTicks rest)
+    | timedAdmissionClaimedTick claimed rest => sourceAdmissionTrustedTicks rest
+
+def rec sourceAdmissionUniformIssuance : (trace : TimedSourceAdmissionTrace) -> (rate : Count) ->
+    Equal Count (sourceAdmissionIssuedTotal (timedSourceAdmissions trace rate))
+      (multiply (sourceAdmissionTrustedTicks trace) rate) :=
+  fun (trace : TimedSourceAdmissionTrace) (rate : Count) =>
+    case trace as self in TimedSourceAdmissionTrace return
+        Equal Count (sourceAdmissionIssuedTotal (timedSourceAdmissions self rate))
+          (multiply (sourceAdmissionTrustedTicks self) rate) with
+    | timedAdmissionsDone => same
+    | timedAdmissionAttempt source swarm key index rest => sourceAdmissionUniformIssuance rest rate
+    | timedAdmissionMaintenance maintenance rest => sourceAdmissionUniformIssuance rest rate
+    | timedAdmissionFinish receipt reason rest => sourceAdmissionUniformIssuance rest rate
+    | timedAdmissionTick rest => congruent Count Count (fun (n : Count) => add rate n)
+        (sourceAdmissionIssuedTotal (timedSourceAdmissions rest rate))
+        (multiply (sourceAdmissionTrustedTicks rest) rate) (sourceAdmissionUniformIssuance rest rate)
+    | timedAdmissionClaimedTick claimed rest => sourceAdmissionUniformIssuance rest rate
+
+def sourceAdmissionBurstRateEnvelope : (trace : TimedSourceAdmissionTrace) -> (quota : Count) ->
+    (capacity : Count) -> (burst : Count) -> (rate : Count) -> (current : SourceAdmission) ->
+    AtMost (admissionCredits current) burst ->
+    AtMost (sourceAdmissionStarts (timedSourceAdmissions trace rate) quota capacity current)
+      (add burst (multiply (sourceAdmissionTrustedTicks trace) rate)) :=
+  fun (trace : TimedSourceAdmissionTrace) (quota : Count) (capacity : Count) (burst : Count) (rate : Count)
+      (current : SourceAdmission) (initial : AtMost (admissionCredits current) burst) =>
+    sourceAdmissionAllowanceBound (timedSourceAdmissions trace rate) quota capacity burst current
+      (multiply (sourceAdmissionTrustedTicks trace) rate) initial
+      (equalTransport Count
+        (fun (limit : Count) => AtMost (sourceAdmissionIssuedTotal (timedSourceAdmissions trace rate)) limit)
+        (sourceAdmissionIssuedTotal (timedSourceAdmissions trace rate))
+        (multiply (sourceAdmissionTrustedTicks trace) rate) (sourceAdmissionUniformIssuance trace rate)
+        (reflexiveBound (sourceAdmissionIssuedTotal (timedSourceAdmissions trace rate))))
+
+def sourceAdmissionCostEnvelope : (trace : TimedSourceAdmissionTrace) -> (quota : Count) ->
+    (capacity : Count) -> (burst : Count) -> (rate : Count) -> (current : SourceAdmission) -> (cost : Count) ->
+    AtMost (admissionCredits current) burst ->
+    AtMost (multiply (sourceAdmissionStarts (timedSourceAdmissions trace rate) quota capacity current) cost)
+      (multiply (add burst (multiply (sourceAdmissionTrustedTicks trace) rate)) cost) :=
+  fun (trace : TimedSourceAdmissionTrace) (quota : Count) (capacity : Count) (burst : Count) (rate : Count)
+      (current : SourceAdmission) (cost : Count) (initial : AtMost (admissionCredits current) burst) =>
+    multipliedBounds (sourceAdmissionStarts (timedSourceAdmissions trace rate) quota capacity current)
+      (add burst (multiply (sourceAdmissionTrustedTicks trace) rate)) cost
+      (sourceAdmissionBurstRateEnvelope trace quota capacity burst rate current initial)
+
+def eligibleAdmissionCountsOne : (quota : Count) -> (capacity : Count) -> (swarm : SwarmClass) ->
+    (key : Count) -> (table : SourceTable) -> (credits : Count) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal Count (sourceAdmissionStarts
+      (sourceAdmissionsThen (sourceAdmissionAttempt validated swarm key zero) sourceAdmissionsDone)
+      quota capacity (sourceAdmission table (next credits) (leaseCell (freeLease generation) rest))) (next zero) :=
+  fun (quota : Count) (capacity : Count) (swarm : SwarmClass) (key : Count) (table : SourceTable)
+      (credits : Count) (generation : Count) (rest : LeasePool)
+      (allowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    congruent AdmissionReceipt Count (fun (receipt : AdmissionReceipt) => add (admissionReceiptCount receipt) zero)
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt validated swarm key zero)
+        (sourceAdmission table (next credits) (leaseCell (freeLease generation) rest)))
+      (pendingAdmissionReceipt zero generation)
+      (eligibleSourceAdmissionOwnsReceipt quota swarm key table credits generation rest allowed)
+
+def admissionRateReuseTrace : TimedSourceAdmissionTrace :=
+  timedAdmissionAttempt validated primarySwarm zero zero
+    (timedAdmissionFinish (pendingAdmissionReceipt zero zero) handshakeFailed
+      (timedAdmissionMaintenance (maintainSourceExpiry zero trustedDebtExpiry)
+        (timedAdmissionTick
+          (timedAdmissionAttempt validated workerSwarm zero zero
+            (timedAdmissionFinish (pendingAdmissionReceipt zero zero) handshakeTimedOut timedAdmissionsDone)))))
+
+def admissionRateCountsBothSwarms : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions admissionRateReuseTrace (next zero))
+      (next zero) (next zero) admissionExampleReady) (next (next zero)) := same
+
+def admissionRateReplayKeepsNewOwner : Equal SourceAdmission
+    (runSourceAdmissions (timedSourceAdmissions admissionRateReuseTrace (next zero))
+      (next zero) (next zero) admissionExampleReady)
+    (sourceAdmission (admissionSources admissionExampleStarted) zero
+      (leaseCell (heldLease (next zero)) emptyLeasePool)) := same
+
+def admissionRateZeroRefillCountsOnce : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions admissionRateReuseTrace zero)
+      (next zero) (next zero) admissionExampleReady) (next zero) := same
+
+def admissionRateCountsSelectedSourceAndSlot : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionAttempt validated workerSwarm (next zero) (next zero) timedAdmissionsDone) zero)
+      (next zero) (next zero)
+      (sourceAdmission
+        (sourceSlot (trackedSource zero sourceBan)
+          (sourceSlot (trackedSource (next zero) sourceClear) noSourceSlots)) (next zero)
+        (leaseCell (heldLease zero) (leaseCell (freeLease zero) emptyLeasePool)))) (next zero) := same
+
+def admissionRateUnvalidatedCountsZero : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionAttempt unvalidated primarySwarm zero zero timedAdmissionsDone) zero)
+      (next zero) (next zero) admissionExampleReady) zero := same
+
+def admissionRateBanCountsZero : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionMaintenance (maintainSourceBan zero)
+        (timedAdmissionAttempt validated primarySwarm zero zero timedAdmissionsDone)) zero)
+      (next zero) (next zero) admissionExampleReady) zero := same
+
+def admissionRateFullSlotCountsOnce : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionAttempt validated primarySwarm zero zero
+        (timedAdmissionAttempt validated workerSwarm zero zero timedAdmissionsDone)) zero)
+      (next (next zero)) (next (next zero))
+      (sourceAdmission (admissionSources admissionExampleReady) (next (next zero))
+        (admissionPool admissionExampleReady))) (next zero) := same
+
+def admissionRateCompletionKeepsQuota : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionAttempt validated primarySwarm zero zero
+        (timedAdmissionFinish (pendingAdmissionReceipt zero zero) handshakeCancelled
+          (timedAdmissionTick
+            (timedAdmissionAttempt validated workerSwarm zero zero timedAdmissionsDone)))) (next zero))
+      (next zero) (next zero) admissionExampleReady) (next zero) := same
+
+def admissionRateExpiryCannotMintCredit : Equal Count
+    (sourceAdmissionStarts (timedSourceAdmissions
+      (timedAdmissionFinish (pendingAdmissionReceipt zero zero) handshakeTimedOut
+        (timedAdmissionMaintenance (maintainSourceExpiry zero trustedDebtExpiry)
+          (timedAdmissionAttempt validated workerSwarm zero zero timedAdmissionsDone))) (next zero))
+      (next zero) (next zero) admissionExampleStarted) zero := same
+
+def admissionRateClaimedTickIsNoOp : (trace : TimedSourceAdmissionTrace) -> (claimed : Count) -> (rate : Count) ->
+    Equal SourceAdmissionTrace (timedSourceAdmissions (timedAdmissionClaimedTick claimed trace) rate)
+      (timedSourceAdmissions trace rate) :=
+  fun (trace : TimedSourceAdmissionTrace) (claimed : Count) (rate : Count) => same
+
+def admissionRateClaimedTickIsNotTime : (trace : TimedSourceAdmissionTrace) -> (claimed : Count) ->
+    Equal Count (sourceAdmissionTrustedTicks (timedAdmissionClaimedTick claimed trace))
+      (sourceAdmissionTrustedTicks trace) :=
+  fun (trace : TimedSourceAdmissionTrace) (claimed : Count) => same
+
+def admissionRateTwoTicksIssueExactly : (rate : Count) -> Equal Count
+    (sourceAdmissionIssuedTotal (timedSourceAdmissions
+      (timedAdmissionTick (timedAdmissionTick timedAdmissionsDone)) rate)) (add rate (add rate zero)) :=
+  fun (rate : Count) => same
+
+def admissionRateTwoTicksCountExactly : Equal Count
+    (sourceAdmissionTrustedTicks (timedAdmissionTick (timedAdmissionTick timedAdmissionsDone))) (next (next zero)) := same
+
+def admissionRateTickClampsCredits : Equal SourceAdmission
+    (runSourceAdmissions (timedSourceAdmissions (timedAdmissionTick timedAdmissionsDone) (next (next zero)))
+      (next zero) (next zero) admissionExampleReady) admissionExampleReady := same

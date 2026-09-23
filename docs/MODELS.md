@@ -331,10 +331,10 @@ their initial values. Resident count and pending occupancy stay within those
 initial capacities. Credits remain bounded given an initial credit bound;
 selected debt remains bounded given `SourceQuotaBound` for all initial
 residents. The inherited clamp proves the debt bound; admission refusal and
-exact charging are separately checked. These are state bounds. A coupled count
-of accepted starts and its connection to the discrete burst-plus-rate envelope
-remain open, as do per-source live pending attribution, established resource
-accounting and composition with authoritative policy receipts.
+exact charging are separately checked. These are state bounds; the cumulative
+count and discrete rate envelope are established by the next module. Per-source
+live pending attribution, established resource accounting and composition with
+authoritative policy receipts remain open.
 
 Eligibility, commit and receipt emission must linearize against one pre-state;
 the raw plan and commit helpers are not separate runtime entry points. Canonical
@@ -343,10 +343,57 @@ generations, fixed capacities and quotas, and trusted issuance/expiry require
 refinement. The model does not validate timer generations or deadlines, establish
 restart persistence, or prove honest admission and reconnect fairness.
 
+## Coupled source-admission rate envelope
+
+`38-source-admission-rate.mech` counts accepted starts from the indexed receipts
+emitted by `admissionAttemptReceipt`. Every step observes the same pre-state as
+`sourceAdmissionStep`, and the recursive count continues with that step's full
+updated state. A successful receipt contributes one; refusal, maintenance, clock
+issuance and completion contribute zero. The count therefore follows source
+restrictions and pending ownership as well as shared credit. It never counts a
+completion receipt as a new start.
+
+`sourceAdmissionCreditConservation` proves, for arbitrary finite mixed traces,
+that starts are at most initial shared credit plus total trusted issuance.
+It requires no initial credit, source-debt or pending-occupancy bound. The
+continuation proof covers both swarms, arbitrary keys and pending indices, and
+every completion reason. `sourceAdmissionNoRefillBound` specializes this to
+initial credit alone when total issuance is zero. Source churn, expiry and
+completion cannot replenish the allowance. The receipt/commit correspondence
+still relies on the atomic admission contract from module 37.
+
+The closed `TimedSourceAdmissionTrace` language retains attempts, maintenance
+and completion, maps each trusted tick to exactly `rate` issued credits, and
+discards claimed ticks. It has no arbitrary-credit constructor. Only trusted
+ticks contribute to `sourceAdmissionTrustedTicks`; `sourceAdmissionUniformIssuance`
+equates total issued credit with `ticks * rate`. Issuance is counted before the
+bucket clamps credit; discarded credit cannot increase accepted starts.
+
+For any bucket capacity, given initial credit at most `burst`,
+`sourceAdmissionBurstRateEnvelope` bounds
+the actual composed admission count by `burst + ticks * rate`. The parameters
+include zero burst and zero rate. `sourceAdmissionCostEnvelope` multiplies this
+bound by a supplied per-start cost. That weight must dominate real accepted-start
+work; prevalidation, refused attempts, retained resources and other work require
+separate accounting. No numeric production budget is selected here.
+
+Universal enabled counting is proved for an eligible head slot. Closed witnesses
+also check a non-head source and slot, two accepted starts across both swarms,
+completion and reuse, replay preserving a newer owner, zero-rate refusal, bans,
+occupied slots, quota retention, expiry without credit, and clamped refill.
+These witnesses prevent the upper-bound proof from hiding an undercount or a
+disabled admission path. General enabled admission and stale completion at
+arbitrary indices remain separate lifecycle obligations.
+
+Real monotonic time, tick provenance and replay prevention, one runtime balance,
+checked arithmetic and atomic receipt emission require refinement. The theorem
+is a discrete rate envelope, not a wall-clock, honest-admission or fairness
+guarantee. Authoritative policy receipts, live per-source pending attribution,
+established resources, changing configuration and restart persistence remain open.
 ## Negative controls
 
-The checker rejects 140 invalid variants: three direct checks of equality,
-ordering and termination, plus 137 semantic mutations. Mutations exercise such
+The checker rejects 165 invalid variants: three direct checks of equality,
+ordering and termination, plus 162 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -390,6 +437,15 @@ credit or erase pending state during maintenance, uncap clock refill, erase
 source state on refill, drop bans or churn, ban the wrong key, trust claimed
 expiry, or drop a composed trace event. All must be rejected with semantic
 mismatches.
+
+The 25 source-admission rate controls omit or fabricate receipt counts, hide
+issuance, drop the counting or issuance tail, reuse the old state, change attempt
+validation or selected keys and slots, drop maintenance or completion, overissue
+or drop trusted ticks, issue credit on attempts, maintenance, completion or
+claimed ticks, append refill credit at the end of the erased trace, count a start
+on an empty trace, or count attempts, maintenance, completion and claimed ticks
+as trusted time. Exact-count witnesses check enabled admission as well as the
+universal upper bounds.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

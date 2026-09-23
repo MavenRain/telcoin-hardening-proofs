@@ -1271,7 +1271,7 @@
       ],
       "open_implementation_obligations": [
         "Construct the initial per-resident quota witness and refine every serialized runtime table and restriction event, including machine arithmetic.",
-        "Relate the source-admission state bounds to the global cumulative rate envelope. Stored debt remains distinct from cumulative work across expiry or a wall-clock rate.",
+        "Refine the source-admission state bounds and the coupled discrete envelope in C18-C20 to runtime accounting. Stored debt remains distinct from cumulative work across expiry or a wall-clock rate.",
         "Verify trusted expiry authority, restriction generations, deadlines, clock correspondence and restart behavior."
       ]
     },
@@ -1382,7 +1382,7 @@
       ],
       "open_implementation_obligations": [
         "Refine every runtime admission, cleanup, source-maintenance and clock event to the composed transition, including errors, races and cancellations.",
-        "Prove a coupled accepted-start count bound and its relation to the existing discrete burst-plus-rate envelope; the new trace theorems bound state, not cumulative starts or wall-clock work.",
+        "Refine the coupled accepted-start conservation and discrete burst-plus-rate envelope in C17-C20 to actual handshake work and real elapsed time; these state bounds alone do not establish wall-clock work.",
         "Supply validated clock issuance, cost dominance, configuration-change, restart and persistence refinements."
       ]
     },
@@ -1472,8 +1472,139 @@
       ],
       "open_implementation_obligations": [
         "Validate maintenance authority, source and restriction generation, deadlines, retention scheduling and restart persistence; trusted expiry is supplied rather than verified.",
-        "Compose this source-admission model with authoritative policy receipts, established connections and the cumulative rate envelope.",
+        "Compose this source-admission model and its discrete cumulative rate envelope with authoritative policy receipts and established connections.",
         "Complete Hub, Rotation and Later semantics and qualify honest reconnect fairness under source and global saturation."
+      ]
+    },
+    {
+      "id": "C17",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "By definition, sourceAdmissionStarts counts the internal receipt that each attempt emits against the same pre-state used by sourceAdmissionStep, and continues on that step's full updated source, credit and pending state; sourceAdmissionCreditConservation bounds this count by shared credit over arbitrary finite traces. Eligible head-slot admission contributes exactly one; concrete witnesses exercise non-head source and slot selection, both swarms, refusal, completion, reuse and replay.",
+      "theorems": [
+        "eligibleAdmissionCountsOne",
+        "sourceAdmissionCreditConservation",
+        "admissionRateCountsBothSwarms",
+        "admissionRateReplayKeepsNewOwner",
+        "admissionRateCountsSelectedSourceAndSlot",
+        "admissionRateUnvalidatedCountsZero",
+        "admissionRateBanCountsZero",
+        "admissionRateFullSlotCountsOnce",
+        "admissionRateCompletionKeepsQuota",
+        "admissionRateExpiryCannotMintCredit"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "source_admission_receipts",
+        "stable_resource_configuration",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Refine each accepted handshake start to exactly one emitted internal receipt, with decision, charge and receipt emission linearized against one pre-state.",
+        "Generalize the enabled single-start theorem beyond the head pending slot; cumulative trace bounds already quantify over arbitrary indices.",
+        "Prove runtime receipt provenance, stable slot mapping, safe generation reuse and complete treatment of races, errors and cancellations."
+      ]
+    },
+    {
+      "id": "C18",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Over every finite composed source-admission trace, accepted starts cannot exceed initial shared credit plus total trusted issuance. With zero issuance they cannot exceed initial credit. Maintenance, completion and expiry cannot reset this cumulative accounting, and both swarms draw from the same balance. Conservation holds for arbitrary initial source, pending and credit state; the allowance corollary additionally bounds initial credit by burst.",
+      "theorems": [
+        "sourceAdmissionCreditConservation",
+        "sourceAdmissionNoRefillBound",
+        "sourceAdmissionAllowanceBound",
+        "admissionRateZeroRefillCountsOnce",
+        "admissionRateExpiryCannotMintCredit"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "source_admission_receipts",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock"
+      ],
+      "open_implementation_obligations": [
+        "Connect every real handshake-start site to the single shared admission transition, including trusted peers and both swarms.",
+        "Validate credit issuance and enforce checked arithmetic, atomic debits and configuration changes across restarts.",
+        "Stored per-source debt remains distinct from this cumulative count; prove live per-source pending attribution and established-resource accounting separately."
+      ]
+    },
+    {
+      "id": "C19",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "In timed source-admission traces only trusted ticks issue credit, exactly rate per tick before capacity clamping. Attempts, maintenance, completion and claimed ticks do not advance trusted time. Given initial credit at most burst, the actual composed admission count is at most burst plus trusted ticks times rate for every finite trace, including zero rate and burst.",
+      "theorems": [
+        "sourceAdmissionUniformIssuance",
+        "sourceAdmissionBurstRateEnvelope",
+        "admissionRateClaimedTickIsNoOp",
+        "admissionRateClaimedTickIsNotTime",
+        "admissionRateTwoTicksIssueExactly",
+        "admissionRateTwoTicksCountExactly",
+        "admissionRateTickClampsCredits"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "source_admission_receipts",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock"
+      ],
+      "open_implementation_obligations": [
+        "Relate trusted ticks to real elapsed monotonic time and prevent fabricated or replayed issuance; this is a discrete envelope, not a wall-clock guarantee.",
+        "Refine the closed timed event mapping, select and qualify production burst/rate settings, and account for configuration changes and restart persistence.",
+        "Compose authoritative policy receipts and establish honest admission and reconnect fairness."
+      ]
+    },
+    {
+      "id": "C20",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Given initial shared credit at most burst, a supplied per-start cost multiplies the coupled source-admission burst-plus-rate envelope, bounding modeled accepted-start work across arbitrary timed admission traces. The result includes no work charged to refused attempts or other resource classes.",
+      "theorems": [
+        "sourceAdmissionCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "source_admission_receipts",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Establish a worst-case cost upper bound for each real accepted handshake in a common unit, including all relevant crypto and allocation paths.",
+        "Separately bound prevalidation and rejected-attempt work, pending and established state, queues, networking and storage costs.",
+        "Refine trusted elapsed time and qualify the resulting whole-process budget on representative deployments."
       ]
     }
   ]

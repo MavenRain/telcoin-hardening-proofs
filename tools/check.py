@@ -229,6 +229,35 @@ MUTATIONS += [
 ]
 
 
+MUTATIONS += [
+    ("admission_rate_success_not_counted", "| pendingAdmissionReceipt index generation => next zero", "| pendingAdmissionReceipt index generation => zero"),
+    ("admission_rate_refusal_counted", "| noAdmissionReceipt => zero", "| noAdmissionReceipt => next zero"),
+    ("admission_rate_clock_issuance_hidden", "| sourceAdmissionClock issued => issued", "| sourceAdmissionClock issued => zero"),
+    ("admission_rate_issuance_tail_dropped", "add (sourceAdmissionIssuedNow event) (sourceAdmissionIssuedTotal rest)", "sourceAdmissionIssuedNow event"),
+    ("admission_rate_count_tail_dropped", "(sourceAdmissionStarts rest quota capacity (sourceAdmissionStep quota capacity event current))", "zero"),
+    ("admission_rate_count_uses_old_state", "(sourceAdmissionStarts rest quota capacity (sourceAdmissionStep quota capacity event current))", "(sourceAdmissionStarts rest quota capacity current)"),
+    ("admission_rate_first_start_omitted", "add (admissionReceiptCount (admissionAttemptReceipt quota event current))", "add zero"),
+    ("admission_rate_attempt_validation_changed", "(sourceAdmissionAttempt source swarm key index) (timedSourceAdmissions rest rate)", "(sourceAdmissionAttempt validated swarm key index) (timedSourceAdmissions rest rate)"),
+    ("admission_rate_attempt_wrong_key", "(sourceAdmissionAttempt source swarm key index) (timedSourceAdmissions rest rate)", "(sourceAdmissionAttempt source swarm zero index) (timedSourceAdmissions rest rate)"),
+    ("admission_rate_attempt_wrong_slot", "(sourceAdmissionAttempt source swarm key index) (timedSourceAdmissions rest rate)", "(sourceAdmissionAttempt source swarm key zero) (timedSourceAdmissions rest rate)"),
+    ("admission_rate_maintenance_dropped", "sourceAdmissionsThen\n        (sourceAdmissionMaintenance maintenance) (timedSourceAdmissions rest rate)", "timedSourceAdmissions rest rate"),
+    ("admission_rate_completion_dropped", "sourceAdmissionsThen\n        (sourceAdmissionFinish receipt reason) (timedSourceAdmissions rest rate)", "timedSourceAdmissions rest rate"),
+    ("admission_rate_tick_overissues", "| timedAdmissionTick rest => sourceAdmissionsThen (sourceAdmissionClock rate) (timedSourceAdmissions rest rate)", "| timedAdmissionTick rest => sourceAdmissionsThen (sourceAdmissionClock (next rate)) (timedSourceAdmissions rest rate)"),
+    ("admission_rate_tick_dropped", "| timedAdmissionTick rest => sourceAdmissionsThen (sourceAdmissionClock rate) (timedSourceAdmissions rest rate)", "| timedAdmissionTick rest => timedSourceAdmissions rest rate"),
+    ("admission_rate_claimed_tick_issues", "| timedAdmissionClaimedTick claimed rest => timedSourceAdmissions rest rate", "| timedAdmissionClaimedTick claimed rest => sourceAdmissionsThen (sourceAdmissionClock claimed) (timedSourceAdmissions rest rate)"),
+    ("admission_rate_claimed_tick_counts", "| timedAdmissionClaimedTick claimed rest => sourceAdmissionTrustedTicks rest", "| timedAdmissionClaimedTick claimed rest => next (sourceAdmissionTrustedTicks rest)"),
+    ("admission_rate_trusted_tick_not_counted", "| timedAdmissionTick rest => next (sourceAdmissionTrustedTicks rest)", "| timedAdmissionTick rest => sourceAdmissionTrustedTicks rest"),
+    ("admission_rate_attempt_advances_time", "| timedAdmissionAttempt source swarm key index rest => sourceAdmissionTrustedTicks rest", "| timedAdmissionAttempt source swarm key index rest => next (sourceAdmissionTrustedTicks rest)"),
+    ("admission_rate_maintenance_advances_time", "| timedAdmissionMaintenance maintenance rest => sourceAdmissionTrustedTicks rest", "| timedAdmissionMaintenance maintenance rest => next (sourceAdmissionTrustedTicks rest)"),
+    ("admission_rate_completion_advances_time", "| timedAdmissionFinish receipt reason rest => sourceAdmissionTrustedTicks rest", "| timedAdmissionFinish receipt reason rest => next (sourceAdmissionTrustedTicks rest)"),
+    ("admission_rate_attempt_issues_credit", "| sourceAdmissionAttempt source swarm key index => zero", "| sourceAdmissionAttempt source swarm key index => next zero"),
+    ("admission_rate_maintenance_issues_credit", "| sourceAdmissionMaintenance maintenance => zero", "| sourceAdmissionMaintenance maintenance => next zero"),
+    ("admission_rate_completion_issues_credit", "| sourceAdmissionFinish receipt reason => zero", "| sourceAdmissionFinish receipt reason => next zero"),
+    ("admission_rate_erasure_appends_refill", "| timedAdmissionsDone => sourceAdmissionsDone", "| timedAdmissionsDone => sourceAdmissionsThen (sourceAdmissionClock rate) sourceAdmissionsDone"),
+    ("admission_rate_phantom_start", "| sourceAdmissionsDone => zero\n    | sourceAdmissionsThen event rest =>\n        add (admissionReceiptCount", "| sourceAdmissionsDone => next zero\n    | sourceAdmissionsThen event rest =>\n        add (admissionReceiptCount"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

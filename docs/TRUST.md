@@ -66,10 +66,14 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   preserves source restrictions and global credits. Internal receipts bind a
   slot index and generation to the successful attempt's pre-state. The raw plan
   and commit helpers are not separate runtime APIs. State bounds require fixed
-  configuration and initial credit/debt bounds where stated. Coupled cumulative
-  start counts, live per-source pending attribution, established resources,
-  policy integration, clock correspondence, bounded retention and restart
-  persistence remain open.
+  configuration and initial credit/debt bounds where stated. Cumulative starts
+  counted from emitted receipts cannot exceed initial shared credit plus trusted
+  issuance. The closed timed trace language issues exactly rate credits per
+  trusted tick before clamping, giving a burst-plus-rate bound when initial
+  credit is within burst. A supplied cost weight bounds accepted-start work;
+  it does not account for rejected attempts or other resource classes.
+  Live per-source pending attribution, established resources, policy integration,
+  real clock correspondence, bounded retention and restart persistence remain open.
   Overflow refusal does not prove honest-source admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,

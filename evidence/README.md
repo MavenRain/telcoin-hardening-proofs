@@ -38,9 +38,18 @@ shared credits and pending ownership, indexed internal receipts, mixed trace
 bounds, four new atomic obligations and 32 new semantic mutation checks. It
 covers 344 equality and order proof declarations, 52 atomic obligations and
 140 rejected negative checks. Its `implementation_links` status remains
-`not_checked_this_run`. Coupled cumulative rate bounds, live per-source pending
-attribution, policy and established-resource integration, timer validation,
-restart persistence and deployment qualification remain open.
+`not_checked_this_run`. That receipt covers state bounds and indexed lifecycle
+behavior, before adding a coupled cumulative rate bound.
+`source-admission-rate-model-check.json` records receipt-counted accepted starts,
+shared-credit conservation, a discrete burst-plus-rate envelope and its per-start
+cost bound. It includes four new atomic obligations and 25 new semantic mutation
+checks, covering 366 equality and order proof declarations, 56 atomic obligations
+and 165 rejected negative checks. Its `implementation_links` status remains
+`not_checked_this_run`. Real clock correspondence, dominance of the supplied
+per-start cost weight over real accepted-start work, rejected-attempt cost, live
+per-source pending attribution, policy and established-resource integration,
+configuration changes, timer validation, restart persistence and deployment
+qualification remain open.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 
