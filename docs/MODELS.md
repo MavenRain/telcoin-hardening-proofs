@@ -169,8 +169,9 @@ unvalidated registration, protected debt surviving eviction and replacement
 attempts, independent expiry of joint restrictions, and replacement after both
 restrictions expire. Claimed expiry is a no-op for every table. Trusted events
 still assume the correct source, restriction generation and deadline; the model
-does not authenticate timers. Global credits, pending ownership, policy changes,
-quota changes, restart persistence and honest-source progress remain open.
+does not authenticate timers. Module 37 connects these source transitions to
+global credits and pending ownership. Policy integration, quota changes,
+restart persistence and honest-source progress remain open.
 
 ## Poll continuation and critical service
 
@@ -285,10 +286,67 @@ processing cost of policy data require additional models. Real callback
 interleavings, all resource allocations and clock-derived issuance still need
 implementation and environmental evidence.
 
+## Source admission with shared resources
+
+`37-source-admission.mech` combines the keyed source table, one shared handshake
+credit balance and a fixed pending lease pool. `planSourceStart` requires a
+validated resident with no ban and source quota room, a nonzero global balance,
+and a free selected slot. `sourceAdmissionStep` uses that plan to charge the
+source once, spend one credit and reserve the slot in one atomic transition.
+Both swarms use the same state. Unknown sources require a separate successful
+validated registration before attempting admission.
+
+Refusal preserves the entire state. General theorems cover unvalidated sources,
+source refusal, exhausted global credit and unavailable selected leases. The
+enabled head-slot theorem requires source permission and proves the exact
+charge, credit decrement and reservation together. Concrete witnesses check
+missing sources, bans, exhausted source quota, missing or held pending slots,
+and successful non-head source and slot selection. Source debt counts admitted
+starts since trusted debt expiry, not simultaneous pending connections.
+
+`admissionAttemptReceipt` reads the same pre-state as the atomic transition and
+returns the selected slot index and generation on success. These internal
+receipts are distinct from policy authorization receipts. Completion takes
+the receipt as input and applies the existing generation check at its slot.
+The model does not make a receipt single-use; the generation check is the only
+replay guard. For every terminal reason, a matching head receipt releases its lease; an arbitrarily old
+head receipt preserves a newer owner. A concrete non-head completion checks
+index locality, and a mixed trace covers admission, completion, expiry, refill,
+reuse by the other swarm and replay of the old callback. Completion leaves both
+source restrictions and global credits unchanged; an unowned callback is a
+no-op. Receipt provenance, atomic emission and the runtime slot mapping remain
+assumptions, not cryptographic or implementation proofs.
+
+Source maintenance permits registration, eviction, bans and expiry. It neither
+issues handshake credit nor changes pending ownership, and has no independent
+source-charge constructor. Only trusted clock events refill global credit,
+clamped to fixed capacity. Mixed witnesses exercise registration then admission,
+protected churn, independent expiry and refusal after completion without debt
+expiry. Claimed expiry leaves the source table unchanged for every key and
+state, and debt expiry cannot refill the global balance or release a pending
+lease.
+
+Over arbitrary finite traces, source-table width and pending capacity retain
+their initial values. Resident count and pending occupancy stay within those
+initial capacities. Credits remain bounded given an initial credit bound;
+selected debt remains bounded given `SourceQuotaBound` for all initial
+residents. The inherited clamp proves the debt bound; admission refusal and
+exact charging are separately checked. These are state bounds. A coupled count
+of accepted starts and its connection to the discrete burst-plus-rate envelope
+remain open, as do per-source live pending attribution, established resource
+accounting and composition with authoritative policy receipts.
+
+Eligibility, commit and receipt emission must linearize against one pre-state;
+the raw plan and commit helpers are not separate runtime entry points. Canonical
+unique keys, internal receipt provenance, stable slot identities, nonwrapping
+generations, fixed capacities and quotas, and trusted issuance/expiry require
+refinement. The model does not validate timer generations or deadlines, establish
+restart persistence, or prove honest admission and reconnect fairness.
+
 ## Negative controls
 
-The checker rejects 108 invalid variants: three direct checks of equality,
-ordering and termination, plus 105 semantic mutations. Mutations exercise such
+The checker rejects 140 invalid variants: three direct checks of equality,
+ordering and termination, plus 137 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -322,6 +380,16 @@ validation, shift quotas, allocate during restriction updates, stop searching at
 a vacancy, drop an update or tail search, update duplicate-key tails, and omit
 churn, enforcement or trace steps. Every control must fail with a semantic
 mismatch, including controls aimed at enabled behavior.
+
+The 32 source-admission controls bypass validation, source quota or refusal,
+start without global credit or a free slot, fabricate missing, past-end or
+held-slot tokens, misdirect slot lookup, spend on refusal, omit or misdirect
+source charges and pending reservations, omit the global charge, alter receipt
+indices or generations, emit a receipt on refusal, corrupt completion, mint
+credit or erase pending state during maintenance, uncap clock refill, erase
+source state on refill, drop bans or churn, ban the wrong key, trust claimed
+expiry, or drop a composed trace event. All must be rejected with semantic
+mismatches.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

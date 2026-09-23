@@ -18,9 +18,11 @@
     "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
     "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs.",
     "canonical_source_keys": "Each Count key represents one canonical validated source or prefix under a fixed normalization policy. PeerIds cannot choose or reset this binding. The initial runtime table has unique canonical keys.",
-    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Only registration and eviction touch the table during a module-27 churn run. Module 28 models selected-cell charging and restriction events; module 29 composes them with first-match canonical-key lookup and table churn. Runtime lookup, atomic enforcement and global-resource composition still require refinement.",
+    "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Module 27 models churn, module 28 restriction events, and module 29 their keyed composition. Module 37 couples source charging to shared credits and pending ownership. Runtime lookup, atomic enforcement, complete classification and policy/resource integration still require refinement.",
     "fixed_source_quota": "The per-source quota is fixed during each restriction or composed source-system trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota; composed traces require a bound for every initial resident. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
-    "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event."
+    "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event.",
+    "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. The model's raw plan and commit helpers are not independently callable runtime admission APIs.",
+    "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run."
   },
   "claims": [
     {
@@ -1003,7 +1005,7 @@
       ],
       "open_implementation_obligations": [
         "Refine every eviction and re-registration path, and prove admission actually enforces preserved security state.",
-        "Refine the composed keyed source-system transitions and integrate global budgets, policy changes and restart persistence.",
+        "Refine the composed source-admission transitions and integrate policy changes, established resources and restart persistence.",
         "Qualify retention, eviction selection, hub population and honest reconnect fairness. The model deliberately allows a fully protected table to refuse new sources."
       ]
     },
@@ -1269,7 +1271,7 @@
       ],
       "open_implementation_obligations": [
         "Construct the initial per-resident quota witness and refine every serialized runtime table and restriction event, including machine arithmetic.",
-        "Compose with the global rate envelope and pending ownership. This is a stored-debt bound, not cumulative work across expiry or a wall-clock rate.",
+        "Relate the source-admission state bounds to the global cumulative rate envelope. Stored debt remains distinct from cumulative work across expiry or a wall-clock rate.",
         "Verify trusted expiry authority, restriction generations, deadlines, clock correspondence and restart behavior."
       ]
     },
@@ -1303,6 +1305,175 @@
         "Refine the mixed lifecycle examples to all runtime event paths; the concrete traces are not a general liveness or temporal-retention theorem.",
         "Verify expiry authority, current restriction generations, ban policy, restart persistence and retention scheduling.",
         "Complete Hub, Rotation and Later semantics and qualify honest reconnect behavior under saturation."
+      ]
+    },
+    {
+      "id": "C13",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "One atomic source-admission attempt is refused, leaving the whole state unchanged, whenever the source-table charge flag is off (including every unvalidated source), no shared global credit remains or the selected pending slot is unavailable. Closed witnesses check a missing source, a banned source, exhausted source quota and a missing, past-end or held pending slot. An eligible head slot charges the keyed source, spends one credit and reserves that slot; both swarms use the same state.",
+      "theorems": [
+        "unvalidatedAdmissionIsNoOp",
+        "refusedSourceAdmissionIsNoOp",
+        "noCreditAdmissionIsNoOp",
+        "noLeaseAdmissionIsNoOp",
+        "admissionSwarmsShareState",
+        "eligibleSourceAdmissionChargesAndReserves",
+        "admissionChargesAllThree",
+        "missingSourceAdmissionRefused",
+        "missingPendingAdmissionRefused",
+        "distantPendingAdmissionRefused",
+        "heldPendingAdmissionRefused",
+        "bannedSourceAdmissionRefused",
+        "exhaustedSourceAdmissionRefused",
+        "admissionBeyondHeadChargesSelectedSlot"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Linearize source eligibility, global credit consumption, pending reservation and receipt creation against the same pre-state; the raw plan and commit helpers are not separate runtime APIs.",
+        "Refine canonical source extraction, unique runtime keys, slot selection and both swarms' access to one balance.",
+        "Extend successful-admission and exact-charge reasoning to an arbitrary selected slot and keyed resident; the enabled universal theorem is for a head pending slot, with concrete non-head witnesses.",
+        "Establish simultaneous per-source pending attribution, established-peer ceilings and complete retained-resource costs. Source debt here counts starts until trusted expiry."
+      ]
+    },
+    {
+      "id": "C14",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Arbitrary finite source-admission traces preserve initial source-table width and pending-pool capacity. Final resident count and pending occupancy stay within those initial capacities; credits stay within a fixed capacity given an initial credit bound, and selected source debt stays within a fixed quota given a bound for every initial resident.",
+      "theorems": [
+        "sourceAdmissionTraceWidth",
+        "sourceAdmissionTracePoolCapacity",
+        "sourceAdmissionTraceCreditBound",
+        "sourceAdmissionTraceDebtBound",
+        "sourceAdmissionTracePendingBound",
+        "sourceAdmissionTraceTableBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock",
+        "trusted_source_expiry"
+      ],
+      "open_implementation_obligations": [
+        "Refine every runtime admission, cleanup, source-maintenance and clock event to the composed transition, including errors, races and cancellations.",
+        "Prove a coupled accepted-start count bound and its relation to the existing discrete burst-plus-rate envelope; the new trace theorems bound state, not cumulative starts or wall-clock work.",
+        "Supply validated clock issuance, cost dominance, configuration-change, restart and persistence refinements."
+      ]
+    },
+    {
+      "id": "C15",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "A successful eligible head-slot attempt emits its slot index and generation; a non-head witness checks both fields. Completion takes an internal receipt as input (the model does not make a receipt single-use; a replayed receipt meets only the slot generation check), releases a matching head generation for every terminal reason, and preserves source state and global credits. Unowned completion is a no-op. Arbitrarily old head generations and a concrete completion/reuse/replay trace preserve the newer owner.",
+      "theorems": [
+        "eligibleSourceAdmissionOwnsReceipt",
+        "admissionBeyondHeadOwnsSelectedSlot",
+        "admissionReceiptCompletesSelectedSlot",
+        "refusedAdmissionHasNoReceipt",
+        "unownedAdmissionCompletionIsNoOp",
+        "sourceAdmissionCompletionReleases",
+        "sourceAdmissionStaleCompletionPreserves",
+        "completionPreservesSourceDebt",
+        "completionPreservesGlobalCredits",
+        "admissionTraceReplayAfterReuse",
+        "admissionTraceCompletionDoesNotResetQuota"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "nonwrapping_generations",
+        "trusted_clock",
+        "trusted_source_expiry"
+      ],
+      "open_implementation_obligations": [
+        "Bind the emitted receipt to the exact successful attempt's pre-state, selected slot and callback lifecycle; external inputs cannot construct or alter receipts.",
+        "Prove the runtime ConnectionId/index mapping and safe generation behavior across machine wrap, restarts and pool reconfiguration.",
+        "Generalize the composed stale-completion and enabled-release theorems from the head slot to arbitrary indices; non-head receipt use is currently exercised by a concrete witness."
+      ]
+    },
+    {
+      "id": "C16",
+      "parent": "H19",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          123,
+          123
+        ]
+      },
+      "property": "Source maintenance preserves global credits and pending ownership, and claimed expiry leaves the source table unchanged for every key and state. Concrete composed traces exercise registration followed by admission, protected-source churn, claimed-expiry refusal and independent debt/ban expiry, and a ban on a second resident restricts only that key. Completion does not reset source quota, debt expiry does not refill global credits, and a clock-refill witness caps credit without changing source state or ownership.",
+      "theorems": [
+        "admissionMaintenancePreservesCredits",
+        "admissionMaintenancePreservesPending",
+        "admissionClaimedExpiryPreservesSources",
+        "admissionTraceRegistersThenStarts",
+        "admissionTraceChurnKeepsProtectedSource",
+        "admissionTraceClaimedExpiryPreservesDebt",
+        "admissionTraceBanSurvivesDebtExpiry",
+        "admissionTraceBanExpiryKeepsDebt",
+        "admissionTraceBanTargetsKey",
+        "completionPreservesSourceDebt",
+        "admissionTraceCompletionDoesNotResetQuota",
+        "admissionTraceExpiryDoesNotRefillCredits",
+        "admissionClockClampsWithoutChangingOwnership"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "nonwrapping_generations",
+        "trusted_clock",
+        "trusted_source_expiry"
+      ],
+      "open_implementation_obligations": [
+        "Validate maintenance authority, source and restriction generation, deadlines, retention scheduling and restart persistence; trusted expiry is supplied rather than verified.",
+        "Compose this source-admission model with authoritative policy receipts, established connections and the cumulative rate envelope.",
+        "Complete Hub, Rotation and Later semantics and qualify honest reconnect fairness under source and global saturation."
       ]
     }
   ]

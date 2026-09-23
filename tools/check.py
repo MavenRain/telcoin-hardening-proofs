@@ -193,6 +193,42 @@ MUTATIONS = [
 ]
 
 
+MUTATIONS += [
+    ("admission_bypasses_source_validation", "sourceStartDecision (sourceTableChargeAllowed source quota key (admissionSources current))\n      (admissionCredits current)", "sourceStartDecision (sourceTableChargeAllowed validated quota key (admissionSources current))\n      (admissionCredits current)"),
+    ("admission_shifts_source_quota", "sourceStartDecision (sourceTableChargeAllowed source quota key (admissionSources current))\n      (admissionCredits current)", "sourceStartDecision (sourceTableChargeAllowed source (next quota) key (admissionSources current))\n      (admissionCredits current)"),
+    ("admission_ignores_source_refusal", "| off => refusedSourceStart\n    | on => selectSourceStart credits token", "| off => selectSourceStart credits token\n    | on => selectSourceStart credits token"),
+    ("admission_starts_without_credit", "| zero => refusedSourceStart\n    | next remaining =>", "| zero => grantedSourceStart zero\n    | next remaining =>"),
+    ("admission_starts_without_lease", "| noOwnedLease => refusedSourceStart", "| noOwnedLease => grantedSourceStart zero"),
+    ("admission_missing_slot_fabricates_token", "| emptyLeasePool => noOwnedLease\n      | leaseCell lease rest => reservationToken (tryReserve lease)", "| emptyLeasePool => ownedGeneration zero\n      | leaseCell lease rest => reservationToken (tryReserve lease)"),
+    ("admission_held_slot_fabricates_token", "| leaseCell lease rest => reservationToken (tryReserve lease)", "| leaseCell lease rest => ownedGeneration zero"),
+    ("admission_slot_lookup_ignores_tail", "| leaseCell lease rest => availableLeaseToken previous rest", "| leaseCell lease rest => availableLeaseToken previous (leaseCell lease rest)"),
+    ("admission_refusal_spends_credit", "| refusedSourceStart => current\n    | grantedSourceStart generation => sourceAdmission", "| refusedSourceStart => sourceAdmission (admissionSources current) (predecessor (admissionCredits current)) (admissionPool current)\n    | grantedSourceStart generation => sourceAdmission"),
+    ("admission_drops_source_charge", "(restrictSource quota key (sourceChargeEvent validated) (admissionSources current))\n        (predecessor", "(admissionSources current)\n        (predecessor"),
+    ("admission_charges_wrong_source", "(restrictSource quota key (sourceChargeEvent validated) (admissionSources current))\n        (predecessor", "(restrictSource quota zero (sourceChargeEvent validated) (admissionSources current))\n        (predecessor"),
+    ("admission_drops_global_charge", "(predecessor (admissionCredits current))\n        (poolStep (reserveAt index)", "(admissionCredits current)\n        (poolStep (reserveAt index)"),
+    ("admission_drops_pending_reservation", "(poolStep (reserveAt index) (admissionPool current))\n\ndef finishSourceAdmission", "(admissionPool current)\n\ndef finishSourceAdmission"),
+    ("admission_reserves_wrong_slot", "(poolStep (reserveAt index) (admissionPool current))\n\ndef finishSourceAdmission", "(poolStep (reserveAt zero) (admissionPool current))\n\ndef finishSourceAdmission"),
+    ("admission_receipt_wrong_index", "| grantedSourceStart generation => pendingAdmissionReceipt index generation", "| grantedSourceStart generation => pendingAdmissionReceipt zero generation"),
+    ("admission_receipt_wrong_generation", "| grantedSourceStart generation => pendingAdmissionReceipt index generation", "| grantedSourceStart generation => pendingAdmissionReceipt index (next generation)"),
+    ("admission_unowned_completion_spends_credit", "| noAdmissionReceipt => current\n    | pendingAdmissionReceipt index generation => sourceAdmission", "| noAdmissionReceipt => sourceAdmission (admissionSources current) (predecessor (admissionCredits current)) (admissionPool current)\n    | pendingAdmissionReceipt index generation => sourceAdmission"),
+    ("admission_completion_refills_credit", "| pendingAdmissionReceipt index generation => sourceAdmission\n        (admissionSources current) (admissionCredits current)", "| pendingAdmissionReceipt index generation => sourceAdmission\n        (admissionSources current) (next (admissionCredits current))"),
+    ("admission_completion_erases_sources", "| pendingAdmissionReceipt index generation => sourceAdmission\n        (admissionSources current) (admissionCredits current)", "| pendingAdmissionReceipt index generation => sourceAdmission\n        noSourceSlots (admissionCredits current)"),
+    ("admission_completion_wrong_slot", "(poolStep (completeAt index (ownedGeneration generation) reason) (admissionPool current))", "(poolStep (completeAt zero (ownedGeneration generation) reason) (admissionPool current))"),
+    ("admission_completion_wrong_generation", "(poolStep (completeAt index (ownedGeneration generation) reason) (admissionPool current))", "(poolStep (completeAt index (ownedGeneration (next generation)) reason) (admissionPool current))"),
+    ("admission_maintenance_mints_credit", "(admissionCredits current) (admissionPool current)\n    | sourceAdmissionClock issued", "(next (admissionCredits current)) (admissionPool current)\n    | sourceAdmissionClock issued"),
+    ("admission_maintenance_erases_pending", "(admissionCredits current) (admissionPool current)\n    | sourceAdmissionClock issued", "(admissionCredits current) emptyLeasePool\n    | sourceAdmissionClock issued"),
+    ("admission_clock_ignores_capacity", "(creditsAfter capacity (admissionCredits current) (trustedClockCredit issued)) (admissionPool current)", "(add (admissionCredits current) issued) (admissionPool current)"),
+    ("admission_clock_erases_sources", "| sourceAdmissionClock issued => sourceAdmission (admissionSources current)", "| sourceAdmissionClock issued => sourceAdmission noSourceSlots"),
+    ("admission_drops_source_ban", "| maintainSourceBan key => sourceEnforceEvent key sourceBanEvent", "| maintainSourceBan key => sourceEnforceEvent key (sourceExpiryEvent claimedSourceExpiry)"),
+    ("admission_trusts_claimed_expiry", "| maintainSourceExpiry key expiry => sourceEnforceEvent key (sourceExpiryEvent expiry)", "| maintainSourceExpiry key expiry => sourceEnforceEvent key (sourceExpiryEvent trustedDebtExpiry)"),
+    ("admission_drops_source_churn", "| maintainSourceChurn churn => sourceChurnEvent churn", "| maintainSourceChurn churn => sourceEnforceEvent zero (sourceExpiryEvent claimedSourceExpiry)"),
+    ("admission_trace_drops_event", "| sourceAdmissionsThen event rest => runSourceAdmissions rest quota capacity (sourceAdmissionStep quota capacity event current)", "| sourceAdmissionsThen event rest => runSourceAdmissions rest quota capacity current"),
+    ("admission_refusal_emits_receipt", "| refusedSourceStart => noAdmissionReceipt", "| refusedSourceStart => pendingAdmissionReceipt index zero"),
+    ("admission_distant_slot_fabricates_token", "| emptyLeasePool => noOwnedLease\n      | leaseCell lease rest => availableLeaseToken previous rest", "| emptyLeasePool => ownedGeneration zero\n      | leaseCell lease rest => availableLeaseToken previous rest"),
+    ("admission_ban_wrong_key", "| maintainSourceBan key => sourceEnforceEvent key sourceBanEvent", "| maintainSourceBan key => sourceEnforceEvent zero sourceBanEvent"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

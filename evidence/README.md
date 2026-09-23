@@ -31,9 +31,16 @@ source receipts do not establish keyed-table/global-resource composition.
 churn, charging, bans and expiry, with four new atomic obligations and 18 new
 semantic mutation checks. It covers 293 equality and order proof declarations,
 48 atomic obligations and 108 rejected negative checks. Its
-`implementation_links` status is also `not_checked_this_run`. Global resource
-composition, timer validation, restart persistence and deployment qualification
-remain open.
+`implementation_links` status is also `not_checked_this_run`. That receipt
+covers source-system composition alone.
+`source-admission-model-check.json` records atomic admission across source quota,
+shared credits and pending ownership, indexed internal receipts, mixed trace
+bounds, four new atomic obligations and 32 new semantic mutation checks. It
+covers 344 equality and order proof declarations, 52 atomic obligations and
+140 rejected negative checks. Its `implementation_links` status remains
+`not_checked_this_run`. Coupled cumulative rate bounds, live per-source pending
+attribution, policy and established-resource integration, timer validation,
+restart persistence and deployment qualification remain open.
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 

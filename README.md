@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[48 atomic model obligations](atomic-claims.json) documenting theorem links,
+[52 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 108 deliberately invalid
+source hashes and coverage freshness, and requires 140 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-293 explicit equality and order proof declarations across 21 modules. This count
+344 explicit equality and order proof declarations across 22 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -87,6 +87,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `34-policy-traces.mech` | Generation bounds over finite traces, callback replay safety, recovery reset and enabled valid-record updates. |
 | `35-critical-service.mech` | A queued critical request completes after enough service rounds despite subsequent bulk or critical arrivals. |
 | `36-governed-resources.mech` | Shared handshake credits and pending conservation survive arbitrary finite interleavings with policy changes. |
+| `37-source-admission.mech` | Atomic source/global/pending admission, indexed completion receipts, refusal without side effects, and bounded mixed admission and maintenance traces. |
 | `40-ingress-and-operations.mech` | Parsed submit-only policy, overload demotion rules, proxy attribution, firewall inclusion, migration gates and a finite metric domain. |
 | `50-qualification.mech` | Missing evidence blocks a conjunction of qualification conditions. |
 

@@ -61,8 +61,15 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   and a debt bound for every resident supplied by the initial quota witness.
   Lookup and update select the first matching key; runtime canonical extraction,
   unique bindings and atomic enforcement before work still require refinement.
-  Composition with global budgets, clock correspondence, bounded retention and
-  restart persistence remain open.
+  Source-admission traces couple source charging, shared credits and pending
+  reservation in one atomic step. Refusal leaves the state unchanged; completion
+  preserves source restrictions and global credits. Internal receipts bind a
+  slot index and generation to the successful attempt's pre-state. The raw plan
+  and commit helpers are not separate runtime APIs. State bounds require fixed
+  configuration and initial credit/debt bounds where stated. Coupled cumulative
+  start counts, live per-source pending attribution, established resources,
+  policy integration, clock correspondence, bounded retention and restart
+  persistence remain open.
   Overflow refusal does not prove honest-source admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,

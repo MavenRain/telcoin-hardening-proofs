@@ -10,16 +10,23 @@ traces, critical service after enough completed rounds, and bounded source-table
 churn that preserves existing rate debt and bans under registration and eviction
 without increasing slot capacity. Source-system traces now compose keyed lookup,
 churn, bounded charging, simultaneous debt and bans, and independent trusted
-expiry while preserving slot capacity and each resident's debt bound. Their
-contracts and boundaries are in [MODELS.md](MODELS.md).
+expiry while preserving slot capacity and each resident's debt bound. Atomic
+source admission now couples validated source quota, shared handshake credit and
+selected pending ownership, with indexed completion receipts and bounded mixed
+traces. Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 48 atomic model obligations
+   explicit dispositions. The current 34 groups and 52 atomic model obligations
    are not the final atomic list.
-2. Compose the keyed source system with global resources and pending ownership.
-   Refine canonical source extraction, key uniqueness and atomic quota enforcement.
+2. Extend source admission with a coupled accepted-start count bound, the global
+   rate envelope, authoritative policy receipts and established resources.
+   Generalize enabled admission and stale completion to arbitrary pending indices;
+   the composed universal lifecycle theorems currently select the head slot,
+   with concrete non-head witnesses. Model live per-source pending attribution.
+   Refine canonical source extraction, key uniqueness, indexed internal receipts
+   and atomic source/global/pending enforcement against one pre-state.
    Verify expiry authority, current restriction generations, clock correspondence,
    bounded retention time and restart persistence. Extend the
    transition systems to resource-cap changes, authoritative policy ordering,
