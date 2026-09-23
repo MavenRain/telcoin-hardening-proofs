@@ -72,6 +72,12 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   trusted tick before clamping, giving a burst-plus-rate bound when initial
   credit is within burst. A supplied cost weight bounds accepted-start work;
   it does not account for rejected attempts or other resource classes.
+  Arbitrary pending prefixes and suffixes now have enabled admission, exact
+  receipt, counting, completion and refusal proofs. They preserve unselected
+  leases and reject mismatched generations, including stale receipts after reuse.
+  Fixed runtime slot identities, internal receipt provenance and atomic callback
+  behavior still require refinement; the prefix representation is a model of
+  indexing, not a proof about Rust storage or ConnectionId mapping.
   Live per-source pending attribution, established resources, policy integration,
   real clock correspondence, bounded retention and restart persistence remain open.
   Overflow refusal does not prove honest-source admission or reconnect fairness.

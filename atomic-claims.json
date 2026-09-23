@@ -1317,7 +1317,7 @@
           109
         ]
       },
-      "property": "One atomic source-admission attempt is refused, leaving the whole state unchanged, whenever the source-table charge flag is off (including every unvalidated source), no shared global credit remains or the selected pending slot is unavailable. Closed witnesses check a missing source, a banned source, exhausted source quota and a missing, past-end or held pending slot. An eligible head slot charges the keyed source, spends one credit and reserves that slot; both swarms use the same state.",
+      "property": "One atomic source-admission attempt is refused, leaving the whole state unchanged, whenever the source-table charge flag is off (including every unvalidated source), no shared global credit remains or the selected pending slot is unavailable. Closed witnesses check a missing source, a banned source, exhausted source quota and a missing, past-end or held pending slot. An eligible slot after any finite pending prefix charges the keyed source, spends one credit and reserves that slot while preserving every other lease; both swarms use the same state.",
       "theorems": [
         "unvalidatedAdmissionIsNoOp",
         "refusedSourceAdmissionIsNoOp",
@@ -1332,7 +1332,10 @@
         "heldPendingAdmissionRefused",
         "bannedSourceAdmissionRefused",
         "exhaustedSourceAdmissionRefused",
-        "admissionBeyondHeadChargesSelectedSlot"
+        "admissionBeyondHeadChargesSelectedSlot",
+        "indexedSourceAdmissionChargesAndReserves",
+        "indexedSourceAdmissionHeldRefused",
+        "indexedSourceAdmissionMissingRefused"
       ],
       "assumptions": [
         "atomic_transitions",
@@ -1346,7 +1349,7 @@
       "open_implementation_obligations": [
         "Linearize source eligibility, global credit consumption, pending reservation and receipt creation against the same pre-state; the raw plan and commit helpers are not separate runtime APIs.",
         "Refine canonical source extraction, unique runtime keys, slot selection and both swarms' access to one balance.",
-        "Extend successful-admission and exact-charge reasoning to an arbitrary selected slot and keyed resident; the enabled universal theorem is for a head pending slot, with concrete non-head witnesses.",
+        "Refine the arbitrary-slot admission result to runtime slot selection and prove exact numerical source-debt charging for the selected keyed resident.",
         "Establish simultaneous per-source pending attribution, established-peer ceilings and complete retained-resource costs. Source debt here counts starts until trusted expiry."
       ]
     },
@@ -1396,7 +1399,7 @@
           109
         ]
       },
-      "property": "A successful eligible head-slot attempt emits its slot index and generation; a non-head witness checks both fields. Completion takes an internal receipt as input (the model does not make a receipt single-use; a replayed receipt meets only the slot generation check), releases a matching head generation for every terminal reason, and preserves source state and global credits. Unowned completion is a no-op. Arbitrarily old head generations and a concrete completion/reuse/replay trace preserve the newer owner.",
+      "property": "A successful eligible attempt at any finite pending index emits its slot index and generation. Completion takes an internal receipt as input (the model does not make a receipt single-use; a replayed receipt meets only the slot generation check), releases a matching generation at the selected index for every terminal reason, and preserves source state and global credits. Unowned completion is a no-op. Arbitrarily old generations at any selected index and a concrete completion/reuse/replay trace preserve the newer owner.",
       "theorems": [
         "eligibleSourceAdmissionOwnsReceipt",
         "admissionBeyondHeadOwnsSelectedSlot",
@@ -1408,7 +1411,11 @@
         "completionPreservesSourceDebt",
         "completionPreservesGlobalCredits",
         "admissionTraceReplayAfterReuse",
-        "admissionTraceCompletionDoesNotResetQuota"
+        "admissionTraceCompletionDoesNotResetQuota",
+        "indexedSourceAdmissionOwnsReceipt",
+        "indexedSourceAdmissionCompletionReleases",
+        "indexedSourceAdmissionStaleCompletionPreserves",
+        "indexedSourceAdmissionDuplicateCompletion"
       ],
       "assumptions": [
         "atomic_transitions",
@@ -1427,7 +1434,7 @@
       "open_implementation_obligations": [
         "Bind the emitted receipt to the exact successful attempt's pre-state, selected slot and callback lifecycle; external inputs cannot construct or alter receipts.",
         "Prove the runtime ConnectionId/index mapping and safe generation behavior across machine wrap, restarts and pool reconfiguration.",
-        "Generalize the composed stale-completion and enabled-release theorems from the head slot to arbitrary indices; non-head receipt use is currently exercised by a concrete witness."
+        "Refine the arbitrary-index lifecycle theorems to actual callback storage; slot relocation, pool resizing and restart require further modeling."
       ]
     },
     {
@@ -1486,7 +1493,7 @@
           109
         ]
       },
-      "property": "By definition, sourceAdmissionStarts counts the internal receipt that each attempt emits against the same pre-state used by sourceAdmissionStep, and continues on that step's full updated source, credit and pending state; sourceAdmissionCreditConservation bounds this count by shared credit over arbitrary finite traces. Eligible head-slot admission contributes exactly one; concrete witnesses exercise non-head source and slot selection, both swarms, refusal, completion, reuse and replay.",
+      "property": "By definition, sourceAdmissionStarts counts the internal receipt that each attempt emits against the same pre-state used by sourceAdmissionStep, and continues on that step's full updated source, credit and pending state; sourceAdmissionCreditConservation bounds this count by shared credit over arbitrary finite traces. Eligible admission at any finite pending index contributes exactly one; concrete witnesses exercise non-head source and slot selection, both swarms, refusal, completion, reuse and replay.",
       "theorems": [
         "eligibleAdmissionCountsOne",
         "sourceAdmissionCreditConservation",
@@ -1497,7 +1504,8 @@
         "admissionRateBanCountsZero",
         "admissionRateFullSlotCountsOnce",
         "admissionRateCompletionKeepsQuota",
-        "admissionRateExpiryCannotMintCredit"
+        "admissionRateExpiryCannotMintCredit",
+        "indexedAdmissionCountsOne"
       ],
       "assumptions": [
         "atomic_transitions",
@@ -1508,7 +1516,7 @@
       ],
       "open_implementation_obligations": [
         "Refine each accepted handshake start to exactly one emitted internal receipt, with decision, charge and receipt emission linearized against one pre-state.",
-        "Generalize the enabled single-start theorem beyond the head pending slot; cumulative trace bounds already quantify over arbitrary indices.",
+        "Refine runtime counting at arbitrary pending indices to indexedAdmissionCountsOne; cumulative trace bounds already quantify over arbitrary indices.",
         "Prove runtime receipt provenance, stable slot mapping, safe generation reuse and complete treatment of races, errors and cancellations."
       ]
     },
@@ -1605,6 +1613,140 @@
         "Establish a worst-case cost upper bound for each real accepted handshake in a common unit, including all relevant crypto and allocation paths.",
         "Separately bound prevalidation and rejected-attempt work, pending and established state, queues, networking and storage costs.",
         "Refine trusted elapsed time and qualify the resulting whole-process budget on representative deployments."
+      ]
+    },
+    {
+      "id": "C21",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "For every finite pending prefix and suffix, a free selected slot with positive shared credit and validated source permission admits in either swarm. The atomic transition charges the selected source, spends exactly one credit, reserves exactly that slot, and preserves all other leases. Its receipt contains the selected index and generation, and the one-attempt trace counts exactly one accepted start.",
+      "theorems": [
+        "leasePrefixKeepsHead",
+        "availableLeaseTokenAfterPrefix",
+        "updateLeaseAfterPrefix",
+        "indexedSourceStartPlan",
+        "indexedSourceAdmissionChargesAndReserves",
+        "indexedSourceAdmissionOwnsReceipt",
+        "indexedAdmissionCountsOne"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts"
+      ],
+      "open_implementation_obligations": [
+        "Refine arbitrary runtime slot indices to the prefix length while preserving every prefix and suffix lease and the fixed pool identity.",
+        "Linearize source permission, shared-credit consumption, selected-slot reservation and receipt emission against the same pre-state for both swarms.",
+        "Prove the runtime accepted-start counter follows successful receipt emission without omissions or duplicates."
+      ]
+    },
+    {
+      "id": "C22",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "At any pending slot represented by an arbitrary prefix, completion applies the token-generation check only to the selected lease. A matching held generation is released and advances exactly once for every terminal reason; the full prefix, suffix, source state and shared credits are preserved.",
+      "theorems": [
+        "updateLeaseAfterPrefix",
+        "indexedSourceCompletionActsOnSelectedLease",
+        "indexedSourceAdmissionCompletionReleases"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "nonwrapping_generations",
+        "stable_resource_configuration",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Carry the selected slot index and generation unchanged through every terminal callback, including establishment refusal, errors, timeout and cancellation.",
+        "Establish atomic completion and fixed slot identity in the runtime; the abstract index is not an authenticated network-supplied field.",
+        "Relate mathematical generation increments to checked machine arithmetic without collisions or wrap."
+      ]
+    },
+    {
+      "id": "C23",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "At any selected pending index, a receipt whose generation differs from the held generation preserves the entire admission state. This includes arbitrarily old receipts after reuse. Completion on a free slot is a no-op for any token, and two matching completions with any terminal reasons release once and advance the generation once.",
+      "theorems": [
+        "indexedSourceAdmissionMismatchedCompletionPreserves",
+        "indexedSourceAdmissionStaleCompletionPreserves",
+        "indexedSourceAdmissionFreeCompletionIsNoOp",
+        "indexedSourceAdmissionDuplicateCompletion"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "nonwrapping_generations",
+        "stable_resource_configuration",
+        "complete_event_refinement"
+      ],
+      "open_implementation_obligations": [
+        "Prove internal receipt provenance, stable index binding and generation comparison across callback reordering and pool reuse.",
+        "Show duplicate terminal callbacks and stale callbacks cannot release a newer owner or advance an already free slot.",
+        "Extend the lifecycle relation to restarts, slot relocation or configuration changes before claiming those cases."
+      ]
+    },
+    {
+      "id": "C24",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Selecting any held pending slot, or any index at or beyond a finite pool's length, refuses admission without changing the state and emits no admission receipt. The refusal holds for every source, swarm, key, source state and credit balance; an empty suffix leaves the arbitrary pool prefix intact.",
+      "theorems": [
+        "leasePrefixWithoutSuffix",
+        "emptyPoolHasNoLeaseToken",
+        "indexedPoolMissingToken",
+        "indexedSourceAdmissionHeldRefused",
+        "indexedSourceAdmissionMissingRefused",
+        "unavailableSourceAdmissionHasNoReceipt",
+        "indexedSourceAdmissionHeldHasNoReceipt",
+        "indexedSourceAdmissionMissingHasNoReceipt"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts"
+      ],
+      "open_implementation_obligations": [
+        "Refine finite runtime pool bounds and checked index arithmetic so missing and held slots cannot fabricate ownership.",
+        "Ensure unavailable-slot refusal is atomic and has no source-charge, credit-spend, reservation or receipt-emission side effects.",
+        "Separate these refusal guarantees from honest admission, reconnect fairness and live per-source pending attribution."
       ]
     }
   ]

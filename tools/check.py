@@ -258,6 +258,26 @@ MUTATIONS += [
 ]
 
 
+# Arbitrary pending prefixes and failures beyond the second slot.
+MUTATIONS += [
+    ("indexed_prefix_loses_suffix", "| emptyLeasePool => suffix", "| emptyLeasePool => emptyLeasePool"),
+    ("indexed_prefix_drops_cell", "| leaseCell lease rest => leaseCell lease (appendLeasePool rest suffix)", "| leaseCell lease rest => appendLeasePool rest suffix"),
+    ("indexed_prefix_changes_head", "| leaseCell lease rest => leaseCell lease (appendLeasePool rest suffix)", "| leaseCell lease rest => leaseCell (freeLease zero) (appendLeasePool rest suffix)"),
+    ("indexed_prefix_duplicates_cell", "| leaseCell lease rest => leaseCell lease (appendLeasePool rest suffix)", "| leaseCell lease rest => leaseCell lease (leaseCell lease (appendLeasePool rest suffix))"),
+    ("indexed_position_aliases_head", "fun (prefix : LeasePool) => add (leaseCapacity prefix) zero", "fun (prefix : LeasePool) => zero"),
+    ("indexed_position_skips_selected", "fun (prefix : LeasePool) => add (leaseCapacity prefix) zero", "fun (prefix : LeasePool) => next (add (leaseCapacity prefix) zero)"),
+    ("indexed_deep_lookup_refuses", "| leaseCell lease rest => availableLeaseToken previous rest", "| leaseCell lease rest => case previous as position in Count return CompletionToken with | zero => availableLeaseToken previous rest | next earlier => noOwnedLease"),
+    ("indexed_deep_lookup_aliases", "| leaseCell lease rest => availableLeaseToken previous rest", "| leaseCell lease rest => case rest as tail in LeasePool return CompletionToken with | emptyLeasePool => noOwnedLease | leaseCell selected remaining => reservationToken (tryReserve selected)"),
+    ("indexed_deep_update_ignored", "| leaseCell lease rest => leaseCell lease (updateLease previous change rest)", "| leaseCell lease rest => case previous as position in Count return LeasePool with | zero => leaseCell lease (updateLease previous change rest) | next earlier => leaseCell lease rest"),
+    ("indexed_deep_update_aliases", "| leaseCell lease rest => leaseCell lease (updateLease previous change rest)", "| leaseCell lease rest => leaseCell lease (case rest as tail in LeasePool return LeasePool with | emptyLeasePool => emptyLeasePool | leaseCell selected remaining => leaseCell (change selected) remaining)"),
+    ("indexed_deep_receipt_aliases", "| grantedSourceStart generation => pendingAdmissionReceipt index generation", "| grantedSourceStart generation => pendingAdmissionReceipt (case index as position in Count return Count with | zero => zero | next previous => next zero) generation"),
+    ("indexed_deep_completion_aliases", "(poolStep (completeAt index (ownedGeneration generation) reason) (admissionPool current))", "(poolStep (completeAt (case index as position in Count return Count with | zero => zero | next previous => next zero) (ownedGeneration generation) reason) (admissionPool current))"),
+    ("indexed_deep_completion_changes_generation", "(poolStep (completeAt index (ownedGeneration generation) reason) (admissionPool current))", "(poolStep (completeAt index (ownedGeneration (case index as position in Count return Count with | zero => generation | next previous => case previous as earlier in Count return Count with | zero => generation | next rest => next generation)) reason) (admissionPool current))"),
+    ("indexed_deep_reservation_aliases", "(poolStep (reserveAt index) (admissionPool current))", "(poolStep (reserveAt (case index as position in Count return Count with | zero => zero | next previous => next zero)) (admissionPool current))"),
+    ("indexed_distant_missing_slot_granted", "      | emptyLeasePool => noOwnedLease\n      | leaseCell lease rest => availableLeaseToken previous rest", "      | emptyLeasePool => (case previous as depth in Count return CompletionToken with | zero => noOwnedLease | next older => ownedGeneration zero)\n      | leaseCell lease rest => availableLeaseToken previous rest"),
+    ("indexed_deep_receipt_changes_generation", "| grantedSourceStart generation => pendingAdmissionReceipt index generation", "| grantedSourceStart generation => pendingAdmissionReceipt index (case index as position in Count return Count with | zero => generation | next previous => case previous as earlier in Count return Count with | zero => generation | next older => next generation)"),
+]
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

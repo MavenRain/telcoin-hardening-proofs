@@ -50,6 +50,20 @@ per-start cost weight over real accepted-start work, rejected-attempt cost, live
 per-source pending attribution, policy and established-resource integration,
 configuration changes, timer validation, restart persistence and deployment
 qualification remain open.
+`indexed-source-admission-model-check.json` extends the lifecycle guarantees to
+arbitrary pending indices, including exact admission receipts and accepted-start
+counting, matching completion, stale and duplicate callbacks, and held or missing
+slot refusal. It adds 21 equality proof declarations, four atomic obligations
+and 16 semantic mutations (module-39 theorems reject 11 of them, and older
+pool-capacity proofs reject five), bringing the totals to 387 proof declarations
+across 24 modules, 60 atomic obligations and 181 rejected negative checks. Each new
+mutant also type-checks through its changed definition before a theorem rejects
+it. The receipt's `implementation_links` status is `not_checked_this_run`.
+Stable runtime indices, internal receipt provenance, atomic callback behavior
+and machine generation arithmetic still require refinement; this receipt does
+not establish deployment qualification.
+
+
 These are reproducible local receipts within the trust boundary described in
 [TRUST.md](../docs/TRUST.md), not deployment measurements or external attestations.
 

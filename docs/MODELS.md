@@ -377,23 +377,59 @@ bound by a supplied per-start cost. That weight must dominate real accepted-star
 work; prevalidation, refused attempts, retained resources and other work require
 separate accounting. No numeric production budget is selected here.
 
-Universal enabled counting is proved for an eligible head slot. Closed witnesses
+Module 38 proves enabled counting for an eligible head slot. Closed witnesses
 also check a non-head source and slot, two accepted starts across both swarms,
 completion and reuse, replay preserving a newer owner, zero-rate refusal, bans,
 occupied slots, quota retention, expiry without credit, and clamped refill.
 These witnesses prevent the upper-bound proof from hiding an undercount or a
-disabled admission path. General enabled admission and stale completion at
-arbitrary indices remain separate lifecycle obligations.
+disabled admission path. Module 39 extends enabled admission, counting and
+completion guarantees to arbitrary pending indices, as described below.
 
 Real monotonic time, tick provenance and replay prevention, one runtime balance,
 checked arithmetic and atomic receipt emission require refinement. The theorem
 is a discrete rate envelope, not a wall-clock, honest-admission or fairness
 guarantee. Authoritative policy receipts, live per-source pending attribution,
 established resources, changing configuration and restart persistence remain open.
+
+## Source admission at arbitrary pending indices
+
+`39-indexed-source-admission.mech` represents a selected slot by an arbitrary
+finite prefix, that slot, and an arbitrary suffix. The selected index is the
+prefix length. Neither surrounding pool is restricted to free slots or fixed
+generations. `availableLeaseTokenAfterPrefix` and `updateLeaseAfterPrefix`
+relate lookup and update at any suffix offset to the existing pool operations.
+The prefix equations preserve each preceding lease and identify an empty
+suffix with the original finite pool.
+
+`indexedSourceAdmissionChargesAndReserves` proves enabled admission for every
+such selected free slot, in either swarm, given source permission and a positive
+shared credit balance. It gives the exact charged source state, one spent credit
+and one reserved lease while retaining the entire prefix and suffix.
+`indexedSourceAdmissionOwnsReceipt` proves both fields of the emitted receipt,
+and `indexedAdmissionCountsOne` connects that receipt to the existing accepted
+start count. These extend the head-slot results without changing the transition.
+
+`indexedSourceCompletionActsOnSelectedLease` gives the exact effect of any
+completion on the selected lease while preserving all other leases, source
+state and shared credits. Matching completion releases and advances the
+generation for every terminal reason. Any mismatched generation preserves the
+held owner, including arbitrarily old receipts after reuse. A free slot ignores
+every receipt generation; duplicate matching completions with any two terminal
+reasons release once and advance once.
+
+Held-slot selection and every index at or beyond the finite pool length refuse
+without changing state or emitting a receipt. These results quantify over all
+sources, keys, credit balances and both swarms. They do not promise an eligible
+source, a free slot, honest admission, scheduling fairness or live per-source
+pending attribution. Atomic transitions, internal receipt provenance, stable
+runtime slot identities and nonwrapping machine generations still require
+implementation refinement. Policy integration, established resources, restarts
+and configuration changes remain separate obligations.
+
 ## Negative controls
 
-The checker rejects 165 invalid variants: three direct checks of equality,
-ordering and termination, plus 162 semantic mutations. Mutations exercise such
+The checker rejects 181 invalid variants: three direct checks of equality,
+ordering and termination, plus 178 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -446,6 +482,20 @@ claimed ticks, append refill credit at the end of the erased trace, count a star
 on an empty trace, or count attempts, maintenance, completion and claimed ticks
 as trusted time. Exact-count witnesses check enabled admission as well as the
 universal upper bounds.
+
+The 16 indexed lifecycle controls drop or corrupt pool prefixes, misplace the
+selected index, disable or alias lookup and update after the second slot, grant
+a slot two or more places past the pool end, misbind deep-slot receipts or
+reservations, alter a receipt generation after the second slot, and redirect
+completion or alter its generation at deeper indices. Each changed definition
+was checked independently through its declaration before the full model
+rejected it at a proof. Module-39 theorems reject the 11 prefix, position,
+lookup, missing-slot and receipt controls. The two update controls fail at
+`updateLeaseCapacity` in module 21. The reservation control fails at
+`sourceStartPoolCapacity` and the two completion controls fail at
+`sourceAdmissionStepPoolCapacity`, both in module 37. These capacity proofs name
+the exact update, reservation and completion arguments, so they reject any
+change at these sites. These five controls do not test the module-39 theorems.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

@@ -1,0 +1,328 @@
+-- Every finite prefix represents the slots before the selected pending lease.
+-- Prefix and suffix leases are arbitrary, including held leases and generations.
+-- These lemmas use the existing admission transition and its internal receipts.
+def rec appendLeasePool : LeasePool -> LeasePool -> LeasePool :=
+  fun (prefix : LeasePool) (suffix : LeasePool) =>
+    case prefix as self in LeasePool return LeasePool with
+    | emptyLeasePool => suffix
+    | leaseCell lease rest => leaseCell lease (appendLeasePool rest suffix)
+
+def leasePrefixKeepsHead : (lease : Lease) -> (prefix : LeasePool) -> (suffix : LeasePool) ->
+    Equal LeasePool (appendLeasePool (leaseCell lease prefix) suffix)
+      (leaseCell lease (appendLeasePool prefix suffix)) :=
+  fun (lease : Lease) (prefix : LeasePool) (suffix : LeasePool) => same
+
+def rec leasePrefixWithoutSuffix : (prefix : LeasePool) ->
+    Equal LeasePool (appendLeasePool prefix emptyLeasePool) prefix :=
+  fun (prefix : LeasePool) =>
+    case prefix as self in LeasePool return Equal LeasePool (appendLeasePool self emptyLeasePool) self with
+    | emptyLeasePool => same
+    | leaseCell lease rest =>
+      congruent LeasePool LeasePool (fun (pool : LeasePool) => leaseCell lease pool)
+        (appendLeasePool rest emptyLeasePool) rest (leasePrefixWithoutSuffix rest)
+
+def rec availableLeaseTokenAfterPrefix : (prefix : LeasePool) -> (index : Count) -> (suffix : LeasePool) ->
+    Equal CompletionToken
+      (availableLeaseToken (add (leaseCapacity prefix) index) (appendLeasePool prefix suffix))
+      (availableLeaseToken index suffix) :=
+  fun (prefix : LeasePool) (index : Count) (suffix : LeasePool) =>
+    case prefix as self in LeasePool return Equal CompletionToken
+        (availableLeaseToken (add (leaseCapacity self) index) (appendLeasePool self suffix))
+        (availableLeaseToken index suffix) with
+    | emptyLeasePool => same
+    | leaseCell lease rest => availableLeaseTokenAfterPrefix rest index suffix
+
+def rec updateLeaseAfterPrefix : (prefix : LeasePool) -> (index : Count) ->
+    (change : Lease -> Lease) -> (suffix : LeasePool) ->
+    Equal LeasePool
+      (updateLease (add (leaseCapacity prefix) index) change (appendLeasePool prefix suffix))
+      (appendLeasePool prefix (updateLease index change suffix)) :=
+  fun (prefix : LeasePool) (index : Count) (change : Lease -> Lease) (suffix : LeasePool) =>
+    case prefix as self in LeasePool return Equal LeasePool
+        (updateLease (add (leaseCapacity self) index) change (appendLeasePool self suffix))
+        (appendLeasePool self (updateLease index change suffix)) with
+    | emptyLeasePool => same
+    | leaseCell lease rest =>
+      congruent LeasePool LeasePool (fun (pool : LeasePool) => leaseCell lease pool)
+        (updateLease (add (leaseCapacity rest) index) change (appendLeasePool rest suffix))
+        (appendLeasePool rest (updateLease index change suffix))
+        (updateLeaseAfterPrefix rest index change suffix)
+
+-- Using add with zero keeps the structural prefix index visible to the checker.
+def leasePrefixIndex : LeasePool -> Count :=
+  fun (prefix : LeasePool) => add (leaseCapacity prefix) zero
+
+def indexedSourceStartPlan : (quota : Count) -> (key : Count) -> (table : SourceTable) ->
+    (credits : Count) -> (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal SourceStartPlan (planSourceStart quota validated key (leasePrefixIndex prefix)
+      (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (grantedSourceStart generation) :=
+  fun (quota : Count) (key : Count) (table : SourceTable) (credits : Count)
+      (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (allowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    equalTransitivity SourceStartPlan
+      (planSourceStart quota validated key (leasePrefixIndex prefix)
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (sourceStartDecision (sourceTableChargeAllowed validated quota key table) (next credits) (ownedGeneration generation))
+      (grantedSourceStart generation)
+      (congruent CompletionToken SourceStartPlan
+        (fun (token : CompletionToken) => sourceStartDecision
+          (sourceTableChargeAllowed validated quota key table) (next credits) token)
+        (availableLeaseToken (leasePrefixIndex prefix) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))
+        (ownedGeneration generation)
+        (availableLeaseTokenAfterPrefix prefix zero (leaseCell (freeLease generation) rest)))
+      (congruent Flag SourceStartPlan
+        (fun (decision : Flag) => sourceStartDecision decision (next credits) (ownedGeneration generation))
+        (sourceTableChargeAllowed validated quota key table) on allowed)
+
+def indexedSourceAdmissionChargesAndReserves : (quota : Count) -> (capacity : Count) -> (swarm : SwarmClass) ->
+    (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal SourceAdmission
+      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits
+        (appendLeasePool prefix (leaseCell (heldLease generation) rest))) :=
+  fun (quota : Count) (capacity : Count) (swarm : SwarmClass) (key : Count) (table : SourceTable)
+      (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (allowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    equalTransitivity SourceAdmission
+      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (commitSourceStart quota key (leasePrefixIndex prefix) (grantedSourceStart generation)
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits
+        (appendLeasePool prefix (leaseCell (heldLease generation) rest)))
+      (congruent SourceStartPlan SourceAdmission
+        (fun (plan : SourceStartPlan) => commitSourceStart quota key (leasePrefixIndex prefix) plan
+          (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+        (planSourceStart quota validated key (leasePrefixIndex prefix)
+          (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+        (grantedSourceStart generation)
+        (indexedSourceStartPlan quota key table credits prefix generation rest allowed))
+      (congruent LeasePool SourceAdmission
+        (fun (pool : LeasePool) => sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits pool)
+        (poolStep (reserveAt (leasePrefixIndex prefix)) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))
+        (appendLeasePool prefix (leaseCell (heldLease generation) rest))
+        (updateLeaseAfterPrefix prefix zero reserveLease (leaseCell (freeLease generation) rest)))
+
+def indexedSourceAdmissionOwnsReceipt : (quota : Count) -> (swarm : SwarmClass) -> (key : Count) ->
+    (table : SourceTable) -> (credits : Count) -> (prefix : LeasePool) ->
+    (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal AdmissionReceipt
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) :=
+  fun (quota : Count) (swarm : SwarmClass) (key : Count) (table : SourceTable) (credits : Count)
+      (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (allowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    congruent SourceStartPlan AdmissionReceipt (sourceStartReceipt (leasePrefixIndex prefix))
+      (planSourceStart quota validated key (leasePrefixIndex prefix)
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (grantedSourceStart generation) (indexedSourceStartPlan quota key table credits prefix generation rest allowed)
+
+def indexedAdmissionCountsOne : (quota : Count) -> (capacity : Count) -> (swarm : SwarmClass) ->
+    (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal Count (sourceAdmissionStarts
+      (sourceAdmissionsThen (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix)) sourceAdmissionsDone)
+      quota capacity (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (next zero) :=
+  fun (quota : Count) (capacity : Count) (swarm : SwarmClass) (key : Count) (table : SourceTable)
+      (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (allowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    congruent AdmissionReceipt Count (fun (receipt : AdmissionReceipt) => add (admissionReceiptCount receipt) zero)
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation)
+      (indexedSourceAdmissionOwnsReceipt quota swarm key table credits prefix generation rest allowed)
+
+def indexedSourceCompletionActsOnSelectedLease : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (lease : Lease) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->
+    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell lease rest))))
+      (sourceAdmission table credits
+        (appendLeasePool prefix (leaseCell (pendingCompletion (ownedGeneration token) reason lease) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool) (lease : Lease)
+      (rest : LeasePool) (token : Count) (reason : PendingEnd) =>
+    congruent LeasePool SourceAdmission (fun (pool : LeasePool) => sourceAdmission table credits pool)
+      (poolStep (completeAt (leasePrefixIndex prefix) (ownedGeneration token) reason)
+        (appendLeasePool prefix (leaseCell lease rest)))
+      (appendLeasePool prefix (leaseCell (pendingCompletion (ownedGeneration token) reason lease) rest))
+      (updateLeaseAfterPrefix prefix zero
+        (fun (current : Lease) => pendingCompletion (ownedGeneration token) reason current) (leaseCell lease rest))
+
+def indexedSourceAdmissionCompletionReleases : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (reason : PendingEnd) ->
+    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) reason
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool)
+      (generation : Count) (rest : LeasePool) (reason : PendingEnd) =>
+    equalTransitivity SourceAdmission
+      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) reason
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix
+        (leaseCell (pendingCompletion (ownedGeneration generation) reason (heldLease generation)) rest)))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest)))
+      (indexedSourceCompletionActsOnSelectedLease table credits prefix (heldLease generation) rest generation reason)
+      (congruent Lease SourceAdmission
+        (fun (lease : Lease) => sourceAdmission table credits (appendLeasePool prefix (leaseCell lease rest)))
+        (pendingCompletion (ownedGeneration generation) reason (heldLease generation)) (freeLease (next generation))
+        (everyTerminalReasonReleases generation reason))
+
+def indexedSourceAdmissionFreeCompletionIsNoOp : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->
+    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease generation) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count)
+      (rest : LeasePool) (token : Count) (reason : PendingEnd) =>
+    indexedSourceCompletionActsOnSelectedLease table credits prefix (freeLease generation) rest token reason
+
+def indexedSourceAdmissionDuplicateCompletion : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (first : PendingEnd) -> (second : PendingEnd) ->
+    Equal SourceAdmission
+      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) second
+        (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) first
+          (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count)
+      (rest : LeasePool) (first : PendingEnd) (second : PendingEnd) =>
+    equalTransitivity SourceAdmission
+      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) second
+        (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) first
+          (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))))
+      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) second
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest)))
+      (congruent SourceAdmission SourceAdmission
+        (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) second)
+        (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) first
+          (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest)))
+        (indexedSourceAdmissionCompletionReleases table credits prefix generation rest first))
+      (indexedSourceAdmissionFreeCompletionIsNoOp table credits prefix (next generation) rest generation second)
+
+def indexedSourceAdmissionMismatchedCompletionPreserves : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->
+    Equal Flag (sameCount token generation) off ->
+    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count)
+      (rest : LeasePool) (token : Count) (reason : PendingEnd)
+      (different : Equal Flag (sameCount token generation) off) =>
+    equalTransitivity SourceAdmission
+      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix
+        (leaseCell (pendingCompletion (ownedGeneration token) reason (heldLease generation)) rest)))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))
+      (indexedSourceCompletionActsOnSelectedLease table credits prefix (heldLease generation) rest token reason)
+      (congruent Flag SourceAdmission
+        (fun (matches : Flag) => sourceAdmission table credits
+          (appendLeasePool prefix (leaseCell (releaseDecision generation matches) rest)))
+        (sameCount token generation) off different)
+
+def indexedSourceAdmissionStaleCompletionPreserves : (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (gap : Count) -> (rest : LeasePool) -> (reason : PendingEnd) ->
+    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) reason
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease (next (add generation gap))) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease (next (add generation gap))) rest))) :=
+  fun (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count)
+      (gap : Count) (rest : LeasePool) (reason : PendingEnd) =>
+    indexedSourceAdmissionMismatchedCompletionPreserves table credits prefix (next (add generation gap))
+      rest generation reason (sameCountBeyondOff generation gap)
+
+def indexedSourceAdmissionHeldRefused : (quota : Count) -> (capacity : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal SourceAdmission
+      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))) :=
+  fun (quota : Count) (capacity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count)
+      (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool) =>
+    noLeaseAdmissionIsNoOp quota capacity source swarm key (leasePrefixIndex prefix)
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))
+      (availableLeaseTokenAfterPrefix prefix zero (leaseCell (heldLease generation) rest))
+
+def emptyPoolHasNoLeaseToken : (index : Count) ->
+    Equal CompletionToken (availableLeaseToken index emptyLeasePool) noOwnedLease :=
+  fun (index : Count) =>
+    case index as self in Count return Equal CompletionToken (availableLeaseToken self emptyLeasePool) noOwnedLease with
+    | zero => same
+    | next previous => same
+
+def indexedPoolMissingToken : (prefix : LeasePool) -> (distance : Count) ->
+    Equal CompletionToken
+      (availableLeaseToken (add (leaseCapacity prefix) distance) (appendLeasePool prefix emptyLeasePool)) noOwnedLease :=
+  fun (prefix : LeasePool) (distance : Count) =>
+    equalTransitivity CompletionToken
+      (availableLeaseToken (add (leaseCapacity prefix) distance) (appendLeasePool prefix emptyLeasePool))
+      (availableLeaseToken distance emptyLeasePool) noOwnedLease
+      (availableLeaseTokenAfterPrefix prefix distance emptyLeasePool) (emptyPoolHasNoLeaseToken distance)
+
+def indexedSourceAdmissionMissingRefused : (quota : Count) -> (capacity : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (distance : Count) ->
+    Equal SourceAdmission
+      (sourceAdmissionStep quota capacity
+        (sourceAdmissionAttempt source swarm key (add (leaseCapacity prefix) distance))
+        (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool)))
+      (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool)) :=
+  fun (quota : Count) (capacity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count)
+      (table : SourceTable) (credits : Count) (prefix : LeasePool) (distance : Count) =>
+    noLeaseAdmissionIsNoOp quota capacity source swarm key (add (leaseCapacity prefix) distance)
+      (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool))
+      (indexedPoolMissingToken prefix distance)
+
+-- An unavailable slot cannot produce an internal receipt, even with source
+-- permission and credits. Both concrete refusal shapes use this same result.
+def unavailableSourceAdmissionHasNoReceipt : (quota : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->
+    Equal CompletionToken (availableLeaseToken index (admissionPool current)) noOwnedLease ->
+    Equal AdmissionReceipt
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key index) current) noAdmissionReceipt :=
+  fun (quota : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (current : SourceAdmission)
+      (missing : Equal CompletionToken (availableLeaseToken index (admissionPool current)) noOwnedLease) =>
+    congruent SourceStartPlan AdmissionReceipt (sourceStartReceipt index)
+      (planSourceStart quota source key index current) refusedSourceStart
+      (equalTransitivity SourceStartPlan (planSourceStart quota source key index current)
+        (sourceStartDecision (sourceTableChargeAllowed source quota key (admissionSources current))
+          (admissionCredits current) noOwnedLease) refusedSourceStart
+        (congruent CompletionToken SourceStartPlan
+          (fun (token : CompletionToken) => sourceStartDecision
+            (sourceTableChargeAllowed source quota key (admissionSources current)) (admissionCredits current) token)
+          (availableLeaseToken index (admissionPool current)) noOwnedLease missing)
+        (noLeasePlanRefused (sourceTableChargeAllowed source quota key (admissionSources current)) (admissionCredits current)))
+
+def indexedSourceAdmissionHeldHasNoReceipt : (quota : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal AdmissionReceipt
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))) noAdmissionReceipt :=
+  fun (quota : Count) (source : Reachability) (swarm : SwarmClass) (key : Count)
+      (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool) =>
+    unavailableSourceAdmissionHasNoReceipt quota source swarm key (leasePrefixIndex prefix)
+      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))
+      (availableLeaseTokenAfterPrefix prefix zero (leaseCell (heldLease generation) rest))
+
+def indexedSourceAdmissionMissingHasNoReceipt : (quota : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->
+    (prefix : LeasePool) -> (distance : Count) ->
+    Equal AdmissionReceipt
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key (add (leaseCapacity prefix) distance))
+        (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool))) noAdmissionReceipt :=
+  fun (quota : Count) (source : Reachability) (swarm : SwarmClass) (key : Count)
+      (table : SourceTable) (credits : Count) (prefix : LeasePool) (distance : Count) =>
+    unavailableSourceAdmissionHasNoReceipt quota source swarm key (add (leaseCapacity prefix) distance)
+      (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool))
+      (indexedPoolMissingToken prefix distance)
