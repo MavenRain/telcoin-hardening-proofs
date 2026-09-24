@@ -31,19 +31,27 @@ the exact ordered continuation and state semantics, and compose a conditional
 dispatch-overhead bound with the selected prefix's policy and handshake
 envelopes. Concrete dispatch and query costs, work outside dispatched events
 and executor progress remain open.
+Persistent FIFO service now carries the queue and resource state across turns,
+preserves ordered arrivals and services any original prefix in its own length
+of delivered turns with one unit of fuel each. A combined cost envelope spans
+the actual dispatched trace with each initial burst counted once. Runtime queue
+retention, storage and enqueue costs, other fuel schedules and wall-clock
+cleanup latency still require refinement.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 76 atomic model obligations
+   explicit dispositions. The current 34 groups and 80 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
    queries and receipt production, justify the per-dispatch guard and maintenance
    weights, and bound queue construction, pre-dispatch work and executor overhead
-   outside the finite-poll envelope. Refine queue persistence, positive poll fuel
-   and wakeup scheduling, including cleanup progress under sustained arrivals.
+   outside the dispatch envelope. Refine persistent FIFO retention and real
+   wakeups to the runtime; establish delivery of enough positive-fuel service
+   turns and extend the model to arbitrary varying-fuel schedules. Bound queue
+   growth, overload loss and wall-clock cleanup latency under sustained arrivals.
    Refine canonical source extraction, key uniqueness, indexed internal receipts,
    runtime receipt provenance from authenticated internal policy queries and atomic
    policy/source/global/pending enforcement against one pre-state.

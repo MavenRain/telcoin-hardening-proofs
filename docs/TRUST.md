@@ -75,6 +75,17 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   Positive fuel, executor fairness and cleanup priority are open refinements;
   the model does not supply a wall-clock latency or global polling-rate bound.
 
+- Module 45 couples a persistent FIFO queue to the carried resource state.
+  Under the explicit scheduler with one unit of fuel per delivered turn, any
+  original prefix finishes after its length of turns despite finite arrivals
+  before every turn. The exact suffix and arrival history remain queued.
+  Repeated service preserves the dispatched-trace semantics, pending capacity
+  and a combined cost envelope with each initial burst counted once. Runtime
+  queue retention, concurrent producers, actual wakes, enough service turns and
+  simulation of other fuel schedules remain open. This supplies no wall-clock
+  cleanup bound, queue-memory bound or bound on enqueue, empty-turn or executor
+  overhead.
+
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
   bindings and complete security-state classification, including simultaneous

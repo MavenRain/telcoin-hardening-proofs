@@ -26,7 +26,9 @@
     "bounded_policy_processing": "One process-wide policy-work balance gates every modeled attempt and publication before processing. A processed operation spends exactly one credit even when denied. Work capacity and rate and the handshake rate are fixed in module 42. The guard, charge and delegated policy/source event use one serialized pre-state. Already constructed policy receipts are inputs; their creation, pre-guard work, exhausted guards, maintenance and completion need separate cost accounting.",
     "bounded_policy_queries": "Module 43 constructs policy receipts internally only on the positive-work-credit branch, using the current view and the attempted identity. Authentication and identity inputs must come from verified credentials. The guard, query, charge and policy/source admission use one serialized pre-state. The per-processed-operation cost weight must cover bounded query and receipt production plus delegated work; pre-guard authentication, exhausted guards, maintenance and completion remain outside that weight.",
     "finite_ingress_polls": "Each modeled poll has finite fuel and a stable finite sequence of ingress events. Runtime dispatch, state updates and saved queue continuations preserve this sequence; external arrivals and queue materialization require separate refinement.",
-    "bounded_ingress_dispatch": "A supplied eventCost bounds all per-dispatched-event work outside the policy-operation and accepted-handshake weights, including exhausted-credit guards, dispatch, maintenance, completion and clock handling. Concrete input, table and queue bounds must justify this weight. Queue creation, authentication before dispatch, empty-poll overhead and executor/waker costs are outside this assumption."
+    "bounded_ingress_dispatch": "A supplied eventCost bounds all per-dispatched-event work outside the policy-operation and accepted-handshake weights, including exhausted-credit guards, dispatch, maintenance, completion and clock handling. Concrete input, table and queue bounds must justify this weight. Queue creation, authentication before dispatch, empty-poll overhead and executor/waker costs are outside this assumption.",
+    "persistent_ingress_queue": "The runtime atomically retains the queued continuation and its current resource state between polls, and appends each represented finite arrival batch exactly once behind retained events in arrival order. Queue allocation, capacity, overload loss and concurrent producer refinement are separate obligations.",
+    "unit_ingress_service": "Each delivered service round appends its finite arrival batch and dispatches one head event if available, using one unit of poll fuel. The arrivals function names batches by successive round indices. The runtime must deliver enough such rounds; the model does not establish wall-clock latency or fairness for arbitrary poll-fuel schedules."
   },
   "claims": [
     {
@@ -2324,6 +2326,153 @@
         "Supply common-unit dominating weights and concrete bounds for queue dispatch, exhausted guards, maintenance and completion, plus internal policy queries and accepted starts. The theorem is conditional, not a measured CPU bound.",
         "Bound queue materialization, authentication before dispatch, empty-poll entry/exit, waker and executor overhead, and other work outside the modeled dispatched events.",
         "Relate trusted ticks and poll scheduling to real elapsed time. The result is per finite poll, not a process-wide rate or latency qualification; established resources, restart and cap changes remain open."
+      ]
+    },
+    {
+      "id": "C41",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Enqueue preserves the resource state and appends the exact arrival sequence after retained FIFO work. A newly nonempty or retained nonempty queue requests a backlog wake, an empty queue does not, and the next-round arrival index advances exactly once, so round k receives batch k.",
+      "theorems": [
+        "policyIngressEnqueuePreservesWork",
+        "policyIngressEnqueuePreservesOrder",
+        "appendPolicyIngressLength",
+        "policyIngressArrivalRequestsWake",
+        "policyIngressRetainedBacklogRequestsWake",
+        "policyIngressEmptyQueueStopsWake",
+        "policyIngressNextArrivalIndex",
+        "policyIngressArrivalsThroughLast"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "persistent_ingress_queue",
+        "executor_wakeup"
+      ],
+      "open_implementation_obligations": [
+        "Refine concurrent producers and queue storage to exactly-once ordered append and atomic retention of the queue together with its resource state.",
+        "Bound allocation and enqueue work, define overload and cancellation semantics, and establish queue memory limits separately from pending-slot capacity.",
+        "Connect both retained-backlog and newly-arrived-work wake flags to actual waker registration without missed wakeups."
+      ]
+    },
+    {
+      "id": "C42",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "An arbitrary-fuel queue poll preserves the exact ordered continuation and full-run state semantics; zero fuel preserves the whole queued state. Across any finite sequence of unit-fuel service rounds, the carried resource state equals execution of the actual ordered dispatched trace, whose event count is at most the delivered round count.",
+      "theorems": [
+        "zeroPolicyIngressQueuePollPreservesAll",
+        "policyIngressQueuePollPreservesExecution",
+        "policyIngressQueuePollReassembles",
+        "policyIngressQueueRoundTakesOldHead",
+        "policyIngressQueueRoundsExecuteTrace",
+        "policyIngressQueueDispatchBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "finite_ingress_polls",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "persistent_ingress_queue",
+        "unit_ingress_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine the runtime queue and saved resource snapshot to the modeled poll transition across errors, cancellations and executor turns.",
+        "Establish a scheduler simulation to the explicit unit-fuel service rounds, including batch arrival ordering; arbitrary varying-fuel multi-poll schedules are not proved here.",
+        "Keep one policy, source, pending and global resource state across turns without resetting balances or replaying a consumed event."
+      ]
+    },
+    {
+      "id": "C43",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Every original finite FIFO prefix is executed after exactly its length of delivered unit-fuel service rounds, while the untouched original suffix followed by every intervening arrival batch remains in order. A queued target event executes after the preceding prefix length plus one such rounds, including completion and maintenance events; the resulting pending occupancy remains within initial slot capacity.",
+      "theorems": [
+        "policyIngressQueueServesPrefix",
+        "policyIngressQueueEventTurnCount",
+        "policyIngressQueueEventProgress",
+        "policyIngressQueueRoundsPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "finite_ingress_polls",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "persistent_ingress_queue",
+        "unit_ingress_service",
+        "executor_wakeup"
+      ],
+      "open_implementation_obligations": [
+        "Deliver the required number of service rounds with positive fuel. This is a conditional bound in turns, not a proof of wall-clock latency, executor fairness or cleanup priority.",
+        "Refine FIFO retention under sustained arrivals and any runtime cancellation or overload policy; no bound on total queue growth or infinite-run allocation is established.",
+        "Connect dispatched completion and maintenance to authenticated internal receipts and trusted expiry. Dispatch of a stale callback need not release a current owner; established resources and live per-source pending attribution remain open."
+      ]
+    },
+    {
+      "id": "C44",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "With initially bounded work and handshake balances, any finite sequence of unit-fuel ingress service rounds satisfies a combined dispatch, policy-work and accepted-start cost envelope over the actual dispatched trace. The envelope includes each initial burst once across all rounds, and counts only dispatched trusted ticks. An exhausted-credit attempt arriving into an empty queue still incurs dispatch cost.",
+      "theorems": [
+        "policyIngressQueueDispatchBound",
+        "policyIngressQueueCombinedCostEnvelope",
+        "policyIngressQueueExhaustedGuardCost"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_dispatch",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts",
+        "persistent_ingress_queue",
+        "unit_ingress_service"
+      ],
+      "open_implementation_obligations": [
+        "Supply dominating dispatch, policy-query and handshake weights in a common unit; symbolic costs are not measured CPU or allocation bounds.",
+        "Bound arrival materialization, queue append and storage, authentication before dispatch, empty turns, wakeups and executor overhead outside the dispatched-event envelope.",
+        "Relate trusted ticks and delivered service rounds to real time and refine stable configuration and persistence; the model does not establish a process-wide polling rate or handle cap changes and restart."
       ]
     }
   ]

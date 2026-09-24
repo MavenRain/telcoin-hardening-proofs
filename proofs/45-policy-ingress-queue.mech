@@ -1,0 +1,358 @@
+-- Persistent FIFO ingress queues carry the resource state between polls.
+-- A service round has one unit of fuel and appends its finite arrivals first.
+-- Turn delivery, queue storage and concrete operation costs remain assumptions.
+mu PolicyIngressQueueState : Type 0 with
+| policyIngressQueueState : PolicyIngressTrace -> PolicyWorkState -> PolicyIngressQueueState
+
+def queuedPolicyIngress : PolicyIngressQueueState -> PolicyIngressTrace :=
+  fun (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return PolicyIngressTrace with
+    | policyIngressQueueState events current => events
+
+def queuedPolicyWork : PolicyIngressQueueState -> PolicyWorkState :=
+  fun (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return PolicyWorkState with
+    | policyIngressQueueState events current => current
+
+def enqueuePolicyIngress : PolicyIngressTrace -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (arrivals : PolicyIngressTrace) (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return PolicyIngressQueueState with
+    | policyIngressQueueState events current => policyIngressQueueState (appendPolicyIngress events arrivals) current
+
+def pollPolicyIngressQueue : Count -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (fuel : Count) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return PolicyIngressQueueState with
+    | policyIngressQueueState events current => policyIngressQueueState
+        (policyIngressPollRemainder fuel events) (runPolicyIngressPoll fuel events config current)
+
+def policyIngressQueueWake : PolicyIngressQueueState -> Flag :=
+  fun (queued : PolicyIngressQueueState) => policyIngressBacklogWake (queuedPolicyIngress queued)
+
+def rec appendPolicyIngressRightIdentity : (events : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress events policyIngressDone) events :=
+  fun (events : PolicyIngressTrace) =>
+    case events as self in PolicyIngressTrace return
+      Equal PolicyIngressTrace (appendPolicyIngress self policyIngressDone) self with
+    | policyIngressDone => same
+    | policyIngressThen event rest => congruent PolicyIngressTrace PolicyIngressTrace
+        (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+        (appendPolicyIngress rest policyIngressDone) rest (appendPolicyIngressRightIdentity rest)
+
+def rec appendPolicyIngressAssociative : (first : PolicyIngressTrace) -> (second : PolicyIngressTrace) -> (third : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress first second) third)
+      (appendPolicyIngress first (appendPolicyIngress second third)) :=
+  fun (first : PolicyIngressTrace) (second : PolicyIngressTrace) (third : PolicyIngressTrace) =>
+    case first as self in PolicyIngressTrace return
+      Equal PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress self second) third)
+        (appendPolicyIngress self (appendPolicyIngress second third)) with
+    | policyIngressDone => same
+    | policyIngressThen event rest => congruent PolicyIngressTrace PolicyIngressTrace
+        (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+        (appendPolicyIngress (appendPolicyIngress rest second) third)
+        (appendPolicyIngress rest (appendPolicyIngress second third)) (appendPolicyIngressAssociative rest second third)
+
+def rec appendPolicyIngressLength : (first : PolicyIngressTrace) -> (second : PolicyIngressTrace) ->
+    Equal Count (policyIngressLength (appendPolicyIngress first second)) (add (policyIngressLength first) (policyIngressLength second)) :=
+  fun (first : PolicyIngressTrace) (second : PolicyIngressTrace) =>
+    case first as self in PolicyIngressTrace return
+      Equal Count (policyIngressLength (appendPolicyIngress self second)) (add (policyIngressLength self) (policyIngressLength second)) with
+    | policyIngressDone => same
+    | policyIngressThen event rest => congruent Count Count (fun (n : Count) => next n)
+        (policyIngressLength (appendPolicyIngress rest second)) (add (policyIngressLength rest) (policyIngressLength second))
+        (appendPolicyIngressLength rest second)
+
+def rec runAppendedPolicyIngress : (first : PolicyIngressTrace) -> (second : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (runPolicyIngress (appendPolicyIngress first second) config current)
+      (runPolicyIngress second config (runPolicyIngress first config current)) :=
+  fun (first : PolicyIngressTrace) (second : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case first as self in PolicyIngressTrace return
+      Equal PolicyWorkState (runPolicyIngress (appendPolicyIngress self second) config current)
+        (runPolicyIngress second config (runPolicyIngress self config current)) with
+    | policyIngressDone => same
+    | policyIngressThen event rest => runAppendedPolicyIngress rest second config (policyIngressStep config event current)
+
+def policyIngressEnqueuePreservesWork : (arrivals : PolicyIngressTrace) -> (queued : PolicyIngressQueueState) ->
+    Equal PolicyWorkState (queuedPolicyWork (enqueuePolicyIngress arrivals queued)) (queuedPolicyWork queued) :=
+  fun (arrivals : PolicyIngressTrace) (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return
+      Equal PolicyWorkState (queuedPolicyWork (enqueuePolicyIngress arrivals self)) (queuedPolicyWork self) with
+    | policyIngressQueueState events current => same
+
+def policyIngressEnqueuePreservesOrder : (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressTrace (queuedPolicyIngress (enqueuePolicyIngress arrivals (policyIngressQueueState events current)))
+      (appendPolicyIngress events arrivals) :=
+  fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (current : PolicyWorkState) => same
+
+def policyIngressArrivalRequestsWake : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal Flag (policyIngressQueueWake (enqueuePolicyIngress (policyIngressThen event rest) (policyIngressQueueState policyIngressDone current))) on :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (current : PolicyWorkState) => same
+
+def policyIngressRetainedBacklogRequestsWake : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal Flag (policyIngressQueueWake (enqueuePolicyIngress arrivals (policyIngressQueueState (policyIngressThen event rest) current))) on :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (current : PolicyWorkState) => same
+
+def policyIngressEmptyQueueStopsWake : (current : PolicyWorkState) ->
+    Equal Flag (policyIngressQueueWake (policyIngressQueueState policyIngressDone current)) off :=
+  fun (current : PolicyWorkState) => same
+
+def zeroPolicyIngressQueuePollPreservesAll : (config : PolicyWorkConfig) -> (queued : PolicyIngressQueueState) ->
+    Equal PolicyIngressQueueState (pollPolicyIngressQueue zero config queued) queued :=
+  fun (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    case queued as self in PolicyIngressQueueState return
+      Equal PolicyIngressQueueState (pollPolicyIngressQueue zero config self) self with
+    | policyIngressQueueState events current => same
+
+def policyIngressQueuePollPreservesExecution : (fuel : Count) -> (config : PolicyWorkConfig) ->
+    (events : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState
+      (runPolicyIngress (queuedPolicyIngress (pollPolicyIngressQueue fuel config (policyIngressQueueState events current))) config
+        (queuedPolicyWork (pollPolicyIngressQueue fuel config (policyIngressQueueState events current))))
+      (runPolicyIngress events config current) :=
+  fun (fuel : Count) (config : PolicyWorkConfig) (events : PolicyIngressTrace) (current : PolicyWorkState) =>
+    policyIngressPollResumePreservesExecution fuel events config current
+
+def policyIngressQueueRoundTakesOldHead : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress arrivals (policyIngressQueueState (policyIngressThen event rest) current)))
+      (policyIngressQueueState (appendPolicyIngress rest arrivals) (policyIngressStep config event current)) :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def policyIngressQueuePollReassembles : (fuel : Count) -> (config : PolicyWorkConfig) -> (events : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (policyIngressPollPrefix fuel events)
+      (queuedPolicyIngress (pollPolicyIngressQueue fuel config (policyIngressQueueState events current)))) events :=
+  fun (fuel : Count) (config : PolicyWorkConfig) (events : PolicyIngressTrace) (current : PolicyWorkState) =>
+    policyIngressPollReassemblesQueue fuel events
+
+def policyIngressLaterArrivals : (Count -> PolicyIngressTrace) -> Count -> PolicyIngressTrace :=
+  fun (arrivals : Count -> PolicyIngressTrace) (round : Count) => arrivals (next round)
+
+def rec policyIngressArrivalsThrough : Count -> (Count -> PolicyIngressTrace) -> PolicyIngressTrace :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) =>
+    case rounds as self in Count return PolicyIngressTrace with
+    | zero => policyIngressDone
+    | next remaining => appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals))
+
+def rec runPolicyIngressQueueRounds : Count -> (Count -> PolicyIngressTrace) -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    case rounds as self in Count return PolicyIngressQueueState with
+    | zero => queued
+    | next remaining => runPolicyIngressQueueRounds remaining (policyIngressLaterArrivals arrivals) config
+        (pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress (arrivals zero) queued))
+
+-- Every original prefix finishes in its own length of delivered unit-fuel turns,
+-- even when each of those turns appends another arbitrary finite arrival batch.
+def rec policyIngressQueueServesPrefix : (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) ->
+    (arrivals : Count -> PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPolicyIngressQueueRounds (policyIngressLength prefix) arrivals config (policyIngressQueueState (appendPolicyIngress prefix suffix) current))
+      (policyIngressQueueState (appendPolicyIngress suffix (policyIngressArrivalsThrough (policyIngressLength prefix) arrivals))
+        (runPolicyIngress prefix config current)) :=
+  fun (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (arrivals : Count -> PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case prefix as self in PolicyIngressTrace return
+      Equal PolicyIngressQueueState
+        (runPolicyIngressQueueRounds (policyIngressLength self) arrivals config (policyIngressQueueState (appendPolicyIngress self suffix) current))
+        (policyIngressQueueState (appendPolicyIngress suffix (policyIngressArrivalsThrough (policyIngressLength self) arrivals))
+          (runPolicyIngress self config current)) with
+    | policyIngressDone => congruent PolicyIngressTrace PolicyIngressQueueState
+        (fun (events : PolicyIngressTrace) => policyIngressQueueState events current)
+        suffix (appendPolicyIngress suffix policyIngressDone)
+        (equalSymmetry PolicyIngressTrace (appendPolicyIngress suffix policyIngressDone) suffix (appendPolicyIngressRightIdentity suffix))
+    | policyIngressThen event rest => equalTransitivity PolicyIngressQueueState
+        (runPolicyIngressQueueRounds (policyIngressLength rest) (policyIngressLaterArrivals arrivals) config
+          (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress rest suffix) (arrivals zero)) (policyIngressStep config event current)))
+        (runPolicyIngressQueueRounds (policyIngressLength rest) (policyIngressLaterArrivals arrivals) config
+          (policyIngressQueueState (appendPolicyIngress rest (appendPolicyIngress suffix (arrivals zero))) (policyIngressStep config event current)))
+        (policyIngressQueueState (appendPolicyIngress suffix (appendPolicyIngress (arrivals zero)
+            (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals))))
+          (runPolicyIngress rest config (policyIngressStep config event current)))
+        (congruent PolicyIngressTrace PolicyIngressQueueState
+          (fun (events : PolicyIngressTrace) => runPolicyIngressQueueRounds (policyIngressLength rest) (policyIngressLaterArrivals arrivals) config
+            (policyIngressQueueState events (policyIngressStep config event current)))
+          (appendPolicyIngress (appendPolicyIngress rest suffix) (arrivals zero))
+          (appendPolicyIngress rest (appendPolicyIngress suffix (arrivals zero))) (appendPolicyIngressAssociative rest suffix (arrivals zero)))
+        (equalTransitivity PolicyIngressQueueState
+          (runPolicyIngressQueueRounds (policyIngressLength rest) (policyIngressLaterArrivals arrivals) config
+            (policyIngressQueueState (appendPolicyIngress rest (appendPolicyIngress suffix (arrivals zero))) (policyIngressStep config event current)))
+          (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress suffix (arrivals zero))
+              (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals)))
+            (runPolicyIngress rest config (policyIngressStep config event current)))
+          (policyIngressQueueState (appendPolicyIngress suffix (appendPolicyIngress (arrivals zero)
+              (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals))))
+            (runPolicyIngress rest config (policyIngressStep config event current)))
+          (policyIngressQueueServesPrefix rest (appendPolicyIngress suffix (arrivals zero)) (policyIngressLaterArrivals arrivals)
+            config (policyIngressStep config event current))
+          (congruent PolicyIngressTrace PolicyIngressQueueState
+            (fun (events : PolicyIngressTrace) => policyIngressQueueState events (runPolicyIngress rest config (policyIngressStep config event current)))
+            (appendPolicyIngress (appendPolicyIngress suffix (arrivals zero)) (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals)))
+            (appendPolicyIngress suffix (appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals))))
+            (appendPolicyIngressAssociative suffix (arrivals zero) (policyIngressArrivalsThrough (policyIngressLength rest) (policyIngressLaterArrivals arrivals)))))
+
+-- Round k of the service receives arrival batch k: the history through k + 1
+-- rounds is the history through k rounds followed by batch k.
+def rec policyIngressArrivalsThroughLast : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (policyIngressArrivalsThrough (next rounds) arrivals)
+      (appendPolicyIngress (policyIngressArrivalsThrough rounds arrivals) (arrivals rounds)) :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) =>
+    case rounds as self in Count return
+      Equal PolicyIngressTrace (policyIngressArrivalsThrough (next self) arrivals)
+        (appendPolicyIngress (policyIngressArrivalsThrough self arrivals) (arrivals self)) with
+    | zero => appendPolicyIngressRightIdentity (arrivals zero)
+    | next remaining => equalTransitivity PolicyIngressTrace
+        (appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough (next remaining) (policyIngressLaterArrivals arrivals)))
+        (appendPolicyIngress (arrivals zero) (appendPolicyIngress (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)) (arrivals (next remaining))))
+        (appendPolicyIngress (appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals))) (arrivals (next remaining)))
+        (congruent PolicyIngressTrace PolicyIngressTrace
+          (fun (tail : PolicyIngressTrace) => appendPolicyIngress (arrivals zero) tail)
+          (policyIngressArrivalsThrough (next remaining) (policyIngressLaterArrivals arrivals))
+          (appendPolicyIngress (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)) (arrivals (next remaining)))
+          (policyIngressArrivalsThroughLast remaining (policyIngressLaterArrivals arrivals)))
+        (equalSymmetry PolicyIngressTrace
+          (appendPolicyIngress (appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals))) (arrivals (next remaining)))
+          (appendPolicyIngress (arrivals zero) (appendPolicyIngress (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)) (arrivals (next remaining))))
+          (appendPolicyIngressAssociative (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)) (arrivals (next remaining))))
+
+def policyIngressNextArrivalIndex : (arrivals : Count -> PolicyIngressTrace) -> (round : Count) ->
+    Equal PolicyIngressTrace (policyIngressLaterArrivals arrivals round) (arrivals (next round)) :=
+  fun (arrivals : Count -> PolicyIngressTrace) (round : Count) => same
+
+def rec policyIngressQueueEventTurnCount : (prefix : PolicyIngressTrace) -> (event : PolicyIngressEvent) ->
+    Equal Count (policyIngressLength (appendPolicyIngress prefix (policyIngressThen event policyIngressDone))) (next (policyIngressLength prefix)) :=
+  fun (prefix : PolicyIngressTrace) (event : PolicyIngressEvent) =>
+    case prefix as self in PolicyIngressTrace return
+      Equal Count (policyIngressLength (appendPolicyIngress self (policyIngressThen event policyIngressDone))) (next (policyIngressLength self)) with
+    | policyIngressDone => same
+    | policyIngressThen first rest => congruent Count Count (fun (n : Count) => next n)
+        (policyIngressLength (appendPolicyIngress rest (policyIngressThen event policyIngressDone))) (next (policyIngressLength rest))
+        (policyIngressQueueEventTurnCount rest event)
+
+def policyIngressQueueEventProgress : (prefix : PolicyIngressTrace) -> (event : PolicyIngressEvent) -> (suffix : PolicyIngressTrace) ->
+    (arrivals : Count -> PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState
+      (queuedPolicyWork (runPolicyIngressQueueRounds (policyIngressLength (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)))
+        arrivals config (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) suffix) current)))
+      (policyIngressStep config event (runPolicyIngress prefix config current)) :=
+  fun (prefix : PolicyIngressTrace) (event : PolicyIngressEvent) (suffix : PolicyIngressTrace)
+      (arrivals : Count -> PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransitivity PolicyWorkState
+      (queuedPolicyWork (runPolicyIngressQueueRounds (policyIngressLength (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)))
+        arrivals config (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) suffix) current)))
+      (runPolicyIngress (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) config current)
+      (policyIngressStep config event (runPolicyIngress prefix config current))
+      (congruent PolicyIngressQueueState PolicyWorkState queuedPolicyWork
+        (runPolicyIngressQueueRounds (policyIngressLength (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)))
+          arrivals config (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) suffix) current))
+        (policyIngressQueueState
+          (appendPolicyIngress suffix (policyIngressArrivalsThrough (policyIngressLength (appendPolicyIngress prefix (policyIngressThen event policyIngressDone))) arrivals))
+          (runPolicyIngress (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) config current))
+        (policyIngressQueueServesPrefix (appendPolicyIngress prefix (policyIngressThen event policyIngressDone)) suffix arrivals config current))
+      (runAppendedPolicyIngress prefix (policyIngressThen event policyIngressDone) config current)
+
+-- This is the actual dispatched trace across rounds, including work that arrived
+-- after the initial queue was created. Empty rounds contribute no dispatch.
+def rec policyIngressQueueTrace : Count -> (Count -> PolicyIngressTrace) -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) =>
+    case rounds as self in Count return PolicyIngressTrace with
+    | zero => policyIngressDone
+    | next remaining => appendPolicyIngress (policyIngressPollPrefix (next zero) (appendPolicyIngress events (arrivals zero)))
+        (policyIngressQueueTrace remaining (policyIngressLaterArrivals arrivals) (policyIngressPollRemainder (next zero) (appendPolicyIngress events (arrivals zero))))
+
+def rec policyIngressQueueRoundsExecuteTrace : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) ->
+    (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (queuedPolicyWork (runPolicyIngressQueueRounds rounds arrivals config (policyIngressQueueState events current)))
+      (runPolicyIngress (policyIngressQueueTrace rounds arrivals events) config current) :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case rounds as self in Count return
+      Equal PolicyWorkState (queuedPolicyWork (runPolicyIngressQueueRounds self arrivals config (policyIngressQueueState events current)))
+        (runPolicyIngress (policyIngressQueueTrace self arrivals events) config current) with
+    | zero => same
+    | next remaining =>
+      case appendPolicyIngress events (arrivals zero) as ready in PolicyIngressTrace return
+        Equal PolicyWorkState
+          (queuedPolicyWork (runPolicyIngressQueueRounds remaining (policyIngressLaterArrivals arrivals) config
+            (policyIngressQueueState (policyIngressPollRemainder (next zero) ready) (runPolicyIngressPoll (next zero) ready config current))))
+          (runPolicyIngress (appendPolicyIngress (policyIngressPollPrefix (next zero) ready)
+            (policyIngressQueueTrace remaining (policyIngressLaterArrivals arrivals) (policyIngressPollRemainder (next zero) ready))) config current) with
+      | policyIngressDone => policyIngressQueueRoundsExecuteTrace remaining (policyIngressLaterArrivals arrivals) policyIngressDone config current
+      | policyIngressThen event rest => policyIngressQueueRoundsExecuteTrace remaining (policyIngressLaterArrivals arrivals) rest config (policyIngressStep config event current)
+
+def rec policyIngressQueueDispatchBound : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (policyIngressQueueTrace rounds arrivals events)) rounds :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) =>
+    case rounds as self in Count return AtMost (policyIngressLength (policyIngressQueueTrace self arrivals events)) self with
+    | zero => least zero
+    | next remaining =>
+      case appendPolicyIngress events (arrivals zero) as ready in PolicyIngressTrace return
+        AtMost (policyIngressLength (appendPolicyIngress (policyIngressPollPrefix (next zero) ready)
+          (policyIngressQueueTrace remaining (policyIngressLaterArrivals arrivals) (policyIngressPollRemainder (next zero) ready)))) (next remaining) with
+      | policyIngressDone => weakenBound (policyIngressLength (policyIngressQueueTrace remaining (policyIngressLaterArrivals arrivals) policyIngressDone)) remaining
+          (policyIngressQueueDispatchBound remaining (policyIngressLaterArrivals arrivals) policyIngressDone)
+      | policyIngressThen event rest => lift (policyIngressLength (policyIngressQueueTrace remaining (policyIngressLaterArrivals arrivals) rest)) remaining
+          (policyIngressQueueDispatchBound remaining (policyIngressLaterArrivals arrivals) rest)
+
+def policyIngressQueueRoundsPendingBound : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources
+        (queuedPolicyWork (runPolicyIngressQueueRounds rounds arrivals config (policyIngressQueueState events current)))))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransport PolicyWorkState (fun (result : PolicyWorkState) =>
+      AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources result))))
+        (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))))
+      (runPolicyIngress (policyIngressQueueTrace rounds arrivals events) config current)
+      (queuedPolicyWork (runPolicyIngressQueueRounds rounds arrivals config (policyIngressQueueState events current)))
+      (equalSymmetry PolicyWorkState
+        (queuedPolicyWork (runPolicyIngressQueueRounds rounds arrivals config (policyIngressQueueState events current)))
+        (runPolicyIngress (policyIngressQueueTrace rounds arrivals events) config current)
+        (policyIngressQueueRoundsExecuteTrace rounds arrivals events config current))
+      (policyIngressPendingBound (policyIngressQueueTrace rounds arrivals events) config current)
+
+def policyIngressQueueCost : Count -> (Count -> PolicyIngressTrace) -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count -> Count -> Count -> Count :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (multiply (policyIngressLength (policyIngressQueueTrace rounds arrivals events)) eventCost)
+      (add (multiply (policyIngressProcessed (policyIngressQueueTrace rounds arrivals events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressQueueTrace rounds arrivals events) config current) handshakeCost))
+
+def policyIngressQueueCostLimit : Count -> (Count -> PolicyIngressTrace) -> PolicyIngressTrace -> PolicyWorkConfig -> Count -> Count -> Count -> Count :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (multiply rounds eventCost)
+      (add (multiply (add (workCapacity config) (multiply (policyIngressTrustedTicks (policyIngressQueueTrace rounds arrivals events)) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks (policyIngressQueueTrace rounds arrivals events)) (workHandshakeRate config))) handshakeCost))
+
+def policyIngressQueueCombinedCostEnvelope : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (policyIngressQueueCost rounds arrivals events config current eventCost policyCost handshakeCost)
+      (policyIngressQueueCostLimit rounds arrivals events config eventCost policyCost handshakeCost) :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds (multiply (policyIngressLength (policyIngressQueueTrace rounds arrivals events)) eventCost) (multiply rounds eventCost)
+      (add (multiply (policyIngressProcessed (policyIngressQueueTrace rounds arrivals events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressQueueTrace rounds arrivals events) config current) handshakeCost))
+      (add (multiply (add (workCapacity config) (multiply (policyIngressTrustedTicks (policyIngressQueueTrace rounds arrivals events)) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks (policyIngressQueueTrace rounds arrivals events)) (workHandshakeRate config))) handshakeCost))
+      (multipliedBounds (policyIngressLength (policyIngressQueueTrace rounds arrivals events)) rounds eventCost (policyIngressQueueDispatchBound rounds arrivals events))
+      (policyIngressCombinedCostEnvelope (policyIngressQueueTrace rounds arrivals events) config current policyCost handshakeCost workInitial handshakeInitial)
+
+def policyIngressQueueExhaustedGuardCost : (config : PolicyWorkConfig) -> (current : PolicySourceState) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    Equal Count
+      (policyIngressQueueCost (next zero)
+        (fun (round : Count) => policyIngressThen (policyIngressAttempt authenticated identity source swarm key index) policyIngressDone)
+        policyIngressDone config (policyWorkState zero current) eventCost policyCost handshakeCost) eventCost :=
+  fun (config : PolicyWorkConfig) (current : PolicySourceState) (authenticated : Flag) (identity : Count)
+      (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    equalTransitivity Count (add (add eventCost zero) zero) (add eventCost zero) eventCost
+      (addRightZero (add eventCost zero)) (addRightZero eventCost)

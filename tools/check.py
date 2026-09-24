@@ -374,6 +374,30 @@ MUTATIONS += [
 ]
 
 
+MUTATIONS += [
+    ("policy_queue_drops_backlog", "policyIngressQueueState (appendPolicyIngress events arrivals) current", "policyIngressQueueState arrivals current"),
+    ("policy_queue_arrivals_overtake_backlog", "policyIngressQueueState (appendPolicyIngress events arrivals) current", "policyIngressQueueState (appendPolicyIngress arrivals events) current"),
+    ("policy_queue_drops_arrivals", "policyIngressQueueState (appendPolicyIngress events arrivals) current", "policyIngressQueueState events current"),
+    ("policy_queue_enqueue_regrants_work", "policyIngressQueueState (appendPolicyIngress events arrivals) current", "policyIngressQueueState (appendPolicyIngress events arrivals) (policyWorkState (next (policyWorkCredits current)) (policyWorkSources current))"),
+    ("policy_queue_poll_loses_remainder", "(policyIngressPollRemainder fuel events) (runPolicyIngressPoll fuel events config current)", "policyIngressDone (runPolicyIngressPoll fuel events config current)"),
+    ("policy_queue_poll_replays_backlog", "(policyIngressPollRemainder fuel events) (runPolicyIngressPoll fuel events config current)", "events (runPolicyIngressPoll fuel events config current)"),
+    ("policy_queue_poll_reuses_old_state", "(policyIngressPollRemainder fuel events) (runPolicyIngressPoll fuel events config current)", "(policyIngressPollRemainder fuel events) current"),
+    ("policy_queue_poll_executes_extra_event", "(policyIngressPollRemainder fuel events) (runPolicyIngressPoll fuel events config current)", "(policyIngressPollRemainder fuel events) (runPolicyIngressPoll (next fuel) events config current)"),
+    ("policy_queue_suppresses_wake", "fun (queued : PolicyIngressQueueState) => policyIngressBacklogWake (queuedPolicyIngress queued)", "fun (queued : PolicyIngressQueueState) => off"),
+    ("policy_queue_wakes_empty_queue", "fun (queued : PolicyIngressQueueState) => policyIngressBacklogWake (queuedPolicyIngress queued)", "fun (queued : PolicyIngressQueueState) => on"),
+    ("policy_queue_round_has_zero_fuel", "(pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress (arrivals zero) queued))", "(pollPolicyIngressQueue zero config (enqueuePolicyIngress (arrivals zero) queued))"),
+    ("policy_queue_round_ignores_arrivals", "(pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress (arrivals zero) queued))", "(pollPolicyIngressQueue (next zero) config queued)"),
+    ("policy_queue_round_keeps_old_snapshot", "(pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress (arrivals zero) queued))", "queued"),
+    ("policy_queue_reuses_arrival_batch", "| next remaining => runPolicyIngressQueueRounds remaining (policyIngressLaterArrivals arrivals) config", "| next remaining => runPolicyIngressQueueRounds remaining arrivals config"),
+    ("policy_queue_arrival_index_does_not_advance", "fun (arrivals : Count -> PolicyIngressTrace) (round : Count) => arrivals (next round)", "fun (arrivals : Count -> PolicyIngressTrace) (round : Count) => arrivals round"),
+    ("policy_queue_arrival_history_drops_batch", "| next remaining => appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals))", "| next remaining => policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)"),
+    ("policy_queue_arrival_history_reorders_batches", "| next remaining => appendPolicyIngress (arrivals zero) (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals))", "| next remaining => appendPolicyIngress (policyIngressArrivalsThrough remaining (policyIngressLaterArrivals arrivals)) (arrivals zero)"),
+    ("policy_queue_trace_drops_dispatch", "| next remaining => appendPolicyIngress (policyIngressPollPrefix (next zero) (appendPolicyIngress events (arrivals zero)))", "| next remaining => appendPolicyIngress policyIngressDone"),
+    ("policy_queue_cost_omits_dispatch", "add (multiply (policyIngressLength (policyIngressQueueTrace rounds arrivals events)) eventCost)\n      (add", "add zero\n      (add"),
+    ("policy_queue_cost_limit_drops_dispatch", "add (multiply rounds eventCost)\n      (add (multiply (add (workCapacity config)", "add zero\n      (add (multiply (add (workCapacity config)"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

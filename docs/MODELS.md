@@ -631,8 +631,9 @@ This is a conditional per-poll bound, not measured CPU use or a wall-clock rate.
 Atoms C37-C40 record these obligations. Runtime queue materialization, memory
 bounds, producer interleavings, authentication before dispatch, empty-poll
 entry/exit costs, actual waker registration and executor overhead remain open.
-Progress additionally requires positive fuel and eventual scheduling; infinite
-arrivals and cleanup starvation are not resolved. Established resources, live
+Progress additionally requires positive fuel and eventual scheduling. Module 45
+adds conditional FIFO service under continued arrivals; runtime cleanup latency
+and queue growth remain open. Established resources, live
 per-source pending attribution, concrete query/dispatch costs, restart and
 configuration changes remain outside this slice.
 
@@ -644,10 +645,77 @@ drained queues, omit dispatch cost or charge unprocessed backlog.
 All must fail with semantic mismatches, alongside the existing negative checks.
 
 
+## Persistent FIFO ingress service
+
+`45-policy-ingress-queue.mech` stores an ordered ingress queue together with its
+current policy-work/resource state. Enqueue appends a finite arrival batch behind
+retained events without changing that state. Wake flags cover both retained
+backlog and arrivals into an empty queue; an empty queue has no backlog wake.
+An arbitrary-fuel queue poll preserves the exact continuation and the existing
+execution semantics. Zero fuel preserves the entire queued state.
+
+For repeated service, each modeled round appends its arrival batch and polls
+with exactly one unit of fuel. The arrivals function supplies arbitrary finite
+batches at successive round indices. `policyIngressQueueRoundsExecuteTrace`
+relates the carried resource state to the actual ordered dispatched trace,
+including events that arrived after the initial queue was created.
+`policyIngressQueueDispatchBound` bounds its length by delivered rounds, and
+`policyIngressQueueRoundsPendingBound` preserves initial pending-slot capacity.
+The model does not reset resource balances between turns.
+
+`policyIngressQueueServesPrefix` proves the following exact equation for any
+original prefix, suffix and arrival schedule, with `n = length(prefix)`:
+
+```
+service(n, arrivals, queue(prefix ++ suffix, current))
+  = queue(suffix ++ arrivalsThrough(n), run(prefix, current))
+```
+
+Thus an original prefix is serviced in its own length of delivered rounds even
+when every round adds more work. The original suffix and all intervening arrival
+batches remain queued in order. `policyIngressQueueEventTurnCount` and
+`policyIngressQueueEventProgress` reach a target after its preceding prefix
+length plus one, measured in delivered rounds. The target can be any ingress event, including
+completion or maintenance. Those events retain their existing work-credit
+bypass semantics; a stale completion can still correctly preserve a newer owner.
+
+`policyIngressQueueCombinedCostEnvelope` assumes initially bounded policy and
+handshake balances and proves:
+
+```
+dispatches * eventCost + processed * policyCost + starts * handshakeCost
+  <= rounds * eventCost
+     + (policyCapacity + ticks * policyRate) * policyCost
+     + (handshakeCapacity + ticks * handshakeRate) * handshakeCost
+```
+
+All counters and trusted ticks come from the actual dispatched trace, evaluated
+from the initial resource state. Each initial burst appears once across the
+whole sequence of rounds. `policyIngressQueueExhaustedGuardCost` also charges
+dispatch cost for an exhausted-credit attempt that arrives into an empty queue.
+The weights have the same conditional dominance requirements as module 44.
+
+Atoms C41-C44 record these obligations. Runtime queue retention, producer
+serialization, exactly-once enqueue, real wakeups and delivery of the required
+service turns need refinement. The progress theorem concerns this explicit
+one-event scheduler; arbitrary varying-fuel schedules and a wall-clock bound
+remain open. Finite batches may arrive on every turn, but total queue growth,
+overload loss, cancellation, allocation and enqueue cost are not bounded here.
+Arrival construction, empty turns, pre-dispatch work and executor overhead lie
+outside the dispatched-event cost envelope. Established resources, per-source
+pending attribution, restart and resource-cap changes remain open.
+
+Twenty queue mutations lose, reorder or replay backlog or arrivals, change
+resource state on enqueue, reuse a stale state, execute an extra event, suppress
+or invent a wake, remove service fuel, skip arrivals, reuse an arrival batch,
+fail to advance its index, alter arrival history, drop a dispatched trace event,
+omit its cost or drop the dispatch allowance from its limit. All must be rejected with semantic mismatches.
+
+
 ## Negative controls
 
-The checker rejects 265 invalid variants: three direct checks of equality,
-ordering and termination, plus 262 semantic mutations. Mutations exercise such
+The checker rejects 285 invalid variants: three direct checks of equality,
+ordering and termination, plus 282 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

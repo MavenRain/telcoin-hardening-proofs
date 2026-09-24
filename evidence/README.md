@@ -133,3 +133,18 @@ The receipt is a model-checking result. Concrete per-event cost bounds, queue
 construction, pre-dispatch authentication, executor overhead and cleanup
 scheduling remain open. Implementation links are `not_checked_this_run`;
 full implementation and deployment qualification remains blocked.
+
+`policy-ingress-queue-model-check.json` records persistent FIFO queue service.
+The bundle has 515 declarations across 29 modules, 80 atomic obligations and
+285 rejected negative checks, including 20 new queue mutations. The model
+preserves ordered arrivals and carried state, services any original prefix in
+its own length of delivered turns with one unit of fuel each, and connects
+repeated service to the actual dispatched trace. The pending-capacity bound
+and a combined cost envelope span all those turns without adding a new initial
+burst per turn.
+
+This receipt is a model-checking result. Progress is conditional on delivery of
+the modeled service turns. Queue memory, enqueue and empty-turn costs, real
+wakeups, concurrent producers, other fuel schedules and wall-clock cleanup
+latency remain open. Implementation links are `not_checked_this_run`;
+full implementation and deployment qualification remains blocked.
