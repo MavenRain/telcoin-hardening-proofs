@@ -93,3 +93,14 @@ and storage. A feature-level result does not satisfy the remaining gates.
 
 Operational evidence remains an explicit environmental assumption even when a
 formal model proves that its recorded values satisfy an acceptance predicate.
+
+`policy-work-model-check.json` records the independent policy-work budget and its
+composition with policy/source admission. It adds four atomic obligations,
+27 explicit equality/order declarations and 27 negative controls. The resulting
+bundle has 445 declarations across 26 modules, 68 atomic obligations and
+227 rejected negative checks. The work envelope counts processed attempts and
+publications even when denied; the combined cost result uses supplied symbolic
+weights and preserves the accepted-start envelope. Implementation links are
+`not_checked_this_run`. Guard, receipt-production, maintenance and completion
+costs, receipt provenance, runtime refinement, clock correspondence, established
+resources and deployment qualification remain open.

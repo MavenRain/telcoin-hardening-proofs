@@ -484,6 +484,58 @@ pending attribution, established resources, resource-cap changes and restarts
 are not added here. The cost envelope excludes rejected attempts, policy
 processing and maintenance; honest admission and scheduling fairness remain open.
 
+## Bounded policy-processing work
+
+`42-policy-work.mech` adds one independent policy-work balance to the complete
+policy/source state. Its fixed configuration contains the source quota,
+handshake capacity and rate, and policy-work capacity and rate. Both swarms,
+all identities, all source-validation states and all policy views share the
+same work balance. A processed attempt or publication spends one work credit
+before delegating to the existing policy/source transition, including denied
+attempts and stale publications. Work credit does not imply admission.
+
+An exhausted attempt or publication preserves the complete state, and an
+exhausted attempt emits no admission receipt. With credit available, the
+original event is retained, including its receipt, identity, source, key and
+slot. Maintenance and completion
+remain enabled at zero work credit and preserve that balance. Trusted ticks
+refill the two balances at their independently configured rates; claimed time
+is a complete no-op. A single serialized pre-state governs the work check,
+charge, policy check and source admission. This is a model transition, not a
+proof that the Rust paths have that ordering.
+
+`PolicyWorkReceipt` records whether a policy operation was processed. It is
+separate from the indexed admission receipt and grants no authority. The
+receipt-counted work trace agrees with a projection into the existing credit
+system. Its synthetic validated rate attempt denotes one unit of policy work,
+even for an unvalidated network source; it does not upgrade network validation.
+The source-trace erasure preserves the entire underlying state, the accepted
+start count and exactly the original trusted ticks. Arbitrary finite mixed
+traces preserve both credit capacities, resident debt bounds and initial pending
+and source-table occupancy limits, with the corresponding initial witnesses.
+
+For initial balances within their capacities, let `P` be processed policy work,
+`H` receipt-counted accepted starts and `T` trusted ticks. The model proves:
+
+```text
+P <= policy_capacity + T * policy_rate
+H <= handshake_capacity + T * handshake_rate
+P * policy_cost + H * handshake_cost
+  <= (policy_capacity + T * policy_rate) * policy_cost
+     + (handshake_capacity + T * handshake_rate) * handshake_cost
+```
+
+The cost weights are supplied upper bounds in a common unit. Runtime evidence
+must cover every processed operation, including failed policy checks and
+publications, and bound input and roster sizes sufficiently to justify those
+weights. This model receives already constructed policy receipts. Receipt
+creation and authentication, work before the budget check, exhausted-budget
+guards, maintenance, completion and established resources require separate
+accounting. Trusted clock correspondence, nonreplayed ticks, checked arithmetic,
+fixed configuration and atomic integration remain implementation obligations.
+The budget can delay policy recovery; no fairness, successful admission or
+wall-clock availability result follows from these upper bounds.
+
 ## Negative controls
 
 The checker rejects 200 invalid variants: three direct checks of equality,
@@ -565,6 +617,16 @@ receipt without the policy gate. All changed definitions were type-checked
 through their declarations before the module-41 proofs rejected the full
 mutants. These rejections are at statements over variables, not only closed
 examples.
+
+The 27 policy-work controls remove charges, trusted refills or budget gates,
+suppress funded events or cleanup, fabricate trusted time, turn unfunded work
+into trusted clock ticks, change refill rates or capacity, alias the work and
+handshake balances in the work charge or in the work gate, corrupt processing
+receipts and counts, reuse initial credit during a trace, use post-charge credit
+for the admission gate, or emit an admission receipt without checking the work
+budget. Their
+full mutants must fail with proof type mismatches, rather than parser failures,
+crashes or timeouts. The new statements range over variables and finite traces.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

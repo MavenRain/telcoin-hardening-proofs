@@ -301,6 +301,37 @@ MUTATIONS += [
     ("policy_source_tick_changes_view", "    | policySourceTick => view", "    | policySourceTick => commitPolicyAction (policyGeneration view) (policyResolution zero on zero) view"),
 ]
 
+MUTATIONS += [
+    ("policy_work_attempt_free", "| policySourceAttempt receipt identity source swarm key index => rateAttempt validated primarySwarm zero off", "| policySourceAttempt receipt identity source swarm key index => rateAttempt unvalidated primarySwarm zero off"),
+    ("policy_work_publication_free", "| policySourcePublish observed update => rateAttempt validated primarySwarm zero off", "| policySourcePublish observed update => rateAttempt unvalidated primarySwarm zero off"),
+    ("policy_work_empty_gate_bypassed", "| zero => policySourceClaimedTick zero\n    | next remaining => event", "| zero => event\n    | next remaining => event"),
+    ("policy_work_funded_event_dropped", "| zero => policySourceClaimedTick zero\n    | next remaining => event", "| zero => policySourceClaimedTick zero\n    | next remaining => policySourceClaimedTick zero"),
+    ("policy_work_attempt_bypasses_budget", "| policySourceAttempt receipt identity source swarm key index => creditedPolicyWorkEvent available event", "| policySourceAttempt receipt identity source swarm key index => event"),
+    ("policy_work_publication_bypasses_budget", "| policySourcePublish observed update => creditedPolicyWorkEvent available event", "| policySourcePublish observed update => event"),
+    ("policy_work_maintenance_dropped", "| policySourceMaintenance maintenance => event", "| policySourceMaintenance maintenance => policySourceClaimedTick zero"),
+    ("policy_work_completion_dropped", "| policySourceFinish receipt reason => event", "| policySourceFinish receipt reason => policySourceClaimedTick zero"),
+    ("policy_work_tick_dropped", "| policySourceTick => event", "| policySourceTick => policySourceClaimedTick zero"),
+    ("policy_work_claimed_tick_forwarded", "| policySourceClaimedTick claimed => event", "| policySourceClaimedTick claimed => policySourceTick"),
+    ("policy_work_maintenance_mints_credit", "| policySourceMaintenance maintenance => claimedClockCredit zero", "| policySourceMaintenance maintenance => trustedClockCredit rate"),
+    ("policy_work_completion_mints_credit", "| policySourceFinish receipt reason => claimedClockCredit zero", "| policySourceFinish receipt reason => trustedClockCredit rate"),
+    ("policy_work_claimed_tick_mints_credit", "| policySourceClaimedTick claimed => claimedClockCredit claimed", "| policySourceClaimedTick claimed => trustedClockCredit claimed"),
+    ("policy_work_wrong_refill_rate", "creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event)", "creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workHandshakeRate config) event)"),
+    ("policy_work_capacity_inflated", "creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event)", "creditsAfter (next (workCapacity config)) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event)"),
+    ("policy_work_charge_dropped", "creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event)", "policyWorkCredits current"),
+    ("policy_work_balance_aliased", "creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event)", "creditsAfter (workCapacity config) (admissionCredits (policySourceResources (policyWorkSources current))) (policyWorkRateEvent (workRate config) event)"),
+    ("policy_work_empty_receipt_granted", "| zero => noPolicyWorkReceipt", "| zero => processedPolicyWork"),
+    ("policy_work_processed_receipt_dropped", "| next remaining => processedPolicyWork", "| next remaining => noPolicyWorkReceipt"),
+    ("policy_work_completion_counted", "| policySourceFinish receipt reason => noPolicyWorkReceipt", "| policySourceFinish receipt reason => processedPolicyWork"),
+    ("policy_work_trace_reuses_initial_credit", "| policySourcesThen event rest => add (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current)))\n        (policyWorkProcessed rest config (policyWorkStep config event current))", "| policySourcesThen event rest => add (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current)))\n        (policyWorkProcessed rest config current)"),
+    ("policy_work_receipt_count_doubled", "| processedPolicyWork => next zero", "| processedPolicyWork => next (next zero)"),
+    ("policy_work_source_uses_post_charge", "(policyWorkSourceEvent (policyWorkCredits current) event) (policyWorkSources current))", "(policyWorkSourceEvent (predecessor (policyWorkCredits current)) event) (policyWorkSources current))"),
+    ("policy_work_admission_receipt_bypasses_budget", "policySourceAttemptReceipt (workSourceQuota config) (workHandshakeRate config)\n      (policyWorkSourceEvent (policyWorkCredits current) event) (policyWorkSources current)", "policySourceAttemptReceipt (workSourceQuota config) (workHandshakeRate config)\n      event (policyWorkSources current)"),
+    ("policy_work_unfunded_event_ticks_clock", "| zero => policySourceClaimedTick zero\n    | next remaining => event", "| zero => policySourceTick\n    | next remaining => event"),
+    ("policy_work_tick_skips_refill", "| policySourceTick => trustedClockCredit rate", "| policySourceTick => claimedClockCredit zero"),
+    ("policy_work_gate_reads_handshake_credit", "(policyWorkSourceEvent (policyWorkCredits current) event) (policyWorkSources current))", "(policyWorkSourceEvent (admissionCredits (policySourceResources (policyWorkSources current))) event) (policyWorkSources current))"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

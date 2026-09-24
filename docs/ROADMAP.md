@@ -20,17 +20,20 @@ completion, stale and duplicate callback protection, and held or missing slot
 refusal now hold for arbitrary finite pending prefixes and suffixes. Current
 policy receipts now gate the same source admission transition. Mixed
 policy/source traces retain the indexed admission equations, resource bounds
-and receipt-counted burst-plus-rate and per-start cost envelopes.
+and receipt-counted burst-plus-rate and per-start cost envelopes. An independent
+policy-work budget now charges processed attempts and publications, including
+denials, and composes its discrete cost envelope with accepted handshake work.
+Cleanup bypasses work exhaustion; guard and receipt-production costs remain open.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 64 atomic model obligations
+   explicit dispositions. The current 34 groups and 68 atomic model obligations
    are not the final atomic list.
-2. Extend policy/source admission and its coupled global rate envelope with
-   established resources and independently bounded policy-processing work.
-   Model live per-source pending attribution.
+2. Extend budgeted policy/source admission with established resources and live
+   per-source pending attribution. Bound guards, policy-receipt production,
+   maintenance and other work outside the processed policy-operation envelope.
    Refine canonical source extraction, key uniqueness, indexed internal receipts,
    policy receipt provenance from authenticated internal policy queries and atomic
    policy/source/global/pending enforcement against one pre-state.

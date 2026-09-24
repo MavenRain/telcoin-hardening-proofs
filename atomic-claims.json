@@ -7,7 +7,7 @@
     "nonwrapping_generations": "Count generations are mathematical naturals. A finite machine identifier needs a no-wrap or generation-collision argument.",
     "complete_event_refinement": "Every relevant implementation event and error path is represented by the modeled transition.",
     "trusted_clock": "Only the trusted monotonic clock issues ticks. One modeled tick has a specified real duration and is never replayed or fabricated by peer traffic.",
-    "cost_dominance": "Each supplied weight bounds real per-entry or per-start cost in a common unit, including the allocated state charged to that component.",
+    "cost_dominance": "Each supplied weight bounds real per-entry, per-start or per-processed-policy-operation cost in a common unit, including the allocated state charged to that component. A policy-operation weight covers denied attempts and stale publications as well as successful operations; input and roster bounds must justify it.",
     "fifo_projection": "The waiting rank correctly projects a critical FIFO queue; later critical work is enqueued behind the fixed target request.",
     "scheduled_rounds": "A completed modeled round really services one critical request. The runtime must execute enough such rounds to establish a wall-clock bound.",
     "executor_wakeup": "The executor honors the modeled wakeup request and eventually gives a pending poll another turn.",
@@ -22,7 +22,8 @@
     "fixed_source_quota": "The per-source quota is fixed during each restriction or composed source-system trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota; composed traces require a bound for every initial resident. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
     "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event.",
     "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. In the policy/source composition, policy receipt validation and the actual peer identity belong to that same transition. The raw plan and commit helpers are not independently callable runtime admission APIs.",
-    "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run."
+    "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run.",
+    "bounded_policy_processing": "One process-wide policy-work balance gates every modeled attempt and publication before processing. A processed operation spends exactly one credit even when denied. Work capacity and rate and the handshake rate are fixed in module 42. The guard, charge and delegated policy/source event use one serialized pre-state. Already constructed policy receipts are inputs; their creation, pre-guard work, exhausted guards, maintenance and completion need separate cost accounting."
   },
   "claims": [
     {
@@ -1908,6 +1909,147 @@
         "Refine one shared runtime balance, receipt-counted accepted starts and trusted nonreplayed ticks to this discrete trace in both swarms.",
         "Establish real clock correspondence, checked arithmetic, initial burst credit and a per-start weight that bounds accepted-start work.",
         "Account separately for rejected-attempt work, policy processing, maintenance, established resources and configuration changes; the theorem is not an honest-admission or wall-clock fairness guarantee."
+      ]
+    },
+    {
+      "id": "C29",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "An independent shared policy-work budget gates attempts and publications before the policy/source transition. At zero work credit, either event preserves the complete state and an attempt emits no admission receipt. With positive work credit, the original event and all of its arguments are retained and passed to the policy/source transition, regardless of policy view, identity, source validation or swarm.",
+      "theorems": [
+        "exhaustedPolicyWorkAttempt",
+        "exhaustedPolicyWorkPublication",
+        "exhaustedPolicyWorkHasNoAdmissionReceipt",
+        "creditedPolicyWorkRunsEvent",
+        "creditedPolicyWorkStep"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "stable_resource_configuration",
+        "bounded_policy_processing"
+      ],
+      "open_implementation_obligations": [
+        "Establish one process-wide work balance and atomic pre-state ordering of the budget guard, charge, policy check and source admission in both swarms.",
+        "Refine every attempt and publication path, including denied and stale operations; the input policy receipt is already constructed and its production cost is outside this model.",
+        "Bound exhausted-budget guards and define how delayed publications and policy recovery receive service without violating the work cap."
+      ]
+    },
+    {
+      "id": "C30",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Every attempt or publication processed with positive work credit consumes exactly one work credit, including denied attempts, unvalidated sources and stale publications. Internal processing receipts count work independently of admitted handshakes and agree with the credit-trace work count over arbitrary finite mixed traces.",
+      "theorems": [
+        "everyProcessedAttemptSpendsWork",
+        "everyProcessedPublicationSpendsWork",
+        "policyWorkReceiptMatchesCharge",
+        "policyWorkProcessedProjection"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "stable_resource_configuration",
+        "bounded_policy_processing"
+      ],
+      "open_implementation_obligations": [
+        "Prove that one work debit and one processing observation correspond to every executed policy operation, including failures, with no bypass, duplicate count or refund.",
+        "Do not treat the synthetic validated work-rate event as network reachability or a privileged exemption.",
+        "Account for receipt production, parsing, authentication and any work before or outside the modeled budget guard."
+      ]
+    },
+    {
+      "id": "C31",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Only trusted ticks refill the independent policy-work bucket at its fixed rate, capped at its capacity. Claimed time is a complete no-op. From an initial balance within capacity, arbitrary finite traces retain that bound and receipt-counted processed work is at most work capacity plus trusted ticks times work rate.",
+      "theorems": [
+        "policyWorkTrustedTick",
+        "policyWorkClaimedTickIsNoOp",
+        "policyWorkCreditProjection",
+        "policyWorkUniformIssuance",
+        "policyWorkCapacityBound",
+        "policyWorkBurstRateEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "trusted_clock"
+      ],
+      "open_implementation_obligations": [
+        "Connect nonreplayed trusted ticks to monotonic elapsed time and establish fixed policy-work capacity and rate, initial credit bounds and checked arithmetic.",
+        "Refine aggregate work charging across all identities and both swarms without minting work credit on policy changes, maintenance or completion.",
+        "Model resource-cap changes, restart persistence and work scheduling before claiming those behaviors or wall-clock progress."
+      ]
+    },
+    {
+      "id": "C32",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Budgeted policy/source traces project exactly to the existing policy/source state, accepted-start count and trusted ticks. Maintenance and indexed completion bypass work exhaustion without minting work credit. Mixed traces retain handshake credit, per-resident debt, pending occupancy and source-table occupancy bounds. From bounded initial balances, the weighted sum of processed policy work and accepted handshake starts is bounded by the sum of their independent burst-plus-rate envelopes.",
+      "theorems": [
+        "policyWorkCompletionBypassesBudget",
+        "policyWorkMaintenanceBypassesBudget",
+        "policyWorkSourceProjection",
+        "policyWorkStartsProjection",
+        "policyWorkEventKeepsTicks",
+        "policyWorkTicksProjection",
+        "policyWorkHandshakeEnvelope",
+        "policyWorkPendingBound",
+        "policyWorkDebtBound",
+        "policyWorkTableBound",
+        "policyWorkHandshakeCapacityBound",
+        "policyWorkCombinedCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "atomic_policy_publication",
+        "policy_input_validation",
+        "policy_receipt_provenance",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts",
+        "internal_callback_tokens",
+        "nonwrapping_generations",
+        "trusted_clock",
+        "trusted_source_expiry",
+        "bounded_policy_processing",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine both balances, exact admission receipts, atomic policy/source admission and every cleanup path to the composed trace, with all required initial quota and credit witnesses.",
+        "Supply common-unit cost weights bounding all processed policy operations, including rejected attempts and publications, and accepted-start work; justify the necessary payload, roster and algorithmic size bounds.",
+        "Bound guard, receipt-production, maintenance, completion and established-resource costs separately. The combined symbolic bound does not establish honest admission, policy-recovery fairness or deployment qualification."
       ]
     }
   ]

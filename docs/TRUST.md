@@ -48,6 +48,14 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   runtime cost dominance and complete accounting of retained allocations.
   The shared token-bucket trace proves a discrete burst-plus-rate envelope;
   trusted ticks must correspond to the real clock.
+- The policy-work extension charges processed attempts and publications from an
+  independent shared balance before the delegated policy/source event. Its cost
+  envelope includes denied operations but receives already constructed policy
+  receipts. Receipt creation, authentication, pre-budget work, exhausted guards,
+  maintenance, completion and established resources need separate cost bounds.
+  Runtime evidence must justify fixed rates, capacities and per-operation weights,
+  including payload and roster bounds, and the atomic pre-state ordering. Policy
+  recovery and honest traffic can be delayed; no scheduling fairness is proved.
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
   bindings and complete security-state classification, including simultaneous

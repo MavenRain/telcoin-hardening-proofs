@@ -105,9 +105,14 @@
         "policySourceEventIssuance",
         "policySourceUniformIssuance",
         "policySourceBurstRateEnvelope",
-        "policySourceCostEnvelope"
+        "policySourceCostEnvelope",
+        "policyWorkProcessedProjection",
+        "policyWorkCapacityBound",
+        "policyWorkBurstRateEnvelope",
+        "policyWorkHandshakeEnvelope",
+        "policyWorkCombinedCostEnvelope"
       ],
-      "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open. The source-admission count also has a weighted discrete rate envelope; rejected-attempt work and other resource classes require separate cost bounds. Receipt-gated policy/source traces preserve the accepted-start rate and cost envelopes across policy changes; policy processing and maintenance costs remain separate.",
+      "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open. The source-admission count also has a weighted discrete rate envelope; pre-budget rejection work and other resource classes require separate cost bounds. Receipt-gated policy/source traces preserve the accepted-start rate and cost envelopes across policy changes; module 42 adds a shared policy-work budget that charges processed attempts and publications even when denied, and composes its symbolic cost envelope with accepted-start work. Guard, receipt-production, maintenance, completion and established-resource costs remain open.",
       "required_evidence": [
         "D02-D03",
         "T4a",
@@ -180,9 +185,19 @@
         "policySourceTraceCreditBound",
         "policySourceTraceDebtBound",
         "policySourceTracePendingBound",
-        "policySourceTraceTableBound"
+        "policySourceTraceTableBound",
+        "exhaustedPolicyWorkAttempt",
+        "exhaustedPolicyWorkPublication",
+        "creditedPolicyWorkRunsEvent",
+        "creditedPolicyWorkStep",
+        "everyProcessedAttemptSpendsWork",
+        "everyProcessedPublicationSpendsWork",
+        "policyWorkCompletionBypassesBudget",
+        "policyWorkMaintenanceBypassesBudget",
+        "policyWorkTrustedTick",
+        "policyWorkClaimedTickIsNoOp"
       ],
-      "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed policy/source traces preserve shared handshake credit, per-resident source quota, source-table size and pending occupancy bounds during policy changes; publication preserves the entire source-admission state. Real fault detection, atomic publication, complete accounting and service isolation remain open.",
+      "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed policy/source traces preserve shared handshake credit, per-resident source quota, source-table size and pending occupancy bounds during policy changes; publication preserves the entire source-admission state. Real fault detection, atomic publication, complete accounting and service isolation remain open. Module 42 gates attempts and publications with an independent work budget, including Open/Grace and denied operations, while preserving cleanup and trusted clock progress. Runtime work ordering, costs and policy-recovery scheduling remain open.",
       "required_evidence": [
         "D05 invalidity predicates",
         "A5 fallback/recovery",

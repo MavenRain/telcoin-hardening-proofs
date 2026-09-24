@@ -1,0 +1,519 @@
+-- Independent policy-work and handshake budgets share only trusted clock ticks.
+-- A processed attempt or publication spends work credit even if it is denied.
+-- Guard, maintenance and completion costs, and receipt provenance, remain external.
+mu PolicyWorkConfig : Type 0 with
+| policyWorkConfig : Count -> Count -> Count -> Count -> Count -> PolicyWorkConfig
+
+def workSourceQuota : PolicyWorkConfig -> Count :=
+  fun (config : PolicyWorkConfig) =>
+    case config as self in PolicyWorkConfig return Count with
+    | policyWorkConfig quota capacity rate workCapacity workRate => quota
+
+def workHandshakeCapacity : PolicyWorkConfig -> Count :=
+  fun (config : PolicyWorkConfig) =>
+    case config as self in PolicyWorkConfig return Count with
+    | policyWorkConfig quota capacity rate workCapacity workRate => capacity
+
+def workHandshakeRate : PolicyWorkConfig -> Count :=
+  fun (config : PolicyWorkConfig) =>
+    case config as self in PolicyWorkConfig return Count with
+    | policyWorkConfig quota capacity rate workCapacity workRate => rate
+
+def workCapacity : PolicyWorkConfig -> Count :=
+  fun (config : PolicyWorkConfig) =>
+    case config as self in PolicyWorkConfig return Count with
+    | policyWorkConfig quota capacity rate policyCapacity policyRate => policyCapacity
+
+def workRate : PolicyWorkConfig -> Count :=
+  fun (config : PolicyWorkConfig) =>
+    case config as self in PolicyWorkConfig return Count with
+    | policyWorkConfig quota capacity rate policyCapacity policyRate => policyRate
+
+mu PolicyWorkState : Type 0 with
+| policyWorkState : Count -> PolicySourceState -> PolicyWorkState
+
+def policyWorkCredits : PolicyWorkState -> Count :=
+  fun (current : PolicyWorkState) =>
+    case current as self in PolicyWorkState return Count with
+    | policyWorkState available sources => available
+
+def policyWorkSources : PolicyWorkState -> PolicySourceState :=
+  fun (current : PolicyWorkState) =>
+    case current as self in PolicyWorkState return PolicySourceState with
+    | policyWorkState available sources => sources
+
+mu PolicyWorkReceipt : Type 0 with
+| noPolicyWorkReceipt : PolicyWorkReceipt
+| processedPolicyWork : PolicyWorkReceipt
+
+def workReceiptFromCredits : Count -> PolicyWorkReceipt :=
+  fun (available : Count) =>
+    case available as balance in Count return PolicyWorkReceipt with
+    | zero => noPolicyWorkReceipt
+    | next remaining => processedPolicyWork
+
+def policyWorkReceipt : PolicySourceEvent -> Count -> PolicyWorkReceipt :=
+  fun (event : PolicySourceEvent) (available : Count) =>
+    case event as action in PolicySourceEvent return PolicyWorkReceipt with
+    | policySourceAttempt receipt identity source swarm key index => workReceiptFromCredits available
+    | policySourcePublish observed update => workReceiptFromCredits available
+    | policySourceMaintenance maintenance => noPolicyWorkReceipt
+    | policySourceFinish receipt reason => noPolicyWorkReceipt
+    | policySourceTick => noPolicyWorkReceipt
+    | policySourceClaimedTick claimed => noPolicyWorkReceipt
+
+def policyWorkReceiptCount : PolicyWorkReceipt -> Count :=
+  fun (receipt : PolicyWorkReceipt) =>
+    case receipt as self in PolicyWorkReceipt return Count with
+    | noPolicyWorkReceipt => zero
+    | processedPolicyWork => next zero
+
+-- The synthetic validated rate attempt denotes work, not network validation.
+def policyWorkRateEvent : Count -> PolicySourceEvent -> RateEvent :=
+  fun (rate : Count) (event : PolicySourceEvent) =>
+    case event as action in PolicySourceEvent return RateEvent with
+    | policySourceAttempt receipt identity source swarm key index => rateAttempt validated primarySwarm zero off
+    | policySourcePublish observed update => rateAttempt validated primarySwarm zero off
+    | policySourceMaintenance maintenance => claimedClockCredit zero
+    | policySourceFinish receipt reason => claimedClockCredit zero
+    | policySourceTick => trustedClockCredit rate
+    | policySourceClaimedTick claimed => claimedClockCredit claimed
+
+def creditedPolicyWorkEvent : Count -> PolicySourceEvent -> PolicySourceEvent :=
+  fun (available : Count) (event : PolicySourceEvent) =>
+    case available as balance in Count return PolicySourceEvent with
+    | zero => policySourceClaimedTick zero
+    | next remaining => event
+
+def policyWorkSourceEvent : Count -> PolicySourceEvent -> PolicySourceEvent :=
+  fun (available : Count) (event : PolicySourceEvent) =>
+    case event as action in PolicySourceEvent return PolicySourceEvent with
+    | policySourceAttempt receipt identity source swarm key index => creditedPolicyWorkEvent available event
+    | policySourcePublish observed update => creditedPolicyWorkEvent available event
+    | policySourceMaintenance maintenance => event
+    | policySourceFinish receipt reason => event
+    | policySourceTick => event
+    | policySourceClaimedTick claimed => event
+
+def policyWorkStep : PolicyWorkConfig -> PolicySourceEvent -> PolicyWorkState -> PolicyWorkState :=
+  fun (config : PolicyWorkConfig) (event : PolicySourceEvent) (current : PolicyWorkState) =>
+    policyWorkState
+      (creditsAfter (workCapacity config) (policyWorkCredits current) (policyWorkRateEvent (workRate config) event))
+      (policySourceStep (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config)
+        (policyWorkSourceEvent (policyWorkCredits current) event) (policyWorkSources current))
+
+def policyWorkAttemptReceipt : PolicyWorkConfig -> PolicySourceEvent -> PolicyWorkState -> AdmissionReceipt :=
+  fun (config : PolicyWorkConfig) (event : PolicySourceEvent) (current : PolicyWorkState) =>
+    policySourceAttemptReceipt (workSourceQuota config) (workHandshakeRate config)
+      (policyWorkSourceEvent (policyWorkCredits current) event) (policyWorkSources current)
+
+def exhaustedPolicyWorkAttempt : (config : PolicyWorkConfig) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> Equal PolicyWorkState
+      (policyWorkStep config (policySourceAttempt receipt identity source swarm key index)
+        (policyWorkState zero (policySourceState view resources)))
+      (policyWorkState zero (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (receipt : PolicyReceipt) (identity : Count) (source : Reachability)
+      (swarm : SwarmClass) (key : Count) (index : Count) (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def exhaustedPolicyWorkPublication : (config : PolicyWorkConfig) -> (observed : Count) -> (update : PolicyAction) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> Equal PolicyWorkState
+      (policyWorkStep config (policySourcePublish observed update) (policyWorkState zero (policySourceState view resources)))
+      (policyWorkState zero (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (observed : Count) (update : PolicyAction)
+      (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def exhaustedPolicyWorkHasNoAdmissionReceipt : (config : PolicyWorkConfig) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    (current : PolicySourceState) -> Equal AdmissionReceipt
+      (policyWorkAttemptReceipt config (policySourceAttempt receipt identity source swarm key index) (policyWorkState zero current))
+      noAdmissionReceipt :=
+  fun (config : PolicyWorkConfig) (receipt : PolicyReceipt) (identity : Count) (source : Reachability)
+      (swarm : SwarmClass) (key : Count) (index : Count) (current : PolicySourceState) => same
+
+def creditedPolicyWorkRunsEvent : (event : PolicySourceEvent) -> (remaining : Count) ->
+    Equal PolicySourceEvent (policyWorkSourceEvent (next remaining) event) event :=
+  fun (event : PolicySourceEvent) (remaining : Count) =>
+    case event as action in PolicySourceEvent return
+      Equal PolicySourceEvent (policyWorkSourceEvent (next remaining) action) action with
+    | policySourceAttempt receipt identity source swarm key index => same
+    | policySourcePublish observed update => same
+    | policySourceMaintenance maintenance => same
+    | policySourceFinish receipt reason => same
+    | policySourceTick => same
+    | policySourceClaimedTick claimed => same
+
+def creditedPolicyWorkStep : (config : PolicyWorkConfig) -> (event : PolicySourceEvent) -> (remaining : Count) ->
+    (current : PolicySourceState) -> Equal PolicySourceState
+      (policyWorkSources (policyWorkStep config event (policyWorkState (next remaining) current)))
+      (policySourceStep (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config) event current) :=
+  fun (config : PolicyWorkConfig) (event : PolicySourceEvent) (remaining : Count) (current : PolicySourceState) =>
+    case event as action in PolicySourceEvent return Equal PolicySourceState
+      (policyWorkSources (policyWorkStep config action (policyWorkState (next remaining) current)))
+      (policySourceStep (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config) action current) with
+    | policySourceAttempt receipt identity source swarm key index => same
+    | policySourcePublish observed update => same
+    | policySourceMaintenance maintenance => same
+    | policySourceFinish receipt reason => same
+    | policySourceTick => same
+    | policySourceClaimedTick claimed => same
+
+def everyProcessedAttemptSpendsWork : (config : PolicyWorkConfig) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    (remaining : Count) -> (current : PolicySourceState) -> Equal Count
+      (policyWorkCredits (policyWorkStep config (policySourceAttempt receipt identity source swarm key index)
+        (policyWorkState (next remaining) current))) remaining :=
+  fun (config : PolicyWorkConfig) (receipt : PolicyReceipt) (identity : Count) (source : Reachability)
+      (swarm : SwarmClass) (key : Count) (index : Count) (remaining : Count) (current : PolicySourceState) => same
+
+def everyProcessedPublicationSpendsWork : (config : PolicyWorkConfig) -> (observed : Count) -> (update : PolicyAction) ->
+    (remaining : Count) -> (current : PolicySourceState) -> Equal Count
+      (policyWorkCredits (policyWorkStep config (policySourcePublish observed update) (policyWorkState (next remaining) current))) remaining :=
+  fun (config : PolicyWorkConfig) (observed : Count) (update : PolicyAction)
+      (remaining : Count) (current : PolicySourceState) => same
+
+def policyWorkCompletionBypassesBudget : (config : PolicyWorkConfig) -> (receipt : AdmissionReceipt) ->
+    (reason : PendingEnd) -> (available : Count) -> (current : PolicySourceState) -> Equal PolicyWorkState
+      (policyWorkStep config (policySourceFinish receipt reason) (policyWorkState available current))
+      (policyWorkState available (policySourceStep (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policySourceFinish receipt reason) current)) :=
+  fun (config : PolicyWorkConfig) (receipt : AdmissionReceipt) (reason : PendingEnd)
+      (available : Count) (current : PolicySourceState) => same
+
+def policyWorkMaintenanceBypassesBudget : (config : PolicyWorkConfig) -> (maintenance : SourceMaintenance) ->
+    (available : Count) -> (current : PolicySourceState) -> Equal PolicyWorkState
+      (policyWorkStep config (policySourceMaintenance maintenance) (policyWorkState available current))
+      (policyWorkState available (policySourceStep (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policySourceMaintenance maintenance) current)) :=
+  fun (config : PolicyWorkConfig) (maintenance : SourceMaintenance) (available : Count) (current : PolicySourceState) => same
+
+def policyWorkTrustedTick : (config : PolicyWorkConfig) -> (available : Count) -> (current : PolicySourceState) ->
+    Equal PolicyWorkState (policyWorkStep config policySourceTick (policyWorkState available current))
+      (policyWorkState (boundedWork (workCapacity config) (add available (workRate config)))
+        (policySourceStep (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config) policySourceTick current)) :=
+  fun (config : PolicyWorkConfig) (available : Count) (current : PolicySourceState) => same
+
+def policyWorkClaimedTickIsNoOp : (config : PolicyWorkConfig) -> (claimed : Count) -> (available : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> Equal PolicyWorkState
+      (policyWorkStep config (policySourceClaimedTick claimed) (policyWorkState available (policySourceState view resources)))
+      (policyWorkState available (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (claimed : Count) (available : Count)
+      (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def policyWorkReceiptMatchesCharge : (event : PolicySourceEvent) -> (rate : Count) -> (available : Count) ->
+    Equal Count (handshakeStartsNow available (policyWorkRateEvent rate event))
+      (policyWorkReceiptCount (policyWorkReceipt event available)) :=
+  fun (event : PolicySourceEvent) (rate : Count) (available : Count) =>
+    case event as action in PolicySourceEvent return Equal Count
+      (handshakeStartsNow available (policyWorkRateEvent rate action))
+      (policyWorkReceiptCount (policyWorkReceipt action available)) with
+    | policySourceAttempt receipt identity source swarm key index =>
+        (case available as balance in Count return Equal Count
+          (handshakeStartsNow balance (policyWorkRateEvent rate (policySourceAttempt receipt identity source swarm key index)))
+          (policyWorkReceiptCount (policyWorkReceipt (policySourceAttempt receipt identity source swarm key index) balance)) with
+        | zero => same
+        | next remaining => same)
+    | policySourcePublish observed update =>
+        (case available as balance in Count return Equal Count
+          (handshakeStartsNow balance (policyWorkRateEvent rate (policySourcePublish observed update)))
+          (policyWorkReceiptCount (policyWorkReceipt (policySourcePublish observed update) balance)) with
+        | zero => same
+        | next remaining => same)
+    | policySourceMaintenance maintenance => same
+    | policySourceFinish receipt reason => same
+    | policySourceTick => same
+    | policySourceClaimedTick claimed => same
+
+def rec runPolicyWork : PolicySourceTrace -> PolicyWorkConfig -> PolicyWorkState -> PolicyWorkState :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return PolicyWorkState with
+    | policySourcesDone => current
+    | policySourcesThen event rest => runPolicyWork rest config (policyWorkStep config event current)
+
+def rec policyWorkRates : PolicySourceTrace -> Count -> RateTrace :=
+  fun (trace : PolicySourceTrace) (rate : Count) =>
+    case trace as self in PolicySourceTrace return RateTrace with
+    | policySourcesDone => rateDone
+    | policySourcesThen event rest => rateEvent (policyWorkRateEvent rate event) (policyWorkRates rest rate)
+
+def rec policyWorkProcessed : PolicySourceTrace -> PolicyWorkConfig -> PolicyWorkState -> Count :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Count with
+    | policySourcesDone => zero
+    | policySourcesThen event rest => add (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current)))
+        (policyWorkProcessed rest config (policyWorkStep config event current))
+
+def rec policyWorkCreditProjection : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal Count (finalCredits (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkCredits (runPolicyWork trace config current)) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (finalCredits (policyWorkRates self (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkCredits (runPolicyWork self config current)) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => policyWorkCreditProjection rest config (policyWorkStep config event current)
+
+def rec policyWorkProcessedProjection : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal Count (handshakeStarts (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkProcessed trace config current) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (handshakeStarts (policyWorkRates self (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkProcessed self config current) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => equalTransitivity Count
+        (handshakeStarts (policyWorkRates (policySourcesThen event rest) (workRate config))
+          (workCapacity config) (policyWorkCredits current))
+        (add (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current)))
+          (handshakeStarts (policyWorkRates rest (workRate config)) (workCapacity config)
+            (policyWorkCredits (policyWorkStep config event current))))
+        (policyWorkProcessed (policySourcesThen event rest) config current)
+        (congruent Count Count (fun (now : Count) =>
+          add now (handshakeStarts (policyWorkRates rest (workRate config)) (workCapacity config)
+            (policyWorkCredits (policyWorkStep config event current))))
+          (handshakeStartsNow (policyWorkCredits current) (policyWorkRateEvent (workRate config) event))
+          (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current)))
+          (policyWorkReceiptMatchesCharge event (workRate config) (policyWorkCredits current)))
+        (congruent Count Count (fun (future : Count) =>
+          add (policyWorkReceiptCount (policyWorkReceipt event (policyWorkCredits current))) future)
+          (handshakeStarts (policyWorkRates rest (workRate config)) (workCapacity config)
+            (policyWorkCredits (policyWorkStep config event current)))
+          (policyWorkProcessed rest config (policyWorkStep config event current))
+          (policyWorkProcessedProjection rest config (policyWorkStep config event current)))
+
+def rec policyWorkUniformIssuance : (trace : PolicySourceTrace) -> (rate : Count) ->
+    Equal Count (issuedTotal (policyWorkRates trace rate)) (multiply (policySourceTrustedTicks trace) rate) :=
+  fun (trace : PolicySourceTrace) (rate : Count) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (issuedTotal (policyWorkRates self rate)) (multiply (policySourceTrustedTicks self) rate) with
+    | policySourcesDone => same
+    | policySourcesThen event rest =>
+        case event as action in PolicySourceEvent return Equal Count
+          (issuedTotal (policyWorkRates (policySourcesThen action rest) rate))
+          (multiply (policySourceTrustedTicks (policySourcesThen action rest)) rate) with
+        | policySourceAttempt receipt identity source swarm key index => policyWorkUniformIssuance rest rate
+        | policySourcePublish observed update => policyWorkUniformIssuance rest rate
+        | policySourceMaintenance maintenance => policyWorkUniformIssuance rest rate
+        | policySourceFinish receipt reason => policyWorkUniformIssuance rest rate
+        | policySourceTick => congruent Count Count (fun (future : Count) => add rate future)
+            (issuedTotal (policyWorkRates rest rate)) (multiply (policySourceTrustedTicks rest) rate)
+            (policyWorkUniformIssuance rest rate)
+        | policySourceClaimedTick claimed => policyWorkUniformIssuance rest rate
+
+def policyWorkCapacityBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (policyWorkCredits (runPolicyWork trace config current)) (workCapacity config) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (policyWorkCredits current) (workCapacity config)) =>
+    equalTransport Count (fun (available : Count) => AtMost available (workCapacity config))
+      (finalCredits (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkCredits (runPolicyWork trace config current)) (policyWorkCreditProjection trace config current)
+      (rateTraceCapacityBound (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current) initial)
+
+def policyWorkBurstRateEnvelope : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (policyWorkProcessed trace config current)
+      (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config))) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (policyWorkCredits current) (workCapacity config)) =>
+    equalTransport Count (fun (processed : Count) =>
+      AtMost processed (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config))))
+      (handshakeStarts (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current))
+      (policyWorkProcessed trace config current) (policyWorkProcessedProjection trace config current)
+      (boundTransitive
+        (handshakeStarts (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current))
+        (add (policyWorkCredits current) (multiply (policySourceTrustedTicks trace) (workRate config)))
+        (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config)))
+        (clockAllowanceTraceBound (policyWorkRates trace (workRate config)) (workCapacity config) (policyWorkCredits current)
+          (multiply (policySourceTrustedTicks trace) (workRate config))
+          (equalTransport Count (fun (allowance : Count) => AtMost (issuedTotal (policyWorkRates trace (workRate config))) allowance)
+            (issuedTotal (policyWorkRates trace (workRate config))) (multiply (policySourceTrustedTicks trace) (workRate config))
+            (policyWorkUniformIssuance trace (workRate config)) (reflexiveBound (issuedTotal (policyWorkRates trace (workRate config))))))
+        (addBounds (policyWorkCredits current) (workCapacity config)
+          (multiply (policySourceTrustedTicks trace) (workRate config)) (multiply (policySourceTrustedTicks trace) (workRate config))
+          initial (reflexiveBound (multiply (policySourceTrustedTicks trace) (workRate config)))))
+
+def rec erasePolicyWork : PolicySourceTrace -> PolicyWorkConfig -> PolicyWorkState -> PolicySourceTrace :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return PolicySourceTrace with
+    | policySourcesDone => policySourcesDone
+    | policySourcesThen event rest => policySourcesThen (policyWorkSourceEvent (policyWorkCredits current) event)
+        (erasePolicyWork rest config (policyWorkStep config event current))
+
+def rec policyWorkSourceProjection : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicySourceState
+      (runPolicySources (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork trace config current)) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Equal PolicySourceState
+      (runPolicySources (erasePolicyWork self config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork self config current)) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => policyWorkSourceProjection rest config (policyWorkStep config event current)
+
+def rec policyWorkStarts : PolicySourceTrace -> PolicyWorkConfig -> PolicyWorkState -> Count :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Count with
+    | policySourcesDone => zero
+    | policySourcesThen event rest => add (admissionReceiptCount (policyWorkAttemptReceipt config event current))
+        (policyWorkStarts rest config (policyWorkStep config event current))
+
+def rec policyWorkStartsProjection : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal Count
+      (policySourceStarts (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current)) (policyWorkStarts trace config current) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (policySourceStarts (erasePolicyWork self config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current)) (policyWorkStarts self config current) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => congruent Count Count
+        (fun (future : Count) => add (admissionReceiptCount (policyWorkAttemptReceipt config event current)) future)
+        (policySourceStarts (erasePolicyWork rest config (policyWorkStep config event current))
+          (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config)
+          (policyWorkSources (policyWorkStep config event current)))
+        (policyWorkStarts rest config (policyWorkStep config event current))
+        (policyWorkStartsProjection rest config (policyWorkStep config event current))
+
+def policyWorkEventKeepsTicks : (event : PolicySourceEvent) -> (available : Count) -> (future : Count) ->
+    Equal Count (policySourceTicksAfter (policyWorkSourceEvent available event) future) (policySourceTicksAfter event future) :=
+  fun (event : PolicySourceEvent) (available : Count) (future : Count) =>
+    case event as action in PolicySourceEvent return Equal Count
+      (policySourceTicksAfter (policyWorkSourceEvent available action) future) (policySourceTicksAfter action future) with
+    | policySourceAttempt receipt identity source swarm key index =>
+        (case available as balance in Count return Equal Count
+          (policySourceTicksAfter (policyWorkSourceEvent balance (policySourceAttempt receipt identity source swarm key index)) future) future with
+        | zero => same
+        | next remaining => same)
+    | policySourcePublish observed update =>
+        (case available as balance in Count return Equal Count
+          (policySourceTicksAfter (policyWorkSourceEvent balance (policySourcePublish observed update)) future) future with
+        | zero => same
+        | next remaining => same)
+    | policySourceMaintenance maintenance => same
+    | policySourceFinish receipt reason => same
+    | policySourceTick => same
+    | policySourceClaimedTick claimed => same
+
+def rec policyWorkTicksProjection : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal Count (policySourceTrustedTicks (erasePolicyWork trace config current)) (policySourceTrustedTicks trace) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (policySourceTrustedTicks (erasePolicyWork self config current)) (policySourceTrustedTicks self) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => equalTransitivity Count
+        (policySourceTrustedTicks (erasePolicyWork (policySourcesThen event rest) config current))
+        (policySourceTicksAfter event (policySourceTrustedTicks (erasePolicyWork rest config (policyWorkStep config event current))))
+        (policySourceTrustedTicks (policySourcesThen event rest))
+        (policyWorkEventKeepsTicks event (policyWorkCredits current)
+          (policySourceTrustedTicks (erasePolicyWork rest config (policyWorkStep config event current))))
+        (congruent Count Count (fun (ticks : Count) => policySourceTicksAfter event ticks)
+          (policySourceTrustedTicks (erasePolicyWork rest config (policyWorkStep config event current)))
+          (policySourceTrustedTicks rest) (policyWorkTicksProjection rest config (policyWorkStep config event current)))
+
+def policyWorkHandshakeEnvelope : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (policyWorkStarts trace config current)
+      (add (workHandshakeCapacity config) (multiply (policySourceTrustedTicks trace) (workHandshakeRate config))) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    equalTransport Count (fun (starts : Count) =>
+      AtMost starts (add (workHandshakeCapacity config) (multiply (policySourceTrustedTicks trace) (workHandshakeRate config))))
+      (policySourceStarts (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current)) (policyWorkStarts trace config current)
+      (policyWorkStartsProjection trace config current)
+      (equalTransport Count (fun (ticks : Count) => AtMost
+        (policySourceStarts (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+          (workHandshakeRate config) (policyWorkSources current))
+        (add (workHandshakeCapacity config) (multiply ticks (workHandshakeRate config))))
+        (policySourceTrustedTicks (erasePolicyWork trace config current)) (policySourceTrustedTicks trace)
+        (policyWorkTicksProjection trace config current)
+        (policySourceBurstRateEnvelope (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+          (workHandshakeCapacity config) (workHandshakeRate config) (policyWorkSources current) initial))
+
+def policyWorkPendingBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources (runPolicyWork trace config current)))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransport PolicySourceState (fun (sources : PolicySourceState) =>
+      AtMost (leaseOccupancy (admissionPool (policySourceResources sources)))
+        (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))))
+      (runPolicySources (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork trace config current)) (policyWorkSourceProjection trace config current)
+      (policySourceTracePendingBound (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+
+def policyWorkQuotaBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    SourceQuotaBound (workSourceQuota config) (admissionSources (policySourceResources (policyWorkSources current))) ->
+    SourceQuotaBound (workSourceQuota config)
+      (admissionSources (policySourceResources (policyWorkSources (runPolicyWork trace config current)))) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : SourceQuotaBound (workSourceQuota config) (admissionSources (policySourceResources (policyWorkSources current)))) =>
+    equalTransport PolicySourceState (fun (sources : PolicySourceState) =>
+      SourceQuotaBound (workSourceQuota config) (admissionSources (policySourceResources sources)))
+      (runPolicySources (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork trace config current)) (policyWorkSourceProjection trace config current)
+      (policySourceTraceQuotaBound (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current) initial)
+
+def policyWorkDebtBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (key : Count) -> (current : PolicyWorkState) ->
+    SourceQuotaBound (workSourceQuota config) (admissionSources (policySourceResources (policyWorkSources current))) ->
+    AtMost (sourceCellDebt (lookupSource key
+      (admissionSources (policySourceResources (policyWorkSources (runPolicyWork trace config current)))))) (workSourceQuota config) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (key : Count) (current : PolicyWorkState)
+      (initial : SourceQuotaBound (workSourceQuota config) (admissionSources (policySourceResources (policyWorkSources current)))) =>
+    sourceLookupQuotaBound (workSourceQuota config) key
+      (admissionSources (policySourceResources (policyWorkSources (runPolicyWork trace config current))))
+      (policyWorkQuotaBound trace config current initial)
+
+def policyWorkTableBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (sourceTableSize (admissionSources (policySourceResources (policyWorkSources (runPolicyWork trace config current)))))
+      (sourceTableWidth (admissionSources (policySourceResources (policyWorkSources current)))) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransport PolicySourceState (fun (sources : PolicySourceState) =>
+      AtMost (sourceTableSize (admissionSources (policySourceResources sources)))
+        (sourceTableWidth (admissionSources (policySourceResources (policyWorkSources current)))))
+      (runPolicySources (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork trace config current)) (policyWorkSourceProjection trace config current)
+      (policySourceTraceTableBound (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+
+def policyWorkHandshakeCapacityBound : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources (runPolicyWork trace config current)))) (workHandshakeCapacity config) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    equalTransport PolicySourceState (fun (sources : PolicySourceState) =>
+      AtMost (admissionCredits (policySourceResources sources)) (workHandshakeCapacity config))
+      (runPolicySources (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current))
+      (policyWorkSources (runPolicyWork trace config current)) (policyWorkSourceProjection trace config current)
+      (policySourceTraceCreditBound (erasePolicyWork trace config current) (workSourceQuota config) (workHandshakeCapacity config)
+        (workHandshakeRate config) (policyWorkSources current) initial)
+
+def policyWorkCombinedCostEnvelope : (trace : PolicySourceTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (add (multiply (policyWorkProcessed trace config current) policyCost) (multiply (policyWorkStarts trace config current) handshakeCost))
+      (add (multiply (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policySourceTrustedTicks trace) (workHandshakeRate config))) handshakeCost)) :=
+  fun (trace : PolicySourceTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds
+      (multiply (policyWorkProcessed trace config current) policyCost)
+      (multiply (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config))) policyCost)
+      (multiply (policyWorkStarts trace config current) handshakeCost)
+      (multiply (add (workHandshakeCapacity config) (multiply (policySourceTrustedTicks trace) (workHandshakeRate config))) handshakeCost)
+      (multipliedBounds (policyWorkProcessed trace config current)
+        (add (workCapacity config) (multiply (policySourceTrustedTicks trace) (workRate config))) policyCost
+        (policyWorkBurstRateEnvelope trace config current workInitial))
+      (multipliedBounds (policyWorkStarts trace config current)
+        (add (workHandshakeCapacity config) (multiply (policySourceTrustedTicks trace) (workHandshakeRate config))) handshakeCost
+        (policyWorkHandshakeEnvelope trace config current handshakeInitial))
