@@ -110,7 +110,10 @@
         "policyWorkCapacityBound",
         "policyWorkBurstRateEnvelope",
         "policyWorkHandshakeEnvelope",
-        "policyWorkCombinedCostEnvelope"
+        "policyWorkCombinedCostEnvelope",
+        "policyIngressWorkEnvelope",
+        "policyIngressHandshakeEnvelope",
+        "policyIngressCombinedCostEnvelope"
       ],
       "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open. The source-admission count also has a weighted discrete rate envelope; pre-budget rejection work and other resource classes require separate cost bounds. Receipt-gated policy/source traces preserve the accepted-start rate and cost envelopes across policy changes; module 42 adds a shared policy-work budget that charges processed attempts and publications even when denied, and composes its symbolic cost envelope with accepted-start work. Guard, receipt-production, maintenance, completion and established-resource costs remain open.",
       "required_evidence": [
@@ -145,7 +148,12 @@
         "wrongEpochPolicySourceEvent",
         "changedPolicySourceReceiptEvent",
         "stalePolicySourceEvent",
-        "freshAllowedPolicySourceAttempt"
+        "freshAllowedPolicySourceAttempt",
+        "exhaustedPolicyQueryProducesNothing",
+        "creditedPolicyQueryUsesCurrentView",
+        "creditedPolicyQueryPreservesDecision",
+        "creditedPolicyIngressUsesQuery",
+        "policyIngressUsesCurrentDecision"
       ],
       "model_scope": "Whole-view generations, stale callback rejection, coherent captured readers and generation/epoch/identity-bound receipts are proved in the model. Runtime linearization through decision use, authoritative input validation, external governance ordering and cryptographic binding remain open. Current policy receipts now gate the atomic source/global/pending transition. Rejected receipts cannot alter resource state or emit an admission receipt; fresh allowed query results delegate to the source transition.",
       "required_evidence": [
@@ -195,7 +203,13 @@
         "policyWorkCompletionBypassesBudget",
         "policyWorkMaintenanceBypassesBudget",
         "policyWorkTrustedTick",
-        "policyWorkClaimedTickIsNoOp"
+        "policyWorkClaimedTickIsNoOp",
+        "unauthenticatedPolicyQueryDenied",
+        "exhaustedPolicyIngressIsNoOp",
+        "exhaustedPolicyIngressHasNoReceipt",
+        "everyPolicyIngressQuerySpendsWork",
+        "unauthenticatedPolicyIngressKeepsResources",
+        "unauthenticatedPolicyIngressHasNoReceipt"
       ],
       "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed policy/source traces preserve shared handshake credit, per-resident source quota, source-table size and pending occupancy bounds during policy changes; publication preserves the entire source-admission state. Real fault detection, atomic publication, complete accounting and service isolation remain open. Module 42 gates attempts and publications with an independent work budget, including Open/Grace and denied operations, while preserving cleanup and trusted clock progress. Runtime work ordering, costs and policy-recovery scheduling remain open.",
       "required_evidence": [
@@ -517,7 +531,17 @@
         "allowedPolicySourceReceipt",
         "indexedPolicySourceChargesAndReserves",
         "indexedPolicySourceReceipt",
-        "indexedPolicySourceCountsOne"
+        "indexedPolicySourceCountsOne",
+        "policyIngressPublicationUsesObservedGeneration",
+        "policyIngressCompletionBypassesBudget",
+        "policyIngressMaintenanceBypassesBudget",
+        "policyIngressTrustedTick",
+        "policyIngressClaimedTickIsNoOp",
+        "policyIngressWorkProjection",
+        "queriedAttemptKeepsTicks",
+        "policyIngressEventKeepsTicks",
+        "policyIngressTicksProjection",
+        "policyIngressPendingBound"
       ],
       "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes. Keyed source-system traces compose churn and restrictions. Atomic source-admission attempts now jointly gate validated source quota, shared credit and a selected pending slot, preserving the entire state on refusal. Mixed admission, maintenance, clock and completion traces retain source-table width, pending capacity, bounded credits and per-resident debt. Internal receipts carry slot indices and generations; completion preserves source debt and global credits. For arbitrary pending prefixes and suffixes, eligible admission charges and reserves only the selected slot, emits its exact receipt and counts one start. Matching completion releases once; mismatched and stale callbacks preserve the newer owner, and duplicate matching completions advance the generation only once. Held or out-of-range selection preserves state and emits no receipt. Accepted-start conservation now follows actual admission receipts and full updated states, yielding a coupled discrete burst-plus-rate envelope for arbitrary source and pending indices. Current policy receipts now gate the same pre-state admission and exact indexed receipt. Arbitrary policy/source traces retain the state and receipt-counted rate bounds through source-trace erasure. Wall-clock rate bounds, per-source live pending attribution, established resources, runtime policy/source linearization, ConnectionId refinement, machine wrap, runtime unique keys and atomic enforcement, verified expiry, restarts, cap changes and honest reconnect fairness remain open.",
       "required_evidence": [

@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 197 additional semantic mutations must
+The 244 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -48,7 +48,7 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   runtime cost dominance and complete accounting of retained allocations.
   The shared token-bucket trace proves a discrete burst-plus-rate envelope;
   trusted ticks must correspond to the real clock.
-- The policy-work extension charges processed attempts and publications from an
+- Module 42 charges processed attempts and publications from an
   independent shared balance before the delegated policy/source event. Its cost
   envelope includes denied operations but receives already constructed policy
   receipts. Receipt creation, authentication, pre-budget work, exhausted guards,
@@ -56,6 +56,14 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   Runtime evidence must justify fixed rates, capacities and per-operation weights,
   including payload and roster bounds, and the atomic pre-state ordering. Policy
   recovery and honest traffic can be delayed; no scheduling fairness is proved.
+- Module 43 produces policy receipts internally after the work-credit guard,
+  from the current policy view and attempted identity. Every processed query
+  spends work credit, including denials. Mixed traces preserve the work and
+  handshake cost envelopes if the operation weight also covers bounded query
+  and receipt construction. Authentication flags, peer identity bindings,
+  runtime entry-point discipline and atomic query/charge/admission still require
+  refinement. Pre-guard authentication, exhausted guards, dispatch, cleanup and
+  established-resource costs remain outside this envelope.
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
   bindings and complete security-state classification, including simultaneous

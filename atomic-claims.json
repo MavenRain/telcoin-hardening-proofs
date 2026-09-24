@@ -23,7 +23,8 @@
     "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event.",
     "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. In the policy/source composition, policy receipt validation and the actual peer identity belong to that same transition. The raw plan and commit helpers are not independently callable runtime admission APIs.",
     "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run.",
-    "bounded_policy_processing": "One process-wide policy-work balance gates every modeled attempt and publication before processing. A processed operation spends exactly one credit even when denied. Work capacity and rate and the handshake rate are fixed in module 42. The guard, charge and delegated policy/source event use one serialized pre-state. Already constructed policy receipts are inputs; their creation, pre-guard work, exhausted guards, maintenance and completion need separate cost accounting."
+    "bounded_policy_processing": "One process-wide policy-work balance gates every modeled attempt and publication before processing. A processed operation spends exactly one credit even when denied. Work capacity and rate and the handshake rate are fixed in module 42. The guard, charge and delegated policy/source event use one serialized pre-state. Already constructed policy receipts are inputs; their creation, pre-guard work, exhausted guards, maintenance and completion need separate cost accounting.",
+    "bounded_policy_queries": "Module 43 constructs policy receipts internally only on the positive-work-credit branch, using the current view and the attempted identity. Authentication and identity inputs must come from verified credentials. The guard, query, charge and policy/source admission use one serialized pre-state. The per-processed-operation cost weight must cover bounded query and receipt production plus delegated work; pre-guard authentication, exhausted guards, maintenance and completion remain outside that weight."
   },
   "claims": [
     {
@@ -2050,6 +2051,146 @@
         "Refine both balances, exact admission receipts, atomic policy/source admission and every cleanup path to the composed trace, with all required initial quota and credit witnesses.",
         "Supply common-unit cost weights bounding all processed policy operations, including rejected attempts and publications, and accepted-start work; justify the necessary payload, roster and algorithmic size bounds.",
         "Bound guard, receipt-production, maintenance, completion and established-resource costs separately. The combined symbolic bound does not establish honest admission, policy-recovery fairness or deployment qualification."
+      ]
+    },
+    {
+      "id": "C33",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "Policy ingress accepts authentication and identity inputs rather than a caller-supplied policy receipt. A zero work balance produces no query result. A positive balance constructs the admission consumer's receipt from the current policy view and the same identity, preserving the query's decision and all attempted source, swarm, key and pending-index arguments.",
+      "theorems": [
+        "exhaustedPolicyQueryProducesNothing",
+        "creditedPolicyQueryUsesCurrentView",
+        "creditedPolicyQueryPreservesDecision",
+        "creditedPolicyIngressUsesQuery",
+        "policyIngressUsesCurrentDecision"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "policy_input_validation",
+        "policy_receipt_provenance",
+        "bounded_policy_queries"
+      ],
+      "open_implementation_obligations": [
+        "Refine the authentication flag and identity to verified credentials and the actual attempted peer; prohibit untrusted entry points to raw receipt constructors and lower-level admission helpers.",
+        "Linearize work-credit observation, internal query, charge and resource admission with policy publication against the same immutable pre-state.",
+        "Show that every relevant runtime attempt enters through this budgeted query path, with bounded input and roster sizes."
+      ]
+    },
+    {
+      "id": "C34",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "An exhausted policy-ingress attempt preserves the complete modeled state and emits no admission receipt. Every queried attempt consumes one work credit, including authentication denials. Unauthenticated attempts preserve the policy and resource state and emit no admission receipt, for any view, source, swarm, key and selected pending index.",
+      "theorems": [
+        "unauthenticatedPolicyQueryDenied",
+        "exhaustedPolicyIngressIsNoOp",
+        "exhaustedPolicyIngressHasNoReceipt",
+        "everyPolicyIngressQuerySpendsWork",
+        "unauthenticatedPolicyIngressKeepsResources",
+        "unauthenticatedPolicyIngressHasNoReceipt"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "policy_input_validation"
+      ],
+      "open_implementation_obligations": [
+        "Establish full authentication before granting the modeled flag and preserve protocol checks independently of authorization fallback.",
+        "Refine all denial, cancellation and error paths to exactly one charge when a query is processed, with no duplicated or skipped work.",
+        "Bound pre-guard authentication, dispatch and exhausted-budget checks separately; those costs are not represented by processed query receipts."
+      ]
+    },
+    {
+      "id": "C35",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Arbitrary finite policy-ingress traces compile using the evolving pre-state to the policy-work transition system. Compilation preserves the final state and the number of trusted ticks. Publications retain the observed generation; maintenance, completion and trusted ticks delegate unchanged to the policy-work transition, whose maintenance and completion arms bypass the work gate without changing the work balance; claimed ticks are no-ops, and final pending occupancy is bounded by the initial pool capacity.",
+      "theorems": [
+        "policyIngressPublicationUsesObservedGeneration",
+        "policyIngressCompletionBypassesBudget",
+        "policyIngressMaintenanceBypassesBudget",
+        "policyWorkCompletionBypassesBudget",
+        "policyWorkMaintenanceBypassesBudget",
+        "policyIngressTrustedTick",
+        "policyIngressClaimedTickIsNoOp",
+        "policyIngressWorkProjection",
+        "queriedAttemptKeepsTicks",
+        "policyIngressEventKeepsTicks",
+        "policyIngressTicksProjection",
+        "policyIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_queries"
+      ],
+      "open_implementation_obligations": [
+        "Refine callback ownership, internal receipts, trusted source maintenance and the real monotonic clock to their modeled constructors.",
+        "Prove that the implementation recomputes the policy query from the state after preceding publications and operations; snapshots captured before the guard require a separate refinement.",
+        "Preserve completion and maintenance service under overload while separately bounding their CPU costs, retention time and queueing."
+      ]
+    },
+    {
+      "id": "C36",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "For arbitrary finite policy-ingress traces whose initial work and handshake balances are within their respective capacities, receipt-counted processed queries/publications and accepted handshake starts satisfy independent burst-plus-rate bounds over the ingress trace's trusted ticks. Their weighted sum satisfies the combined cost envelope when policyCost dominates internal receipt production and processed policy/source work, and handshakeCost dominates accepted-start work.",
+      "theorems": [
+        "policyIngressWorkEnvelope",
+        "policyIngressHandshakeEnvelope",
+        "policyIngressCombinedCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts"
+      ],
+      "open_implementation_obligations": [
+        "Establish common-unit cost weights and concrete input/roster bounds covering internal query and receipt construction as well as each processed denial or publication; this is not a measured CPU bound.",
+        "Relate trusted modeled ticks to a real elapsed interval and prove one process-wide balance for both swarms without reset-based credit creation.",
+        "Extend accounting to established resources and live per-source pending attribution; guard, authentication, maintenance, completion, scheduling, restart and cap-change costs remain outside this envelope."
       ]
     }
   ]

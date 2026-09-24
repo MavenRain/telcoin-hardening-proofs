@@ -1,0 +1,326 @@
+-- Policy queries use the same pre-state as admission and require work credit.
+-- Authentication, serialized execution and concrete query cost remain assumptions.
+mu PolicyQueryResult : Type 0 with
+| noPolicyQuery : PolicyQueryResult
+| queriedPolicy : PolicyReceipt -> PolicyQueryResult
+
+def budgetedPolicyQuery : Count -> VersionedPolicy -> Flag -> Count -> PolicyQueryResult :=
+  fun (available : Count) (view : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    case available as balance in Count return PolicyQueryResult with
+    | zero => noPolicyQuery
+    | next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)
+
+def queriedPolicyAllowed : VersionedPolicy -> Count -> PolicyQueryResult -> Flag :=
+  fun (view : VersionedPolicy) (identity : Count) (result : PolicyQueryResult) =>
+    case result as self in PolicyQueryResult return Flag with
+    | noPolicyQuery => off
+    | queriedPolicy receipt => policyReceiptAllowed view identity receipt
+
+def queriedPolicyAttempt : PolicyQueryResult -> Count -> Reachability -> SwarmClass -> Count -> Count -> PolicySourceEvent :=
+  fun (result : PolicyQueryResult) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    case result as self in PolicyQueryResult return PolicySourceEvent with
+    | noPolicyQuery => policySourceClaimedTick zero
+    | queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index
+
+mu PolicyIngressEvent : Type 0 with
+| policyIngressAttempt : Flag -> Count -> Reachability -> SwarmClass -> Count -> Count -> PolicyIngressEvent
+| policyIngressPublish : Count -> PolicyAction -> PolicyIngressEvent
+| policyIngressMaintenance : SourceMaintenance -> PolicyIngressEvent
+| policyIngressFinish : AdmissionReceipt -> PendingEnd -> PolicyIngressEvent
+| policyIngressTick : PolicyIngressEvent
+| policyIngressClaimedTick : Count -> PolicyIngressEvent
+
+def policyIngressEvent : PolicyIngressEvent -> PolicyWorkState -> PolicySourceEvent :=
+  fun (event : PolicyIngressEvent) (current : PolicyWorkState) =>
+    case event as action in PolicyIngressEvent return PolicySourceEvent with
+    | policyIngressAttempt authenticated identity source swarm key index =>
+        queriedPolicyAttempt
+          (budgetedPolicyQuery (policyWorkCredits current) (policySourceView (policyWorkSources current)) authenticated identity)
+          identity source swarm key index
+    | policyIngressPublish observed update => policySourcePublish observed update
+    | policyIngressMaintenance maintenance => policySourceMaintenance maintenance
+    | policyIngressFinish receipt reason => policySourceFinish receipt reason
+    | policyIngressTick => policySourceTick
+    | policyIngressClaimedTick claimed => policySourceClaimedTick claimed
+
+def policyIngressStep : PolicyWorkConfig -> PolicyIngressEvent -> PolicyWorkState -> PolicyWorkState :=
+  fun (config : PolicyWorkConfig) (event : PolicyIngressEvent) (current : PolicyWorkState) =>
+    policyWorkStep config (policyIngressEvent event current) current
+
+def policyIngressAttemptReceipt : PolicyWorkConfig -> PolicyIngressEvent -> PolicyWorkState -> AdmissionReceipt :=
+  fun (config : PolicyWorkConfig) (event : PolicyIngressEvent) (current : PolicyWorkState) =>
+    policyWorkAttemptReceipt config (policyIngressEvent event current) current
+
+def exhaustedPolicyQueryProducesNothing : (view : VersionedPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal PolicyQueryResult (budgetedPolicyQuery zero view authenticated identity) noPolicyQuery :=
+  fun (view : VersionedPolicy) (authenticated : Flag) (identity : Count) => same
+
+def creditedPolicyQueryUsesCurrentView : (remaining : Count) -> (view : VersionedPolicy) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal PolicyQueryResult (budgetedPolicyQuery (next remaining) view authenticated identity)
+      (queriedPolicy (readPolicy admissionConsumer view authenticated identity)) :=
+  fun (remaining : Count) (view : VersionedPolicy) (authenticated : Flag) (identity : Count) => same
+
+def creditedPolicyQueryPreservesDecision : (remaining : Count) -> (view : VersionedPolicy) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (queriedPolicyAllowed view identity (budgetedPolicyQuery (next remaining) view authenticated identity))
+      (policyQuery (policyView view) authenticated identity) :=
+  fun (remaining : Count) (view : VersionedPolicy) (authenticated : Flag) (identity : Count) =>
+    freshPolicyReceiptPreservesDecision admissionConsumer view authenticated identity
+
+def unauthenticatedPolicyQueryDenied : (remaining : Count) -> (view : VersionedPolicy) -> (identity : Count) ->
+    Equal Flag (queriedPolicyAllowed view identity (budgetedPolicyQuery (next remaining) view off identity)) off :=
+  fun (remaining : Count) (view : VersionedPolicy) (identity : Count) =>
+    creditedPolicyQueryPreservesDecision remaining view off identity
+
+def creditedPolicyIngressUsesQuery : (remaining : Count) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal PolicySourceEvent
+      (policyIngressEvent (policyIngressAttempt authenticated identity source swarm key index)
+        (policyWorkState (next remaining) (policySourceState view resources)))
+      (policySourceAttempt (readPolicy admissionConsumer view authenticated identity) identity source swarm key index) :=
+  fun (remaining : Count) (view : VersionedPolicy) (resources : SourceAdmission) (authenticated : Flag)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) => same
+
+def policyIngressUsesCurrentDecision : (remaining : Count) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    (rate : Count) -> (authenticated : Flag) -> (identity : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policyIngressEvent (policyIngressAttempt authenticated identity source swarm key index)
+          (policyWorkState (next remaining) (policySourceState view resources))) view)
+      (gatePolicySource (policyQuery (policyView view) authenticated identity) source swarm key index) :=
+  fun (remaining : Count) (view : VersionedPolicy) (resources : SourceAdmission) (rate : Count)
+      (authenticated : Flag) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    congruent Flag SourceAdmissionEvent
+      (fun (allowed : Flag) => gatePolicySource allowed source swarm key index)
+      (policyReceiptAllowed view identity (readPolicy admissionConsumer view authenticated identity))
+      (policyQuery (policyView view) authenticated identity)
+      (creditedPolicyQueryPreservesDecision remaining view authenticated identity)
+
+def exhaustedPolicyIngressIsNoOp : (config : PolicyWorkConfig) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal PolicyWorkState
+      (policyIngressStep config (policyIngressAttempt authenticated identity source swarm key index)
+        (policyWorkState zero (policySourceState view resources)))
+      (policyWorkState zero (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (view : VersionedPolicy) (resources : SourceAdmission) (authenticated : Flag)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) => same
+
+def exhaustedPolicyIngressHasNoReceipt : (config : PolicyWorkConfig) -> (current : PolicySourceState) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal AdmissionReceipt
+      (policyIngressAttemptReceipt config (policyIngressAttempt authenticated identity source swarm key index)
+        (policyWorkState zero current)) noAdmissionReceipt :=
+  fun (config : PolicyWorkConfig) (current : PolicySourceState) (authenticated : Flag)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) => same
+
+def everyPolicyIngressQuerySpendsWork : (config : PolicyWorkConfig) -> (remaining : Count) -> (current : PolicySourceState) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Count (policyWorkCredits
+      (policyIngressStep config (policyIngressAttempt authenticated identity source swarm key index)
+        (policyWorkState (next remaining) current))) remaining :=
+  fun (config : PolicyWorkConfig) (remaining : Count) (current : PolicySourceState) (authenticated : Flag)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) => same
+
+def unauthenticatedPolicyIngressKeepsResources : (config : PolicyWorkConfig) -> (remaining : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> (identity : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal PolicyWorkState
+      (policyIngressStep config (policyIngressAttempt off identity source swarm key index)
+        (policyWorkState (next remaining) (policySourceState view resources)))
+      (policyWorkState remaining (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (remaining : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    congruent PolicySourceState PolicyWorkState (fun (sources : PolicySourceState) => policyWorkState remaining sources)
+      (policySourceStep (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config)
+        (policySourceAttempt (readPolicy admissionConsumer view off identity) identity source swarm key index)
+        (policySourceState view resources))
+      (policySourceState view resources)
+      (deniedPolicySourceAttempt (workSourceQuota config) (workHandshakeCapacity config) (workHandshakeRate config)
+        view resources (readPolicy admissionConsumer view off identity) identity source swarm key index
+        (unauthenticatedPolicyQueryDenied remaining view identity))
+
+def unauthenticatedPolicyIngressHasNoReceipt : (config : PolicyWorkConfig) -> (remaining : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> (identity : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal AdmissionReceipt
+      (policyIngressAttemptReceipt config (policyIngressAttempt off identity source swarm key index)
+        (policyWorkState (next remaining) (policySourceState view resources))) noAdmissionReceipt :=
+  fun (config : PolicyWorkConfig) (remaining : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    deniedPolicySourceReceipt (workSourceQuota config) (workHandshakeRate config) view resources
+      (readPolicy admissionConsumer view off identity) identity source swarm key index
+      (unauthenticatedPolicyQueryDenied remaining view identity)
+
+def policyIngressPublicationUsesObservedGeneration : (observed : Count) -> (update : PolicyAction) -> (current : PolicyWorkState) ->
+    Equal PolicySourceEvent (policyIngressEvent (policyIngressPublish observed update) current) (policySourcePublish observed update) :=
+  fun (observed : Count) (update : PolicyAction) (current : PolicyWorkState) => same
+
+def policyIngressCompletionBypassesBudget : (config : PolicyWorkConfig) -> (receipt : AdmissionReceipt) ->
+    (reason : PendingEnd) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (policyIngressStep config (policyIngressFinish receipt reason) current)
+      (policyWorkStep config (policySourceFinish receipt reason) current) :=
+  fun (config : PolicyWorkConfig) (receipt : AdmissionReceipt) (reason : PendingEnd) (current : PolicyWorkState) => same
+
+def policyIngressMaintenanceBypassesBudget : (config : PolicyWorkConfig) -> (maintenance : SourceMaintenance) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (policyIngressStep config (policyIngressMaintenance maintenance) current)
+      (policyWorkStep config (policySourceMaintenance maintenance) current) :=
+  fun (config : PolicyWorkConfig) (maintenance : SourceMaintenance) (current : PolicyWorkState) => same
+
+def policyIngressTrustedTick : (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (policyIngressStep config policyIngressTick current)
+      (policyWorkStep config policySourceTick current) :=
+  fun (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def policyIngressClaimedTickIsNoOp : (config : PolicyWorkConfig) -> (claimed : Count) -> (available : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    Equal PolicyWorkState
+      (policyIngressStep config (policyIngressClaimedTick claimed) (policyWorkState available (policySourceState view resources)))
+      (policyWorkState available (policySourceState view resources)) :=
+  fun (config : PolicyWorkConfig) (claimed : Count) (available : Count) (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+mu PolicyIngressTrace : Type 0 with
+| policyIngressDone : PolicyIngressTrace
+| policyIngressThen : PolicyIngressEvent -> PolicyIngressTrace -> PolicyIngressTrace
+
+def rec runPolicyIngress : PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> PolicyWorkState :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicyIngressTrace return PolicyWorkState with
+    | policyIngressDone => current
+    | policyIngressThen event rest => runPolicyIngress rest config (policyIngressStep config event current)
+
+def rec erasePolicyIngress : PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> PolicySourceTrace :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicyIngressTrace return PolicySourceTrace with
+    | policyIngressDone => policySourcesDone
+    | policyIngressThen event rest => policySourcesThen (policyIngressEvent event current)
+        (erasePolicyIngress rest config (policyIngressStep config event current))
+
+def rec policyIngressWorkProjection : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (runPolicyWork (erasePolicyIngress trace config current) config current) (runPolicyIngress trace config current) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicyIngressTrace return
+      Equal PolicyWorkState (runPolicyWork (erasePolicyIngress self config current) config current) (runPolicyIngress self config current) with
+    | policyIngressDone => same
+    | policyIngressThen event rest => policyIngressWorkProjection rest config (policyIngressStep config event current)
+
+def policyIngressTicksAfter : PolicyIngressEvent -> Count -> Count :=
+  fun (event : PolicyIngressEvent) (ticks : Count) =>
+    case event as action in PolicyIngressEvent return Count with
+    | policyIngressAttempt authenticated identity source swarm key index => ticks
+    | policyIngressPublish observed update => ticks
+    | policyIngressMaintenance maintenance => ticks
+    | policyIngressFinish receipt reason => ticks
+    | policyIngressTick => next ticks
+    | policyIngressClaimedTick claimed => ticks
+
+def rec policyIngressTrustedTicks : PolicyIngressTrace -> Count :=
+  fun (trace : PolicyIngressTrace) =>
+    case trace as self in PolicyIngressTrace return Count with
+    | policyIngressDone => zero
+    | policyIngressThen event rest => policyIngressTicksAfter event (policyIngressTrustedTicks rest)
+
+def queriedAttemptKeepsTicks : (result : PolicyQueryResult) -> (identity : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (ticks : Count) ->
+    Equal Count (policySourceTicksAfter (queriedPolicyAttempt result identity source swarm key index) ticks) ticks :=
+  fun (result : PolicyQueryResult) (identity : Count) (source : Reachability) (swarm : SwarmClass)
+      (key : Count) (index : Count) (ticks : Count) =>
+    case result as self in PolicyQueryResult return
+      Equal Count (policySourceTicksAfter (queriedPolicyAttempt self identity source swarm key index) ticks) ticks with
+    | noPolicyQuery => same
+    | queriedPolicy receipt => same
+
+def policyIngressEventKeepsTicks : (event : PolicyIngressEvent) -> (current : PolicyWorkState) -> (ticks : Count) ->
+    Equal Count (policySourceTicksAfter (policyIngressEvent event current) ticks) (policyIngressTicksAfter event ticks) :=
+  fun (event : PolicyIngressEvent) (current : PolicyWorkState) (ticks : Count) =>
+    case event as action in PolicyIngressEvent return
+      Equal Count (policySourceTicksAfter (policyIngressEvent action current) ticks) (policyIngressTicksAfter action ticks) with
+    | policyIngressAttempt authenticated identity source swarm key index =>
+        queriedAttemptKeepsTicks
+          (budgetedPolicyQuery (policyWorkCredits current) (policySourceView (policyWorkSources current)) authenticated identity)
+          identity source swarm key index ticks
+    | policyIngressPublish observed update => same
+    | policyIngressMaintenance maintenance => same
+    | policyIngressFinish receipt reason => same
+    | policyIngressTick => same
+    | policyIngressClaimedTick claimed => same
+
+def rec policyIngressTicksProjection : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal Count (policySourceTrustedTicks (erasePolicyIngress trace config current)) (policyIngressTrustedTicks trace) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case trace as self in PolicyIngressTrace return
+      Equal Count (policySourceTrustedTicks (erasePolicyIngress self config current)) (policyIngressTrustedTicks self) with
+    | policyIngressDone => same
+    | policyIngressThen event rest =>
+        equalTransitivity Count
+          (policySourceTicksAfter (policyIngressEvent event current)
+            (policySourceTrustedTicks (erasePolicyIngress rest config (policyIngressStep config event current))))
+          (policySourceTicksAfter (policyIngressEvent event current) (policyIngressTrustedTicks rest))
+          (policyIngressTicksAfter event (policyIngressTrustedTicks rest))
+          (congruent Count Count (fun (ticks : Count) => policySourceTicksAfter (policyIngressEvent event current) ticks)
+            (policySourceTrustedTicks (erasePolicyIngress rest config (policyIngressStep config event current)))
+            (policyIngressTrustedTicks rest) (policyIngressTicksProjection rest config (policyIngressStep config event current)))
+          (policyIngressEventKeepsTicks event current (policyIngressTrustedTicks rest))
+
+-- These counts use receipts from the state-dependent compiled trace.
+def policyIngressProcessed : PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyWorkProcessed (erasePolicyIngress trace config current) config current
+
+def policyIngressStarts : PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyWorkStarts (erasePolicyIngress trace config current) config current
+
+def policyIngressWorkEnvelope : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (policyIngressProcessed trace config current)
+      (add (workCapacity config) (multiply (policyIngressTrustedTicks trace) (workRate config))) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (policyWorkCredits current) (workCapacity config)) =>
+    equalTransport Count (fun (ticks : Count) =>
+      AtMost (policyIngressProcessed trace config current) (add (workCapacity config) (multiply ticks (workRate config))))
+      (policySourceTrustedTicks (erasePolicyIngress trace config current)) (policyIngressTrustedTicks trace)
+      (policyIngressTicksProjection trace config current)
+      (policyWorkBurstRateEnvelope (erasePolicyIngress trace config current) config current initial)
+
+def policyIngressHandshakeEnvelope : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (policyIngressStarts trace config current)
+      (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks trace) (workHandshakeRate config))) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (initial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    equalTransport Count (fun (ticks : Count) =>
+      AtMost (policyIngressStarts trace config current) (add (workHandshakeCapacity config) (multiply ticks (workHandshakeRate config))))
+      (policySourceTrustedTicks (erasePolicyIngress trace config current)) (policyIngressTrustedTicks trace)
+      (policyIngressTicksProjection trace config current)
+      (policyWorkHandshakeEnvelope (erasePolicyIngress trace config current) config current initial)
+
+def policyIngressPendingBound : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources (runPolicyIngress trace config current)))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransport PolicyWorkState (fun (result : PolicyWorkState) =>
+      AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources result))))
+        (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))))
+      (runPolicyWork (erasePolicyIngress trace config current) config current) (runPolicyIngress trace config current)
+      (policyIngressWorkProjection trace config current)
+      (policyWorkPendingBound (erasePolicyIngress trace config current) config current)
+
+def policyIngressCombinedCostEnvelope : (trace : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (add (multiply (policyIngressProcessed trace config current) policyCost) (multiply (policyIngressStarts trace config current) handshakeCost))
+      (add (multiply (add (workCapacity config) (multiply (policyIngressTrustedTicks trace) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks trace) (workHandshakeRate config))) handshakeCost)) :=
+  fun (trace : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    equalTransport Count (fun (ticks : Count) =>
+      AtMost (add (multiply (policyIngressProcessed trace config current) policyCost) (multiply (policyIngressStarts trace config current) handshakeCost))
+        (add (multiply (add (workCapacity config) (multiply ticks (workRate config))) policyCost)
+          (multiply (add (workHandshakeCapacity config) (multiply ticks (workHandshakeRate config))) handshakeCost)))
+      (policySourceTrustedTicks (erasePolicyIngress trace config current)) (policyIngressTrustedTicks trace)
+      (policyIngressTicksProjection trace config current)
+      (policyWorkCombinedCostEnvelope (erasePolicyIngress trace config current) config current policyCost handshakeCost workInitial handshakeInitial)

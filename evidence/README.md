@@ -104,3 +104,18 @@ weights and preserves the accepted-start envelope. Implementation links are
 `not_checked_this_run`. Guard, receipt-production, maintenance and completion
 costs, receipt provenance, runtime refinement, clock correspondence, established
 resources and deployment qualification remain open.
+
+`policy-ingress-model-check.json` records budgeted internal policy queries and
+their state-dependent composition with policy/source admission. It adds four
+atomic obligations, 24 equality/order declarations and 20 negative controls.
+The resulting bundle has 469 declarations across 27 modules, 72 atomic
+obligations and 247 rejected negative checks. Queries use the current policy
+view and attempted identity only when work credit is available; authentication
+denials consume work credit without changing resources or producing an admission
+receipt. Mixed traces retain the pending-capacity and combined cost bounds.
+The policy-operation cost weight now assumes it covers query and receipt
+production as well as delegated work. Authentication, identity binding, atomic
+runtime enforcement and measured cost bounds remain implementation obligations.
+Pre-guard work, exhausted guards, maintenance, completion, established resources
+and deployment qualification remain open. Implementation links are
+`not_checked_this_run`.

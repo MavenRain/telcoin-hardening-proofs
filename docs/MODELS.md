@@ -536,10 +536,54 @@ fixed configuration and atomic integration remain implementation obligations.
 The budget can delay policy recovery; no fairness, successful admission or
 wall-clock availability result follows from these upper bounds.
 
+## Budgeted internal policy queries
+
+`43-policy-ingress.mech` moves policy query and receipt production into the
+positive-work-credit branch. An ingress attempt carries an authentication flag,
+identity, validated-source classification, swarm, canonical key and pending
+index. It has no caller-supplied policy receipt. `budgetedPolicyQuery` returns
+`noPolicyQuery` at zero credit; otherwise it calls `readPolicy admissionConsumer`
+with the current immutable policy view and that same identity.
+
+`creditedPolicyQueryPreservesDecision` and
+`policyIngressUsesCurrentDecision` connect the generated receipt to the existing
+authenticated policy query and source-admission gate over arbitrary inputs.
+`everyPolicyIngressQuerySpendsWork` deducts one credit even when authorization,
+authentication or resource eligibility denies the attempt. An exhausted attempt
+preserves the complete state and emits no admission receipt. An unauthenticated
+attempt with credit preserves the policy and resource state, emits no admission
+receipt, and still spends its work credit.
+
+Mixed traces contain queries, observed-generation publications, source
+maintenance, completion, trusted ticks and claimed ticks. `erasePolicyIngress`
+compiles each event using the evolving pre-state, including all preceding
+publications. The independent runner and compiled trace have equal final states.
+Compilation also preserves trusted tick counts. Completion and maintenance
+delegate to the existing cleanup transitions at every work balance; claimed
+ticks do not change state. Final pending occupancy retains its initial capacity
+bound.
+
+`policyIngressProcessed` and `policyIngressStarts` count the existing work and
+admission receipts on that compiled trace. With both initial balances within
+their capacities, the work, handshake and combined cost envelopes above hold
+over `policyIngressTrustedTicks`. The policy-operation weight must now include
+internal query and receipt construction as well as the delegated processed
+operation. This is a symbolic cost assumption that requires bounded inputs,
+bounded rosters and runtime evidence.
+
+The event type closes caller-supplied policy receipts for this model entry point.
+It does not authenticate the input flag or identity, prohibit runtime callers
+from bypassing this entry point, or prove atomic execution. Pre-guard
+authentication, exhausted guards, dispatch, maintenance, completion, established
+resources and live per-source pending attribution remain outside the cost
+envelope. The result establishes neither scheduling fairness nor wall-clock
+availability.
+
+
 ## Negative controls
 
-The checker rejects 200 invalid variants: three direct checks of equality,
-ordering and termination, plus 197 semantic mutations. Mutations exercise such
+The checker rejects 247 invalid variants: three direct checks of equality,
+ordering and termination, plus 244 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -627,6 +671,15 @@ for the admission gate, or emit an admission receipt without checking the work
 budget. Their
 full mutants must fail with proof type mismatches, rather than parser failures,
 crashes or timeouts. The new statements range over variables and finite traces.
+
+The 20 policy-ingress controls gate queries on the handshake credit, bypass or
+suppress query production, bypass authentication, change the queried or
+attempted identity, replace source validation, corrupt keys or pending indices,
+change publication generations, drop cleanup or trusted ticks, fabricate trusted
+ticks, miscount trusted ticks in the ingress counter, skip runner events, or
+reuse an old pre-state while compiling the trace. They must fail with proof type
+mismatches on statements over variables or finite traces.
+
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

@@ -332,6 +332,30 @@ MUTATIONS += [
 ]
 
 
+MUTATIONS += [
+    ("policy_ingress_empty_query_bypassed", "| zero => noPolicyQuery\n    | next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)", "| zero => queriedPolicy (readPolicy admissionConsumer view authenticated identity)\n    | next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)"),
+    ("policy_ingress_funded_query_dropped", "| next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)", "| next remaining => noPolicyQuery"),
+    ("policy_ingress_query_authentication_bypassed", "| next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)", "| next remaining => queriedPolicy (readPolicy admissionConsumer view on identity)"),
+    ("policy_ingress_query_identity_changed", "| next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated identity)", "| next remaining => queriedPolicy (readPolicy admissionConsumer view authenticated (next identity))"),
+    ("policy_ingress_empty_query_mints_tick", "| noPolicyQuery => policySourceClaimedTick zero", "| noPolicyQuery => policySourceTick"),
+    ("policy_ingress_query_result_dropped", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index", "| queriedPolicy receipt => policySourceClaimedTick zero"),
+    ("policy_ingress_attempt_identity_changed", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index", "| queriedPolicy receipt => policySourceAttempt receipt (next identity) source swarm key index"),
+    ("policy_ingress_attempt_source_changed", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index", "| queriedPolicy receipt => policySourceAttempt receipt identity validated swarm key index"),
+    ("policy_ingress_attempt_key_changed", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm (next key) index"),
+    ("policy_ingress_attempt_slot_changed", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key index", "| queriedPolicy receipt => policySourceAttempt receipt identity source swarm key (next index)"),
+    ("policy_ingress_publication_generation_changed", "| policyIngressPublish observed update => policySourcePublish observed update", "| policyIngressPublish observed update => policySourcePublish (next observed) update"),
+    ("policy_ingress_maintenance_dropped", "| policyIngressMaintenance maintenance => policySourceMaintenance maintenance", "| policyIngressMaintenance maintenance => policySourceClaimedTick zero"),
+    ("policy_ingress_completion_dropped", "| policyIngressFinish receipt reason => policySourceFinish receipt reason", "| policyIngressFinish receipt reason => policySourceClaimedTick zero"),
+    ("policy_ingress_tick_dropped", "| policyIngressTick => policySourceTick", "| policyIngressTick => policySourceClaimedTick zero"),
+    ("policy_ingress_claimed_tick_trusted", "| policyIngressClaimedTick claimed => policySourceClaimedTick claimed", "| policyIngressClaimedTick claimed => policySourceTick"),
+    ("policy_ingress_run_ignores_event", "| policyIngressThen event rest => runPolicyIngress rest config (policyIngressStep config event current)", "| policyIngressThen event rest => runPolicyIngress rest config current"),
+    ("policy_ingress_projection_reuses_old_state", "| policyIngressThen event rest => policySourcesThen (policyIngressEvent event current)\n        (erasePolicyIngress rest config (policyIngressStep config event current))", "| policyIngressThen event rest => policySourcesThen (policyIngressEvent event current)\n        (erasePolicyIngress rest config current)"),
+    ("policy_ingress_query_reads_handshake_credit", "queriedPolicyAttempt\n          (budgetedPolicyQuery (policyWorkCredits current)", "queriedPolicyAttempt\n          (budgetedPolicyQuery (admissionCredits (policySourceResources (policyWorkSources current)))"),
+    ("policy_ingress_trusted_tick_uncounted", "| policyIngressTick => next ticks", "| policyIngressTick => ticks"),
+    ("policy_ingress_claimed_tick_counted", "| policyIngressClaimedTick claimed => ticks", "| policyIngressClaimedTick claimed => next ticks"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 
