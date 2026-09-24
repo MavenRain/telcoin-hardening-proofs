@@ -278,6 +278,29 @@ MUTATIONS += [
     ("indexed_deep_receipt_changes_generation", "| grantedSourceStart generation => pendingAdmissionReceipt index generation", "| grantedSourceStart generation => pendingAdmissionReceipt index (case index as position in Count return Count with | zero => generation | next previous => case previous as earlier in Count return Count with | zero => generation | next older => next generation)"),
 ]
 
+# Policy/source composition: every control changes an executable definition.
+MUTATIONS += [
+    ("policy_source_gate_bypassed", "    | off => noPolicySourceWork\n    | on => sourceAdmissionAttempt source swarm key index", "    | off => sourceAdmissionAttempt source swarm key index\n    | on => sourceAdmissionAttempt source swarm key index"),
+    ("policy_source_allowed_dropped", "    | on => sourceAdmissionAttempt source swarm key index", "    | on => noPolicySourceWork"),
+    ("policy_source_identity_changed", "gatePolicySource (policyReceiptAllowed view identity receipt) source swarm key index", "gatePolicySource (policyReceiptAllowed view zero receipt) source swarm key index"),
+    ("policy_source_validation_upgraded", "    | on => sourceAdmissionAttempt source swarm key index", "    | on => sourceAdmissionAttempt validated swarm key index"),
+    ("policy_source_key_changed", "    | on => sourceAdmissionAttempt source swarm key index", "    | on => sourceAdmissionAttempt source swarm zero index"),
+    ("policy_source_slot_changed", "    | on => sourceAdmissionAttempt source swarm key index", "    | on => sourceAdmissionAttempt source swarm key zero"),
+    ("policy_source_publication_issues_credit", "    | policySourcePublish observed update => noPolicySourceWork", "    | policySourcePublish observed update => sourceAdmissionClock rate"),
+    ("policy_source_publication_dropped", "    | policySourcePublish observed update => commitPolicyAction observed update view", "    | policySourcePublish observed update => view"),
+    ("policy_source_publication_ignores_cas", "    | policySourcePublish observed update => commitPolicyAction observed update view", "    | policySourcePublish observed update => commitPolicyAction (policyGeneration view) update view"),
+    ("policy_source_maintenance_dropped", "    | policySourceMaintenance maintenance => sourceAdmissionMaintenance maintenance", "    | policySourceMaintenance maintenance => noPolicySourceWork"),
+    ("policy_source_completion_dropped", "    | policySourceFinish receipt reason => sourceAdmissionFinish receipt reason", "    | policySourceFinish receipt reason => noPolicySourceWork"),
+    ("policy_source_tick_extra_credit", "    | policySourceTick => sourceAdmissionClock rate", "    | policySourceTick => sourceAdmissionClock (next rate)"),
+    ("policy_source_claimed_tick_trusted", "    | policySourceClaimedTick claimed => noPolicySourceWork", "    | policySourceClaimedTick claimed => sourceAdmissionClock claimed"),
+    ("policy_source_erasure_drops_event", "| policySourcesThen event rest => sourceAdmissionsThen\n        (policySourceResourceEvent rate event (policySourceView current))", "| policySourcesThen event rest => sourceAdmissionsThen\n        noPolicySourceWork"),
+    ("policy_source_erasure_keeps_old_state", "        (erasePolicySources rest quota capacity rate (policySourceStep quota capacity rate event current))", "        (erasePolicySources rest quota capacity rate current)"),
+    ("policy_source_starts_keep_old_state", "| policySourcesThen event rest => add (admissionReceiptCount (policySourceAttemptReceipt quota rate event current))\n        (policySourceStarts rest quota capacity rate (policySourceStep quota capacity rate event current))", "| policySourcesThen event rest => add (admissionReceiptCount (policySourceAttemptReceipt quota rate event current))\n        (policySourceStarts rest quota capacity rate current)"),
+    ("policy_source_starts_drop_receipt", "| policySourcesThen event rest => add (admissionReceiptCount (policySourceAttemptReceipt quota rate event current))", "| policySourcesThen event rest => add zero"),
+    ("policy_source_receipt_bypasses_gate", "    admissionAttemptReceipt quota (policySourceResourceEvent rate event (policySourceView current))\n      (policySourceResources current)", "    case event as action in PolicySourceEvent return AdmissionReceipt with\n    | policySourceAttempt receipt identity source swarm key index =>\n        admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key index) (policySourceResources current)\n    | policySourcePublish observed update => noAdmissionReceipt\n    | policySourceMaintenance maintenance => noAdmissionReceipt\n    | policySourceFinish receipt reason => noAdmissionReceipt\n    | policySourceTick => noAdmissionReceipt\n    | policySourceClaimedTick claimed => noAdmissionReceipt"),
+    ("policy_source_tick_changes_view", "    | policySourceTick => view", "    | policySourceTick => commitPolicyAction (policyGeneration view) (policyResolution zero on zero) view"),
+]
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

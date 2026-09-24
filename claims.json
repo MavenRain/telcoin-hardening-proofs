@@ -99,9 +99,15 @@
         "retainedCostBound",
         "bothSwarmsRetainedCostTraceBound",
         "handshakeCostEnvelope",
-        "sourceAdmissionCostEnvelope"
+        "sourceAdmissionCostEnvelope",
+        "policySourceErasureStarts",
+        "gatedSourceIssuesNoCredit",
+        "policySourceEventIssuance",
+        "policySourceUniformIssuance",
+        "policySourceBurstRateEnvelope",
+        "policySourceCostEnvelope"
       ],
-      "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open. The source-admission count also has a weighted discrete rate envelope; rejected-attempt work and other resource classes require separate cost bounds.",
+      "model_scope": "Weighted resource composition, pending-pool traces and a discrete handshake cost envelope are proved. Runtime cost dominance, real counter caps, all swarms and omitted allocations remain open. The source-admission count also has a weighted discrete rate envelope; rejected-attempt work and other resource classes require separate cost bounds. Receipt-gated policy/source traces preserve the accepted-start rate and cost envelopes across policy changes; policy processing and maintenance costs remain separate.",
       "required_evidence": [
         "D02-D03",
         "T4a",
@@ -125,9 +131,18 @@
         "policyTraceGenerationMonotone",
         "policyTraceGenerationBound",
         "everyPolicyChangeInvalidatesReceipt",
-        "policyReceiptIdentityMismatchDenied"
+        "policyReceiptIdentityMismatchDenied",
+        "deniedPolicySourceAttempt",
+        "deniedPolicySourceReceipt",
+        "deniedPolicySourceEvent",
+        "unauthenticatedPolicySourceEvent",
+        "wrongIdentityPolicySourceEvent",
+        "wrongEpochPolicySourceEvent",
+        "changedPolicySourceReceiptEvent",
+        "stalePolicySourceEvent",
+        "freshAllowedPolicySourceAttempt"
       ],
-      "model_scope": "Whole-view generations, stale callback rejection, coherent captured readers and generation/epoch/identity-bound receipts are proved in the model. Runtime linearization through decision use, authoritative input validation, external governance ordering and cryptographic binding remain open.",
+      "model_scope": "Whole-view generations, stale callback rejection, coherent captured readers and generation/epoch/identity-bound receipts are proved in the model. Runtime linearization through decision use, authoritative input validation, external governance ordering and cryptographic binding remain open. Current policy receipts now gate the atomic source/global/pending transition. Rejected receipts cannot alter resource state or emit an admission receipt; fresh allowed query results delegate to the source transition.",
       "required_evidence": [
         "D05",
         "W2 authoritative gate",
@@ -154,9 +169,20 @@
         "policyChangePreservesCredits",
         "policyChangePreservesPending",
         "governedCreditsProjection",
-        "governedPolicyProjection"
+        "governedPolicyProjection",
+        "policySourcePublicationPreservesResources",
+        "policySourcePublicationUsesCAS",
+        "policySourceCompletionUsesReceipt",
+        "policySourceMaintenanceUsesSource",
+        "policySourceTickUsesClock",
+        "policySourceClaimedTimeIsNoOp",
+        "policySourceErasureState",
+        "policySourceTraceCreditBound",
+        "policySourceTraceDebtBound",
+        "policySourceTracePendingBound",
+        "policySourceTraceTableBound"
       ],
-      "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed finite traces preserve shared handshake credit and pending ownership during policy changes. Real fault detection, atomic publication, complete accounting and service isolation remain open.",
+      "model_scope": "Modeled missing, stale and contradictory inputs select Grace without removing authentication. Mixed policy/source traces preserve shared handshake credit, per-resident source quota, source-table size and pending occupancy bounds during policy changes; publication preserves the entire source-admission state. Real fault detection, atomic publication, complete accounting and service isolation remain open.",
       "required_evidence": [
         "D05 invalidity predicates",
         "A5 fallback/recovery",
@@ -471,9 +497,14 @@
         "indexedSourceAdmissionMissingRefused",
         "unavailableSourceAdmissionHasNoReceipt",
         "indexedSourceAdmissionHeldHasNoReceipt",
-        "indexedSourceAdmissionMissingHasNoReceipt"
+        "indexedSourceAdmissionMissingHasNoReceipt",
+        "allowedPolicySourceAttempt",
+        "allowedPolicySourceReceipt",
+        "indexedPolicySourceChargesAndReserves",
+        "indexedPolicySourceReceipt",
+        "indexedPolicySourceCountsOne"
       ],
-      "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes. Keyed source-system traces compose churn and restrictions. Atomic source-admission attempts now jointly gate validated source quota, shared credit and a selected pending slot, preserving the entire state on refusal. Mixed admission, maintenance, clock and completion traces retain source-table width, pending capacity, bounded credits and per-resident debt. Internal receipts carry slot indices and generations; completion preserves source debt and global credits. For arbitrary pending prefixes and suffixes, eligible admission charges and reserves only the selected slot, emits its exact receipt and counts one start. Matching completion releases once; mismatched and stale callbacks preserve the newer owner, and duplicate matching completions advance the generation only once. Held or out-of-range selection preserves state and emits no receipt. Accepted-start conservation now follows actual admission receipts and full updated states, yielding a coupled discrete burst-plus-rate envelope for arbitrary source and pending indices. Wall-clock rate bounds, per-source live pending attribution, established resources, policy integration, ConnectionId refinement, machine wrap, runtime unique keys and atomic enforcement, verified expiry, restarts, cap changes and honest reconnect fairness remain open.",
+      "model_scope": "Generation-tagged pending ownership and shared token-bucket bounds compose with policy changes. Keyed source-system traces compose churn and restrictions. Atomic source-admission attempts now jointly gate validated source quota, shared credit and a selected pending slot, preserving the entire state on refusal. Mixed admission, maintenance, clock and completion traces retain source-table width, pending capacity, bounded credits and per-resident debt. Internal receipts carry slot indices and generations; completion preserves source debt and global credits. For arbitrary pending prefixes and suffixes, eligible admission charges and reserves only the selected slot, emits its exact receipt and counts one start. Matching completion releases once; mismatched and stale callbacks preserve the newer owner, and duplicate matching completions advance the generation only once. Held or out-of-range selection preserves state and emits no receipt. Accepted-start conservation now follows actual admission receipts and full updated states, yielding a coupled discrete burst-plus-rate envelope for arbitrary source and pending indices. Current policy receipts now gate the same pre-state admission and exact indexed receipt. Arbitrary policy/source traces retain the state and receipt-counted rate bounds through source-trace erasure. Wall-clock rate bounds, per-source live pending attribution, established resources, runtime policy/source linearization, ConnectionId refinement, machine wrap, runtime unique keys and atomic enforcement, verified expiry, restarts, cap changes and honest reconnect fairness remain open.",
       "required_evidence": [
         "A1",
         "T4a-T4b",

@@ -332,9 +332,9 @@ initial capacities. Credits remain bounded given an initial credit bound;
 selected debt remains bounded given `SourceQuotaBound` for all initial
 residents. The inherited clamp proves the debt bound; admission refusal and
 exact charging are separately checked. These are state bounds; the cumulative
-count and discrete rate envelope are established by the next module. Per-source
-live pending attribution, established resource accounting and composition with
-authoritative policy receipts remain open.
+count and discrete rate envelope are established by the next module. Module 41
+adds policy receipt validation to the same admission step. Per-source live
+pending attribution and established resource accounting remain open.
 
 Eligibility, commit and receipt emission must linearize against one pre-state;
 the raw plan and commit helpers are not separate runtime entry points. Canonical
@@ -388,8 +388,9 @@ completion guarantees to arbitrary pending indices, as described below.
 Real monotonic time, tick provenance and replay prevention, one runtime balance,
 checked arithmetic and atomic receipt emission require refinement. The theorem
 is a discrete rate envelope, not a wall-clock, honest-admission or fairness
-guarantee. Authoritative policy receipts, live per-source pending attribution,
-established resources, changing configuration and restart persistence remain open.
+guarantee. Module 41 composes current policy receipts with this rate envelope.
+Runtime policy authority, live per-source pending attribution, established
+resources, changing configuration and restart persistence remain open.
 
 ## Source admission at arbitrary pending indices
 
@@ -423,13 +424,70 @@ sources, keys, credit balances and both swarms. They do not promise an eligible
 source, a free slot, honest admission, scheduling fairness or live per-source
 pending attribution. Atomic transitions, internal receipt provenance, stable
 runtime slot identities and nonwrapping machine generations still require
-implementation refinement. Policy integration, established resources, restarts
-and configuration changes remain separate obligations.
+implementation refinement. Module 41 preserves these indexed admission results
+under a policy receipt gate. Established resources, restarts and configuration
+changes remain separate obligations.
+
+## Policy receipts coupled to source admission
+
+`41-policy-source-admission.mech` pairs one `VersionedPolicy` with the complete
+`SourceAdmission` state. Its closed event language permits receipt-bearing
+attempts, generation-guarded policy publication, source maintenance, indexed
+completion, trusted ticks and untrusted time claims. Policy receipt validation
+and source admission use the same serialized pre-state. An attempt carries the
+actual peer identity separately from its canonical source key and pending index.
+
+The receipt gate checks the current policy generation, epoch, identity and
+captured decision through `policyReceiptAllowed`. A denied receipt leaves the
+entire state unchanged and emits no pending receipt. Separate proofs reduce
+unauthenticated query results, mismatched identities or epochs, and receipts
+from any earlier generation, after one or more successful policy installations,
+to the no-op resource event (`changedPolicySourceReceiptEvent`,
+`stalePolicySourceEvent`).
+`freshAllowedPolicySourceAttempt` connects an allowed query of the current view
+to the original source transition. This does not give policy permission an
+exemption from source quota, shared credit or pending capacity.
+
+For an allowed receipt and validated source permission, the three indexed
+theorems prove the exact source charge, single credit consumption, selected
+reservation, index/generation receipt and count of one accepted start for every
+finite pending prefix and suffix. The inherited transition still refuses a
+missing, exhausted or banned source, zero credit, or a held or missing slot.
+Completion delegates to the original indexed receipt lifecycle regardless of
+later policy changes, preserving cleanup for work admitted under an older view.
+Publication applies `commitPolicyAction` and preserves the entire resource
+state, including debt, bans, credits and lease generations.
+
+`erasePolicySources` follows the evolving policy and resource state and produces
+a `SourceAdmissionTrace`. `policySourceErasureState` equates the resource result
+with the composed execution; `policySourceErasureStarts` equates the erased
+receipt count with the independently recursive composed count. These bridge
+proofs carry the credit, resident-quota, pending-occupancy and source-table bounds
+to arbitrary finite mixed traces under the original initial-bound premises.
+`policySourceUniformIssuance` proves that only trusted ticks issue credit and
+that each issues exactly `rate` before clamping. For any bucket capacity and
+initial credit at most `burst`, `policySourceBurstRateEnvelope` bounds accepted
+starts by `burst + trustedTicks * rate`; `policySourceCostEnvelope` multiplies
+that bound by a supplied per-start cost. `policySourceTickUsesClock` proves
+that a trusted tick keeps the policy view and applies only the source clock.
+Claimed ticks produce neither state changes nor time credit.
+
+This is model composition. `PolicyReceipt` values must come from authenticated
+internal policy queries; `AdmissionReceipt` values must come from successful
+internal reservations. Raw constructors do not establish either provenance.
+Runtime receipt validation and resource enforcement must linearize together
+with policy publication, with correct peer/source/slot binding and protection
+through use. Authoritative input validation, external governance ordering,
+canonical source extraction, fixed pool identity, nonwrapping counters, trusted
+clock and expiry correspondence still require refinement. Live per-source
+pending attribution, established resources, resource-cap changes and restarts
+are not added here. The cost envelope excludes rejected attempts, policy
+processing and maintenance; honest admission and scheduling fairness remain open.
 
 ## Negative controls
 
-The checker rejects 181 invalid variants: three direct checks of equality,
-ordering and termination, plus 178 semantic mutations. Mutations exercise such
+The checker rejects 200 invalid variants: three direct checks of equality,
+ordering and termination, plus 197 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -496,6 +554,17 @@ lookup, missing-slot and receipt controls. The two update controls fail at
 `sourceAdmissionStepPoolCapacity`, both in module 37. These capacity proofs name
 the exact update, reservation and completion arguments, so they reject any
 change at these sites. These five controls do not test the module-39 theorems.
+
+The 19 policy/source controls bypass or suppress the receipt gate, misbind peer
+identity, upgrade source validation, change the selected key or slot, issue
+credit on publication, ignore publication or its generation guard, suppress
+maintenance or completion, change the policy view on a trusted tick, overissue
+trusted credit, trust claimed time, drop
+an erased event, reuse an old trace state, omit a receipt count, or emit a
+receipt without the policy gate. All changed definitions were type-checked
+through their declarations before the module-41 proofs rejected the full
+mutants. These rejections are at statements over variables, not only closed
+examples.
 
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the

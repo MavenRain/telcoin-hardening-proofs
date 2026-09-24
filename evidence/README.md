@@ -47,7 +47,7 @@ checks, covering 366 equality and order proof declarations, 56 atomic obligation
 and 165 rejected negative checks. Its `implementation_links` status remains
 `not_checked_this_run`. Real clock correspondence, dominance of the supplied
 per-start cost weight over real accepted-start work, rejected-attempt cost, live
-per-source pending attribution, policy and established-resource integration,
+per-source pending attribution, established-resource integration,
 configuration changes, timer validation, restart persistence and deployment
 qualification remain open.
 `indexed-source-admission-model-check.json` extends the lifecycle guarantees to
@@ -62,6 +62,19 @@ it. The receipt's `implementation_links` status is `not_checked_this_run`.
 Stable runtime indices, internal receipt provenance, atomic callback behavior
 and machine generation arithmetic still require refinement; this receipt does
 not establish deployment qualification.
+
+`policy-source-admission-model-check.json` records receipt-gated policy/source
+composition, exact indexed admission and counting, publication without resource
+resets, and inherited state, rate and cost bounds over mixed traces. It adds 31
+equality and order proof declarations, four atomic obligations and 19 semantic
+mutations, bringing the totals to 418 declarations across 25 modules, 64 atomic
+obligations and 200 rejected negative checks. Every new mutation type-checks
+through its changed definition before a module-41 theorem over variables rejects
+it. The receipt is from a run without `--implementation`, so its implementation
+links are `not_checked_this_run`. This closes the abstract policy/source
+composition gap left by the earlier source receipts. Runtime receipt provenance,
+atomic publication and enforcement, authoritative inputs, real clock and cost
+correspondence, established resources and deployment qualification remain open.
 
 
 These are reproducible local receipts within the trust boundary described in

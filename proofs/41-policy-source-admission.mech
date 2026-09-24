@@ -1,0 +1,551 @@
+-- Policy receipts are internal decisions from readPolicy, bound to an identity.
+-- One serialized pre-state governs policy validation and source admission.
+-- Only trusted ticks issue credit. Policy publication never resets resources.
+mu PolicySourceState : Type 0 with
+| policySourceState : VersionedPolicy -> SourceAdmission -> PolicySourceState
+
+def policySourceView : PolicySourceState -> VersionedPolicy :=
+  fun (current : PolicySourceState) =>
+    case current as self in PolicySourceState return VersionedPolicy with
+    | policySourceState view resources => view
+
+def policySourceResources : PolicySourceState -> SourceAdmission :=
+  fun (current : PolicySourceState) =>
+    case current as self in PolicySourceState return SourceAdmission with
+    | policySourceState view resources => resources
+
+mu PolicySourceEvent : Type 0 with
+| policySourceAttempt : PolicyReceipt -> Count -> Reachability -> SwarmClass -> Count -> Count -> PolicySourceEvent
+| policySourcePublish : Count -> PolicyAction -> PolicySourceEvent
+| policySourceMaintenance : SourceMaintenance -> PolicySourceEvent
+| policySourceFinish : AdmissionReceipt -> PendingEnd -> PolicySourceEvent
+| policySourceTick : PolicySourceEvent
+| policySourceClaimedTick : Count -> PolicySourceEvent
+
+def noPolicySourceWork : SourceAdmissionEvent :=
+  sourceAdmissionFinish noAdmissionReceipt handshakeCancelled
+
+def gatePolicySource : Flag -> Reachability -> SwarmClass -> Count -> Count -> SourceAdmissionEvent :=
+  fun (allowed : Flag) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    case allowed as decision in Flag return SourceAdmissionEvent with
+    | off => noPolicySourceWork
+    | on => sourceAdmissionAttempt source swarm key index
+
+def policySourceResourceEvent : Count -> PolicySourceEvent -> VersionedPolicy -> SourceAdmissionEvent :=
+  fun (rate : Count) (event : PolicySourceEvent) (view : VersionedPolicy) =>
+    case event as action in PolicySourceEvent return SourceAdmissionEvent with
+    | policySourceAttempt receipt identity source swarm key index =>
+        gatePolicySource (policyReceiptAllowed view identity receipt) source swarm key index
+    | policySourcePublish observed update => noPolicySourceWork
+    | policySourceMaintenance maintenance => sourceAdmissionMaintenance maintenance
+    | policySourceFinish receipt reason => sourceAdmissionFinish receipt reason
+    | policySourceTick => sourceAdmissionClock rate
+    | policySourceClaimedTick claimed => noPolicySourceWork
+
+def policySourceNextView : PolicySourceEvent -> VersionedPolicy -> VersionedPolicy :=
+  fun (event : PolicySourceEvent) (view : VersionedPolicy) =>
+    case event as action in PolicySourceEvent return VersionedPolicy with
+    | policySourceAttempt receipt identity source swarm key index => view
+    | policySourcePublish observed update => commitPolicyAction observed update view
+    | policySourceMaintenance maintenance => view
+    | policySourceFinish receipt reason => view
+    | policySourceTick => view
+    | policySourceClaimedTick claimed => view
+
+def policySourceStep : Count -> Count -> Count -> PolicySourceEvent -> PolicySourceState -> PolicySourceState :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (event : PolicySourceEvent) (current : PolicySourceState) =>
+    policySourceState (policySourceNextView event (policySourceView current))
+      (sourceAdmissionStep quota capacity (policySourceResourceEvent rate event (policySourceView current))
+        (policySourceResources current))
+
+def policySourceAttemptReceipt : Count -> Count -> PolicySourceEvent -> PolicySourceState -> AdmissionReceipt :=
+  fun (quota : Count) (rate : Count) (event : PolicySourceEvent) (current : PolicySourceState) =>
+    admissionAttemptReceipt quota (policySourceResourceEvent rate event (policySourceView current))
+      (policySourceResources current)
+
+def deniedPolicySourceAttempt : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) off ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceAttempt receipt identity source swarm key index)
+        (policySourceState view resources)) (policySourceState view resources) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (receipt : PolicyReceipt) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (denied : Equal Flag (policyReceiptAllowed view identity receipt) off) =>
+    congruent Flag PolicySourceState
+      (fun (allowed : Flag) => policySourceState view
+        (sourceAdmissionStep quota capacity (gatePolicySource allowed source swarm key index) resources))
+      (policyReceiptAllowed view identity receipt) off denied
+
+def deniedPolicySourceReceipt : (quota : Count) -> (rate : Count) -> (view : VersionedPolicy) ->
+    (resources : SourceAdmission) -> (receipt : PolicyReceipt) -> (identity : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) off ->
+    Equal AdmissionReceipt
+      (policySourceAttemptReceipt quota rate (policySourceAttempt receipt identity source swarm key index)
+        (policySourceState view resources)) noAdmissionReceipt :=
+  fun (quota : Count) (rate : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (receipt : PolicyReceipt) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (denied : Equal Flag (policyReceiptAllowed view identity receipt) off) =>
+    congruent Flag AdmissionReceipt
+      (fun (allowed : Flag) => admissionAttemptReceipt quota (gatePolicySource allowed source swarm key index) resources)
+      (policyReceiptAllowed view identity receipt) off denied
+
+def allowedPolicySourceAttempt : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) on ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceAttempt receipt identity source swarm key index)
+        (policySourceState view resources))
+      (policySourceState view (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key index) resources)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (receipt : PolicyReceipt) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (allowed : Equal Flag (policyReceiptAllowed view identity receipt) on) =>
+    congruent Flag PolicySourceState
+      (fun (decision : Flag) => policySourceState view
+        (sourceAdmissionStep quota capacity (gatePolicySource decision source swarm key index) resources))
+      (policyReceiptAllowed view identity receipt) on allowed
+
+def allowedPolicySourceReceipt : (quota : Count) -> (rate : Count) -> (view : VersionedPolicy) ->
+    (resources : SourceAdmission) -> (receipt : PolicyReceipt) -> (identity : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) on ->
+    Equal AdmissionReceipt
+      (policySourceAttemptReceipt quota rate (policySourceAttempt receipt identity source swarm key index)
+        (policySourceState view resources))
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key index) resources) :=
+  fun (quota : Count) (rate : Count) (view : VersionedPolicy) (resources : SourceAdmission)
+      (receipt : PolicyReceipt) (identity : Count) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (allowed : Equal Flag (policyReceiptAllowed view identity receipt) on) =>
+    congruent Flag AdmissionReceipt
+      (fun (decision : Flag) => admissionAttemptReceipt quota (gatePolicySource decision source swarm key index) resources)
+      (policyReceiptAllowed view identity receipt) on allowed
+
+def freshAllowedPolicySourceAttempt : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (consumer : PolicyConsumer) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) ->
+    (key : Count) -> (index : Count) -> Equal Flag (policyConsumerQuery consumer view authenticated identity) on ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate
+        (policySourceAttempt (readPolicy consumer view authenticated identity) identity source swarm key index)
+        (policySourceState view resources))
+      (policySourceState view (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key index) resources)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (consumer : PolicyConsumer) (view : VersionedPolicy)
+      (resources : SourceAdmission) (authenticated : Flag) (identity : Count) (source : Reachability)
+      (swarm : SwarmClass) (key : Count) (index : Count)
+      (allowed : Equal Flag (policyConsumerQuery consumer view authenticated identity) on) =>
+    allowedPolicySourceAttempt quota capacity rate view resources (readPolicy consumer view authenticated identity)
+      identity source swarm key index
+      (equalTransitivity Flag (policyReceiptAllowed view identity (readPolicy consumer view authenticated identity))
+        (policyConsumerQuery consumer view authenticated identity) on
+        (freshPolicyReceiptPreservesDecision consumer view authenticated identity) allowed)
+
+def deniedPolicySourceEvent : (rate : Count) -> (view : VersionedPolicy) -> (receipt : PolicyReceipt) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) off ->
+    Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate (policySourceAttempt receipt identity source swarm key index) view) noPolicySourceWork :=
+  fun (rate : Count) (view : VersionedPolicy) (receipt : PolicyReceipt) (identity : Count)
+      (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (denied : Equal Flag (policyReceiptAllowed view identity receipt) off) =>
+    congruent Flag SourceAdmissionEvent (fun (allowed : Flag) => gatePolicySource allowed source swarm key index)
+      (policyReceiptAllowed view identity receipt) off denied
+
+def unauthenticatedPolicySourceEvent : (rate : Count) -> (consumer : PolicyConsumer) -> (view : VersionedPolicy) ->
+    (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policySourceAttempt (readPolicy consumer view off identity) identity source swarm key index) view) noPolicySourceWork :=
+  fun (rate : Count) (consumer : PolicyConsumer) (view : VersionedPolicy) (identity : Count)
+      (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count) =>
+    deniedPolicySourceEvent rate view (readPolicy consumer view off identity) identity source swarm key index
+      (equalTransitivity Flag (policyReceiptAllowed view identity (readPolicy consumer view off identity))
+        (policyConsumerQuery consumer view off identity) off
+        (freshPolicyReceiptPreservesDecision consumer view off identity)
+        (allPolicyReadersRequireAuthentication consumer view identity))
+
+def wrongIdentityPolicySourceEvent : (rate : Count) -> (view : VersionedPolicy) -> (generation : Count) ->
+    (epoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (sameCount capturedIdentity identity) off -> Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policySourceAttempt (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index) view)
+      noPolicySourceWork :=
+  fun (rate : Count) (view : VersionedPolicy) (generation : Count) (epoch : Count) (capturedIdentity : Count)
+      (identity : Count) (allowed : Flag) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (mismatch : Equal Flag (sameCount capturedIdentity identity) off) =>
+    deniedPolicySourceEvent rate view (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index
+      (policyReceiptIdentityMismatchDenied view generation epoch capturedIdentity identity allowed mismatch)
+
+def changedPolicySourceReceiptEvent : (rate : Count) -> (generation : Count) -> (oldCore : PolicyCore) ->
+    (replacement : PolicyCore) -> (epoch : Count) -> (capturedIdentity : Count) -> (identity : Count) ->
+    (allowed : Flag) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policySourceAttempt (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index)
+        (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))) noPolicySourceWork :=
+  fun (rate : Count) (generation : Count) (oldCore : PolicyCore) (replacement : PolicyCore) (epoch : Count)
+      (capturedIdentity : Count) (identity : Count) (allowed : Flag) (source : Reachability) (swarm : SwarmClass)
+      (key : Count) (index : Count) =>
+    deniedPolicySourceEvent rate (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))
+      (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index
+      (everyPolicyChangeInvalidatesReceipt generation oldCore replacement epoch capturedIdentity identity allowed)
+
+def stalePolicySourceEvent : (rate : Count) -> (captured : Count) -> (later : Count) -> (core : PolicyCore) ->
+    (epoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policySourceAttempt (policyReceipt captured epoch capturedIdentity allowed) identity source swarm key index)
+        (versionedPolicy (next (add captured later)) core)) noPolicySourceWork :=
+  fun (rate : Count) (captured : Count) (later : Count) (core : PolicyCore) (epoch : Count)
+      (capturedIdentity : Count) (identity : Count) (allowed : Flag) (source : Reachability) (swarm : SwarmClass)
+      (key : Count) (index : Count) =>
+    deniedPolicySourceEvent rate (versionedPolicy (next (add captured later)) core)
+      (policyReceipt captured epoch capturedIdentity allowed) identity source swarm key index
+      (equalTransitivity Flag
+        (policyReceiptAllowed (versionedPolicy (next (add captured later)) core) identity
+          (policyReceipt captured epoch capturedIdentity allowed))
+        (both (sameCount capturedIdentity identity) off) off
+        (congruent Flag Flag (fun (decision : Flag) => both (sameCount capturedIdentity identity) decision)
+          (receiptDecision (next (add captured later)) (policyEpoch (coreConfig core)) captured epoch allowed) off
+          (stalePolicyReceiptDenied captured later (policyEpoch (coreConfig core)) epoch allowed))
+        (bothRightOff (sameCount capturedIdentity identity)))
+
+def wrongEpochPolicySourceEvent : (rate : Count) -> (view : VersionedPolicy) -> (generation : Count) ->
+    (epoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    Equal Flag (sameCount epoch (policyEpoch (coreConfig (policyView view)))) off -> Equal SourceAdmissionEvent
+      (policySourceResourceEvent rate
+        (policySourceAttempt (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index) view)
+      noPolicySourceWork :=
+  fun (rate : Count) (view : VersionedPolicy) (generation : Count) (epoch : Count) (capturedIdentity : Count)
+      (identity : Count) (allowed : Flag) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (mismatch : Equal Flag (sameCount epoch (policyEpoch (coreConfig (policyView view)))) off) =>
+    deniedPolicySourceEvent rate view (policyReceipt generation epoch capturedIdentity allowed) identity source swarm key index
+      (equalTransitivity Flag (policyReceiptAllowed view identity (policyReceipt generation epoch capturedIdentity allowed))
+        (both (sameCount capturedIdentity identity) (both (sameCount generation (policyGeneration view)) off)) off
+        (congruent Flag Flag
+          (fun (matches : Flag) => both (sameCount capturedIdentity identity)
+            (both (sameCount generation (policyGeneration view)) (both matches allowed)))
+          (sameCount epoch (policyEpoch (coreConfig (policyView view)))) off mismatch)
+        (equalTransitivity Flag
+          (both (sameCount capturedIdentity identity) (both (sameCount generation (policyGeneration view)) off))
+          (both (sameCount capturedIdentity identity) off) off
+          (congruent Flag Flag (fun (decision : Flag) => both (sameCount capturedIdentity identity) decision)
+            (both (sameCount generation (policyGeneration view)) off) off
+            (bothRightOff (sameCount generation (policyGeneration view))))
+          (bothRightOff (sameCount capturedIdentity identity))))
+
+def policySourcePublicationPreservesResources : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (observed : Count) -> (update : PolicyAction) -> (current : PolicySourceState) ->
+    Equal SourceAdmission
+      (policySourceResources (policySourceStep quota capacity rate (policySourcePublish observed update) current))
+      (policySourceResources current) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (observed : Count) (update : PolicyAction)
+      (current : PolicySourceState) => same
+
+def policySourcePublicationUsesCAS : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (observed : Count) -> (update : PolicyAction) -> (current : PolicySourceState) ->
+    Equal VersionedPolicy
+      (policySourceView (policySourceStep quota capacity rate (policySourcePublish observed update) current))
+      (commitPolicyAction observed update (policySourceView current)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (observed : Count) (update : PolicyAction)
+      (current : PolicySourceState) => same
+
+def policySourceCompletionUsesReceipt : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (receipt : AdmissionReceipt) -> (reason : PendingEnd) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceFinish receipt reason) (policySourceState view resources))
+      (policySourceState view (finishSourceAdmission receipt reason resources)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (receipt : AdmissionReceipt) (reason : PendingEnd)
+      (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def policySourceMaintenanceUsesSource : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (maintenance : SourceMaintenance) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceMaintenance maintenance) (policySourceState view resources))
+      (policySourceState view (sourceAdmissionStep quota capacity (sourceAdmissionMaintenance maintenance) resources)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (maintenance : SourceMaintenance)
+      (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def policySourceTickUsesClock : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate policySourceTick (policySourceState view resources))
+      (policySourceState view (sourceAdmissionStep quota capacity (sourceAdmissionClock rate) resources)) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+def policySourceClaimedTimeIsNoOp : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (claimed : Count) -> (view : VersionedPolicy) -> (resources : SourceAdmission) ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceClaimedTick claimed) (policySourceState view resources))
+      (policySourceState view resources) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (claimed : Count)
+      (view : VersionedPolicy) (resources : SourceAdmission) => same
+
+mu PolicySourceTrace : Type 0 with
+| policySourcesDone : PolicySourceTrace
+| policySourcesThen : PolicySourceEvent -> PolicySourceTrace -> PolicySourceTrace
+
+def rec runPolicySources : PolicySourceTrace -> Count -> Count -> Count -> PolicySourceState -> PolicySourceState :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return PolicySourceState with
+    | policySourcesDone => current
+    | policySourcesThen event rest => runPolicySources rest quota capacity rate (policySourceStep quota capacity rate event current)
+
+def rec erasePolicySources : PolicySourceTrace -> Count -> Count -> Count -> PolicySourceState -> SourceAdmissionTrace :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return SourceAdmissionTrace with
+    | policySourcesDone => sourceAdmissionsDone
+    | policySourcesThen event rest => sourceAdmissionsThen
+        (policySourceResourceEvent rate event (policySourceView current))
+        (erasePolicySources rest quota capacity rate (policySourceStep quota capacity rate event current))
+
+def rec policySourceErasureState : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) -> Equal SourceAdmission
+      (runSourceAdmissions (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources trace quota capacity rate current)) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return Equal SourceAdmission
+      (runSourceAdmissions (erasePolicySources self quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources self quota capacity rate current)) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => policySourceErasureState rest quota capacity rate (policySourceStep quota capacity rate event current)
+
+def rec policySourceStarts : PolicySourceTrace -> Count -> Count -> Count -> PolicySourceState -> Count :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return Count with
+    | policySourcesDone => zero
+    | policySourcesThen event rest => add (admissionReceiptCount (policySourceAttemptReceipt quota rate event current))
+        (policySourceStarts rest quota capacity rate (policySourceStep quota capacity rate event current))
+
+def rec policySourceErasureStarts : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) -> Equal Count
+      (sourceAdmissionStarts (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceStarts trace quota capacity rate current) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (sourceAdmissionStarts (erasePolicySources self quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceStarts self quota capacity rate current) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => congruent Count Count
+        (fun (future : Count) => add (admissionReceiptCount (policySourceAttemptReceipt quota rate event current)) future)
+        (sourceAdmissionStarts (erasePolicySources rest quota capacity rate (policySourceStep quota capacity rate event current))
+          quota capacity (policySourceResources (policySourceStep quota capacity rate event current)))
+        (policySourceStarts rest quota capacity rate (policySourceStep quota capacity rate event current))
+        (policySourceErasureStarts rest quota capacity rate (policySourceStep quota capacity rate event current))
+
+def policySourceTicksAfter : PolicySourceEvent -> Count -> Count :=
+  fun (event : PolicySourceEvent) (ticks : Count) =>
+    case event as action in PolicySourceEvent return Count with
+    | policySourceAttempt receipt identity source swarm key index => ticks
+    | policySourcePublish observed update => ticks
+    | policySourceMaintenance maintenance => ticks
+    | policySourceFinish receipt reason => ticks
+    | policySourceTick => next ticks
+    | policySourceClaimedTick claimed => ticks
+
+def rec policySourceTrustedTicks : PolicySourceTrace -> Count :=
+  fun (trace : PolicySourceTrace) =>
+    case trace as self in PolicySourceTrace return Count with
+    | policySourcesDone => zero
+    | policySourcesThen event rest => policySourceTicksAfter event (policySourceTrustedTicks rest)
+
+def gatedSourceIssuesNoCredit : (allowed : Flag) -> (source : Reachability) -> (swarm : SwarmClass) ->
+    (key : Count) -> (index : Count) -> (remaining : Count) -> (ticks : Count) -> (rate : Count) ->
+    Equal Count remaining (multiply ticks rate) ->
+    Equal Count (add (sourceAdmissionIssuedNow (gatePolicySource allowed source swarm key index)) remaining) (multiply ticks rate) :=
+  fun (allowed : Flag) (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (remaining : Count) (ticks : Count) (rate : Count) (bound : Equal Count remaining (multiply ticks rate)) =>
+    case allowed as decision in Flag return
+      Equal Count (add (sourceAdmissionIssuedNow (gatePolicySource decision source swarm key index)) remaining) (multiply ticks rate) with
+    | off => bound
+    | on => bound
+
+def policySourceEventIssuance : (event : PolicySourceEvent) -> (view : VersionedPolicy) ->
+    (remaining : Count) -> (ticks : Count) -> (rate : Count) -> Equal Count remaining (multiply ticks rate) ->
+    Equal Count (add (sourceAdmissionIssuedNow (policySourceResourceEvent rate event view)) remaining)
+      (multiply (policySourceTicksAfter event ticks) rate) :=
+  fun (event : PolicySourceEvent) (view : VersionedPolicy) (remaining : Count) (ticks : Count) (rate : Count)
+      (bound : Equal Count remaining (multiply ticks rate)) =>
+    case event as action in PolicySourceEvent return
+      Equal Count (add (sourceAdmissionIssuedNow (policySourceResourceEvent rate action view)) remaining)
+        (multiply (policySourceTicksAfter action ticks) rate) with
+    | policySourceAttempt receipt identity source swarm key index =>
+        gatedSourceIssuesNoCredit (policyReceiptAllowed view identity receipt) source swarm key index remaining ticks rate bound
+    | policySourcePublish observed update => bound
+    | policySourceMaintenance maintenance => bound
+    | policySourceFinish receipt reason => bound
+    | policySourceTick => congruent Count Count (fun (future : Count) => add rate future) remaining (multiply ticks rate) bound
+    | policySourceClaimedTick claimed => bound
+
+def rec policySourceUniformIssuance : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) -> Equal Count
+      (sourceAdmissionIssuedTotal (erasePolicySources trace quota capacity rate current))
+      (multiply (policySourceTrustedTicks trace) rate) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    case trace as self in PolicySourceTrace return Equal Count
+      (sourceAdmissionIssuedTotal (erasePolicySources self quota capacity rate current))
+      (multiply (policySourceTrustedTicks self) rate) with
+    | policySourcesDone => same
+    | policySourcesThen event rest => policySourceEventIssuance event (policySourceView current)
+        (sourceAdmissionIssuedTotal (erasePolicySources rest quota capacity rate (policySourceStep quota capacity rate event current)))
+        (policySourceTrustedTicks rest) rate
+        (policySourceUniformIssuance rest quota capacity rate (policySourceStep quota capacity rate event current))
+
+def policySourceBurstRateEnvelope : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (burst : Count) -> (rate : Count) -> (current : PolicySourceState) ->
+    AtMost (admissionCredits (policySourceResources current)) burst ->
+    AtMost (policySourceStarts trace quota capacity rate current) (add burst (multiply (policySourceTrustedTicks trace) rate)) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (burst : Count) (rate : Count)
+      (current : PolicySourceState) (initial : AtMost (admissionCredits (policySourceResources current)) burst) =>
+    equalTransport Count (fun (starts : Count) => AtMost starts (add burst (multiply (policySourceTrustedTicks trace) rate)))
+      (sourceAdmissionStarts (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceStarts trace quota capacity rate current) (policySourceErasureStarts trace quota capacity rate current)
+      (sourceAdmissionAllowanceBound (erasePolicySources trace quota capacity rate current) quota capacity burst
+        (policySourceResources current) (multiply (policySourceTrustedTicks trace) rate) initial
+        (equalTransport Count
+          (fun (limit : Count) => AtMost (sourceAdmissionIssuedTotal (erasePolicySources trace quota capacity rate current)) limit)
+          (sourceAdmissionIssuedTotal (erasePolicySources trace quota capacity rate current)) (multiply (policySourceTrustedTicks trace) rate)
+          (policySourceUniformIssuance trace quota capacity rate current)
+          (reflexiveBound (sourceAdmissionIssuedTotal (erasePolicySources trace quota capacity rate current)))))
+
+def policySourceCostEnvelope : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (burst : Count) -> (rate : Count) -> (current : PolicySourceState) -> (cost : Count) ->
+    AtMost (admissionCredits (policySourceResources current)) burst ->
+    AtMost (multiply (policySourceStarts trace quota capacity rate current) cost)
+      (multiply (add burst (multiply (policySourceTrustedTicks trace) rate)) cost) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (burst : Count) (rate : Count)
+      (current : PolicySourceState) (cost : Count) (initial : AtMost (admissionCredits (policySourceResources current)) burst) =>
+    multipliedBounds (policySourceStarts trace quota capacity rate current)
+      (add burst (multiply (policySourceTrustedTicks trace) rate)) cost
+      (policySourceBurstRateEnvelope trace quota capacity burst rate current initial)
+
+def policySourceTraceCreditBound : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) -> AtMost (admissionCredits (policySourceResources current)) capacity ->
+    AtMost (admissionCredits (policySourceResources (runPolicySources trace quota capacity rate current))) capacity :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState)
+      (bound : AtMost (admissionCredits (policySourceResources current)) capacity) =>
+    equalTransport SourceAdmission (fun (resources : SourceAdmission) => AtMost (admissionCredits resources) capacity)
+      (runSourceAdmissions (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources trace quota capacity rate current)) (policySourceErasureState trace quota capacity rate current)
+      (sourceAdmissionTraceCreditBound (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current) bound)
+
+def policySourceTraceQuotaBound : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) -> SourceQuotaBound quota (admissionSources (policySourceResources current)) ->
+    SourceQuotaBound quota (admissionSources (policySourceResources (runPolicySources trace quota capacity rate current))) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState)
+      (bound : SourceQuotaBound quota (admissionSources (policySourceResources current))) =>
+    equalTransport SourceAdmission (fun (resources : SourceAdmission) => SourceQuotaBound quota (admissionSources resources))
+      (runSourceAdmissions (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources trace quota capacity rate current)) (policySourceErasureState trace quota capacity rate current)
+      (sourceAdmissionTraceQuotaBound (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current) bound)
+
+def policySourceTraceDebtBound : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (key : Count) -> (current : PolicySourceState) ->
+    SourceQuotaBound quota (admissionSources (policySourceResources current)) ->
+    AtMost (sourceCellDebt (lookupSource key
+      (admissionSources (policySourceResources (runPolicySources trace quota capacity rate current))))) quota :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (key : Count)
+      (current : PolicySourceState) (bound : SourceQuotaBound quota (admissionSources (policySourceResources current))) =>
+    sourceLookupQuotaBound quota key (admissionSources (policySourceResources (runPolicySources trace quota capacity rate current)))
+      (policySourceTraceQuotaBound trace quota capacity rate current bound)
+
+def policySourceTracePendingBound : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (runPolicySources trace quota capacity rate current))))
+      (leaseCapacity (admissionPool (policySourceResources current))) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    equalTransport SourceAdmission
+      (fun (resources : SourceAdmission) => AtMost (leaseOccupancy (admissionPool resources))
+        (leaseCapacity (admissionPool (policySourceResources current))))
+      (runSourceAdmissions (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources trace quota capacity rate current)) (policySourceErasureState trace quota capacity rate current)
+      (sourceAdmissionTracePendingBound (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+
+def policySourceTraceTableBound : (trace : PolicySourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (rate : Count) -> (current : PolicySourceState) ->
+    AtMost (sourceTableSize (admissionSources (policySourceResources (runPolicySources trace quota capacity rate current))))
+      (sourceTableWidth (admissionSources (policySourceResources current))) :=
+  fun (trace : PolicySourceTrace) (quota : Count) (capacity : Count) (rate : Count) (current : PolicySourceState) =>
+    equalTransport SourceAdmission
+      (fun (resources : SourceAdmission) => AtMost (sourceTableSize (admissionSources resources))
+        (sourceTableWidth (admissionSources (policySourceResources current))))
+      (runSourceAdmissions (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+      (policySourceResources (runPolicySources trace quota capacity rate current)) (policySourceErasureState trace quota capacity rate current)
+      (sourceAdmissionTraceTableBound (erasePolicySources trace quota capacity rate current) quota capacity (policySourceResources current))
+
+def indexedPolicySourceChargesAndReserves : (quota : Count) -> (capacity : Count) -> (rate : Count) ->
+    (view : VersionedPolicy) -> (receipt : PolicyReceipt) -> (identity : Count) -> (swarm : SwarmClass) ->
+    (key : Count) -> (table : SourceTable) -> (credits : Count) -> (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) on -> Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal PolicySourceState
+      (policySourceStep quota capacity rate (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix))
+        (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (policySourceState view (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits
+        (appendLeasePool prefix (leaseCell (heldLease generation) rest)))) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (view : VersionedPolicy) (receipt : PolicyReceipt)
+      (identity : Count) (swarm : SwarmClass) (key : Count) (table : SourceTable) (credits : Count)
+      (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (policyAllowed : Equal Flag (policyReceiptAllowed view identity receipt) on)
+      (sourceAllowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    equalTransitivity PolicySourceState
+      (policySourceStep quota capacity rate (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix))
+        (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (policySourceState view (sourceAdmissionStep quota capacity (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (policySourceState view (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits
+        (appendLeasePool prefix (leaseCell (heldLease generation) rest))))
+      (allowedPolicySourceAttempt quota capacity rate view
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))
+        receipt identity validated swarm key (leasePrefixIndex prefix) policyAllowed)
+      (congruent SourceAdmission PolicySourceState (fun (resources : SourceAdmission) => policySourceState view resources)
+        (sourceAdmissionStep quota capacity (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+          (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+        (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits
+          (appendLeasePool prefix (leaseCell (heldLease generation) rest)))
+        (indexedSourceAdmissionChargesAndReserves quota capacity swarm key table credits prefix generation rest sourceAllowed))
+
+def indexedPolicySourceReceipt : (quota : Count) -> (rate : Count) -> (view : VersionedPolicy) ->
+    (receipt : PolicyReceipt) -> (identity : Count) -> (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) ->
+    (credits : Count) -> (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) on -> Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal AdmissionReceipt
+      (policySourceAttemptReceipt quota rate (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix))
+        (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) :=
+  fun (quota : Count) (rate : Count) (view : VersionedPolicy) (receipt : PolicyReceipt) (identity : Count)
+      (swarm : SwarmClass) (key : Count) (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (policyAllowed : Equal Flag (policyReceiptAllowed view identity receipt) on)
+      (sourceAllowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    equalTransitivity AdmissionReceipt
+      (policySourceAttemptReceipt quota rate (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix))
+        (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))
+      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation)
+      (allowedPolicySourceReceipt quota rate view
+        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))
+        receipt identity validated swarm key (leasePrefixIndex prefix) policyAllowed)
+      (indexedSourceAdmissionOwnsReceipt quota swarm key table credits prefix generation rest sourceAllowed)
+
+def indexedPolicySourceCountsOne : (quota : Count) -> (capacity : Count) -> (rate : Count) -> (view : VersionedPolicy) ->
+    (receipt : PolicyReceipt) -> (identity : Count) -> (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) ->
+    (credits : Count) -> (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->
+    Equal Flag (policyReceiptAllowed view identity receipt) on -> Equal Flag (sourceTableChargeAllowed validated quota key table) on ->
+    Equal Count (policySourceStarts
+      (policySourcesThen (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix)) policySourcesDone)
+      quota capacity rate
+      (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))) (next zero) :=
+  fun (quota : Count) (capacity : Count) (rate : Count) (view : VersionedPolicy) (receipt : PolicyReceipt) (identity : Count)
+      (swarm : SwarmClass) (key : Count) (table : SourceTable) (credits : Count) (prefix : LeasePool) (generation : Count) (rest : LeasePool)
+      (policyAllowed : Equal Flag (policyReceiptAllowed view identity receipt) on)
+      (sourceAllowed : Equal Flag (sourceTableChargeAllowed validated quota key table) on) =>
+    congruent AdmissionReceipt Count (fun (owned : AdmissionReceipt) => add (admissionReceiptCount owned) zero)
+      (policySourceAttemptReceipt quota rate (policySourceAttempt receipt identity validated swarm key (leasePrefixIndex prefix))
+        (policySourceState view (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest)))))
+      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation)
+      (indexedPolicySourceReceipt quota rate view receipt identity swarm key table credits prefix generation rest policyAllowed sourceAllowed)

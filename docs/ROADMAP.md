@@ -17,19 +17,23 @@ traces. Accepted starts counted from those receipts now satisfy shared-credit
 conservation and a discrete burst-plus-rate envelope, lifted to per-start cost.
 Enabled admission, exact receipt emission, accepted-start counting, matching
 completion, stale and duplicate callback protection, and held or missing slot
-refusal now hold for arbitrary finite pending prefixes and suffixes.
+refusal now hold for arbitrary finite pending prefixes and suffixes. Current
+policy receipts now gate the same source admission transition. Mixed
+policy/source traces retain the indexed admission equations, resource bounds
+and receipt-counted burst-plus-rate and per-start cost envelopes.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 60 atomic model obligations
+   explicit dispositions. The current 34 groups and 64 atomic model obligations
    are not the final atomic list.
-2. Extend source admission and its coupled global rate envelope with
-   authoritative policy receipts and established resources.
+2. Extend policy/source admission and its coupled global rate envelope with
+   established resources and independently bounded policy-processing work.
    Model live per-source pending attribution.
-   Refine canonical source extraction, key uniqueness, indexed internal receipts
-   and atomic source/global/pending enforcement against one pre-state.
+   Refine canonical source extraction, key uniqueness, indexed internal receipts,
+   policy receipt provenance from authenticated internal policy queries and atomic
+   policy/source/global/pending enforcement against one pre-state.
    Verify expiry authority, current restriction generations, clock correspondence,
    bounded retention time and restart persistence. Extend the
    transition systems to resource-cap changes, authoritative policy ordering,

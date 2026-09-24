@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-Forty-five further semantic mutations must
+The 197 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -78,8 +78,14 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   Fixed runtime slot identities, internal receipt provenance and atomic callback
   behavior still require refinement; the prefix representation is a model of
   indexing, not a proof about Rust storage or ConnectionId mapping.
-  Live per-source pending attribution, established resources, policy integration,
-  real clock correspondence, bounded retention and restart persistence remain open.
+  Policy/source traces now validate current policy receipts before that same
+  admission step. They preserve the indexed admission equations, resource bounds
+  and receipt-counted rate and cost envelopes across policy changes. Policy
+  receipts and completion receipts have distinct internal provenance obligations;
+  the composed model does not authenticate their raw constructors. Policy
+  validation and resource enforcement must linearize together in the runtime.
+  Live per-source pending attribution, established resources, real clock
+  correspondence, bounded retention and restart persistence remain open.
   Overflow refusal does not prove honest-source admission or reconnect fairness.
 - Poll fuel bounds processed events and conserves the retained backlog. A model
   wakeup flag does not establish correct waker registration, executor fairness,

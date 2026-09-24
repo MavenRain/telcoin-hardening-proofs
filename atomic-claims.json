@@ -15,13 +15,13 @@
     "stable_committee_index": "Each current committee member has one stable, unique slot. Record senders cannot choose another member slot or create new roster slots.",
     "atomic_policy_publication": "Each complete policy view is immutable; generation comparison and publication are atomic. Receipt validation and the resulting authorization linearize with publication, or retain equivalent protection through use.",
     "policy_input_validation": "Health, epoch, membership mappings, roster and the positive recovery threshold come from validated authoritative inputs. Snapshot generation orders local publication, not external governance versions. Input freshness and epoch ordering require separate validation.",
-    "policy_receipt_provenance": "Admission receipts are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
+    "policy_receipt_provenance": "PolicyReceipt values are internal results of policy queries for the actual authenticated peer. Untrusted input cannot construct or alter a receipt, its identity or its allowed flag.",
     "stable_resource_configuration": "Bucket capacity and pending-pool capacity are fixed during each modeled run. Restarts and runtime resource-cap changes require additional transitions and proofs.",
     "canonical_source_keys": "Each Count key represents one canonical validated source or prefix under a fixed normalization policy. PeerIds cannot choose or reset this binding. The initial runtime table has unique canonical keys.",
     "source_restriction_classification": "SourceClear means no unexpired rate debt or ban. The supplied restriction preserves all security-relevant state, including simultaneous debt and bans. Module 27 models churn, module 28 restriction events, and module 29 their keyed composition. Module 37 couples source charging to shared credits and pending ownership. Runtime lookup, atomic enforcement, complete classification and policy/resource integration still require refinement.",
     "fixed_source_quota": "The per-source quota is fixed during each restriction or composed source-system trace and counts admitted operations since trusted debt expiry. Initial debt is within that quota; composed traces require a bound for every initial resident. Mathematical Count arithmetic requires checked machine-counter bounds; this model is not a timed rate envelope.",
     "trusted_source_expiry": "Trusted debt and ban expiry constructors denote an internal decision validated for the correct canonical source, current restriction generation and deadline. Peer claims and stale timers cannot construct a trusted expiry. Timer authentication, clock correspondence and the expiry policy are implementation obligations. A trusted debt expiry removes all debt in one transition and a trusted ban expiry removes only the ban. The model has no partial decay, no per-unit refund and no clock, so an implementation with gradual decay must refine each full reset to one trusted debt expiry event.",
-    "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. The model's raw plan and commit helpers are not independently callable runtime admission APIs.",
+    "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. In the policy/source composition, policy receipt validation and the actual peer identity belong to that same transition. The raw plan and commit helpers are not independently callable runtime admission APIs.",
     "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run."
   },
   "claims": [
@@ -1479,7 +1479,7 @@
       ],
       "open_implementation_obligations": [
         "Validate maintenance authority, source and restriction generation, deadlines, retention scheduling and restart persistence; trusted expiry is supplied rather than verified.",
-        "Compose this source-admission model and its discrete cumulative rate envelope with authoritative policy receipts and established connections.",
+        "Refine the modeled policy/source composition and its discrete cumulative rate envelope to the runtime; established connections remain a separate composition obligation.",
         "Complete Hub, Rotation and Later semantics and qualify honest reconnect fairness under source and global saturation."
       ]
     },
@@ -1583,7 +1583,7 @@
       "open_implementation_obligations": [
         "Relate trusted ticks to real elapsed monotonic time and prevent fabricated or replayed issuance; this is a discrete envelope, not a wall-clock guarantee.",
         "Refine the closed timed event mapping, select and qualify production burst/rate settings, and account for configuration changes and restart persistence.",
-        "Compose authoritative policy receipts and establish honest admission and reconnect fairness."
+        "Refine authoritative policy receipts and the modeled policy/source composition, and establish honest admission and reconnect fairness."
       ]
     },
     {
@@ -1747,6 +1747,167 @@
         "Refine finite runtime pool bounds and checked index arithmetic so missing and held slots cannot fabricate ownership.",
         "Ensure unavailable-slot refusal is atomic and has no source-charge, credit-spend, reservation or receipt-emission side effects.",
         "Separate these refusal guarantees from honest admission, reconnect fairness and live per-source pending attribution."
+      ]
+    },
+    {
+      "id": "C25",
+      "parent": "H06",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          65,
+          65
+        ]
+      },
+      "property": "A policy receipt that is denied in the current view yields no resource transition and no pending receipt. Unauthenticated query results, mismatched identities or epochs, and receipts captured before a successful policy installation map to that no-op event. A fresh allowed query delegates to the same atomic source admission transition.",
+      "theorems": [
+        "deniedPolicySourceAttempt",
+        "deniedPolicySourceReceipt",
+        "deniedPolicySourceEvent",
+        "unauthenticatedPolicySourceEvent",
+        "wrongIdentityPolicySourceEvent",
+        "wrongEpochPolicySourceEvent",
+        "changedPolicySourceReceiptEvent",
+        "stalePolicySourceEvent",
+        "freshAllowedPolicySourceAttempt"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "atomic_policy_publication",
+        "policy_input_validation",
+        "policy_receipt_provenance",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts",
+        "nonwrapping_generations"
+      ],
+      "open_implementation_obligations": [
+        "Linearize policy receipt validation, source permission, credit consumption, lease reservation and receipt emission against one pre-state; protect the decision through use.",
+        "Bind the internal policy receipt to the authenticated runtime peer, canonical source key and selected slot without allowing network input to manufacture or alter it.",
+        "Refine authoritative policy input validation, external ordering and nonwrapping generation arithmetic. A local publication generation does not establish governance freshness."
+      ]
+    },
+    {
+      "id": "C26",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Given an allowed current policy receipt, validated source permission, positive shared credit and a free selected lease, admission in either swarm charges the source, spends one credit and reserves exactly that lease for every finite pending prefix and suffix. It emits the exact index/generation receipt and counts one accepted start.",
+      "theorems": [
+        "allowedPolicySourceAttempt",
+        "allowedPolicySourceReceipt",
+        "indexedPolicySourceChargesAndReserves",
+        "indexedPolicySourceReceipt",
+        "indexedPolicySourceCountsOne"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "atomic_policy_publication",
+        "policy_input_validation",
+        "policy_receipt_provenance",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts",
+        "nonwrapping_generations"
+      ],
+      "open_implementation_obligations": [
+        "Refine arbitrary runtime slot indices to prefix lengths and preserve fixed pool identity, surrounding leases and the source/peer binding.",
+        "Prove the runtime accepted-start counter follows successful internal receipt emission without omissions or duplicates.",
+        "Establish live per-source pending attribution and established-resource accounting separately; source debt records admitted starts until trusted expiry."
+      ]
+    },
+    {
+      "id": "C27",
+      "parent": "H07",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          67,
+          67
+        ]
+      },
+      "property": "Policy publication applies the existing generation-guarded policy action while preserving the entire source-admission state. Source maintenance and indexed completion retain their existing transition semantics, including cleanup after a policy change. A trusted tick keeps the policy view and applies only the source clock. Claimed time does not change state. Arbitrary mixed traces retain the credit and per-resident quota bounds and the initial pending and source-table occupancy limits.",
+      "theorems": [
+        "policySourcePublicationPreservesResources",
+        "policySourcePublicationUsesCAS",
+        "policySourceCompletionUsesReceipt",
+        "policySourceMaintenanceUsesSource",
+        "policySourceTickUsesClock",
+        "policySourceClaimedTimeIsNoOp",
+        "policySourceErasureState",
+        "policySourceTraceCreditBound",
+        "policySourceTraceDebtBound",
+        "policySourceTracePendingBound",
+        "policySourceTraceTableBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "atomic_policy_publication",
+        "policy_input_validation",
+        "policy_receipt_provenance",
+        "canonical_source_keys",
+        "source_restriction_classification",
+        "fixed_source_quota",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "source_admission_receipts",
+        "internal_callback_tokens",
+        "nonwrapping_generations",
+        "trusted_clock",
+        "trusted_source_expiry"
+      ],
+      "open_implementation_obligations": [
+        "Refine policy, admission, maintenance and completion events to the serialized trace, including every error and cancellation path.",
+        "Supply initial credit and per-resident quota witnesses, fixed resource settings, trusted expiry authority and stable runtime slot identities.",
+        "Model resource-cap changes, restart persistence, established resources and complete service isolation before extending this result to those behaviors."
+      ]
+    },
+    {
+      "id": "C28",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Accepted starts counted from emitted receipts agree with the state-dependent source-trace erasure. Only trusted ticks issue rate credits, including across policy publications, denied attempts, maintenance and completion. For any bucket capacity and initial credit at most burst, accepted starts are at most burst plus trusted-tick count times rate; multiplying by a supplied per-start cost preserves that bound.",
+      "theorems": [
+        "policySourceErasureStarts",
+        "gatedSourceIssuesNoCredit",
+        "policySourceEventIssuance",
+        "policySourceUniformIssuance",
+        "policySourceBurstRateEnvelope",
+        "policySourceCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "source_admission_receipts",
+        "stable_resource_configuration",
+        "complete_event_refinement",
+        "trusted_clock",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine one shared runtime balance, receipt-counted accepted starts and trusted nonreplayed ticks to this discrete trace in both swarms.",
+        "Establish real clock correspondence, checked arithmetic, initial burst credit and a per-start weight that bounds accepted-start work.",
+        "Account separately for rejected-attempt work, policy processing, maintenance, established resources and configuration changes; the theorem is not an honest-admission or wall-clock fairness guarantee."
       ]
     }
   ]
