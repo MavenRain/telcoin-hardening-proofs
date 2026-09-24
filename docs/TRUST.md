@@ -64,6 +64,17 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   runtime entry-point discipline and atomic query/charge/admission still require
   refinement. Pre-guard authentication, exhausted guards, dispatch, cleanup and
   established-resource costs remain outside this envelope.
+- Module 44 adds a finite poll fuel that charges every dispatched ingress event,
+  including exhausted-credit guards, maintenance and completion. Exact queue
+  reconstruction, prefix execution and resumption preserve the existing state
+  semantics and pending bound. Its combined cost envelope assumes an event
+  weight covering all per-dispatch work outside policy and handshake costs.
+  Queue construction, pre-dispatch authentication, empty-poll costs, runtime
+  wakers and executor overhead still need separate bounds. Cleanup bypasses
+  exhausted policy work credit but requires poll fuel and actual scheduling.
+  Positive fuel, executor fairness and cleanup priority are open refinements;
+  the model does not supply a wall-clock latency or global polling-rate bound.
+
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
   bindings and complete security-state classification, including simultaneous

@@ -26,18 +26,24 @@ denials, and composes its discrete cost envelope with accepted handshake work.
 Cleanup bypasses work exhaustion. Budgeted ingress now constructs policy receipts
 internally from the current pre-state; its mixed traces retain the work and
 handshake envelopes with query production included in the assumed operation
-weight. Guard costs and concrete query-cost evidence remain open.
+weight. Fueled policy-ingress polls now count every dispatched event, preserve
+the exact ordered continuation and state semantics, and compose a conditional
+dispatch-overhead bound with the selected prefix's policy and handshake
+envelopes. Concrete dispatch and query costs, work outside dispatched events
+and executor progress remain open.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 72 atomic model obligations
+   explicit dispositions. The current 34 groups and 76 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
-   queries and receipt production, and bound guards, maintenance and other work
-   outside the processed policy-operation envelope.
+   queries and receipt production, justify the per-dispatch guard and maintenance
+   weights, and bound queue construction, pre-dispatch work and executor overhead
+   outside the finite-poll envelope. Refine queue persistence, positive poll fuel
+   and wakeup scheduling, including cleanup progress under sustained arrivals.
    Refine canonical source extraction, key uniqueness, indexed internal receipts,
    runtime receipt provenance from authenticated internal policy queries and atomic
    policy/source/global/pending enforcement against one pre-state.

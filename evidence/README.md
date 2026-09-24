@@ -119,3 +119,17 @@ runtime enforcement and measured cost bounds remain implementation obligations.
 Pre-guard work, exhausted guards, maintenance, completion, established resources
 and deployment qualification remain open. Implementation links are
 `not_checked_this_run`.
+
+`policy-ingress-poll-model-check.json` records the fueled ingress-poll extension.
+The bundle has 492 declarations across 28 modules, 76 atomic obligations and
+265 rejected negative checks, including 18 new poll mutations. Every dispatched
+event consumes fuel; the exact ordered prefix/remainder split, wake requests,
+state projection, continuation execution and pending-capacity bound are checked.
+Completion and maintenance execute at zero policy work credit if poll fuel
+remains. A conditional event-cost term accounts for dispatch and exhausted
+guards alongside the prefix policy/handshake cost envelopes.
+
+The receipt is a model-checking result. Concrete per-event cost bounds, queue
+construction, pre-dispatch authentication, executor overhead and cleanup
+scheduling remain open. Implementation links are `not_checked_this_run`;
+full implementation and deployment qualification remains blocked.

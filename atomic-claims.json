@@ -24,7 +24,9 @@
     "atomic_source_admission": "Source eligibility, shared-credit consumption, pending reservation and receipt emission linearize against one pre-state. In the policy/source composition, policy receipt validation and the actual peer identity belong to that same transition. The raw plan and commit helpers are not independently callable runtime admission APIs.",
     "source_admission_receipts": "AdmissionReceipt values come only from successful internal attempts and preserve the selected pending index and generation through the callback lifecycle. Network input cannot forge or alter them; indices refer to the same fixed pool across a run.",
     "bounded_policy_processing": "One process-wide policy-work balance gates every modeled attempt and publication before processing. A processed operation spends exactly one credit even when denied. Work capacity and rate and the handshake rate are fixed in module 42. The guard, charge and delegated policy/source event use one serialized pre-state. Already constructed policy receipts are inputs; their creation, pre-guard work, exhausted guards, maintenance and completion need separate cost accounting.",
-    "bounded_policy_queries": "Module 43 constructs policy receipts internally only on the positive-work-credit branch, using the current view and the attempted identity. Authentication and identity inputs must come from verified credentials. The guard, query, charge and policy/source admission use one serialized pre-state. The per-processed-operation cost weight must cover bounded query and receipt production plus delegated work; pre-guard authentication, exhausted guards, maintenance and completion remain outside that weight."
+    "bounded_policy_queries": "Module 43 constructs policy receipts internally only on the positive-work-credit branch, using the current view and the attempted identity. Authentication and identity inputs must come from verified credentials. The guard, query, charge and policy/source admission use one serialized pre-state. The per-processed-operation cost weight must cover bounded query and receipt production plus delegated work; pre-guard authentication, exhausted guards, maintenance and completion remain outside that weight.",
+    "finite_ingress_polls": "Each modeled poll has finite fuel and a stable finite sequence of ingress events. Runtime dispatch, state updates and saved queue continuations preserve this sequence; external arrivals and queue materialization require separate refinement.",
+    "bounded_ingress_dispatch": "A supplied eventCost bounds all per-dispatched-event work outside the policy-operation and accepted-handshake weights, including exhausted-credit guards, dispatch, maintenance, completion and clock handling. Concrete input, table and queue bounds must justify this weight. Queue creation, authentication before dispatch, empty-poll overhead and executor/waker costs are outside this assumption."
   },
   "claims": [
     {
@@ -2191,6 +2193,137 @@
         "Establish common-unit cost weights and concrete input/roster bounds covering internal query and receipt construction as well as each processed denial or publication; this is not a measured CPU bound.",
         "Relate trusted modeled ticks to a real elapsed interval and prove one process-wide balance for both swarms without reset-based credit creation.",
         "Extend accounting to established resources and live per-source pending attribution; guard, authentication, maintenance, completion, scheduling, restart and cap-change costs remain outside this envelope."
+      ]
+    },
+    {
+      "id": "C37",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For every finite policy-ingress queue and poll fuel, dispatched event count is at most the fuel and equals the length of the selected prefix. Every event consumes one unit, including exhausted work-credit attempts, publications, maintenance, completion and clock events; zero fuel executes no transition.",
+      "theorems": [
+        "policyIngressPollWorkBound",
+        "everyPolicyIngressEventConsumesPollFuel",
+        "policyIngressPrefixCountsWork",
+        "zeroPolicyIngressPollPreservesState",
+        "zeroPolicyIngressPollHasNoPrefix"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls"
+      ],
+      "open_implementation_obligations": [
+        "Refine the runtime poll loop and all guard, denial, cleanup and clock paths to exactly one dispatch per modeled event without hidden unmetered loops.",
+        "Establish a finite poll fuel, checked arithmetic and a stable queue projection; queue creation and memory use are not bounded by this count theorem."
+      ]
+    },
+    {
+      "id": "C38",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Splitting an arbitrary finite policy-ingress queue at the poll fuel preserves the exact event sequence when prefix and remainder are reassembled, and conserves event count. For every queue, fuel shorter than the queue requests another poll, and fuel equal to its length leaves a drained queue with no backlog wake.",
+      "theorems": [
+        "policyIngressPollReassemblesQueue",
+        "policyIngressPollBacklogConservation",
+        "zeroPolicyIngressPollPreservesQueue",
+        "policyIngressBacklogRequestsWake",
+        "policyIngressOneEventLeavesWake",
+        "policyIngressDrainedQueueStopsWake",
+        "policyIngressShortPollRequestsWake",
+        "policyIngressFullPollStopsWake"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "executor_wakeup"
+      ],
+      "open_implementation_obligations": [
+        "Refine queue storage, producer interleavings, waker registration and cancellation so events cannot be lost, reordered or replayed across actual polls.",
+        "Prove positive fuel and executor fairness for eventual progress. Wake requests alone give no wall-clock latency, fairness under infinite arrivals or cleanup-priority guarantee."
+      ]
+    },
+    {
+      "id": "C39",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "A fueled ingress poll applies each selected event to the current pre-state, equals execution of its selected prefix, and retains the pending-capacity bound. Running the exact remainder from the poll result equals uninterrupted execution of the original queue. With one unit of poll fuel, completion and maintenance execute even when policy work credit is zero.",
+      "theorems": [
+        "policyIngressPollTakesCurrentStep",
+        "policyIngressPollProjectsPrefix",
+        "policyIngressPollResumePreservesExecution",
+        "policyIngressPollPendingBound",
+        "policyIngressPollCompletionBypassesWork",
+        "policyIngressPollMaintenanceBypassesWork"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "finite_ingress_polls",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries"
+      ],
+      "open_implementation_obligations": [
+        "Implement atomic current-state dispatch and preserve the returned state and queue remainder together across poll boundaries; refinement includes internal policy-query and receipt provenance.",
+        "Poll fuel still gates cleanup. Establish scheduling or reserved service to prevent cleanup starvation, and refine receipt authenticity, expiry authority and callback generations.",
+        "Extend the coupled state to established resources and live per-source pending attribution."
+      ]
+    },
+    {
+      "id": "C40",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "For every finite ingress poll with initial work and handshake balances within capacity, the weighted sum of all dispatched-event overhead, receipt-counted processed policy operations and accepted starts is bounded by fuel times eventCost plus the existing policy and handshake burst-plus-rate envelopes over trusted ticks in the selected prefix. A lone exhausted-credit attempt still incurs eventCost; a zero-fuel poll incurs zero modeled event cost.",
+      "theorems": [
+        "policyIngressPollOverheadBound",
+        "policyIngressPollCombinedCostEnvelope",
+        "policyIngressPollExhaustedGuardCost",
+        "zeroPolicyIngressPollCost"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_dispatch",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts"
+      ],
+      "open_implementation_obligations": [
+        "Supply common-unit dominating weights and concrete bounds for queue dispatch, exhausted guards, maintenance and completion, plus internal policy queries and accepted starts. The theorem is conditional, not a measured CPU bound.",
+        "Bound queue materialization, authentication before dispatch, empty-poll entry/exit, waker and executor overhead, and other work outside the modeled dispatched events.",
+        "Relate trusted ticks and poll scheduling to real elapsed time. The result is per finite poll, not a process-wide rate or latency qualification; established resources, restart and cap changes remain open."
       ]
     }
   ]

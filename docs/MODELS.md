@@ -580,10 +580,74 @@ envelope. The result establishes neither scheduling fairness nor wall-clock
 availability.
 
 
+## Fueled policy-ingress polls
+
+`44-policy-ingress-poll.mech` wraps the ingress transition in an explicit finite
+poll loop. Each dispatched queue element consumes one unit of poll fuel,
+independently of policy work credit. This includes denied or exhausted-credit
+attempts, stale publications, maintenance, completion, trusted ticks and
+untrusted claimed ticks.
+The loop stops at zero fuel or an empty queue. Zero fuel leaves the state and
+queue unchanged and selects no prefix.
+
+`policyIngressPollWorkBound` bounds dispatched events by fuel.
+`policyIngressPrefixCountsWork` connects that count to the selected prefix.
+`policyIngressPollReassemblesQueue` preserves the exact event sequence, not only
+its length; `policyIngressPollBacklogConservation` also accounts for every event.
+The wake flag describes the remaining queue. Backlog requests another turn,
+and a drained queue does not request a backlog wake.
+`policyIngressShortPollRequestsWake` and `policyIngressFullPollStopsWake` prove
+this for every queue, not only the one-unit examples.
+
+The runner applies each event to the current state before proceeding.
+`policyIngressPollProjectsPrefix` proves equality with the existing ingress
+runner on the selected prefix. `policyIngressPollResumePreservesExecution`
+proves that running the remainder from the poll result equals uninterrupted
+execution of the original queue. Thus saving a continuation cannot justify
+dropping, reordering or replaying an event.
+`policyIngressPollPendingBound` transports the existing pending-capacity bound
+to the actual poll result. Completion and maintenance execute at zero policy
+work credit when poll fuel is available. These equations do not establish
+cleanup priority or bounded waiting time.
+
+For initially bounded policy and handshake balances,
+`policyIngressPollCombinedCostEnvelope` proves:
+
+```
+dispatches * eventCost + processed * policyCost + starts * handshakeCost
+  <= fuel * eventCost
+     + (policyCapacity + ticks * policyRate) * policyCost
+     + (handshakeCapacity + ticks * handshakeRate) * handshakeCost
+```
+
+Here `processed`, `starts` and trusted `ticks` refer to the selected prefix.
+The added `eventCost` must dominate all per-dispatched-event work outside the
+other two weights, including dispatch, exhausted guards, maintenance, completion
+and clock handling. `policyIngressPollExhaustedGuardCost` proves that a single
+exhausted-credit attempt still incurs this weight; zero fuel incurs zero modeled
+event cost. Input, queue and table size bounds must justify the supplied weights.
+This is a conditional per-poll bound, not measured CPU use or a wall-clock rate.
+
+Atoms C37-C40 record these obligations. Runtime queue materialization, memory
+bounds, producer interleavings, authentication before dispatch, empty-poll
+entry/exit costs, actual waker registration and executor overhead remain open.
+Progress additionally requires positive fuel and eventual scheduling; infinite
+arrivals and cleanup starvation are not resolved. Established resources, live
+per-source pending attribution, concrete query/dispatch costs, restart and
+configuration changes remain outside this slice.
+
+Eighteen poll mutations drop or change selected events, lose or replay the
+remainder, undercount or overcount work, charge fuel on an empty queue, exempt
+attempts or cleanup from fuel, run at zero fuel, skip or replay a transition,
+suppress or misdirect wakeups, drop the wake for a deep backlog, spin on
+drained queues, omit dispatch cost or charge unprocessed backlog.
+All must fail with semantic mismatches, alongside the existing negative checks.
+
+
 ## Negative controls
 
-The checker rejects 247 invalid variants: three direct checks of equality,
-ordering and termination, plus 244 semantic mutations. Mutations exercise such
+The checker rejects 265 invalid variants: three direct checks of equality,
+ordering and termination, plus 262 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
