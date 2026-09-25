@@ -1,0 +1,509 @@
+-- Finite delivered turns may have arbitrary fuel, including zero.
+-- Arrival batches are appended before each turn; unused fuel is not banked.
+-- Progress depends on delivered cumulative fuel, not elapsed time.
+mu PolicyIngressSchedule : Type 0 with
+| policyIngressScheduleDone : PolicyIngressSchedule
+| policyIngressTurn : Count -> PolicyIngressTrace -> PolicyIngressSchedule -> PolicyIngressSchedule
+
+def rec policyIngressScheduleFuel : PolicyIngressSchedule -> Count :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return Count with
+    | policyIngressScheduleDone => zero
+    | policyIngressTurn fuel arrivals rest => add fuel (policyIngressScheduleFuel rest)
+
+def rec policyIngressScheduleArrivals : PolicyIngressSchedule -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressTrace with
+    | policyIngressScheduleDone => policyIngressDone
+    | policyIngressTurn fuel arrivals rest => appendPolicyIngress arrivals (policyIngressScheduleArrivals rest)
+
+def rec runPolicyIngressSchedule : PolicyIngressSchedule -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (schedule : PolicyIngressSchedule) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressQueueState with
+    | policyIngressScheduleDone => queued
+    | policyIngressTurn fuel arrivals rest => runPolicyIngressSchedule rest config
+        (pollPolicyIngressQueue fuel config (enqueuePolicyIngress arrivals queued))
+
+def rec policyIngressScheduleTrace : PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressTrace with
+    | policyIngressScheduleDone => policyIngressDone
+    | policyIngressTurn fuel arrivals rest => appendPolicyIngress
+        (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+        (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))
+
+-- A prefix witness contains the exact ordered suffix, not just a length bound.
+mu PolicyIngressPrefix (0 prefix : PolicyIngressTrace) (0 events : PolicyIngressTrace) : Type 0 with
+| policyIngressPrefixWitness : (suffix : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress prefix suffix) events -> PolicyIngressPrefix prefix events
+
+def policyIngressPrefixTransitive : (first : PolicyIngressTrace) -> (middle : PolicyIngressTrace) -> (last : PolicyIngressTrace) ->
+    PolicyIngressPrefix first middle -> PolicyIngressPrefix middle last -> PolicyIngressPrefix first last :=
+  fun (first : PolicyIngressTrace) (middle : PolicyIngressTrace) (last : PolicyIngressTrace)
+      (left : PolicyIngressPrefix first middle) (right : PolicyIngressPrefix middle last) =>
+    case left as witness in PolicyIngressPrefix return PolicyIngressPrefix first last with
+    | policyIngressPrefixWitness suffix firstEquality =>
+      case right as witness in PolicyIngressPrefix return PolicyIngressPrefix first last with
+      | policyIngressPrefixWitness tail secondEquality => policyIngressPrefixWitness (appendPolicyIngress suffix tail)
+          (equalTransitivity PolicyIngressTrace
+            (appendPolicyIngress first (appendPolicyIngress suffix tail))
+            (appendPolicyIngress (appendPolicyIngress first suffix) tail) last
+            (equalSymmetry PolicyIngressTrace
+              (appendPolicyIngress (appendPolicyIngress first suffix) tail)
+              (appendPolicyIngress first (appendPolicyIngress suffix tail))
+              (appendPolicyIngressAssociative first suffix tail))
+            (equalTransitivity PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress first suffix) tail)
+              (appendPolicyIngress middle tail) last
+              (congruent PolicyIngressTrace PolicyIngressTrace (fun (events : PolicyIngressTrace) => appendPolicyIngress events tail)
+                (appendPolicyIngress first suffix) middle firstEquality) secondEquality))
+
+def policyIngressPrefixUnderAppend : (common : PolicyIngressTrace) -> (prefix : PolicyIngressTrace) -> (events : PolicyIngressTrace) ->
+    PolicyIngressPrefix prefix events -> PolicyIngressPrefix (appendPolicyIngress common prefix) (appendPolicyIngress common events) :=
+  fun (common : PolicyIngressTrace) (prefix : PolicyIngressTrace) (events : PolicyIngressTrace) (proof : PolicyIngressPrefix prefix events) =>
+    case proof as witness in PolicyIngressPrefix return
+      PolicyIngressPrefix (appendPolicyIngress common prefix) (appendPolicyIngress common events) with
+    | policyIngressPrefixWitness suffix equality => policyIngressPrefixWitness suffix
+        (equalTransitivity PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress common prefix) suffix)
+          (appendPolicyIngress common (appendPolicyIngress prefix suffix)) (appendPolicyIngress common events)
+          (appendPolicyIngressAssociative common prefix suffix)
+          (congruent PolicyIngressTrace PolicyIngressTrace (fun (tail : PolicyIngressTrace) => appendPolicyIngress common tail)
+            (appendPolicyIngress prefix suffix) events equality))
+
+def rec policyIngressFuelAfter : Count -> PolicyIngressTrace -> Count :=
+  fun (fuel : Count) (prefix : PolicyIngressTrace) =>
+    case fuel as self in Count return Count with
+    | zero => zero
+    | next remaining =>
+      case prefix as events in PolicyIngressTrace return Count with
+      | policyIngressDone => next remaining
+      | policyIngressThen event rest => policyIngressFuelAfter remaining rest
+
+def rec policyIngressTakeAppend : (fuel : Count) -> (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (policyIngressPollPrefix fuel (appendPolicyIngress prefix suffix))
+      (appendPolicyIngress (policyIngressPollPrefix fuel prefix) (policyIngressPollPrefix (policyIngressFuelAfter fuel prefix) suffix)) :=
+  fun (fuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) =>
+    case fuel as self in Count return
+      Equal PolicyIngressTrace (policyIngressPollPrefix self (appendPolicyIngress prefix suffix))
+        (appendPolicyIngress (policyIngressPollPrefix self prefix) (policyIngressPollPrefix (policyIngressFuelAfter self prefix) suffix)) with
+    | zero => same
+    | next remaining =>
+      case prefix as events in PolicyIngressTrace return
+        Equal PolicyIngressTrace (policyIngressPollPrefix (next remaining) (appendPolicyIngress events suffix))
+          (appendPolicyIngress (policyIngressPollPrefix (next remaining) events) (policyIngressPollPrefix (policyIngressFuelAfter (next remaining) events) suffix)) with
+      | policyIngressDone => same
+      | policyIngressThen event rest => congruent PolicyIngressTrace PolicyIngressTrace
+          (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+          (policyIngressPollPrefix remaining (appendPolicyIngress rest suffix))
+          (appendPolicyIngress (policyIngressPollPrefix remaining rest) (policyIngressPollPrefix (policyIngressFuelAfter remaining rest) suffix))
+          (policyIngressTakeAppend remaining rest suffix)
+
+def policyIngressPrefixUnderTake : (fuel : Count) -> (prefix : PolicyIngressTrace) -> (events : PolicyIngressTrace) ->
+    PolicyIngressPrefix prefix events -> PolicyIngressPrefix (policyIngressPollPrefix fuel prefix) (policyIngressPollPrefix fuel events) :=
+  fun (fuel : Count) (prefix : PolicyIngressTrace) (events : PolicyIngressTrace) (proof : PolicyIngressPrefix prefix events) =>
+    case proof as witness in PolicyIngressPrefix return
+      PolicyIngressPrefix (policyIngressPollPrefix fuel prefix) (policyIngressPollPrefix fuel events) with
+    | policyIngressPrefixWitness suffix equality => policyIngressPrefixWitness (policyIngressPollPrefix (policyIngressFuelAfter fuel prefix) suffix)
+        (equalTransitivity PolicyIngressTrace
+          (appendPolicyIngress (policyIngressPollPrefix fuel prefix) (policyIngressPollPrefix (policyIngressFuelAfter fuel prefix) suffix))
+          (policyIngressPollPrefix fuel (appendPolicyIngress prefix suffix)) (policyIngressPollPrefix fuel events)
+          (equalSymmetry PolicyIngressTrace (policyIngressPollPrefix fuel (appendPolicyIngress prefix suffix))
+            (appendPolicyIngress (policyIngressPollPrefix fuel prefix) (policyIngressPollPrefix (policyIngressFuelAfter fuel prefix) suffix))
+            (policyIngressTakeAppend fuel prefix suffix))
+          (congruent PolicyIngressTrace PolicyIngressTrace (policyIngressPollPrefix fuel) (appendPolicyIngress prefix suffix) events equality))
+
+def rec policyIngressTakeEmpty : (fuel : Count) -> Equal PolicyIngressTrace (policyIngressPollPrefix fuel policyIngressDone) policyIngressDone :=
+  fun (fuel : Count) =>
+    case fuel as self in Count return Equal PolicyIngressTrace (policyIngressPollPrefix self policyIngressDone) policyIngressDone with
+    | zero => same
+    | next remaining => same
+
+def rec policyIngressTakeSplit : (first : Count) -> (later : Count) -> (events : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (policyIngressPollPrefix (add first later) events)
+      (appendPolicyIngress (policyIngressPollPrefix first events) (policyIngressPollPrefix later (policyIngressPollRemainder first events))) :=
+  fun (first : Count) (later : Count) (events : PolicyIngressTrace) =>
+    case first as self in Count return
+      Equal PolicyIngressTrace (policyIngressPollPrefix (add self later) events)
+        (appendPolicyIngress (policyIngressPollPrefix self events) (policyIngressPollPrefix later (policyIngressPollRemainder self events))) with
+    | zero => same
+    | next remaining =>
+      case events as queue in PolicyIngressTrace return
+        Equal PolicyIngressTrace (policyIngressPollPrefix (add (next remaining) later) queue)
+          (appendPolicyIngress (policyIngressPollPrefix (next remaining) queue) (policyIngressPollPrefix later (policyIngressPollRemainder (next remaining) queue))) with
+      | policyIngressDone => equalSymmetry PolicyIngressTrace (policyIngressPollPrefix later policyIngressDone) policyIngressDone (policyIngressTakeEmpty later)
+      | policyIngressThen event rest => congruent PolicyIngressTrace PolicyIngressTrace
+          (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+          (policyIngressPollPrefix (add remaining later) rest)
+          (appendPolicyIngress (policyIngressPollPrefix remaining rest) (policyIngressPollPrefix later (policyIngressPollRemainder remaining rest)))
+          (policyIngressTakeSplit remaining later rest)
+
+def policyIngressPrefixAfterTurn : (fuel : Count) -> (later : Count) -> (events : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (dispatched : PolicyIngressTrace) ->
+    PolicyIngressPrefix (policyIngressPollPrefix later (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) dispatched ->
+    PolicyIngressPrefix (policyIngressPollPrefix (add fuel later) events)
+      (appendPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) dispatched) :=
+  fun (fuel : Count) (later : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (dispatched : PolicyIngressTrace)
+      (proof : PolicyIngressPrefix (policyIngressPollPrefix later (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) dispatched) =>
+    policyIngressPrefixTransitive (policyIngressPollPrefix (add fuel later) events)
+      (policyIngressPollPrefix (add fuel later) (appendPolicyIngress events arrivals))
+      (appendPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) dispatched)
+      (policyIngressPrefixUnderTake (add fuel later) events (appendPolicyIngress events arrivals) (policyIngressPrefixWitness arrivals same))
+      (equalTransport PolicyIngressTrace
+        (fun (prefix : PolicyIngressTrace) => PolicyIngressPrefix prefix (appendPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) dispatched))
+        (appendPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+          (policyIngressPollPrefix later (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))))
+        (policyIngressPollPrefix (add fuel later) (appendPolicyIngress events arrivals))
+        (equalSymmetry PolicyIngressTrace (policyIngressPollPrefix (add fuel later) (appendPolicyIngress events arrivals))
+          (appendPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+            (policyIngressPollPrefix later (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))))
+          (policyIngressTakeSplit fuel later (appendPolicyIngress events arrivals)))
+        (policyIngressPrefixUnderAppend (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+          (policyIngressPollPrefix later (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) dispatched proof))
+
+def rec policyIngressSchedulePrefix : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    PolicyIngressPrefix (policyIngressPollPrefix (policyIngressScheduleFuel schedule) events) (policyIngressScheduleTrace schedule events) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return
+      PolicyIngressPrefix (policyIngressPollPrefix (policyIngressScheduleFuel self) events) (policyIngressScheduleTrace self events) with
+    | policyIngressScheduleDone => policyIngressPrefixWitness policyIngressDone same
+    | policyIngressTurn fuel arrivals rest => policyIngressPrefixAfterTurn fuel (policyIngressScheduleFuel rest) events arrivals
+        (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))
+        (policyIngressSchedulePrefix rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))
+
+def rec policyIngressTakeWithSlack : (events : PolicyIngressTrace) -> (slack : Count) ->
+    Equal PolicyIngressTrace (policyIngressPollPrefix (add (policyIngressLength events) slack) events) events :=
+  fun (events : PolicyIngressTrace) (slack : Count) =>
+    case events as self in PolicyIngressTrace return
+      Equal PolicyIngressTrace (policyIngressPollPrefix (add (policyIngressLength self) slack) self) self with
+    | policyIngressDone => policyIngressTakeEmpty slack
+    | policyIngressThen event rest => congruent PolicyIngressTrace PolicyIngressTrace
+        (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+        (policyIngressPollPrefix (add (policyIngressLength rest) slack) rest) rest (policyIngressTakeWithSlack rest slack)
+
+-- An explicit slack witness expresses that total delivered fuel covers the prefix.
+def policyIngressScheduleServesPrefix : (schedule : PolicyIngressSchedule) -> (prefix : PolicyIngressTrace) ->
+    (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix prefix (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    equalTransport PolicyIngressTrace
+      (fun (selected : PolicyIngressTrace) => PolicyIngressPrefix selected (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)))
+      (policyIngressPollPrefix (policyIngressScheduleFuel schedule) prefix) prefix
+      (equalTransitivity PolicyIngressTrace (policyIngressPollPrefix (policyIngressScheduleFuel schedule) prefix)
+        (policyIngressPollPrefix (add (policyIngressLength prefix) slack) prefix) prefix
+        (congruent Count PolicyIngressTrace (fun (fuel : Count) => policyIngressPollPrefix fuel prefix)
+          (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) enough)
+        (policyIngressTakeWithSlack prefix slack))
+      (policyIngressPrefixTransitive (policyIngressPollPrefix (policyIngressScheduleFuel schedule) prefix)
+        (policyIngressPollPrefix (policyIngressScheduleFuel schedule) (appendPolicyIngress prefix suffix))
+        (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix))
+        (policyIngressPrefixUnderTake (policyIngressScheduleFuel schedule) prefix (appendPolicyIngress prefix suffix)
+          (policyIngressPrefixWitness suffix same))
+        (policyIngressSchedulePrefix schedule (appendPolicyIngress prefix suffix)))
+
+def policyIngressPrefixSuffix : (prefix : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> PolicyIngressPrefix prefix events -> PolicyIngressTrace :=
+  fun (prefix : PolicyIngressTrace) (events : PolicyIngressTrace) (proof : PolicyIngressPrefix prefix events) =>
+    case proof as witness in PolicyIngressPrefix return PolicyIngressTrace with
+    | policyIngressPrefixWitness suffix equality => suffix
+
+def policyIngressPrefixEquation : (prefix : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> (proof : PolicyIngressPrefix prefix events) ->
+    Equal PolicyIngressTrace (appendPolicyIngress prefix (policyIngressPrefixSuffix prefix events proof)) events :=
+  fun (prefix : PolicyIngressTrace) (events : PolicyIngressTrace) (proof : PolicyIngressPrefix prefix events) =>
+    case proof as witness in PolicyIngressPrefix return
+      Equal PolicyIngressTrace (appendPolicyIngress prefix (policyIngressPrefixSuffix prefix events witness)) events with
+    | policyIngressPrefixWitness suffix equality => equality
+
+def policyIngressScheduleServiceSuffix : (schedule : PolicyIngressSchedule) -> (prefix : PolicyIngressTrace) ->
+    (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixSuffix prefix (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix))
+      (policyIngressScheduleServesPrefix schedule prefix suffix slack enough)
+
+def policyIngressScheduleServiceEquation : (schedule : PolicyIngressSchedule) -> (prefix : PolicyIngressTrace) ->
+    (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace (appendPolicyIngress prefix (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough))
+      (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation prefix (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix))
+      (policyIngressScheduleServesPrefix schedule prefix suffix slack enough)
+
+def policyIngressScheduleZeroTurn : (arrivals : PolicyIngressTrace) -> (rest : PolicyIngressSchedule) ->
+    (config : PolicyWorkConfig) -> (events : PolicyIngressTrace) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPolicyIngressSchedule (policyIngressTurn zero arrivals rest) config (policyIngressQueueState events current))
+      (runPolicyIngressSchedule rest config (policyIngressQueueState (appendPolicyIngress events arrivals) current)) :=
+  fun (arrivals : PolicyIngressTrace) (rest : PolicyIngressSchedule) (config : PolicyWorkConfig)
+      (events : PolicyIngressTrace) (current : PolicyWorkState) => same
+
+def policyIngressScheduleTakesCurrentHead : (fuel : Count) -> (arrivals : PolicyIngressTrace) -> (rest : PolicyIngressSchedule) ->
+    (event : PolicyIngressEvent) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPolicyIngressSchedule (policyIngressTurn (next fuel) arrivals rest) config (policyIngressQueueState (policyIngressThen event events) current))
+      (runPolicyIngressSchedule rest config
+        (pollPolicyIngressQueue fuel config (policyIngressQueueState (appendPolicyIngress events arrivals) (policyIngressStep config event current)))) :=
+  fun (fuel : Count) (arrivals : PolicyIngressTrace) (rest : PolicyIngressSchedule) (event : PolicyIngressEvent)
+      (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def policyIngressScheduleIdleFuelNotBanked : (fuel : Count) -> (rest : PolicyIngressSchedule) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPolicyIngressSchedule (policyIngressTurn fuel policyIngressDone rest) config (policyIngressQueueState policyIngressDone current))
+      (runPolicyIngressSchedule rest config (policyIngressQueueState policyIngressDone current)) :=
+  fun (fuel : Count) (rest : PolicyIngressSchedule) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case fuel as self in Count return
+      Equal PolicyIngressQueueState
+        (runPolicyIngressSchedule (policyIngressTurn self policyIngressDone rest) config (policyIngressQueueState policyIngressDone current))
+        (runPolicyIngressSchedule rest config (policyIngressQueueState policyIngressDone current)) with
+    | zero => same
+    | next remaining => same
+
+def policyIngressScheduleMixedTurns : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) -> (events : PolicyIngressTrace) ->
+    (early : PolicyIngressTrace) -> (middle : PolicyIngressTrace) -> (late : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPolicyIngressSchedule (policyIngressTurn zero early
+        (policyIngressTurn (next (next zero)) middle (policyIngressTurn zero late policyIngressScheduleDone))) config
+        (policyIngressQueueState (policyIngressThen first (policyIngressThen second events)) current))
+      (policyIngressQueueState (appendPolicyIngress (appendPolicyIngress (appendPolicyIngress events early) middle) late)
+        (policyIngressStep config second (policyIngressStep config first current))) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) (events : PolicyIngressTrace)
+      (early : PolicyIngressTrace) (middle : PolicyIngressTrace) (late : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def rec policyIngressScheduleExecutesTrace : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState events current)))
+      (runPolicyIngress (policyIngressScheduleTrace schedule events) config current) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case schedule as self in PolicyIngressSchedule return
+      Equal PolicyWorkState (queuedPolicyWork (runPolicyIngressSchedule self config (policyIngressQueueState events current)))
+        (runPolicyIngress (policyIngressScheduleTrace self events) config current) with
+    | policyIngressScheduleDone => same
+    | policyIngressTurn fuel arrivals rest => equalTransitivity PolicyWorkState
+        (queuedPolicyWork (runPolicyIngressSchedule rest config
+          (policyIngressQueueState (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))
+            (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current))))
+        (runPolicyIngress (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config
+          (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current))
+        (runPolicyIngress (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events) config current)
+        (policyIngressScheduleExecutesTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)) config
+          (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current))
+        (equalTransitivity PolicyWorkState
+          (runPolicyIngress (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config
+            (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current))
+          (runPolicyIngress (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config
+            (runPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) config current))
+          (runPolicyIngress (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events) config current)
+          (congruent PolicyWorkState PolicyWorkState
+            (fun (state : PolicyWorkState) => runPolicyIngress (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config state)
+            (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current)
+            (runPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) config current)
+            (policyIngressPollProjectsPrefix fuel (appendPolicyIngress events arrivals) config current))
+          (equalSymmetry PolicyWorkState
+            (runPolicyIngress (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events) config current)
+            (runPolicyIngress (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config
+              (runPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)) config current))
+            (runAppendedPolicyIngress (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+              (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))) config current)))
+
+def policyIngressSchedulePrefixExecution : (schedule : PolicyIngressSchedule) -> (prefix : PolicyIngressTrace) ->
+    (suffix : PolicyIngressTrace) -> (slack : Count) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyWorkState
+      (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState (appendPolicyIngress prefix suffix) current)))
+      (runPolicyIngress (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough) config (runPolicyIngress prefix config current)) :=
+  fun (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    equalTransitivity PolicyWorkState
+      (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState (appendPolicyIngress prefix suffix) current)))
+      (runPolicyIngress (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)) config current)
+      (runPolicyIngress (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough) config (runPolicyIngress prefix config current))
+      (policyIngressScheduleExecutesTrace schedule (appendPolicyIngress prefix suffix) config current)
+      (equalTransitivity PolicyWorkState (runPolicyIngress (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)) config current)
+        (runPolicyIngress (appendPolicyIngress prefix (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough)) config current)
+        (runPolicyIngress (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough) config (runPolicyIngress prefix config current))
+        (congruent PolicyIngressTrace PolicyWorkState (fun (events : PolicyIngressTrace) => runPolicyIngress events config current)
+          (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix))
+          (appendPolicyIngress prefix (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough))
+          (equalSymmetry PolicyIngressTrace (appendPolicyIngress prefix (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough))
+            (policyIngressScheduleTrace schedule (appendPolicyIngress prefix suffix)) (policyIngressScheduleServiceEquation schedule prefix suffix slack enough)))
+        (runAppendedPolicyIngress prefix (policyIngressScheduleServiceSuffix schedule prefix suffix slack enough) config current))
+
+def policyIngressJoinContinuation : (fuel : Count) -> (ready : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (dispatched : PolicyIngressTrace) -> (queued : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress dispatched queued) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress (policyIngressPollPrefix fuel ready) dispatched) queued)
+      (appendPolicyIngress ready arrivals) :=
+  fun (fuel : Count) (ready : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (dispatched : PolicyIngressTrace) (queued : PolicyIngressTrace)
+      (proof : Equal PolicyIngressTrace (appendPolicyIngress dispatched queued) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals)) =>
+    equalTransitivity PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress (policyIngressPollPrefix fuel ready) dispatched) queued)
+      (appendPolicyIngress (policyIngressPollPrefix fuel ready) (appendPolicyIngress dispatched queued)) (appendPolicyIngress ready arrivals)
+      (appendPolicyIngressAssociative (policyIngressPollPrefix fuel ready) dispatched queued)
+      (equalTransitivity PolicyIngressTrace (appendPolicyIngress (policyIngressPollPrefix fuel ready) (appendPolicyIngress dispatched queued))
+        (appendPolicyIngress (policyIngressPollPrefix fuel ready) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals))
+        (appendPolicyIngress ready arrivals)
+        (congruent PolicyIngressTrace PolicyIngressTrace (fun (tail : PolicyIngressTrace) => appendPolicyIngress (policyIngressPollPrefix fuel ready) tail)
+          (appendPolicyIngress dispatched queued) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals) proof)
+        (equalTransitivity PolicyIngressTrace
+          (appendPolicyIngress (policyIngressPollPrefix fuel ready) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals))
+          (appendPolicyIngress (appendPolicyIngress (policyIngressPollPrefix fuel ready) (policyIngressPollRemainder fuel ready)) arrivals)
+          (appendPolicyIngress ready arrivals)
+          (equalSymmetry PolicyIngressTrace
+            (appendPolicyIngress (appendPolicyIngress (policyIngressPollPrefix fuel ready) (policyIngressPollRemainder fuel ready)) arrivals)
+            (appendPolicyIngress (policyIngressPollPrefix fuel ready) (appendPolicyIngress (policyIngressPollRemainder fuel ready) arrivals))
+            (appendPolicyIngressAssociative (policyIngressPollPrefix fuel ready) (policyIngressPollRemainder fuel ready) arrivals))
+          (congruent PolicyIngressTrace PolicyIngressTrace (fun (prefix : PolicyIngressTrace) => appendPolicyIngress prefix arrivals)
+            (appendPolicyIngress (policyIngressPollPrefix fuel ready) (policyIngressPollRemainder fuel ready)) ready (policyIngressPollReassemblesQueue fuel ready))))
+
+def rec policyIngressScheduleReassembles : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress (policyIngressScheduleTrace schedule events)
+        (queuedPolicyIngress (runPolicyIngressSchedule schedule config (policyIngressQueueState events current))))
+      (appendPolicyIngress events (policyIngressScheduleArrivals schedule)) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    case schedule as self in PolicyIngressSchedule return
+      Equal PolicyIngressTrace
+        (appendPolicyIngress (policyIngressScheduleTrace self events)
+          (queuedPolicyIngress (runPolicyIngressSchedule self config (policyIngressQueueState events current))))
+        (appendPolicyIngress events (policyIngressScheduleArrivals self)) with
+    | policyIngressScheduleDone => equalSymmetry PolicyIngressTrace (appendPolicyIngress events policyIngressDone) events (appendPolicyIngressRightIdentity events)
+    | policyIngressTurn fuel arrivals rest => equalTransitivity PolicyIngressTrace
+        (appendPolicyIngress (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events)
+          (queuedPolicyIngress (runPolicyIngressSchedule (policyIngressTurn fuel arrivals rest) config (policyIngressQueueState events current))))
+        (appendPolicyIngress (appendPolicyIngress events arrivals) (policyIngressScheduleArrivals rest))
+        (appendPolicyIngress events (appendPolicyIngress arrivals (policyIngressScheduleArrivals rest)))
+        (policyIngressJoinContinuation fuel (appendPolicyIngress events arrivals) (policyIngressScheduleArrivals rest)
+          (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))
+          (queuedPolicyIngress (runPolicyIngressSchedule rest config
+            (policyIngressQueueState (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))
+              (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current))))
+          (policyIngressScheduleReassembles rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)) config
+            (runPolicyIngressPoll fuel (appendPolicyIngress events arrivals) config current)))
+        (appendPolicyIngressAssociative events arrivals (policyIngressScheduleArrivals rest))
+
+def policyIngressSelectedFuelBound : (fuel : Count) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (policyIngressPollPrefix fuel events)) fuel :=
+  fun (fuel : Count) (events : PolicyIngressTrace) =>
+    equalTransport Count (fun (used : Count) => AtMost used fuel)
+      (policyIngressPollWork fuel events) (policyIngressLength (policyIngressPollPrefix fuel events))
+      (equalSymmetry Count (policyIngressLength (policyIngressPollPrefix fuel events)) (policyIngressPollWork fuel events)
+        (policyIngressPrefixCountsWork fuel events)) (policyIngressPollWorkBound fuel events)
+
+def rec policyIngressScheduleDispatchBound : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (policyIngressScheduleTrace schedule events)) (policyIngressScheduleFuel schedule) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return
+      AtMost (policyIngressLength (policyIngressScheduleTrace self events)) (policyIngressScheduleFuel self) with
+    | policyIngressScheduleDone => least zero
+    | policyIngressTurn fuel arrivals rest => equalTransport Count (fun (used : Count) => AtMost used (add fuel (policyIngressScheduleFuel rest)))
+        (add (policyIngressLength (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)))
+          (policyIngressLength (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))))
+        (policyIngressLength (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events))
+        (equalSymmetry Count (policyIngressLength (policyIngressScheduleTrace (policyIngressTurn fuel arrivals rest) events))
+          (add (policyIngressLength (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals)))
+            (policyIngressLength (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))))
+          (appendPolicyIngressLength (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))
+            (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))))
+        (addBounds (policyIngressLength (policyIngressPollPrefix fuel (appendPolicyIngress events arrivals))) fuel
+          (policyIngressLength (policyIngressScheduleTrace rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals)))) (policyIngressScheduleFuel rest)
+          (policyIngressSelectedFuelBound fuel (appendPolicyIngress events arrivals))
+          (policyIngressScheduleDispatchBound rest (policyIngressPollRemainder fuel (appendPolicyIngress events arrivals))))
+
+def rec policyIngressUnitSchedule : Count -> (Count -> PolicyIngressTrace) -> PolicyIngressSchedule :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) =>
+    case rounds as self in Count return PolicyIngressSchedule with
+    | zero => policyIngressScheduleDone
+    | next remaining => policyIngressTurn (next zero) (arrivals zero) (policyIngressUnitSchedule remaining (policyIngressLaterArrivals arrivals))
+
+def rec policyIngressUnitScheduleAgrees : (rounds : Count) -> (arrivals : Count -> PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (queued : PolicyIngressQueueState) ->
+    Equal PolicyIngressQueueState (runPolicyIngressSchedule (policyIngressUnitSchedule rounds arrivals) config queued)
+      (runPolicyIngressQueueRounds rounds arrivals config queued) :=
+  fun (rounds : Count) (arrivals : Count -> PolicyIngressTrace) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    case rounds as self in Count return
+      Equal PolicyIngressQueueState (runPolicyIngressSchedule (policyIngressUnitSchedule self arrivals) config queued)
+        (runPolicyIngressQueueRounds self arrivals config queued) with
+    | zero => same
+    | next remaining => policyIngressUnitScheduleAgrees remaining (policyIngressLaterArrivals arrivals) config
+        (pollPolicyIngressQueue (next zero) config (enqueuePolicyIngress (arrivals zero) queued))
+
+def policyIngressSchedulePendingBound : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources
+        (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState events current)))))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    equalTransport PolicyWorkState (fun (result : PolicyWorkState) =>
+      AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources result))))
+        (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))))
+      (runPolicyIngress (policyIngressScheduleTrace schedule events) config current)
+      (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState events current)))
+      (equalSymmetry PolicyWorkState (queuedPolicyWork (runPolicyIngressSchedule schedule config (policyIngressQueueState events current)))
+        (runPolicyIngress (policyIngressScheduleTrace schedule events) config current) (policyIngressScheduleExecutesTrace schedule events config current))
+      (policyIngressPendingBound (policyIngressScheduleTrace schedule events) config current)
+
+def policyIngressScheduleCost : PolicyIngressSchedule -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count -> Count -> Count -> Count :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (multiply (policyIngressLength (policyIngressScheduleTrace schedule events)) eventCost)
+      (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost))
+
+def policyIngressScheduleCostLimit : PolicyIngressSchedule -> PolicyIngressTrace -> PolicyWorkConfig -> Count -> Count -> Count -> Count :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (multiply (policyIngressScheduleFuel schedule) eventCost)
+      (add (multiply (add (workCapacity config) (multiply (policyIngressTrustedTicks (policyIngressScheduleTrace schedule events)) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks (policyIngressScheduleTrace schedule events)) (workHandshakeRate config))) handshakeCost))
+
+def policyIngressScheduleCombinedCostEnvelope : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (policyIngressScheduleCost schedule events config current eventCost policyCost handshakeCost)
+      (policyIngressScheduleCostLimit schedule events config eventCost policyCost handshakeCost) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds (multiply (policyIngressLength (policyIngressScheduleTrace schedule events)) eventCost) (multiply (policyIngressScheduleFuel schedule) eventCost)
+      (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost))
+      (add (multiply (add (workCapacity config) (multiply (policyIngressTrustedTicks (policyIngressScheduleTrace schedule events)) (workRate config))) policyCost)
+        (multiply (add (workHandshakeCapacity config) (multiply (policyIngressTrustedTicks (policyIngressScheduleTrace schedule events)) (workHandshakeRate config))) handshakeCost))
+      (multipliedBounds (policyIngressLength (policyIngressScheduleTrace schedule events)) (policyIngressScheduleFuel schedule) eventCost
+        (policyIngressScheduleDispatchBound schedule events))
+      (policyIngressCombinedCostEnvelope (policyIngressScheduleTrace schedule events) config current policyCost handshakeCost workInitial handshakeInitial)
+
+def policyIngressScheduleCostCountsWork : (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost))
+      (policyIngressScheduleCost schedule events config current eventCost policyCost handshakeCost) :=
+  fun (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    prefixBound (multiply (policyIngressLength (policyIngressScheduleTrace schedule events)) eventCost)
+      (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost))
+      (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost))
+      (reflexiveBound (add (multiply (policyIngressProcessed (policyIngressScheduleTrace schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (policyIngressScheduleTrace schedule events) config current) handshakeCost)))
+
+def policyIngressScheduleExhaustedGuardCost : (config : PolicyWorkConfig) -> (current : PolicySourceState) ->
+    (authenticated : Flag) -> (identity : Count) -> (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) -> (index : Count) ->
+    (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    Equal Count (policyIngressScheduleCost
+      (policyIngressTurn (next zero)
+        (policyIngressThen (policyIngressAttempt authenticated identity source swarm key index) policyIngressDone) policyIngressScheduleDone)
+      policyIngressDone config (policyWorkState zero current) eventCost policyCost handshakeCost) eventCost :=
+  fun (config : PolicyWorkConfig) (current : PolicySourceState) (authenticated : Flag) (identity : Count)
+      (source : Reachability) (swarm : SwarmClass) (key : Count) (index : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    equalTransitivity Count (add (add eventCost zero) zero) (add eventCost zero) eventCost
+      (addRightZero (add eventCost zero)) (addRightZero eventCost)

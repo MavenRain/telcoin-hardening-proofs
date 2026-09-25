@@ -148,3 +148,19 @@ the modeled service turns. Queue memory, enqueue and empty-turn costs, real
 wakeups, concurrent producers, other fuel schedules and wall-clock cleanup
 latency remain open. Implementation links are `not_checked_this_run`;
 full implementation and deployment qualification remains blocked.
+
+`policy-ingress-schedule-model-check.json` records arbitrary finite varying-fuel
+service, including zero-fuel turns. The bundle has 536 explicit equality/order
+declarations across 30 modules, 84 atomic obligations and 310 rejected negative
+checks, including 25 new schedule mutations. It preserves exact queue and state
+semantics, derives prefix service from sufficient cumulative delivered fuel,
+and retains pending capacity and a combined cost envelope with each initial
+burst counted once. The prefix relation carries an exact suffix witness;
+supporting relation-valued proofs are checked but excluded from the explicit
+equality/order declaration count.
+
+This extends the earlier unit-fuel receipt at the model level. Runtime fuel
+delivery, queue memory, enqueue and empty-turn costs, real wakeups, concurrent
+producers and wall-clock cleanup latency remain open. Implementation links
+are `not_checked_this_run`; full implementation and deployment qualification
+remains blocked.

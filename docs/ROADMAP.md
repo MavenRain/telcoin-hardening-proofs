@@ -35,22 +35,27 @@ Persistent FIFO service now carries the queue and resource state across turns,
 preserves ordered arrivals and services any original prefix in its own length
 of delivered turns with one unit of fuel each. A combined cost envelope spans
 the actual dispatched trace with each initial burst counted once. Runtime queue
-retention, storage and enqueue costs, other fuel schedules and wall-clock
-cleanup latency still require refinement.
+retention, storage and enqueue costs, runtime fuel delivery and wall-clock
+cleanup latency still require refinement. Finite varying-fuel schedules now
+preserve exact FIFO queue conservation and dispatched-state semantics. An
+original prefix is serviced when total delivered fuel equals its length plus
+natural slack, even with zero-fuel turns and later arrivals. Dispatch count
+is bounded by summed fuel, pending capacity is preserved, and the combined
+cost envelope counts each initial burst once across the schedule.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 80 atomic model obligations
+   explicit dispositions. The current 34 groups and 84 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
    queries and receipt production, justify the per-dispatch guard and maintenance
    weights, and bound queue construction, pre-dispatch work and executor overhead
    outside the dispatch envelope. Refine persistent FIFO retention and real
-   wakeups to the runtime; establish delivery of enough positive-fuel service
-   turns and extend the model to arbitrary varying-fuel schedules. Bound queue
+   wakeups to the runtime; establish delivery of enough cumulative service fuel
+   for queued prefixes under varying-fuel schedules. Bound queue
    growth, overload loss and wall-clock cleanup latency under sustained arrivals.
    Refine canonical source extraction, key uniqueness, indexed internal receipts,
    runtime receipt provenance from authenticated internal policy queries and atomic

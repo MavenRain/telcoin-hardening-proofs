@@ -698,8 +698,8 @@ The weights have the same conditional dominance requirements as module 44.
 Atoms C41-C44 record these obligations. Runtime queue retention, producer
 serialization, exactly-once enqueue, real wakeups and delivery of the required
 service turns need refinement. The progress theorem concerns this explicit
-one-event scheduler; arbitrary varying-fuel schedules and a wall-clock bound
-remain open. Finite batches may arrive on every turn, but total queue growth,
+one-event scheduler. Module 46 generalizes finite service to varying fuel;
+a wall-clock bound remains open. Finite batches may arrive on every turn, but total queue growth,
 overload loss, cancellation, allocation and enqueue cost are not bounded here.
 Arrival construction, empty turns, pre-dispatch work and executor overhead lie
 outside the dispatched-event cost envelope. Established resources, per-source
@@ -712,10 +712,77 @@ fail to advance its index, alter arrival history, drop a dispatched trace event,
 omit its cost or drop the dispatch allowance from its limit. All must be rejected with semantic mismatches.
 
 
+## Varying-fuel ingress schedules
+
+`46-policy-ingress-schedule.mech` generalizes persistent FIFO service to any
+finite list of delivered turns. Each turn has an independent natural-number
+fuel and finite arrival batch, which is appended before polling. Zero fuel
+retains the new arrivals and current state. Fuel left unused by an empty queue
+does not carry into later turns. `policyIngressUnitScheduleAgrees` connects the
+unit-fuel specialization to module 45, and `policyIngressScheduleMixedTurns`
+checks a 0/2/0-fuel sequence over arbitrary events and arrival batches.
+
+`policyIngressScheduleExecutesTrace` equates the carried resource state with
+execution of the actual dispatched trace. `policyIngressScheduleReassembles`
+proves exact ordered conservation across all turns:
+
+```
+dispatched(schedule, initialQueue) ++ finalQueue
+  = initialQueue ++ arrivals(schedule)
+```
+
+The prefix relation contains an explicit suffix and an equality of whole event
+sequences. `policyIngressScheduleServiceEquation` constructs that witness from
+delivered fuel, rather than assuming successful service. For any original
+prefix, original suffix and natural-number slack, it proves:
+
+```
+totalFuel(schedule) = length(prefix) + slack
+  implies dispatched(schedule, prefix ++ suffix)
+            = prefix ++ serviceSuffix
+```
+
+`policyIngressSchedulePrefixExecution` then equates the final resource state
+with execution of the prefix followed by `serviceSuffix`. Surplus fuel may
+dispatch further work, so the final state need not equal the state immediately
+after the target prefix. A target event can be placed at the end of that prefix,
+including completion or maintenance. Later arrivals cannot overtake it. Zero
+turns are allowed, but the theorem requires enough cumulative delivered fuel.
+It does not establish delivery of that fuel, eventual service on an infinite
+schedule, or a wall-clock deadline. A stale completion still need not release
+the current slot owner.
+
+The dispatch count is at most total delivered fuel, and final pending occupancy
+stays within initial slot capacity. With initially bounded work and handshake
+balances, the combined cost envelope is:
+
+```
+dispatches * eventCost + processed * policyCost + starts * handshakeCost
+  <= totalFuel * eventCost
+     + (policyCapacity + ticks * policyRate) * policyCost
+     + (handshakeCapacity + ticks * handshakeRate) * handshakeCost
+```
+
+Counters and trusted ticks come from the actual dispatched trace. Each initial
+burst appears once across the entire schedule. An exhausted-credit attempt
+still costs one dispatch. A lower bound shows that the cost includes the
+processed policy work and accepted starts. Supplied weights must dominate
+concrete operation costs; enqueue, queue storage, pre-dispatch work, empty
+turns and executor costs remain outside this envelope.
+
+Atoms C45-C48 record these obligations. Runtime fuel delivery, FIFO retention,
+concurrent producers, real wakeups, overload and cancellation require
+refinement. Queue growth, established resources, per-source pending attribution,
+restart, resource-cap changes and wall-clock cleanup latency remain open.
+Twenty-five schedule mutations alter fuel accounting, arrival order, the
+enqueue-before-poll order, queue or state retention, dispatched work, the
+service suffix, unit-schedule fuel or indexing, or cost terms. They must be
+rejected by semantic type mismatches.
+
 ## Negative controls
 
-The checker rejects 285 invalid variants: three direct checks of equality,
-ordering and termination, plus 282 semantic mutations. Mutations exercise such
+The checker rejects 310 invalid variants: three direct checks of equality,
+ordering and termination, plus 307 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

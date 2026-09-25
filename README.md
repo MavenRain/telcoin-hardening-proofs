@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[80 atomic model obligations](atomic-claims.json) documenting theorem links,
+[84 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 285 deliberately invalid
+source hashes and coverage freshness, and requires 310 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-515 explicit equality and order proof declarations across 29 modules. This count
+536 explicit equality and order proof declarations across 30 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -96,6 +96,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `43-policy-ingress.mech` | Work credit gates internal current-view policy queries; authentication denials, mixed-trace projection, pending capacity and combined cost envelopes are checked. |
 | `44-policy-ingress-poll.mech` | Poll fuel charges every dispatched ingress event, preserves ordered continuation and state, and bounds assumed dispatch overhead together with policy and handshake work. |
 | `45-policy-ingress-queue.mech` | Persistent FIFO queue and resource state, ordered arrivals, conditional target progress across service turns, and a combined cost envelope over the dispatched trace. |
+| `46-policy-ingress-schedule.mech` | Varying-fuel turns, exact state and FIFO conservation, prefix service from sufficient cumulative fuel, pending capacity and a combined cost envelope. |
 | `50-qualification.mech` | Missing evidence blocks a conjunction of qualification conditions. |
 
 These statements quantify over model inputs, including arbitrary natural-number

@@ -82,9 +82,19 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   Repeated service preserves the dispatched-trace semantics, pending capacity
   and a combined cost envelope with each initial burst counted once. Runtime
   queue retention, concurrent producers, actual wakes, enough service turns and
-  simulation of other fuel schedules remain open. This supplies no wall-clock
+  runtime simulation remain open. This supplies no wall-clock
   cleanup bound, queue-memory bound or bound on enqueue, empty-turn or executor
   overhead.
+
+- Module 46 permits arbitrary finite varying-fuel turns, including zero. It
+  preserves exact queue and dispatched-state semantics. An original prefix
+  is serviced when cumulative delivered fuel equals its length plus natural
+  slack; later dispatched events can further change the resource state.
+  Dispatch count is bounded by summed fuel, pending capacity is preserved,
+  and the cost envelope counts each initial burst once. Runtime fuel delivery,
+  actual wakeups, queue growth, enqueue and empty-turn costs, and wall-clock
+  latency remain separate obligations. The theorem does not guarantee enough
+  fuel will be delivered or certify an infinite schedule.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
