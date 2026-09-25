@@ -1076,10 +1076,76 @@ work. Symbolic weights need concrete cost dominance. Cancellation, restart,
 concurrent producers, changing limits and delivery of mandatory events through
 admission rejection remain open. C61-C64 record these boundaries.
 
+## Bounded deferred handoff
+
+`52-policy-ingress-deferred.mech` adds a fixed caller-owned capacity to the
+unexamined suffix. The offered trace is the retained deferred FIFO followed by
+the fresh arrival batch. Scanning produces an examined prefix and an unexamined
+suffix. The suffix is then split into a retained deferred prefix and an explicit
+overflow suffix:
+
+```
+offered = examined ++ retainedDeferred ++ overflow
+length(retainedDeferred) <= deferredCapacity
+length(overflow) <= length(unexamined)
+```
+
+`boundedResumedPolicyIngressDisposition` proves the exact three-way FIFO
+partition. Zero scan retains the whole offered trace as unexamined. Zero deferred
+capacity retains no deferred prefix and reports the full unexamined suffix as
+overflow. These equations keep examined admission rejections separate from
+unexamined overflow.
+
+`boundedResumedPolicyIngressExaminationEquation` exposes an original deferred
+prefix at the start of the examined trace when this single turn supplies its
+length plus natural slack in scan fuel. It does not establish cumulative
+progress across bounded handoffs: overflow is removed from the continuation.
+`boundedResumedPolicyIngressRetainsOldHead` checks that a one-entry deferred cap
+keeps the oldest head when scan fuel is zero.
+
+`runBoundedResumedPayloadIngress` carries the bounded deferred prefix together
+with the admitted queue and its resource state. It scans the offered trace with
+`scanFuel`, applies payload and entry filtering to the scanned ready trace, polls
+that trace with independent service `fuel`, and retains the poll remainder.
+`boundedResumedPayloadIngressQueueEntryBound`,
+`boundedResumedPayloadIngressQueuePayloadBound` and
+`boundedResumedPayloadIngressPendingBound` preserve the admitted bounds under
+their initial-fit premises. `boundedResumedPayloadIngressExecutesTrace` ties the
+returned resource state to the actual filtered dispatched trace.
+
+`handoffBoundedPayloadIngress` returns both the overflow and that continuation
+in `BoundedPolicyIngressHandoff`. Its projection equations connect those fields
+to the overflow calculation and runner. The handoff conservation theorem uses
+the returned fields, and its deferred-entry bound needs no initial deferred
+bound. The entry and payload assumptions for the admitted queue remain separate.
+
+The explicit disposition cost is:
+
+```
+dispositionCharge = length(examined) * scanCost
+  + length(overflow) * overflowCost
+dispositionCharge <= scanFuel * scanCost
+  + length(unexamined) * overflowCost
+```
+
+The overflow term depends on the unexamined input length, so this is not a
+fixed per-turn work bound. The deferred entry cap does not bound deferred
+payload, overflow storage or total memory. The model still abstracts allocation
+and ownership. Runtime work
+must define atomic transfer, concrete retained storage, offered-batch traversal,
+overflow reporting and disposal, resubmission and delivery across cancellation
+and restart. It must also preserve mandatory cleanup and control events when
+admission or deferred capacity is exhausted. C65-C68 record these boundaries.
+
+The 25 new controls change executable definitions for FIFO order, capacity,
+scan and service fuel, continuation retention, payload admission, overflow
+reporting and cost accounting. Each changed definition must type-check before
+a later proof rejects the mutation. Parser failures do not count.
+
 ## Negative controls
 
-The checker rejects 394 invalid variants: three direct checks of equality,
-ordering and termination, plus 391 semantic mutations. Mutations exercise such
+The checker rejects 419 invalid variants: three direct checks of equality,
+ordering and termination, plus 416 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

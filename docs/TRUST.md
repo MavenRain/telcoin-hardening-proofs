@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 391 additional semantic mutations must
+The 416 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -140,6 +140,14 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   each resource burst once. Real suffix ownership and resubmission, wakeups,
   storage and traversal costs, cancellation, restart, wall-clock progress and
   mandatory-event delivery remain open.
+
+- Module 52 adds a fixed caller-owned deferred capacity after scanning. The
+  retained deferred prefix and explicit overflow reconstruct the unexamined
+  suffix in FIFO order, and the bounded handoff preserves admitted queue,
+  payload and pending bounds through one filtered poll. The overflow cost is
+  symbolic and does not establish concrete storage, traversal or reporting
+  dominance. Atomic ownership, overflow delivery, resubmission, cancellation,
+  restart, fairness and mandatory-event handling remain open.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

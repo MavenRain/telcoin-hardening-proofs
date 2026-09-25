@@ -250,3 +250,23 @@ remaining mutations and all generic guard controls afresh in four isolated
 batches. The validator then completed with the expected qualification-blocked
 exit 2. The receipt lists 394 distinct controls; generic guards also ran in
 each recovery batch. No repository timeout or rejection rule was weakened.
+
+`policy-ingress-deferred-model-check.json` records the bounded caller-owned
+handoff extension. The bundle has 658 explicit equality and order declarations
+across 35 modules, 104 atomic obligations and 419 rejected negative checks,
+including 25 new controls. Every new mutated executable definition type-checks
+before a later proof rejects its changed behavior.
+
+The slice proves an exact examined/retained/overflow FIFO partition, a bounded
+returned deferred prefix, explicit overflow returned with the continuation,
+conditional single-turn examination, admitted queue and resource bounds, and
+symbolic scan and overflow charges. Overflow cost still depends on input length;
+deferred payload and total memory have no bound from the deferred entry cap.
+Runtime ownership, concrete costs, overflow delivery, repeated bounded handoffs,
+cancellation, restart and mandatory-event handling remain open. Implementation
+links are `not_checked_this_run`; implementation refinement and deployment
+qualification remain blocked.
+
+The qualification wrapper allows 3,600 seconds for the expanded complete
+suite. The per-invocation compiler timeout, semantic rejection requirements,
+input hashes and expected qualification-blocked exit remain enforced.

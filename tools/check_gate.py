@@ -6,8 +6,9 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
+# The full suite starts a compiler process for every negative control.
 result = subprocess.run([sys.executable, "-I", str(ROOT / "tools/check.py"), "--require-complete"],
-                        cwd=ROOT, capture_output=True, text=True, timeout=600)
+                        cwd=ROOT, capture_output=True, text=True, timeout=3600)
 if result.returncode != 2:
     print(result.stdout + result.stderr, file=sys.stderr)
     raise SystemExit("expected qualification-blocked exit 2")

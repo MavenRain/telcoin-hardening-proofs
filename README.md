@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[100 atomic model obligations](atomic-claims.json) documenting theorem links,
+[104 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 394 deliberately invalid
+source hashes and coverage freshness, and requires 419 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-633 explicit equality and order proof declarations across 34 modules. This count
+658 explicit equality and order proof declarations across 35 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -102,6 +102,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `49-policy-ingress-scan.mech` | A separate admission allowance bounds each examined arrival prefix, partitions accepted, rejected and caller-owned unexamined arrivals, preserves queue bounds and conditional backlog service, and adds symbolic admission charges to the per-turn dispatch envelope. Concrete scan costs and external suffix handling remain open. |
 | `50-qualification.mech` | Missing evidence blocks a conjunction of qualification conditions. |
 | `51-policy-ingress-resumption.mech` | Caller-owned FIFO resumption conserves examined and deferred arrivals, conditionally examines original deferred prefixes, preserves admitted queue bounds and service, and composes scan and execution costs across a finite schedule. Deferred storage, runtime resubmission and mandatory-event delivery remain open. |
+| `52-policy-ingress-deferred.mech` | A fixed caller-owned deferred capacity retains the earliest unexamined prefix, reports explicit overflow, preserves the three-way FIFO disposition, and carries the bounded handoff through filtered queue/resource execution and symbolic overflow cost. Runtime ownership, storage and delivery remain open. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

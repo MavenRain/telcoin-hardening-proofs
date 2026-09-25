@@ -1,0 +1,417 @@
+-- A bounded caller-owned handoff retains a FIFO deferred prefix and reports
+-- the remaining suffix. Overflow is explicit and is not silently retried.
+
+def policyIngressDeferredPrefix : Count -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (events : PolicyIngressTrace) =>
+    policyIngressPollPrefix capacity events
+
+def policyIngressDeferredOverflow : Count -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (events : PolicyIngressTrace) =>
+    policyIngressPollRemainder capacity events
+
+def policyIngressDeferredBound : (capacity : Count) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (policyIngressDeferredPrefix capacity events)) capacity :=
+  fun (capacity : Count) (events : PolicyIngressTrace) =>
+    policyIngressSelectedFuelBound capacity events
+
+def policyIngressDeferredPartitions : (capacity : Count) -> (events : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress (policyIngressDeferredPrefix capacity events)
+        (policyIngressDeferredOverflow capacity events)) events :=
+  fun (capacity : Count) (events : PolicyIngressTrace) =>
+    policyIngressPollReassemblesQueue capacity events
+
+def policyIngressDeferredZeroCapacity : (events : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (policyIngressDeferredPrefix zero events) policyIngressDone :=
+  fun (events : PolicyIngressTrace) => same
+
+def policyIngressDeferredZeroRetainsOverflow : (events : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (policyIngressDeferredOverflow zero events) events :=
+  fun (events : PolicyIngressTrace) => same
+
+def boundedResumedPolicyIngressOffered : PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    appendPolicyIngress deferred arrivals
+
+def boundedResumedPolicyIngressExamined : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    scannedPolicyIngress scanFuel (boundedResumedPolicyIngressOffered deferred arrivals)
+
+def boundedResumedPolicyIngressUnexamined : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    unscannedPolicyIngress scanFuel (boundedResumedPolicyIngressOffered deferred arrivals)
+
+def boundedResumedPolicyIngressDeferred : Count -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressDeferredPrefix capacity (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)
+
+def boundedResumedPolicyIngressOverflow : Count -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressDeferredOverflow capacity (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)
+
+def boundedResumedPolicyIngressExaminedBound : (scanFuel : Count) -> (deferred : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> AtMost
+      (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanFuel :=
+  fun (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressScanBound scanFuel (boundedResumedPolicyIngressOffered deferred arrivals)
+
+def boundedResumedPolicyIngressDeferredBound : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> AtMost
+      (policyIngressLength (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)) capacity :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressDeferredBound capacity (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)
+
+def boundedResumedPolicyIngressOverflowBound : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> AtMost
+      (policyIngressLength (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+      (policyIngressLength (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)) :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressRemainderLengthBound capacity (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)
+
+def boundedResumedPolicyIngressDisposition : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (appendPolicyIngress
+        (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))
+        (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+      (boundedResumedPolicyIngressOffered deferred arrivals) :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (appendPolicyIngress
+        (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))
+        (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+      (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+        (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals))
+      (boundedResumedPolicyIngressOffered deferred arrivals)
+      (equalTransitivity PolicyIngressTrace
+        (appendPolicyIngress
+          (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+            (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))
+          (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+        (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (appendPolicyIngress (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)
+            (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals)))
+        (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals))
+        (appendPolicyIngressAssociative (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)
+          (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+        (congruent PolicyIngressTrace PolicyIngressTrace
+          (fun (tail : PolicyIngressTrace) =>
+            appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals) tail)
+          (appendPolicyIngress (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)
+            (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+          (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)
+          (policyIngressDeferredPartitions capacity
+            (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals))))
+      (policyIngressScanPartitions scanFuel (boundedResumedPolicyIngressOffered deferred arrivals))
+
+def boundedResumedPolicyIngressZeroScan : (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedResumedPolicyIngressExamined zero deferred arrivals) policyIngressDone :=
+  fun (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def boundedResumedPolicyIngressZeroCapacity : (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedResumedPolicyIngressDeferred zero scanFuel deferred arrivals) policyIngressDone :=
+  fun (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def boundedResumedPolicyIngressZeroCapacityReportsUnexamined : (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedResumedPolicyIngressOverflow zero scanFuel deferred arrivals)
+      (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals) :=
+  fun (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def boundedResumedPolicyIngressExaminesPrefix : (scanFuel : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count scanFuel (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix prefix (boundedResumedPolicyIngressExamined scanFuel prefix suffix) :=
+  fun (scanFuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count scanFuel (add (policyIngressLength prefix) slack)) =>
+    equalTransport PolicyIngressTrace
+      (fun (selected : PolicyIngressTrace) =>
+        PolicyIngressPrefix selected (boundedResumedPolicyIngressExamined scanFuel prefix suffix))
+      (policyIngressPollPrefix scanFuel prefix) prefix
+      (equalTransitivity PolicyIngressTrace
+        (policyIngressPollPrefix scanFuel prefix)
+        (policyIngressPollPrefix (add (policyIngressLength prefix) slack) prefix) prefix
+        (congruent Count PolicyIngressTrace (fun (fuel : Count) => policyIngressPollPrefix fuel prefix)
+          scanFuel (add (policyIngressLength prefix) slack) enough)
+        (policyIngressTakeWithSlack prefix slack))
+      (policyIngressPrefixUnderTake scanFuel prefix (appendPolicyIngress prefix suffix)
+        (policyIngressPrefixWitness suffix same))
+
+def boundedResumedPolicyIngressExaminationEquation : (scanFuel : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (enough : Equal Count scanFuel (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress prefix
+        (policyIngressPrefixSuffix prefix (boundedResumedPolicyIngressExamined scanFuel prefix suffix)
+          (boundedResumedPolicyIngressExaminesPrefix scanFuel prefix suffix slack enough)))
+      (boundedResumedPolicyIngressExamined scanFuel prefix suffix) :=
+  fun (scanFuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count scanFuel (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation prefix (boundedResumedPolicyIngressExamined scanFuel prefix suffix)
+      (boundedResumedPolicyIngressExaminesPrefix scanFuel prefix suffix slack enough)
+
+def boundedResumedPolicyIngressRetainsOldHead : (event : PolicyIngressEvent) ->
+    (rest : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (boundedResumedPolicyIngressDeferred (next zero) zero (policyIngressThen event rest) arrivals)
+      (policyIngressThen event policyIngressDone) :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def boundedResumedPayloadIngressReady : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    scannedPayloadIngressReady weight slots payloadLimit scanFuel events
+      (boundedResumedPolicyIngressOffered deferred arrivals)
+
+def boundedResumedPayloadIngressTrace : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (fuel : Count) -> (events : PolicyIngressTrace) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressPollPrefix fuel
+      (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel events deferred arrivals)
+
+def runBoundedResumedPayloadIngress : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> PolicyIngressResumeState -> PolicyIngressResumeState :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (state : PolicyIngressResumeState) =>
+    case state as self in PolicyIngressResumeState return PolicyIngressResumeState with
+    | policyIngressResumeState deferred queued =>
+        policyIngressResumeState
+          (boundedResumedPolicyIngressDeferred deferredCapacity scanFuel deferred arrivals)
+          (policyIngressQueueState
+            (policyIngressPollRemainder fuel
+              (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel
+                (queuedPolicyIngress queued) deferred arrivals))
+            (runPolicyIngressPoll fuel
+              (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel
+                (queuedPolicyIngress queued) deferred arrivals)
+              config (queuedPolicyWork queued)))
+
+def boundedResumedPayloadIngressRunsTurn : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> Equal PolicyIngressResumeState
+      (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+        (policyIngressResumeState deferred (policyIngressQueueState events current)))
+      (policyIngressResumeState
+        (boundedResumedPolicyIngressDeferred deferredCapacity scanFuel deferred arrivals)
+        (policyIngressQueueState
+          (policyIngressPollRemainder fuel
+            (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel events deferred arrivals))
+          (runPolicyIngressPoll fuel
+            (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel events deferred arrivals)
+            config current))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def boundedResumedPayloadIngressRetainsServiceFuel : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> Equal PolicyIngressTrace
+      (queuedPolicyIngress
+        (resumedPolicyIngressQueue
+          (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+            (policyIngressResumeState deferred (policyIngressQueueState events current)))))
+      (policyIngressPollRemainder fuel
+        (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel events deferred arrivals)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def boundedResumedPayloadIngressQueueEntryBound : (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) ->
+    (fuel : Count) -> (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyIngressLength events) slots -> AtMost
+      (policyIngressLength
+        (queuedPolicyIngress
+          (resumedPolicyIngressQueue
+            (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+              (policyIngressResumeState deferred (policyIngressQueueState events current)))))) slots :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (fits : AtMost (policyIngressLength events) slots) =>
+    scannedPayloadIngressQueueEntryBound
+      (policyIngressTurn fuel (boundedResumedPolicyIngressOffered deferred arrivals) policyIngressScheduleDone)
+      weight slots payloadLimit scanFuel events config current fits
+
+def boundedResumedPayloadIngressQueuePayloadBound : (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) ->
+    (fuel : Count) -> (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyIngressPayload weight events) payloadLimit -> AtMost
+      (policyIngressPayload weight
+        (queuedPolicyIngress
+          (resumedPolicyIngressQueue
+            (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+              (policyIngressResumeState deferred (policyIngressQueueState events current)))))) payloadLimit :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+    scannedPayloadIngressQueuePayloadBound
+      (policyIngressTurn fuel (boundedResumedPolicyIngressOffered deferred arrivals) policyIngressScheduleDone)
+      weight slots payloadLimit scanFuel events config current fits
+
+def boundedResumedPayloadIngressPendingBound : (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) ->
+    (fuel : Count) -> (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> AtMost
+      (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources
+        (queuedPolicyWork
+          (resumedPolicyIngressQueue
+            (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+              (policyIngressResumeState deferred (policyIngressQueueState events current)))))))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    payloadIngressPendingBound weight slots payloadLimit
+      (scannedPolicyIngressSchedule scanFuel
+        (policyIngressTurn fuel (boundedResumedPolicyIngressOffered deferred arrivals) policyIngressScheduleDone))
+      events config current
+
+def boundedResumedPayloadIngressExecutesTrace : (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) ->
+    (fuel : Count) -> (events : PolicyIngressTrace) -> (deferred : PolicyIngressTrace) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState
+      (queuedPolicyWork
+        (resumedPolicyIngressQueue
+          (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+            (policyIngressResumeState deferred (policyIngressQueueState events current)))))
+      (runPolicyIngress (boundedResumedPayloadIngressTrace weight slots payloadLimit scanFuel fuel events deferred arrivals)
+        config current) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (events : PolicyIngressTrace) (deferred : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressPollProjectsPrefix fuel
+      (boundedResumedPayloadIngressReady weight slots payloadLimit scanFuel events deferred arrivals)
+      config current
+
+def boundedResumedPolicyIngressDispositionCost : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (scanCost : Count) ->
+    (overflowCost : Count) -> Count :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (overflowCost : Count) =>
+    add
+      (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanCost)
+      (multiply (policyIngressLength (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals)) overflowCost)
+
+def boundedResumedPolicyIngressDispositionCostCountsWork : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (scanCost : Count) ->
+    (overflowCost : Count) -> Equal Count
+      (boundedResumedPolicyIngressDispositionCost capacity scanFuel deferred arrivals scanCost overflowCost)
+      (add
+        (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanCost)
+        (multiply (policyIngressLength (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals)) overflowCost)) :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (overflowCost : Count) => same
+
+def boundedResumedPolicyIngressDispositionCostBound : (capacity : Count) -> (scanFuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (scanCost : Count) ->
+    (overflowCost : Count) -> AtMost
+      (boundedResumedPolicyIngressDispositionCost capacity scanFuel deferred arrivals scanCost overflowCost)
+      (add
+        (multiply scanFuel scanCost)
+        (multiply (policyIngressLength (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)) overflowCost)) :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (overflowCost : Count) =>
+    addBounds
+      (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanCost)
+      (multiply scanFuel scanCost)
+      (multiply (policyIngressLength (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals)) overflowCost)
+      (multiply (policyIngressLength (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)) overflowCost)
+      (multipliedBounds
+        (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanFuel scanCost
+        (boundedResumedPolicyIngressExaminedBound scanFuel deferred arrivals))
+      (multipliedBounds
+        (policyIngressLength (boundedResumedPolicyIngressOverflow capacity scanFuel deferred arrivals))
+        (policyIngressLength (boundedResumedPolicyIngressUnexamined scanFuel deferred arrivals)) overflowCost
+        (boundedResumedPolicyIngressOverflowBound capacity scanFuel deferred arrivals))
+
+-- Return overflow with the continuation so the handoff exposes both owners.
+mu BoundedPolicyIngressHandoff : Type 0 with
+| boundedPolicyIngressHandoff : PolicyIngressTrace -> PolicyIngressResumeState -> BoundedPolicyIngressHandoff
+
+def policyIngressHandoffOverflow : BoundedPolicyIngressHandoff -> PolicyIngressTrace :=
+  fun (handoff : BoundedPolicyIngressHandoff) =>
+    case handoff as self in BoundedPolicyIngressHandoff return PolicyIngressTrace with
+    | boundedPolicyIngressHandoff overflow state => overflow
+
+def policyIngressHandoffState : BoundedPolicyIngressHandoff -> PolicyIngressResumeState :=
+  fun (handoff : BoundedPolicyIngressHandoff) =>
+    case handoff as self in BoundedPolicyIngressHandoff return PolicyIngressResumeState with
+    | boundedPolicyIngressHandoff overflow state => state
+
+def handoffBoundedPayloadIngress : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> PolicyIngressResumeState -> BoundedPolicyIngressHandoff :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (state : PolicyIngressResumeState) =>
+    boundedPolicyIngressHandoff
+      (boundedResumedPolicyIngressOverflow deferredCapacity scanFuel (deferredPolicyIngress state) arrivals)
+      (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config state)
+
+def boundedPayloadIngressHandoffReportsOverflow : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) ->
+    Equal PolicyIngressTrace
+      (policyIngressHandoffOverflow
+        (handoffBoundedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config state))
+      (boundedResumedPolicyIngressOverflow deferredCapacity scanFuel (deferredPolicyIngress state) arrivals) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (state : PolicyIngressResumeState) => same
+
+def boundedPayloadIngressHandoffCarriesState : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) ->
+    Equal PolicyIngressResumeState
+      (policyIngressHandoffState
+        (handoffBoundedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config state))
+      (runBoundedResumedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config state) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (state : PolicyIngressResumeState) => same
+
+def boundedPayloadIngressHandoffDeferredBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (queued : PolicyIngressQueueState) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> AtMost
+      (policyIngressLength (deferredPolicyIngress (policyIngressHandoffState
+        (handoffBoundedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+          (policyIngressResumeState deferred queued))))) deferredCapacity :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (deferred : PolicyIngressTrace) (queued : PolicyIngressQueueState)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) =>
+    boundedResumedPolicyIngressDeferredBound deferredCapacity scanFuel deferred arrivals
+
+def boundedPayloadIngressHandoffDisposition : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (deferredCapacity : Count) -> (scanFuel : Count) -> (fuel : Count) ->
+    (deferred : PolicyIngressTrace) -> (queued : PolicyIngressQueueState) ->
+    (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> Equal PolicyIngressTrace
+      (appendPolicyIngress
+        (appendPolicyIngress (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+          (deferredPolicyIngress (policyIngressHandoffState
+            (handoffBoundedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+              (policyIngressResumeState deferred queued)))))
+        (policyIngressHandoffOverflow
+          (handoffBoundedPayloadIngress weight slots payloadLimit deferredCapacity scanFuel fuel arrivals config
+            (policyIngressResumeState deferred queued))))
+      (appendPolicyIngress deferred arrivals) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (deferredCapacity : Count)
+      (scanFuel : Count) (fuel : Count) (deferred : PolicyIngressTrace) (queued : PolicyIngressQueueState)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) =>
+    boundedResumedPolicyIngressDisposition deferredCapacity scanFuel deferred arrivals
