@@ -34,7 +34,8 @@
     "weighted_ingress_payload": "One immutable natural-valued charge function applies to every retained ingress event throughout a finite schedule. Entry and payload limits are fixed, and their respective invariants require initially fitting queues. A runtime refinement must establish that charges dominate retained payload storage, cannot be understated by peers, and cover ownership and sharing correctly; fixed entry overhead needs its own dominance bound. Offered batches, rejected suffixes, temporary selections and proof certificates are outside the retained-queue bound.",
     "bounded_ingress_scan": "A fixed natural admission allowance selects only an offered batch's FIFO prefix before payload and entry admission. Examined rejections are distinct from the caller-owned unexamined suffix. Each selected event receives an independent symbolic scanCost, including zero-payload and rejected events. Runtime refinement must bound or lazily produce offered batches, justify dominating scan charges, separately account for backlog measurement and other omitted work, and define external suffix ownership, resubmission, wakeups and mandatory-event delivery.",
     "persistent_ingress_resumption": "The caller atomically retains the unexamined FIFO and the admitted queue/resource state across finite delivered turns. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. Only the unexamined suffix is retried; examined admission rejections leave this FIFO. Deferred storage is unbounded in the model and requires separate runtime ownership, capacity and cost arguments. Enough delivered scan fuel ensures examination of an original deferred prefix, not admission or execution; real wakeups, cancellation, restart and mandatory-event delivery require refinement.",
-    "bounded_ingress_resumption": "The caller atomically carries the returned deferred FIFO and the admitted queue/resource state into each delivered turn. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. A fixed caller-owned deferred capacity then retains only the earliest unexamined prefix; the remaining suffix is reported to the caller as explicit overflow and is not retried automatically. Examined admission rejections leave the FIFO. The model keeps scan and service allowances, entry and immutable-payload limits, and one carried queue/resource state separate. Runtime ownership, allocation, overflow disposition and resubmission delivery, cancellation, restart and fairness remain refinement obligations."
+    "bounded_ingress_resumption": "The caller atomically carries the returned deferred FIFO and the admitted queue/resource state into each delivered turn. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. A fixed caller-owned deferred capacity then retains only the earliest unexamined prefix; the remaining suffix is reported to the caller as explicit overflow and is not retried automatically. Examined admission rejections leave the FIFO. The model keeps scan and service allowances, entry and immutable-payload limits, and one carried queue/resource state separate. Runtime ownership, allocation, overflow disposition and resubmission delivery, cancellation, restart and fairness remain refinement obligations.",
+    "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations."
   },
   "claims": [
     {
@@ -3392,6 +3393,143 @@
         "Establish concrete scan and overflow weights and connect them to actual traversal, reporting and disposal costs.",
         "Bound offered-batch construction, suffix traversal, charge computation and executor overhead separately.",
         "Refine fixed scan allowances, deferred capacity changes, restart and concurrent ownership in the implementation."
+      ]
+    },
+    {
+      "id": "C69",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Finite schedules compose the bounded deferred handoff with the next turn. Each turn scans retained FIFO entries before fresh arrivals and passes only its retained prefix forward. The final deferred entry count is bounded when the initial deferred FIFO fits, including an empty schedule. This is an entry bound, not a deferred payload or memory bound.",
+      "theorems": [
+        "boundedDeferredIngressEmpty",
+        "boundedDeferredIngressOneTurn",
+        "boundedDeferredIngressContinuesHandoff",
+        "boundedDeferredIngressBound",
+        "boundedDeferredIngressHandoffBound",
+        "boundedDeferredIngressRetainsOldHead",
+        "boundedDeferredIngressDoesNotReplayOverflow"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine exclusive ownership and sequential transfer of deferred and admitted state across actual polls.",
+        "Establish the initial deferred bound and concrete storage, payload, traversal and allocation bounds.",
+        "Extend fixed deferred capacity and scan allowance to configuration changes, cancellation and restart."
+      ]
+    },
+    {
+      "id": "C70",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A finite bounded handoff schedule reports each turn's unexamined overflow in chronological FIFO order through the returned overflow projection. Overflow is excluded from subsequent internal resubmission. The trace is an output history of unbounded length; this does not prove external delivery, mandatory-event handling, progress or bounded log storage.",
+      "theorems": [
+        "boundedDeferredIngressOverflowStep",
+        "boundedDeferredIngressReportsOverflow",
+        "boundedDeferredIngressContinuesHandoff",
+        "boundedDeferredIngressReportsBothOverflows",
+        "boundedDeferredIngressDoesNotReplayOverflow"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine overflow reporting, disposal and any caller-requested retry without implicit replay or duplication.",
+        "Bound concrete output buffering and per-turn overflow traversal independently of the deferred entry cap.",
+        "Preserve cleanup and control delivery under overload and establish sufficient real scan and service fuel."
+      ]
+    },
+    {
+      "id": "C71",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Composing bounded handoffs preserves admitted entry and immutable-payload bounds under their separate initial-fit premises, the original pending-capacity bound, and the service fuel in the examined-arrival schedule. The runner continues from the preceding handoff's admitted queue and resource state. The result does not bound deferred payload, overflow storage or whole-process memory.",
+      "theorems": [
+        "boundedDeferredIngressContinuesHandoff",
+        "boundedDeferredIngressPreservesFuel",
+        "boundedDeferredIngressQueueEntryBound",
+        "boundedDeferredIngressQueuePayloadBound",
+        "boundedDeferredIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine the modeled filtered dispatch and atomic policy/source/resource transitions to actual event handlers.",
+        "Establish initial admitted entry and payload fit, immutable charges and storage dominance.",
+        "Prove real wakeups, cumulative fuel delivery and mandatory-event handling across repeated bounded handoffs."
+      ]
+    },
+    {
+      "id": "C72",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "The recursive whole-schedule disposition count equals the length of the initial deferred FIFO followed by all fresh arrival batches. It counts every examined occurrence, every unexamined overflow occurrence and the final deferred FIFO exactly once in that recurrence. Examined candidates include later entry or payload rejections. This scalar accounting theorem does not identify accepted or executed events, prove identity uniqueness, or establish concrete cost or delivery.",
+      "theorems": [
+        "boundedDeferredIngressRoundCount",
+        "boundedDeferredIngressConservation",
+        "boundedDeferredIngressArrivalConservation",
+        "policyIngressScheduledArrivalCountMatches"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine examined, overflow and retained counters to their exact runtime stages and ownership boundaries.",
+        "Connect admitted and rejected examined candidates to their concrete disposal and execution records.",
+        "Establish concrete per-turn and whole-schedule costs, including batch construction and overflow reporting."
       ]
     }
   ]

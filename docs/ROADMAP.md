@@ -74,14 +74,18 @@ Admitted queue bounds and service remain intact, and a whole-schedule symbolic
 scan and execution envelope counts each resource burst once. A bounded handoff
 now retains a fixed prefix of the unexamined suffix and reports the remaining
 suffix as explicit overflow, while preserving the admitted queue and resource
-bounds through one filtered turn. Concrete storage, atomic ownership, overflow
-delivery, runtime resubmission, concrete costs, sufficient fuel delivery and
-safe handling of examined rejections still need refinement.
+bounds through one filtered turn. Finite schedules now compose that bounded
+handoff, preserve chronological overflow without internal replay, and conserve
+the recursive examined/overflow/final-deferred occurrence count. The deferred
+bound for an arbitrary schedule, including no turns, requires initial fit.
+Concrete storage, atomic ownership, overflow delivery, runtime resubmission,
+concrete costs, sufficient fuel delivery and safe handling of examined
+rejections still need refinement. Overflow output history has no storage bound.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 104 atomic model obligations
+   explicit dispositions. The current 34 groups and 108 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

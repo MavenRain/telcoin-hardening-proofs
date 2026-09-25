@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 416 additional semantic mutations must
+The 443 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -148,6 +148,18 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   symbolic and does not establish concrete storage, traversal or reporting
   dominance. Atomic ownership, overflow delivery, resubmission, cancellation,
   restart, fairness and mandatory-event handling remain open.
+
+- Module 53 composes bounded handoffs across finite schedules with fixed
+  deferred capacity and scan allowance, and per-turn service fuel. The final
+  deferred entry bound requires initial fit because a schedule may be empty.
+  Chronological overflow is returned as output history and is excluded from
+  internal resubmission. Admitted entry/payload and pending bounds survive.
+  Recursive disposition accounting counts examined occurrences, unexamined
+  overflow occurrences and the final deferred FIFO; examined rejections are
+  included. It does not prove unique event identities, external delivery,
+  fairness, whole-process memory bounds or concrete cost. Output history may
+  grow without bound. Ownership, restart and mandatory-event handling remain
+  runtime obligations.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

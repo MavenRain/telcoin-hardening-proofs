@@ -1142,10 +1142,57 @@ scan and service fuel, continuation retention, payload admission, overflow
 reporting and cost accounting. Each changed definition must type-check before
 a later proof rejects the mutation. Parser failures do not count.
 
+## Bounded deferred handoff schedules
+
+`53-policy-ingress-handoff-schedule.mech` composes the module-52 handoff over
+finite caller-supplied schedules. Deferred capacity and scan allowance are
+fixed; each turn supplies its own service fuel and fresh arrival batch.
+`boundedDeferredIngressSchedule` examines the old deferred FIFO followed by
+the new batch, then passes only the capped unexamined prefix to the next turn.
+`boundedDeferredIngressRemainder` is the final retained FIFO.
+`boundedDeferredIngressOverflow` appends each turn's unexamined overflow in
+chronological order. That trace is output history, with no modeled storage cap.
+
+`runBoundedDeferredIngress` returns the overflow history with the final
+deferred FIFO, admitted queue and resource state. `boundedDeferredIngressOneTurn`
+and `boundedDeferredIngressContinuesHandoff` identify its state with the existing
+single-turn handoff and continuation. Entry and immutable-payload bounds retain
+their separate initial-fit premises; the pending-capacity bound also survives.
+The examined-arrival schedule preserves service fuel. The arbitrary-schedule
+deferred bound requires initial fit, since the empty schedule keeps its input.
+The existing single-turn bound still applies regardless of initial deferred size.
+
+The whole-schedule disposition counter uses this recurrence:
+
+```
+accounted(done, deferred) = length(deferred)
+accounted(turn, deferred) = length(examined) + length(overflow)
+  + accounted(rest, retainedDeferred)
+accounted(schedule, initialDeferred)
+  = length(initialDeferred ++ allFreshArrivals)
+```
+
+`boundedDeferredIngressArrivalConservation` proves the last equation over
+arbitrary schedule and trace variables. It counts supplied occurrences,
+including examined candidates subsequently rejected by entry or payload
+admission. It is a scalar recurrence, not an event-identity uniqueness,
+acceptance, execution or delivery theorem. The exact overflow equations and
+two-turn boundary laws separately detect reordering and internal replay.
+
+The 27 new controls mutate scan selection, service fuel, continuation input,
+the carried deferred input, terminal deferred resubmission, the carried
+admitted queue, deferred capacity, overflow order/reporting, admitted limits,
+execution and occurrence accounting. Every mutated executable definition
+type-checks in isolation before a later proof rejects it. C69-C72 record the
+claims and their remaining ownership, storage, overflow disposal/delivery,
+cancellation, restart, cost and mandatory-event obligations. No cumulative
+progress theorem for retained prefixes or concrete runtime bound is added by
+this slice.
+
 ## Negative controls
 
-The checker rejects 419 invalid variants: three direct checks of equality,
-ordering and termination, plus 416 semantic mutations. Mutations exercise such
+The checker rejects 446 invalid variants: three direct checks of equality,
+ordering and termination, plus 443 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

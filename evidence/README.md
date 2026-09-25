@@ -270,3 +270,24 @@ qualification remain blocked.
 The qualification wrapper allows 3,600 seconds for the expanded complete
 suite. The per-invocation compiler timeout, semantic rejection requirements,
 input hashes and expected qualification-blocked exit remain enforced.
+
+`policy-ingress-handoff-schedule-model-check.json` records the finite bounded
+handoff schedule extension: 680 explicit equality and order declarations in 36
+modules, 108 atomic obligations and 446 rejected negative checks. The 27 new
+mutations each have a type-correct executable prefix and fail a later proof.
+They cover dropped or replayed retained input, skipped initial deferred input,
+terminal deferred resubmission, scan and service fuel, capacity, overflow loss
+and reordering, admitted limits, the carried queue, execution and occurrence
+counts. An existing final-suffix mutation now includes its module-51 function
+context to keep the target unique. It produces exactly the same original
+mutated bundle; the checker rejection rules are unchanged.
+
+C69-C72 connect the schedule to the existing single-turn handoff, preserve
+deferred entry bounds under initial fit and admitted/resource bounds under
+their existing premises, return chronological overflow without internal replay,
+and conserve the recursive examined/overflow/final-deferred occurrence count.
+Examined occurrences include later admission rejections. Output-history
+storage, deferred payload, external delivery, concrete costs, ownership,
+cancellation, restart and progress remain outside this result. Implementation
+links are `not_checked_this_run`; implementation refinement and deployment
+qualification remain blocked.
