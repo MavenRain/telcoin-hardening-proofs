@@ -996,10 +996,90 @@ backlog or future turns, erase service fuel, and corrupt scan charges or their
 combined envelope. Each must be rejected with a proof type mismatch; parse
 errors and crashes do not count.
 
+## Persistent admission resumption
+
+`51-policy-ingress-resumption.mech` retains the caller-owned unexamined suffix
+from module 49 across a finite schedule. `PolicyIngressResumeState` pairs that
+deferred FIFO with the admitted queue and its resource state. A turn:
+
+1. Appends the fresh batch after the deferred FIFO.
+2. Examines at most the fixed `scanFuel` allowance.
+3. Offers only that prefix to payload and entry admission.
+4. Polls the admitted queue with the turn's independent service fuel.
+5. Retains the unexamined suffix and the resulting queue/resource state.
+
+`resumedPayloadIngressRunsTurn` proves this recursive transition over arbitrary
+events, states and remaining schedules. `resumedPayloadIngressRetainsDeferred`
+connects the returned state to the pure suffix calculation. Examined admission
+rejections leave this FIFO; they are not retried automatically.
+
+`resumedPolicyIngressConservation` proves exact ordered conservation:
+
+```
+complete examined trace ++ final deferred FIFO
+  = initial deferred FIFO ++ all fresh batches
+```
+
+The scan-trace bridge reuses the varying-fuel FIFO scheduler for examination,
+with each turn's service fuel replaced by the fixed scan allowance. This is a
+proof projection; examining an arrival does not execute its resource event.
+Zero scan fuel examines nothing and retains all arrivals. Two-turn laws over
+event and suffix variables check that older deferred heads precede fresh work,
+the remaining tail is retained, and idle scan allowance is not banked.
+
+`resumedPolicyIngressExaminationEquation` proves that an original deferred
+prefix occurs at the start of the examined trace when the sum of delivered
+scan allowances equals its length plus natural slack. Later arrivals cannot
+overtake it. This also covers turns with zero service fuel. The independent
+`resumedPayloadIngressServiceEquation` preserves conditional dispatch of an
+initially admitted queue prefix when summed service fuel covers that prefix.
+These premises concern fuel actually delivered in the finite schedule; neither
+theorems nor the model deliver real wakeups or establish wall-clock latency.
+Examination does not imply admission or dispatch.
+
+Across the schedule, the admitted queue retains its entry and immutable-payload
+bounds when the respective initial bound holds. The carried resource state
+equals execution of `resumedPayloadIngressTrace`, and pending occupancy stays
+within initial capacity. These bounds exclude the deferred FIFO, which has no
+capacity limit in this model. It can grow even when the admitted queue is empty.
+
+The symbolic cost envelope covers the entire finite resumed schedule. Write
+`Q` for the examined trace, `T` for the filtered dispatched trace, `A` for the
+sum of scan allowances, and `F` for the sum of service fuel:
+
+```
+length(Q) * scanCost
+  + length(T) * eventCost
+  + processed(T) * policyCost + starts(T) * handshakeCost
+<= A * scanCost + F * eventCost
+  + (workCapacity + trustedTicks(T) * workRate) * policyCost
+  + (handshakeCapacity + trustedTicks(T) * handshakeRate) * handshakeCost
+```
+
+Initial work and handshake balances must fit their capacities. The two resource
+bursts are counted once across the complete dispatched trace. Every examined
+arrival receives a scan charge, including rejected and zero-payload events.
+The cost-counting equations prevent erased scan, dispatch, policy or handshake
+charges from satisfying the specification merely by weakening the cost.
+
+The 24 `policy_resume_*` controls perturb FIFO order, continuation retention,
+fresh arrivals, service and scan fuel, returned state, admission filtering and
+cost accounting. Their mutated definitions are well typed; subsequent equality
+or order proofs reject the changes. The complete gate also checks all earlier
+controls and empty axiom disclosure.
+
+Runtime refinement must establish atomic ownership across both queues, actual
+suffix resubmission, bounded or lazy offered batches, and enough delivered turns.
+It must separately bound deferred storage, concatenation and traversal, backlog
+measurement, charge computation, rejection disposal, empty turns and executor
+work. Symbolic weights need concrete cost dominance. Cancellation, restart,
+concurrent producers, changing limits and delivery of mandatory events through
+admission rejection remain open. C61-C64 record these boundaries.
+
 ## Negative controls
 
-The checker rejects 370 invalid variants: three direct checks of equality,
-ordering and termination, plus 367 semantic mutations. Mutations exercise such
+The checker rejects 394 invalid variants: three direct checks of equality,
+ordering and termination, plus 391 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

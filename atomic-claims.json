@@ -32,7 +32,8 @@
     "variable_ingress_service": "A finite schedule lists delivered turns, each with its own finite fuel and finite arrival batch. Each turn appends its batch once behind retained work and then polls with that fuel against the carried resource state. Zero-fuel turns retain arrivals and state; unused fuel is not banked. Prefix progress requires total delivered fuel equal to the prefix length plus a natural-number slack witness. The runtime must refine these turns and supply enough fuel; elapsed time, fairness, queue capacity and overload are separate obligations.",
     "bounded_ingress_admission": "The queue-entry limit is fixed and the initial backlog fits it. Admission and enqueue linearize before each poll, preserving the old backlog and accepting only the earliest arrivals that fit the free entries. The remaining suffix is rejected. Runtime refinement must bound payloads and admission costs separately and protect required cleanup, clock and control delivery or justify safe loss and retries.",
     "weighted_ingress_payload": "One immutable natural-valued charge function applies to every retained ingress event throughout a finite schedule. Entry and payload limits are fixed, and their respective invariants require initially fitting queues. A runtime refinement must establish that charges dominate retained payload storage, cannot be understated by peers, and cover ownership and sharing correctly; fixed entry overhead needs its own dominance bound. Offered batches, rejected suffixes, temporary selections and proof certificates are outside the retained-queue bound.",
-    "bounded_ingress_scan": "A fixed natural admission allowance selects only an offered batch's FIFO prefix before payload and entry admission. Examined rejections are distinct from the caller-owned unexamined suffix. Each selected event receives an independent symbolic scanCost, including zero-payload and rejected events. Runtime refinement must bound or lazily produce offered batches, justify dominating scan charges, separately account for backlog measurement and other omitted work, and define external suffix ownership, resubmission, wakeups and mandatory-event delivery."
+    "bounded_ingress_scan": "A fixed natural admission allowance selects only an offered batch's FIFO prefix before payload and entry admission. Examined rejections are distinct from the caller-owned unexamined suffix. Each selected event receives an independent symbolic scanCost, including zero-payload and rejected events. Runtime refinement must bound or lazily produce offered batches, justify dominating scan charges, separately account for backlog measurement and other omitted work, and define external suffix ownership, resubmission, wakeups and mandatory-event delivery.",
+    "persistent_ingress_resumption": "The caller atomically retains the unexamined FIFO and the admitted queue/resource state across finite delivered turns. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. Only the unexamined suffix is retried; examined admission rejections leave this FIFO. Deferred storage is unbounded in the model and requires separate runtime ownership, capacity and cost arguments. Enough delivered scan fuel ensures examination of an original deferred prefix, not admission or execution; real wakeups, cancellation, restart and mandatory-event delivery require refinement."
   },
   "claims": [
     {
@@ -3084,8 +3085,160 @@
       "open_implementation_obligations": [
         "Establish concrete dominating scan, dispatch, policy-query and handshake weights; scanCost is symbolic and does not prove that charge computation or comparison is constant-time.",
         "Bound offered-batch construction, backlog summation, prefix/suffix traversal, rejection reporting and deallocation, empty turns and executor overhead separately.",
-        "Prove any whole-schedule admission-cost accounting without recounting initial resource bursts; this combined theorem is per turn.",
+        "Refine the whole-schedule admission-cost accounting added in C64 without recounting initial resource bursts; the C60 combined theorem remains per turn.",
         "Relate service fuel and trusted ticks to real time and protect cleanup and control delivery under overload."
+      ]
+    },
+    {
+      "id": "C61",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "A caller-owned FIFO carries unexamined arrivals across finite turns, appending each fresh batch after the retained suffix before scanning. The complete examined trace followed by the final deferred suffix reconstructs the initial deferred FIFO followed by all fresh arrivals, exactly in order. Zero scan allowance retains every arrival; fixed-shape laws also cover older-before-fresh ordering and unused scan fuel not being banked.",
+      "theorems": [
+        "resumedPolicyIngressScanTrace",
+        "resumedPolicyIngressConservation",
+        "resumedPolicyIngressZeroScan",
+        "resumedPolicyIngressZeroRetainsAll",
+        "resumedPolicyIngressOlderBeforeFresh",
+        "resumedPolicyIngressOlderTailRetained",
+        "resumedPolicyIngressIdleScanNotBanked"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "persistent_ingress_resumption"
+      ],
+      "open_implementation_obligations": [
+        "Refine single ownership and atomic transfer of the deferred FIFO across turns and separate invocations, including cancellation, restart and concurrent producers.",
+        "Bound or lazily represent initial deferred work and fresh batches. The deferred FIFO has no entry or payload bound in this model.",
+        "Keep examined rejections distinct from deferred arrivals; rejected events are not automatically retried by resumption."
+      ]
+    },
+    {
+      "id": "C62",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "An original deferred prefix is examined when the sum of delivered fixed scan allowances equals its length plus natural slack, even with later arrivals and zero service fuel. Service-fuel allowances are preserved independently; an initially admitted queue prefix is dispatched when cumulative service fuel equals its length plus natural slack. Examination does not guarantee admission or dispatch.",
+      "theorems": [
+        "resumedPolicyIngressPreservesFuel",
+        "resumedPolicyIngressExaminationEquation",
+        "resumedPayloadIngressServiceEquation"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "executor_wakeup",
+        "persistent_ingress_resumption"
+      ],
+      "open_implementation_obligations": [
+        "Refine real suffix resubmission, delivered turns and executor wakeups. Neither enough scan/service fuel nor elapsed-time progress follows from a finite schedule.",
+        "Protect cleanup, clock and control delivery against admission rejection. Examined events may be rejected by entry or payload limits.",
+        "Establish conditional progress for arrivals introduced after the initial state by a runtime continuation/refinement argument."
+      ]
+    },
+    {
+      "id": "C63",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "The resumed state carries both the deferred FIFO and the admitted queue with its resource state. A turn resumes the exact unexamined suffix and filtered poll continuation. Across finite schedules, initially fitting admitted queues retain their entry and immutable-payload bounds; the resource state equals execution of the actual filtered dispatched trace, and pending occupancy stays within initial capacity. Deferred storage is excluded from both queue bounds.",
+      "theorems": [
+        "resumedPayloadIngressRunsTurn",
+        "resumedPayloadIngressRetainsDeferred",
+        "resumedPayloadIngressExecutesTrace",
+        "resumedPayloadIngressQueueEntryBound",
+        "resumedPayloadIngressQueuePayloadBound",
+        "resumedPayloadIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "persistent_ingress_resumption"
+      ],
+      "open_implementation_obligations": [
+        "Refine atomic state retention and dispatch across the caller-owned and admitted queues, including all callbacks, errors and cancellation paths.",
+        "Establish concrete payload dominance and separate bounds for deferred, offered, rejected and temporary storage.",
+        "Refine current-policy queries, indexed receipts, source attribution and resource transitions against the pinned implementation."
+      ]
+    },
+    {
+      "id": "C64",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "The length of the complete examined trace is bounded by the sum of delivered scan allowances. Every examined event receives scanCost, including rejected and zero-payload events. Across the entire finite resumed schedule, that symbolic scan charge composes with dispatch overhead and policy/handshake work on the actual filtered dispatched trace, counting each initial resource burst once, assuming initial work and handshake balances fit their capacities.",
+      "theorems": [
+        "resumedPolicyIngressScanBound",
+        "resumedPolicyIngressScanCostBound",
+        "resumedPolicyIngressScanCostCountsExamined",
+        "resumedPayloadIngressCostCountsWork",
+        "resumedPayloadIngressCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_source_admission",
+        "bounded_ingress_dispatch",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts",
+        "persistent_ingress_resumption"
+      ],
+      "open_implementation_obligations": [
+        "Establish concrete dominating scan, dispatch, policy-query and handshake weights and connect trusted ticks to elapsed time.",
+        "Bound FIFO concatenation and traversal, backlog measurement, charge computation, deferred retention, offered-batch construction, rejection disposal, empty turns and executor work separately.",
+        "Refine fixed scan allowances, entry/payload limits and immutable charges; dynamic reconfiguration and restart require separate arguments."
       ]
     }
   ]

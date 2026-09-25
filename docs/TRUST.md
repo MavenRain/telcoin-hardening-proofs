@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 367 additional semantic mutations must
+The 391 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -128,6 +128,18 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   backlog summation, offered-batch construction, external storage, rejection
   disposal and executor work remain open. Mandatory events need a delivery
   argument under both admission exhaustion and queue overload.
+
+- Module 51 carries the unexamined FIFO with the admitted queue/resource state
+  across finite turns. Fresh batches follow retained arrivals, and examined
+  work plus the final suffix reconstructs all supplied arrivals in order.
+  Enough delivered scan allowance guarantees examination of an original
+  deferred prefix. Entry and payload admission may still reject it. Independent
+  service-fuel guarantees apply to initially admitted queue prefixes. Admitted
+  queue and pending bounds survive resumption; the deferred FIFO has no modeled
+  capacity bound. A whole-schedule symbolic scan and execution envelope counts
+  each resource burst once. Real suffix ownership and resubmission, wakeups,
+  storage and traversal costs, cancellation, restart, wall-clock progress and
+  mandatory-event delivery remain open.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

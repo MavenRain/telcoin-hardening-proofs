@@ -221,3 +221,32 @@ measurement, external suffix handling, rejected-event disposal, executor work
 and mandatory-event delivery remain open. Implementation links are
 `not_checked_this_run`; implementation and deployment qualification remain
 blocked.
+
+`policy-ingress-resumption-model-check.json` records persistent caller-owned
+admission resumption. The bundle has 633 explicit equality and order
+declarations across 34 modules, 100 atomic obligations and 394 rejected negative
+checks, including 24 new resumption mutations. Relation-valued proofs and
+computational helpers are checked as well.
+
+The slice proves exact FIFO conservation across resumed scans, conditional
+examination of an original deferred prefix under enough delivered scan fuel,
+independent service of an admitted prefix, admitted queue and pending bounds,
+and dispatched-state correspondence. Its whole-schedule symbolic cost envelope
+includes every examined arrival and counts each initial policy/handshake burst
+once. The new controls have well-typed mutated definitions that fail subsequent
+proofs.
+
+Deferred storage has no modeled capacity bound. Examination can reject an
+event, and real resubmission, wakeups, enough fuel, concrete cost dominance,
+omitted allocation/traversal work and mandatory-event delivery remain open.
+Implementation links are `not_checked_this_run`; implementation refinement and
+deployment qualification remain blocked.
+
+The 600-second qualification wrapper timed out under host contention, both
+sequentially and with four isolated batches. Completion reused 388 finished
+controls after checking exact candidate bytes, diagnostics and validated
+checker progression. The unchanged negative-check function checked the three
+remaining mutations and all generic guard controls afresh in four isolated
+batches. The validator then completed with the expected qualification-blocked
+exit 2. The receipt lists 394 distinct controls; generic guards also ran in
+each recovery batch. No repository timeout or rejection rule was weakened.

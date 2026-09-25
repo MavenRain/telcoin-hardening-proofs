@@ -67,10 +67,18 @@ the per-turn dispatch envelope, even when service fuel is zero. Concrete scan
 cost dominance, backlog measurement, offered-batch construction and external
 suffix retention, resubmission and delivery remain open.
 
+Caller-owned FIFO resumption now carries that suffix across finite turns,
+preserves the exact order of examined and deferred arrivals, and conditionally
+examines an original deferred prefix when enough scan allowance is delivered.
+Admitted queue bounds and service remain intact, and a whole-schedule symbolic
+scan and execution envelope counts each resource burst once. Deferred storage
+is unbounded in this model. Runtime resubmission, concrete costs, sufficient
+fuel delivery and safe handling of examined rejections still need refinement.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 96 atomic model obligations
+   explicit dispositions. The current 34 groups and 100 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
