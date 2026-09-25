@@ -58,10 +58,19 @@ Concrete storage dominance, temporary and rejected allocations, charge
 computation and mandatory-event delivery remain open.
 Their contracts and boundaries are in [MODELS.md](MODELS.md).
 
+A separate fixed admission allowance now bounds the examined FIFO prefix of
+each offered batch before entry and payload filtering. Exact partitioning
+distinguishes accepted arrivals, examined rejections and the caller-owned
+unexamined suffix. Queue bounds and conditional service of existing backlog
+survive scanning. A symbolic charge for every examined arrival composes with
+the per-turn dispatch envelope, even when service fuel is zero. Concrete scan
+cost dominance, backlog measurement, offered-batch construction and external
+suffix retention, resubmission and delivery remain open.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 92 atomic model obligations
+   explicit dispositions. The current 34 groups and 96 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
@@ -72,7 +81,7 @@ Their contracts and boundaries are in [MODELS.md](MODELS.md).
    for queued prefixes under varying-fuel schedules. Refine bounded queue
    admission and explicit overflow rejection against runtime behavior, including
    immutable payload charges and storage dominance, temporary and rejected
-   allocations, charge computation, admission/rejection work, mandatory cleanup and control
+   allocations, charge computation, concrete admission/rejection costs, mandatory cleanup and control
    delivery, and wall-clock latency under sustained arrivals.
    Refine canonical source extraction, key uniqueness, indexed internal receipts,
    runtime receipt provenance from authenticated internal policy queries and atomic

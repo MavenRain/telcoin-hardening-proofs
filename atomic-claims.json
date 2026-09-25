@@ -31,7 +31,8 @@
     "unit_ingress_service": "Each delivered service round appends its finite arrival batch and dispatches one head event if available, using one unit of poll fuel. The arrivals function names batches by successive round indices. The runtime must deliver enough such rounds; the model does not establish wall-clock latency or fairness for arbitrary poll-fuel schedules.",
     "variable_ingress_service": "A finite schedule lists delivered turns, each with its own finite fuel and finite arrival batch. Each turn appends its batch once behind retained work and then polls with that fuel against the carried resource state. Zero-fuel turns retain arrivals and state; unused fuel is not banked. Prefix progress requires total delivered fuel equal to the prefix length plus a natural-number slack witness. The runtime must refine these turns and supply enough fuel; elapsed time, fairness, queue capacity and overload are separate obligations.",
     "bounded_ingress_admission": "The queue-entry limit is fixed and the initial backlog fits it. Admission and enqueue linearize before each poll, preserving the old backlog and accepting only the earliest arrivals that fit the free entries. The remaining suffix is rejected. Runtime refinement must bound payloads and admission costs separately and protect required cleanup, clock and control delivery or justify safe loss and retries.",
-    "weighted_ingress_payload": "One immutable natural-valued charge function applies to every retained ingress event throughout a finite schedule. Entry and payload limits are fixed, and their respective invariants require initially fitting queues. A runtime refinement must establish that charges dominate retained payload storage, cannot be understated by peers, and cover ownership and sharing correctly; fixed entry overhead needs its own dominance bound. Offered batches, rejected suffixes, temporary selections and proof certificates are outside the retained-queue bound."
+    "weighted_ingress_payload": "One immutable natural-valued charge function applies to every retained ingress event throughout a finite schedule. Entry and payload limits are fixed, and their respective invariants require initially fitting queues. A runtime refinement must establish that charges dominate retained payload storage, cannot be understated by peers, and cover ownership and sharing correctly; fixed entry overhead needs its own dominance bound. Offered batches, rejected suffixes, temporary selections and proof certificates are outside the retained-queue bound.",
+    "bounded_ingress_scan": "A fixed natural admission allowance selects only an offered batch's FIFO prefix before payload and entry admission. Examined rejections are distinct from the caller-owned unexamined suffix. Each selected event receives an independent symbolic scanCost, including zero-payload and rejected events. Runtime refinement must bound or lazily produce offered batches, justify dominating scan charges, separately account for backlog measurement and other omitted work, and define external suffix ownership, resubmission, wakeups and mandatory-event delivery."
   },
   "claims": [
     {
@@ -2932,6 +2933,159 @@
         "Justify dominating dispatch, policy-query and handshake weights independently of retained-payload charges, with concrete input and table bounds.",
         "Bound charge computation, offered-batch construction, selection, rejection reporting, deallocation, empty turns and executor work separately.",
         "Relate fuel and trusted ticks to real time and preserve mandatory control delivery under overload; model cap changes and restarts separately."
+      ]
+    },
+    {
+      "id": "C57",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "An independent admission allowance bounds the length of each examined arrival prefix. Payload and entry filtering applies only to that prefix. Accepted arrivals followed by rejected examined arrivals followed by the caller-owned unexamined suffix reconstruct the complete offered batch in order; zero allowance leaves the entire batch unexamined.",
+      "theorems": [
+        "policyIngressScanBound",
+        "policyIngressScanPartitions",
+        "zeroPolicyIngressScanDefersAll",
+        "policyIngressScanTakesHead",
+        "policyIngressScanLeavesTail",
+        "scannedPayloadIngressPartitionsArrivals",
+        "scannedPayloadIngressOneZeroCharge",
+        "scannedPayloadIngressOneRejectsOversized",
+        "scannedPayloadIngressOneDefersTail"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan"
+      ],
+      "open_implementation_obligations": [
+        "Refine a bounded or lazy arrival iterator and preserve the caller-owned suffix without materializing an unbounded offered batch.",
+        "Distinguish examined rejections from unexamined arrivals in the runtime API; account for external storage, disposal, retries and mandatory-event delivery separately.",
+        "Refine payload and slot selection, including immutable charge computation and ordered overflow reporting."
+      ]
+    },
+    {
+      "id": "C58",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Scanning preserves the old backlog before admitted arrivals and leaves every delivered service-fuel allowance unchanged. Across finite schedules, an initially queued prefix is dispatched when cumulative delivered service fuel equals its length plus natural slack, independently of the fixed admission allowance. This conditional guarantee applies to existing backlog, not to unexamined or rejected arrivals.",
+      "theorems": [
+        "scannedPayloadIngressBacklogEquation",
+        "scannedPolicyIngressPreservesFuel",
+        "scannedPayloadIngressServiceEquation"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "executor_wakeup"
+      ],
+      "open_implementation_obligations": [
+        "Supply the claimed delivered service fuel and refine real wakeups and executor scheduling.",
+        "Define resubmission and ownership of unexamined arrivals; no arrival fairness or wall-clock latency follows from the backlog-prefix theorem.",
+        "Protect mandatory cleanup, trusted ticks and control events under admission exhaustion and overload."
+      ]
+    },
+    {
+      "id": "C59",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Admission scanning followed by payload and entry filtering preserves each retained-queue bound across finite schedules when the initial queue satisfies that bound. A single scheduled turn executes exactly the bounded ready queue with the delivered service fuel, and the final work state equals execution of the actual dispatched trace.",
+      "theorems": [
+        "scannedPayloadIngressReadyEntryBound",
+        "scannedPayloadIngressReadyPayloadBound",
+        "scannedPayloadIngressQueueEntryBound",
+        "scannedPayloadIngressQueuePayloadBound",
+        "scannedPayloadIngressRunsTurn",
+        "scannedPayloadIngressExecutesTrace"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries"
+      ],
+      "open_implementation_obligations": [
+        "Refine the scan/filter/enqueue/poll order against one carried queue and resource state.",
+        "Establish retained storage dominance of immutable charges; external unexamined suffixes, rejected storage, temporary selections and allocations are not retained-queue resources.",
+        "Refine internal callback and receipt provenance and preserve mandatory event delivery; cap changes and restart remain separate models."
+      ]
+    },
+    {
+      "id": "C60",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Every examined arrival is assigned scanCost independently of admission outcome and payload charge. The symbolic scan charge is bounded by admission allowance times scanCost. A single delivered turn composes it with the existing dispatch, policy-work and handshake cost envelope when initial work and handshake balances fit their capacities. Zero service fuel still charges the examined arrivals.",
+      "theorems": [
+        "policyIngressScanCostBound",
+        "policyIngressScanChargesHead",
+        "policyIngressScanChargesEachHead",
+        "scannedPayloadIngressZeroPollChargesScan",
+        "scannedPayloadIngressPollCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_source_admission",
+        "bounded_ingress_dispatch",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts"
+      ],
+      "open_implementation_obligations": [
+        "Establish concrete dominating scan, dispatch, policy-query and handshake weights; scanCost is symbolic and does not prove that charge computation or comparison is constant-time.",
+        "Bound offered-batch construction, backlog summation, prefix/suffix traversal, rejection reporting and deallocation, empty turns and executor overhead separately.",
+        "Prove any whole-schedule admission-cost accounting without recounting initial resource bursts; this combined theorem is per turn.",
+        "Relate service fuel and trusted ticks to real time and protect cleanup and control delivery under overload."
       ]
     }
   ]

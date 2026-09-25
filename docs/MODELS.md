@@ -923,10 +923,83 @@ trace filtering. They must produce type mismatches, including failures of the
 selection certificates and laws over variables; parser failures do not count.
 
 
+## Bounded admission scanning
+
+`49-policy-ingress-scan.mech` adds an admission allowance independent of the
+queue entry cap, payload budget, service fuel and policy/handshake balances.
+`scannedPolicyIngress scanFuel arrivals` selects at most `scanFuel` offered
+events. `unscannedPolicyIngress` is the exact remaining suffix. Payload and
+entry filtering sees only the selected prefix:
+
+```
+examined ++ unexamined = arrivals
+accepted ++ rejected = examined
+(accepted ++ rejected) ++ unexamined = arrivals
+ready = backlog ++ accepted
+length(examined) <= scanFuel
+```
+
+`scannedPayloadIngressPartitionsArrivals` proves this ordered three-way split
+for arbitrary batches, weights, caps and fuel. The scan allowance is consumed
+by event count independently of payload charges or admission success. The
+one-event laws accept a zero-charge head when an entry is free, reject an
+oversized head, and leave the original tail unexamined. These are laws over
+arbitrary head events and tails with fixed small limits. Zero scan allowance
+leaves every offered event unexamined.
+
+Unexamined arrivals remain outside the retained queue. The schedule transform
+selects a bounded prefix from each independently supplied batch; it does not
+automatically carry the unexamined suffix into a later turn. The caller must
+define ownership, release or resubmission and must avoid duplicate submissions.
+The model supplies no bound on external suffix storage and no eventual-admission
+or arrival-fairness theorem.
+
+`scannedPolicyIngressSchedule` preserves every service-fuel allowance.
+`scannedPayloadIngressRunsTurn` equates one scheduled turn with polling the
+bounded ready queue and retaining its exact remainder. Across finite schedules,
+the final work state executes the actual dispatched trace. Independent entry
+and payload invariants hold whenever the corresponding initial queue fits its
+fixed cap. `scannedPayloadIngressServiceEquation` exposes the dispatched trace
+as an initially queued prefix followed by a suffix whenever delivered service
+fuel equals that prefix's length plus natural slack. The admission allowance
+may be zero without invalidating this conditional backlog-service guarantee.
+
+The separate symbolic cost accounting is:
+
+```
+scanCharge = length(examined) * scanCost
+scanCharge <= scanFuel * scanCost
+turnCharge = scanCharge + dispatchPolicyHandshakeCharge
+turnCharge <= scanFuel * scanCost + dispatchPolicyHandshakeLimit
+```
+
+`policyIngressScanChargesEachHead` adds scanCost for each examined head at any
+allowance, and `policyIngressScanChargesHead` charges an examined head
+independently of its event kind, payload weight or outcome. `scannedPayloadIngressZeroPollChargesScan`
+retains the scan charge when service fuel is zero. The combined envelope uses
+the actual bounded ready queue and requires initial work and handshake balances
+to fit their capacities. It is a per-turn theorem; a cumulative admission-cost
+envelope over a whole schedule is still open.
+
+These natural-valued charges do not establish implementation time or bytes.
+The runtime must justify dominating scan, dispatch, policy and handshake weights,
+including payload charge computation and comparisons. Offered-batch construction,
+backlog measurement, concrete prefix/suffix traversals, rejected-event disposal,
+temporary allocation, empty turns and executor overhead need separate bounds or
+an explicit refinement into dominating costs. Mandatory cleanup, trusted ticks
+and policy-control delivery remain open under both scan exhaustion and overload.
+
+The 19 new semantic mutations remove or inflate scan fuel, lose or replay the
+unexamined suffix, bypass scanning in acceptance, rejection, ready queues,
+schedules, execution or trace projection, hide examined rejections, lose
+backlog or future turns, erase service fuel, and corrupt scan charges or their
+combined envelope. Each must be rejected with a proof type mismatch; parse
+errors and crashes do not count.
+
 ## Negative controls
 
-The checker rejects 351 invalid variants: three direct checks of equality,
-ordering and termination, plus 348 semantic mutations. Mutations exercise such
+The checker rejects 370 invalid variants: three direct checks of equality,
+ordering and termination, plus 367 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

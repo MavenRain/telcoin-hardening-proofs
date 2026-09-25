@@ -1,0 +1,295 @@
+-- Admission examines a bounded FIFO prefix before payload and entry filtering.
+-- Unexamined arrivals remain caller-owned; they are distinct from rejections.
+-- Charges are symbolic. Concrete traversal, comparison and allocation costs are open.
+
+def scannedPolicyIngress : Count -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) => policyIngressPollPrefix scanFuel arrivals
+
+def unscannedPolicyIngress : Count -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) => policyIngressPollRemainder scanFuel arrivals
+
+def policyIngressScanBound : (scanFuel : Count) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (scannedPolicyIngress scanFuel arrivals)) scanFuel :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) => policyIngressSelectedFuelBound scanFuel arrivals
+
+def policyIngressScanPartitions : (scanFuel : Count) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (scannedPolicyIngress scanFuel arrivals)
+      (unscannedPolicyIngress scanFuel arrivals)) arrivals :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) => policyIngressPollReassemblesQueue scanFuel arrivals
+
+def zeroPolicyIngressScanDefersAll : (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (unscannedPolicyIngress zero arrivals) arrivals :=
+  fun (arrivals : PolicyIngressTrace) => same
+
+def policyIngressScanTakesHead : (scanFuel : Count) -> (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (scannedPolicyIngress (next scanFuel) (policyIngressThen event rest))
+      (policyIngressThen event (scannedPolicyIngress scanFuel rest)) :=
+  fun (scanFuel : Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same
+
+def policyIngressScanLeavesTail : (scanFuel : Count) -> (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (unscannedPolicyIngress (next scanFuel) (policyIngressThen event rest))
+      (unscannedPolicyIngress scanFuel rest) :=
+  fun (scanFuel : Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same
+
+def admittedScannedPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    admittedPayloadIngress weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals)
+
+def rejectedScannedPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    rejectedPayloadIngress weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals)
+
+def scannedPayloadIngressReady : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    payloadIngressReady weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals)
+
+def scannedPayloadIngressPartitionsArrivals : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress
+        (appendPolicyIngress (admittedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals)
+          (rejectedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals))
+        (unscannedPolicyIngress scanFuel arrivals)) arrivals :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (appendPolicyIngress
+        (appendPolicyIngress (admittedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals)
+          (rejectedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals))
+        (unscannedPolicyIngress scanFuel arrivals))
+      (appendPolicyIngress (scannedPolicyIngress scanFuel arrivals) (unscannedPolicyIngress scanFuel arrivals)) arrivals
+      (congruent PolicyIngressTrace PolicyIngressTrace
+        (fun (prefix : PolicyIngressTrace) => appendPolicyIngress prefix (unscannedPolicyIngress scanFuel arrivals))
+        (appendPolicyIngress (admittedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals)
+          (rejectedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals))
+        (scannedPolicyIngress scanFuel arrivals)
+        (payloadIngressPartitionsArrivals weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals)))
+      (policyIngressScanPartitions scanFuel arrivals)
+
+def scannedPayloadIngressBacklogEquation : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+      (appendPolicyIngress events (admittedScannedPayloadIngress weight slots payloadLimit scanFuel events arrivals)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def scannedPayloadIngressReadyEntryBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressLength events) slots ->
+    AtMost (policyIngressLength (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)) slots :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (fits : AtMost (policyIngressLength events) slots) =>
+    payloadIngressReadyEntryBound weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals) fits
+
+def scannedPayloadIngressReadyPayloadBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressPayload weight events) payloadLimit ->
+    AtMost (policyIngressPayload weight (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)) payloadLimit :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+    payloadIngressReadyPayloadBound weight slots payloadLimit events (scannedPolicyIngress scanFuel arrivals) fits
+
+def rec scannedPolicyIngressSchedule : Count -> PolicyIngressSchedule -> PolicyIngressSchedule :=
+  fun (scanFuel : Count) (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressSchedule with
+    | policyIngressScheduleDone => policyIngressScheduleDone
+    | policyIngressTurn fuel arrivals rest => policyIngressTurn fuel (scannedPolicyIngress scanFuel arrivals)
+        (scannedPolicyIngressSchedule scanFuel rest)
+
+def runScannedPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressSchedule -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (schedule : PolicyIngressSchedule) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    runPayloadIngress weight slots payloadLimit (scannedPolicyIngressSchedule scanFuel schedule) config queued
+
+def scannedPayloadIngressTrace : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    payloadIngressTrace weight slots payloadLimit (scannedPolicyIngressSchedule scanFuel schedule) events
+
+def scannedPayloadIngressRunsTurn : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (fuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runScannedPayloadIngress weight slots payloadLimit scanFuel
+        (policyIngressTurn fuel arrivals policyIngressScheduleDone) config (policyIngressQueueState events current))
+      (policyIngressQueueState
+        (policyIngressPollRemainder fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals))
+        (runPolicyIngressPoll fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals) config current)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count) (fuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def scannedPayloadIngressExecutesTrace : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (queuedPolicyWork
+      (runScannedPayloadIngress weight slots payloadLimit scanFuel schedule config (policyIngressQueueState events current)))
+      (runPolicyIngress (scannedPayloadIngressTrace weight slots payloadLimit scanFuel schedule events) config current) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    payloadIngressExecutesTrace weight slots payloadLimit (scannedPolicyIngressSchedule scanFuel schedule) events config current
+
+def rec scannedPolicyIngressPreservesFuel : (scanFuel : Count) -> (schedule : PolicyIngressSchedule) ->
+    Equal Count (policyIngressScheduleFuel (scannedPolicyIngressSchedule scanFuel schedule)) (policyIngressScheduleFuel schedule) :=
+  fun (scanFuel : Count) (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return
+        Equal Count (policyIngressScheduleFuel (scannedPolicyIngressSchedule scanFuel self)) (policyIngressScheduleFuel self) with
+    | policyIngressScheduleDone => same
+    | policyIngressTurn fuel arrivals rest => congruent Count Count (add fuel)
+        (policyIngressScheduleFuel (scannedPolicyIngressSchedule scanFuel rest)) (policyIngressScheduleFuel rest)
+        (scannedPolicyIngressPreservesFuel scanFuel rest)
+
+def scannedPayloadIngressQueueEntryBound : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> AtMost (policyIngressLength events) slots ->
+    AtMost (policyIngressLength (queuedPolicyIngress
+      (runScannedPayloadIngress weight slots payloadLimit scanFuel schedule config (policyIngressQueueState events current)))) slots :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (scanFuel : Count) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (fits : AtMost (policyIngressLength events) slots) =>
+    payloadIngressQueueEntryBound (scannedPolicyIngressSchedule scanFuel schedule) weight slots payloadLimit events config current fits
+
+def scannedPayloadIngressQueuePayloadBound : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> AtMost (policyIngressPayload weight events) payloadLimit ->
+    AtMost (policyIngressPayload weight (queuedPolicyIngress
+      (runScannedPayloadIngress weight slots payloadLimit scanFuel schedule config (policyIngressQueueState events current)))) payloadLimit :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (scanFuel : Count) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+    payloadIngressQueuePayloadBound (scannedPolicyIngressSchedule scanFuel schedule) weight slots payloadLimit events config current fits
+
+def scannedPayloadIngressServesPrefix : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (scanFuel : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix prefix
+      (scannedPayloadIngressTrace weight slots payloadLimit scanFuel schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (scanFuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    payloadIngressServesPrefix (scannedPolicyIngressSchedule scanFuel schedule) weight slots payloadLimit prefix suffix slack
+      (equalTransitivity Count (policyIngressScheduleFuel (scannedPolicyIngressSchedule scanFuel schedule))
+        (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)
+        (scannedPolicyIngressPreservesFuel scanFuel schedule) enough)
+
+def scannedPayloadIngressServiceSuffix : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (scanFuel : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (scanFuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixSuffix prefix
+      (scannedPayloadIngressTrace weight slots payloadLimit scanFuel schedule (appendPolicyIngress prefix suffix))
+      (scannedPayloadIngressServesPrefix schedule weight slots payloadLimit scanFuel prefix suffix slack enough)
+
+def scannedPayloadIngressServiceEquation : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (scanFuel : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress prefix (scannedPayloadIngressServiceSuffix schedule weight slots payloadLimit scanFuel prefix suffix slack enough))
+      (scannedPayloadIngressTrace weight slots payloadLimit scanFuel schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (scanFuel : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation prefix
+      (scannedPayloadIngressTrace weight slots payloadLimit scanFuel schedule (appendPolicyIngress prefix suffix))
+      (scannedPayloadIngressServesPrefix schedule weight slots payloadLimit scanFuel prefix suffix slack enough)
+
+def policyIngressScanCost : Count -> PolicyIngressTrace -> Count -> Count :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) (scanCost : Count) =>
+    multiply (policyIngressLength (scannedPolicyIngress scanFuel arrivals)) scanCost
+
+def policyIngressScanCostBound : (scanFuel : Count) -> (arrivals : PolicyIngressTrace) -> (scanCost : Count) ->
+    AtMost (policyIngressScanCost scanFuel arrivals scanCost) (multiply scanFuel scanCost) :=
+  fun (scanFuel : Count) (arrivals : PolicyIngressTrace) (scanCost : Count) =>
+    multipliedBounds (policyIngressLength (scannedPolicyIngress scanFuel arrivals)) scanFuel scanCost
+      (policyIngressScanBound scanFuel arrivals)
+
+def policyIngressScanChargesHead : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) -> (scanCost : Count) ->
+    Equal Count (policyIngressScanCost (next zero) (policyIngressThen event rest) scanCost) scanCost :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (scanCost : Count) => addRightZero scanCost
+
+def policyIngressScanChargesEachHead : (scanFuel : Count) -> (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) -> (scanCost : Count) ->
+    Equal Count (policyIngressScanCost (next scanFuel) (policyIngressThen event rest) scanCost)
+      (add scanCost (policyIngressScanCost scanFuel rest scanCost)) :=
+  fun (scanFuel : Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (scanCost : Count) => same
+
+def scannedPayloadIngressPollCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count) (fuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (scanCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (policyIngressScanCost scanFuel arrivals scanCost)
+      (policyIngressPollCost fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+        config current eventCost policyCost handshakeCost)
+
+def scannedPayloadIngressPollCostLimit : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count) (fuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (scanCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (multiply scanFuel scanCost)
+      (policyIngressPollCostLimit fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+        config eventCost policyCost handshakeCost)
+
+def scannedPayloadIngressZeroPollChargesScan : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (scanCost : Count) -> (eventCost : Count) ->
+    (policyCost : Count) -> (handshakeCost : Count) ->
+    Equal Count (scannedPayloadIngressPollCost weight slots payloadLimit scanFuel zero events arrivals config current
+      scanCost eventCost policyCost handshakeCost) (policyIngressScanCost scanFuel arrivals scanCost) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (scanCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    addRightZero (policyIngressScanCost scanFuel arrivals scanCost)
+
+def scannedPayloadIngressPollCostEnvelope : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (scanFuel : Count) -> (fuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (scanCost : Count) -> (eventCost : Count) ->
+    (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (scannedPayloadIngressPollCost weight slots payloadLimit scanFuel fuel events arrivals config current
+      scanCost eventCost policyCost handshakeCost)
+      (scannedPayloadIngressPollCostLimit weight slots payloadLimit scanFuel fuel events arrivals config
+        scanCost eventCost policyCost handshakeCost) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (scanFuel : Count) (fuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (scanCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds (policyIngressScanCost scanFuel arrivals scanCost) (multiply scanFuel scanCost)
+      (policyIngressPollCost fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+        config current eventCost policyCost handshakeCost)
+      (policyIngressPollCostLimit fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+        config eventCost policyCost handshakeCost)
+      (policyIngressScanCostBound scanFuel arrivals scanCost)
+      (policyIngressPollCombinedCostEnvelope fuel (scannedPayloadIngressReady weight slots payloadLimit scanFuel events arrivals)
+        config current eventCost policyCost handshakeCost workInitial handshakeInitial)
+
+def scannedPayloadIngressOneZeroCharge : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (admittedScannedPayloadIngress (fun (item : PolicyIngressEvent) => zero) (next zero) zero (next zero)
+        policyIngressDone (policyIngressThen event rest)) (policyIngressThen event policyIngressDone) :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same
+
+def scannedPayloadIngressOneRejectsOversized : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (rejectedScannedPayloadIngress (fun (item : PolicyIngressEvent) => next zero) (next zero) zero (next zero)
+        policyIngressDone (policyIngressThen event rest)) (policyIngressThen event policyIngressDone) :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same
+
+def scannedPayloadIngressOneDefersTail : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (unscannedPolicyIngress (next zero) (policyIngressThen event rest)) rest :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same

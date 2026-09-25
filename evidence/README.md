@@ -202,3 +202,22 @@ mandatory events, actual fuel delivery, real-time progress, cancellation,
 restart and cap changes remain open. Implementation links are
 `not_checked_this_run`; full implementation and deployment qualification
 remains blocked.
+
+`policy-ingress-scan-model-check.json` records a separate bounded admission
+scan before payload and entry filtering. The bundle has 612 explicit equality
+and order declarations across 33 modules, 96 atomic obligations and 370 rejected
+negative checks, including 19 new scan mutations. Relation-valued proofs and
+computational helpers are also checked.
+
+The new slice proves the exact accepted/rejected/unexamined partition, queue
+bounds across finite schedules, execution correspondence, conditional service
+of existing backlog and a symbolic per-turn admission-plus-dispatch envelope.
+Examined rejections and zero-payload events still receive a scan charge; zero
+service fuel does not erase admission work.
+
+Unexamined suffixes remain caller-owned, with no retained-storage or progress
+guarantee. Concrete scan-cost dominance, offered-batch construction, backlog
+measurement, external suffix handling, rejected-event disposal, executor work
+and mandatory-event delivery remain open. Implementation links are
+`not_checked_this_run`; implementation and deployment qualification remain
+blocked.

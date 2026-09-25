@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 328 additional semantic mutations must
+The 367 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -117,6 +117,17 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   allocator overhead and charge/admission work are outside the retained-payload
   bound. Both limits can reject mandatory events. Safe delivery, runtime fuel,
   wall-clock progress, mutable payloads, cap changes and restart remain open.
+- Module 49 bounds the number of arrivals selected for admission inspection
+  before payload and entry filtering. Accepted, rejected and unexamined arrivals
+  reconstruct each offered batch exactly. Unexamined arrivals are caller-owned
+  and excluded from the retained-queue bound. Queue bounds and conditional
+  service of existing backlog survive scanning; this gives no progress or
+  resubmission guarantee for unexamined arrivals. The per-turn cost theorem adds
+  a symbolic charge for each examined event, including rejected and zero-payload
+  events, to the existing dispatch envelope. Concrete scan-cost dominance,
+  backlog summation, offered-batch construction, external storage, rejection
+  disposal and executor work remain open. Mandatory events need a delivery
+  argument under both admission exhaustion and queue overload.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
