@@ -164,3 +164,22 @@ delivery, queue memory, enqueue and empty-turn costs, real wakeups, concurrent
 producers and wall-clock cleanup latency remain open. Implementation links
 are `not_checked_this_run`; full implementation and deployment qualification
 remains blocked.
+
+
+`policy-ingress-overload-model-check.json` records fixed-capacity admission
+before each varying-fuel turn, with exact accepted-prefix/rejected-suffix
+accounting. The bundle has 559 explicit equality/order declarations across
+31 modules, 88 atomic obligations and 331 rejected negative checks, including
+21 new overload mutations. Supporting relation-valued proofs are checked but
+excluded from the explicit equality/order declaration count. The cap bounds
+retained queue entries when the initial queue fits. Filtering preserves fuel,
+conditional original-prefix service, exact dispatched-state semantics, pending
+capacity and the combined dispatch envelope.
+
+This is an abstract model extension. Entry counts do not bound payload bytes,
+offered-batch construction, admission, rejection or queue-storage costs.
+Rejected arrivals have no service guarantee, including newly offered cleanup
+or control events; safe runtime delivery or loss/retry semantics remain open.
+Real fuel delivery, wall-clock latency, concurrent producers, cancellation,
+restart and cap changes also require refinement. Implementation links are
+`not_checked_this_run`; full qualification remains blocked.

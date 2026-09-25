@@ -1,0 +1,300 @@
+-- Fixed-capacity ingress admission before each delivered poll turn.
+-- Existing backlog has priority. Overflow is an explicit rejected suffix.
+
+def admittedPolicyIngress : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressPollPrefix (policyIngressFuelAfter limit events) arrivals
+
+def rejectedPolicyIngress : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressPollRemainder (policyIngressFuelAfter limit events) arrivals
+
+def boundedPolicyIngressReady : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    appendPolicyIngress events (admittedPolicyIngress limit events arrivals)
+
+def rec boundedPolicyIngressSchedule : Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressSchedule :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressSchedule with
+    | policyIngressScheduleDone => policyIngressScheduleDone
+    | policyIngressTurn fuel arrivals rest => policyIngressTurn fuel (admittedPolicyIngress limit events arrivals)
+        (boundedPolicyIngressSchedule limit rest
+          (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals)))
+
+def runBoundedPolicyIngress : Count -> PolicyIngressSchedule -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    runPolicyIngressSchedule (boundedPolicyIngressSchedule limit schedule (queuedPolicyIngress queued)) config queued
+
+def boundedPolicyIngressTrace : Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    policyIngressScheduleTrace (boundedPolicyIngressSchedule limit schedule events) events
+
+def boundedPolicyIngressPartitionsArrivals : (limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress (admittedPolicyIngress limit events arrivals) (rejectedPolicyIngress limit events arrivals)) arrivals :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressPollReassemblesQueue (policyIngressFuelAfter limit events) arrivals
+
+def boundedPolicyIngressRetainsBacklog : (limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    PolicyIngressPrefix events (boundedPolicyIngressReady limit events arrivals) :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    policyIngressPrefixWitness (admittedPolicyIngress limit events arrivals) same
+
+def boundedPolicyIngressBacklogEquation : (limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedPolicyIngressReady limit events arrivals)
+      (appendPolicyIngress events (admittedPolicyIngress limit events arrivals)) :=
+  fun (limit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def boundedPolicyIngressZeroRejectsAll : (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (rejectedPolicyIngress zero events arrivals) arrivals :=
+  fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def policyIngressFuelAfterEmpty : (fuel : Count) -> Equal Count (policyIngressFuelAfter fuel policyIngressDone) fuel :=
+  fun (fuel : Count) =>
+    case fuel as self in Count return Equal Count (policyIngressFuelAfter self policyIngressDone) self with
+    | zero => same
+    | next rest => same
+
+def rec policyIngressRoomAfterLength : (events : PolicyIngressTrace) -> (room : Count) ->
+    Equal Count (policyIngressFuelAfter (add (policyIngressLength events) room) events) room :=
+  fun (events : PolicyIngressTrace) (room : Count) =>
+    case events as self in PolicyIngressTrace return
+        Equal Count (policyIngressFuelAfter (add (policyIngressLength self) room) self) room with
+    | policyIngressDone => policyIngressFuelAfterEmpty room
+    | policyIngressThen event rest => policyIngressRoomAfterLength rest room
+
+def boundedPolicyIngressUsesFreeSlots : (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (room : Count) ->
+    Equal PolicyIngressTrace (admittedPolicyIngress (add (policyIngressLength events) room) events arrivals)
+      (policyIngressPollPrefix room arrivals) :=
+  fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (room : Count) =>
+    congruent Count PolicyIngressTrace (fun (fuel : Count) => policyIngressPollPrefix fuel arrivals)
+      (policyIngressFuelAfter (add (policyIngressLength events) room) events) room
+      (policyIngressRoomAfterLength events room)
+
+def boundedPolicyIngressReportsOverflow : (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (room : Count) ->
+    Equal PolicyIngressTrace (rejectedPolicyIngress (add (policyIngressLength events) room) events arrivals)
+      (policyIngressPollRemainder room arrivals) :=
+  fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (room : Count) =>
+    congruent Count PolicyIngressTrace (fun (fuel : Count) => policyIngressPollRemainder fuel arrivals)
+      (policyIngressFuelAfter (add (policyIngressLength events) room) events) room
+      (policyIngressRoomAfterLength events room)
+
+def rec boundedPolicyIngressReadyBound : (limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressLength events) limit ->
+    AtMost (policyIngressLength (boundedPolicyIngressReady limit events arrivals)) limit :=
+  fun (limit : Count) =>
+    case limit as self in Count return (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+        AtMost (policyIngressLength events) self ->
+        AtMost (policyIngressLength (boundedPolicyIngressReady self events arrivals)) self with
+    | zero => fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+        (fits : AtMost (policyIngressLength events) zero) =>
+        equalTransport PolicyIngressTrace (fun (queue : PolicyIngressTrace) => AtMost (policyIngressLength queue) zero)
+          events (appendPolicyIngress events policyIngressDone)
+          (equalSymmetry PolicyIngressTrace (appendPolicyIngress events policyIngressDone) events
+            (appendPolicyIngressRightIdentity events)) fits
+    | next remaining => fun (events : PolicyIngressTrace) =>
+        case events as queue in PolicyIngressTrace return (arrivals : PolicyIngressTrace) ->
+            AtMost (policyIngressLength queue) (next remaining) ->
+            AtMost (policyIngressLength (boundedPolicyIngressReady (next remaining) queue arrivals)) (next remaining) with
+        | policyIngressDone => fun (arrivals : PolicyIngressTrace) (fits : AtMost zero (next remaining)) =>
+            policyIngressSelectedFuelBound (next remaining) arrivals
+        | policyIngressThen event rest => fun (arrivals : PolicyIngressTrace)
+            (fits : AtMost (next (policyIngressLength rest)) (next remaining)) =>
+            lift (policyIngressLength (boundedPolicyIngressReady remaining rest arrivals)) remaining
+              (boundedPolicyIngressReadyBound remaining rest arrivals
+                (predecessorBound (next (policyIngressLength rest)) (next remaining) fits))
+
+def rec policyIngressRemainderLengthBound : (fuel : Count) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (policyIngressPollRemainder fuel events)) (policyIngressLength events) :=
+  fun (fuel : Count) =>
+    case fuel as self in Count return (events : PolicyIngressTrace) ->
+        AtMost (policyIngressLength (policyIngressPollRemainder self events)) (policyIngressLength events) with
+    | zero => fun (events : PolicyIngressTrace) => reflexiveBound (policyIngressLength events)
+    | next remaining => fun (events : PolicyIngressTrace) =>
+        case events as queue in PolicyIngressTrace return
+            AtMost (policyIngressLength (policyIngressPollRemainder (next remaining) queue)) (policyIngressLength queue) with
+        | policyIngressDone => least zero
+        | policyIngressThen event rest =>
+            weakenBound (policyIngressLength (policyIngressPollRemainder remaining rest)) (policyIngressLength rest)
+              (policyIngressRemainderLengthBound remaining rest)
+
+def boundedPolicyIngressTurnBound : (limit : Count) -> (fuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressLength events) limit ->
+    AtMost (policyIngressLength (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals))) limit :=
+  fun (limit : Count) (fuel : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (fits : AtMost (policyIngressLength events) limit) =>
+    boundTransitive (policyIngressLength (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals)))
+      (policyIngressLength (boundedPolicyIngressReady limit events arrivals)) limit
+      (policyIngressRemainderLengthBound fuel (boundedPolicyIngressReady limit events arrivals))
+      (boundedPolicyIngressReadyBound limit events arrivals fits)
+
+def rec boundedPolicyIngressQueueBound : (schedule : PolicyIngressSchedule) -> (limit : Count) ->
+    (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyIngressLength events) limit ->
+    AtMost (policyIngressLength (queuedPolicyIngress
+      (runBoundedPolicyIngress limit schedule config (policyIngressQueueState events current)))) limit :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return (limit : Count) ->
+        (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+        AtMost (policyIngressLength events) limit ->
+        AtMost (policyIngressLength (queuedPolicyIngress
+          (runBoundedPolicyIngress limit self config (policyIngressQueueState events current)))) limit with
+    | policyIngressScheduleDone => fun (limit : Count) (events : PolicyIngressTrace) (config : PolicyWorkConfig)
+        (current : PolicyWorkState) (fits : AtMost (policyIngressLength events) limit) => fits
+    | policyIngressTurn fuel arrivals rest => fun (limit : Count) (events : PolicyIngressTrace) (config : PolicyWorkConfig)
+        (current : PolicyWorkState) (fits : AtMost (policyIngressLength events) limit) =>
+        boundedPolicyIngressQueueBound rest limit
+          (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals)) config
+          (runPolicyIngressPoll fuel (boundedPolicyIngressReady limit events arrivals) config current)
+          (boundedPolicyIngressTurnBound limit fuel events arrivals fits)
+
+def rec boundedPolicyIngressPreservesFuel : (schedule : PolicyIngressSchedule) -> (limit : Count) -> (events : PolicyIngressTrace) ->
+    Equal Count (policyIngressScheduleFuel (boundedPolicyIngressSchedule limit schedule events)) (policyIngressScheduleFuel schedule) :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return (limit : Count) -> (events : PolicyIngressTrace) ->
+        Equal Count (policyIngressScheduleFuel (boundedPolicyIngressSchedule limit self events)) (policyIngressScheduleFuel self) with
+    | policyIngressScheduleDone => fun (limit : Count) (events : PolicyIngressTrace) => same
+    | policyIngressTurn fuel arrivals rest => fun (limit : Count) (events : PolicyIngressTrace) =>
+        congruent Count Count (add fuel)
+          (policyIngressScheduleFuel (boundedPolicyIngressSchedule limit rest
+            (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals))))
+          (policyIngressScheduleFuel rest)
+          (boundedPolicyIngressPreservesFuel rest limit
+            (policyIngressPollRemainder fuel (boundedPolicyIngressReady limit events arrivals)))
+
+def boundedPolicyIngressServesPrefix : (schedule : PolicyIngressSchedule) -> (limit : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix prefix (boundedPolicyIngressTrace limit schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (limit : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressScheduleServesPrefix (boundedPolicyIngressSchedule limit schedule (appendPolicyIngress prefix suffix))
+      prefix suffix slack
+      (equalTransitivity Count
+        (policyIngressScheduleFuel (boundedPolicyIngressSchedule limit schedule (appendPolicyIngress prefix suffix)))
+        (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)
+        (boundedPolicyIngressPreservesFuel schedule limit (appendPolicyIngress prefix suffix)) enough)
+
+def boundedPolicyIngressExecutesTrace : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (queuedPolicyWork (runBoundedPolicyIngress limit schedule config (policyIngressQueueState events current)))
+      (runPolicyIngress (boundedPolicyIngressTrace limit schedule events) config current) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressScheduleExecutesTrace (boundedPolicyIngressSchedule limit schedule events) events config current
+
+def boundedPolicyIngressServiceSuffix : (schedule : PolicyIngressSchedule) -> (limit : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) (limit : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixSuffix prefix (boundedPolicyIngressTrace limit schedule (appendPolicyIngress prefix suffix))
+      (boundedPolicyIngressServesPrefix schedule limit prefix suffix slack enough)
+
+def boundedPolicyIngressServiceEquation : (schedule : PolicyIngressSchedule) -> (limit : Count) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace (appendPolicyIngress prefix (boundedPolicyIngressServiceSuffix schedule limit prefix suffix slack enough))
+      (boundedPolicyIngressTrace limit schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (limit : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation prefix (boundedPolicyIngressTrace limit schedule (appendPolicyIngress prefix suffix))
+      (boundedPolicyIngressServesPrefix schedule limit prefix suffix slack enough)
+
+def boundedPolicyIngressReassembles : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress (boundedPolicyIngressTrace limit schedule events)
+        (queuedPolicyIngress (runBoundedPolicyIngress limit schedule config (policyIngressQueueState events current))))
+      (appendPolicyIngress events (policyIngressScheduleArrivals (boundedPolicyIngressSchedule limit schedule events))) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressScheduleReassembles (boundedPolicyIngressSchedule limit schedule events) events config current
+
+def boundedPolicyIngressDispatchBound : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (boundedPolicyIngressTrace limit schedule events)) (policyIngressScheduleFuel schedule) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    equalTransport Count (fun (fuel : Count) => AtMost (policyIngressLength (boundedPolicyIngressTrace limit schedule events)) fuel)
+      (policyIngressScheduleFuel (boundedPolicyIngressSchedule limit schedule events)) (policyIngressScheduleFuel schedule)
+      (boundedPolicyIngressPreservesFuel schedule limit events)
+      (policyIngressScheduleDispatchBound (boundedPolicyIngressSchedule limit schedule events) events)
+
+def rec boundedPolicyIngressFullRetainsQueue : (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedPolicyIngressReady (policyIngressLength events) events arrivals) events :=
+  fun (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    case events as self in PolicyIngressTrace return
+        Equal PolicyIngressTrace (boundedPolicyIngressReady (policyIngressLength self) self arrivals) self with
+    | policyIngressDone => same
+    | policyIngressThen event rest =>
+        congruent PolicyIngressTrace PolicyIngressTrace (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+          (boundedPolicyIngressReady (policyIngressLength rest) rest arrivals) rest
+          (boundedPolicyIngressFullRetainsQueue rest arrivals)
+
+def boundedPolicyIngressZeroTurn : (limit : Count) -> (arrivals : PolicyIngressTrace) -> (rest : PolicyIngressSchedule) ->
+    (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runBoundedPolicyIngress limit (policyIngressTurn zero arrivals rest) config (policyIngressQueueState events current))
+      (runBoundedPolicyIngress limit rest config
+        (policyIngressQueueState (boundedPolicyIngressReady limit events arrivals) current)) :=
+  fun (limit : Count) (arrivals : PolicyIngressTrace) (rest : PolicyIngressSchedule) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def boundedPolicyIngressTakesCurrentHead : (limit : Count) -> (fuel : Count) -> (arrivals : PolicyIngressTrace) ->
+    (rest : PolicyIngressSchedule) -> (event : PolicyIngressEvent) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runBoundedPolicyIngress limit (policyIngressTurn (next fuel) arrivals rest) config
+        (policyIngressQueueState (policyIngressThen event events) current))
+      (runBoundedPolicyIngress limit rest config
+        (pollPolicyIngressQueue fuel config (policyIngressQueueState
+          (appendPolicyIngress events (admittedPolicyIngress limit (policyIngressThen event events) arrivals))
+          (policyIngressStep config event current)))) :=
+  fun (limit : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (rest : PolicyIngressSchedule)
+      (event : PolicyIngressEvent) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def boundedPolicyIngressReusesFreedSlot : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedPolicyIngressTrace (next zero)
+        (policyIngressTurn (next zero) (policyIngressThen first policyIngressDone)
+          (policyIngressTurn (next zero) (policyIngressThen second policyIngressDone) policyIngressScheduleDone))
+        policyIngressDone)
+      (policyIngressThen first (policyIngressThen second policyIngressDone)) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) => same
+
+def boundedPolicyIngressPendingBound : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources
+        (queuedPolicyWork (runBoundedPolicyIngress limit schedule config (policyIngressQueueState events current)))))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressSchedulePendingBound (boundedPolicyIngressSchedule limit schedule events) events config current
+
+def boundedPolicyIngressCost : Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState -> Count -> Count -> Count -> Count :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    policyIngressScheduleCost (boundedPolicyIngressSchedule limit schedule events) events config current eventCost policyCost handshakeCost
+
+def boundedPolicyIngressCostLimit : Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyWorkConfig -> Count -> Count -> Count -> Count :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    policyIngressScheduleCostLimit (boundedPolicyIngressSchedule limit schedule events) events config eventCost policyCost handshakeCost
+
+def boundedPolicyIngressCombinedCostEnvelope : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (boundedPolicyIngressCost limit schedule events config current eventCost policyCost handshakeCost)
+      (boundedPolicyIngressCostLimit limit schedule events config eventCost policyCost handshakeCost) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    policyIngressScheduleCombinedCostEnvelope (boundedPolicyIngressSchedule limit schedule events) events config current
+      eventCost policyCost handshakeCost workInitial handshakeInitial
+
+def boundedPolicyIngressCostCountsWork : (limit : Count) -> (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (add (multiply (policyIngressProcessed (boundedPolicyIngressTrace limit schedule events) config current) policyCost)
+        (multiply (policyIngressStarts (boundedPolicyIngressTrace limit schedule events) config current) handshakeCost))
+      (boundedPolicyIngressCost limit schedule events config current eventCost policyCost handshakeCost) :=
+  fun (limit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    policyIngressScheduleCostCountsWork (boundedPolicyIngressSchedule limit schedule events) events config current eventCost policyCost handshakeCost

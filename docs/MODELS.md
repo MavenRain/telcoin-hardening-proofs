@@ -772,17 +772,87 @@ turns and executor costs remain outside this envelope.
 
 Atoms C45-C48 record these obligations. Runtime fuel delivery, FIFO retention,
 concurrent producers, real wakeups, overload and cancellation require
-refinement. Queue growth, established resources, per-source pending attribution,
-restart, resource-cap changes and wall-clock cleanup latency remain open.
+refinement. Module 47 below bounds queue entries under explicit overflow
+rejection. Runtime queue storage, established resources, per-source pending
+attribution, restart, resource-cap changes and wall-clock cleanup latency
+remain open.
 Twenty-five schedule mutations alter fuel accounting, arrival order, the
 enqueue-before-poll order, queue or state retention, dispatched work, the
 service suffix, unit-schedule fuel or indexing, or cost terms. They must be
 rejected by semantic type mismatches.
 
+## Bounded ingress admission under overload
+
+`47-policy-ingress-overload.mech` filters each finite arrival batch before the
+turn's poll. The queue-entry limit is fixed. Existing backlog has priority;
+only the earliest arrivals that fit its remaining capacity are admitted.
+`rejectedPolicyIngress` reports the remaining suffix as an abstract trace.
+For every backlog and arrival batch:
+
+```
+room = max(limit - length(backlog), 0)
+admitted = take(room, arrivals)
+rejected = drop(room, arrivals)
+admitted ++ rejected = arrivals
+ready = backlog ++ admitted
+```
+
+`boundedPolicyIngressUsesFreeSlots` and `boundedPolicyIngressReportsOverflow`
+give the exact split when `limit = length(backlog) + room`.
+`boundedPolicyIngressFullRetainsQueue` proves a full queue keeps exactly its
+backlog. A zero limit rejects all arrivals. Admission precedes dispatch, so a
+slot freed during the current turn becomes available to later turns.
+`boundedPolicyIngressReusesFreedSlot` checks this with limit one: two one-fuel
+turns with one arrival each dispatch both events.
+
+Given `length(initialQueue) <= limit`, `boundedPolicyIngressReadyBound`,
+`boundedPolicyIngressTurnBound` and `boundedPolicyIngressQueueBound` bound
+occupancy before dispatch, after a turn and after any finite schedule.
+An initially overfull queue is retained, so the occupancy theorem requires
+the initial bound. There is no eviction or capacity-shrink transition.
+
+`boundedPolicyIngressSchedule` retains each delivered fuel value and replaces
+each arrival batch with its admitted prefix. Later admission uses the queue
+remaining after the current poll. `runBoundedPolicyIngress` runs that filtered
+schedule through module 46. General equalities cover zero-fuel turns and taking
+the current head before any newly admitted work. The lifted results prove:
+
+```
+dispatched ++ finalQueue = initialQueue ++ admittedArrivals
+finalWorkState = run(actualDispatchedTrace, initialWorkState)
+totalFuel = length(originalPrefix) + slack
+  implies originalPrefix is a prefix of actualDispatchedTrace
+```
+
+Thus overflow cannot evict an already queued prefix or consume its service
+fuel. Dispatch count is bounded by the original schedule's total fuel, pending
+occupancy stays within initial pending capacity, and the combined cost envelope
+from module 46 holds over the filtered dispatched trace. Each initial burst is
+counted once; rejected ticks do not refill budgets. A lower bound checks that
+the cost includes processed policy work and accepted handshake starts.
+
+Atoms C49-C52 describe this abstract extension. The cap bounds queued event
+entries only. Payload bytes, offered batches, admission and rejection work,
+overflow reporting, retained allocations, empty turns and executor costs need
+separate bounds. The rejected suffix is not a proved runtime notification or
+retry mechanism. Uniform overload handling may reject newly offered completion,
+maintenance, trusted-tick or policy-publication events. A runtime refinement
+must protect their delivery or justify loss and retries before claiming cleanup
+or control-plane progress. Rejected arrivals have no service guarantee. Fuel
+delivery, wall-clock latency, infinite-arrival fairness, cancellation, restart
+and cap changes remain open.
+
+Twenty-one overload mutations bypass free-space accounting, select the wrong
+arrival segment, lose or reorder backlog, alter delivered fuel, forget the
+post-poll queue, bypass the filtered runner, trace or cost schedule, or remove
+cost components.
+All must fail with semantic type mismatches; no parser failure counts.
+
+
 ## Negative controls
 
-The checker rejects 310 invalid variants: three direct checks of equality,
-ordering and termination, plus 307 semantic mutations. Mutations exercise such
+The checker rejects 331 invalid variants: three direct checks of equality,
+ordering and termination, plus 328 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

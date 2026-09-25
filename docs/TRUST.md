@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 244 additional semantic mutations must
+The 328 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -95,6 +95,18 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   actual wakeups, queue growth, enqueue and empty-turn costs, and wall-clock
   latency remain separate obligations. The theorem does not guarantee enough
   fuel will be delivered or certify an infinite schedule.
+
+- Module 47 admits only the arrival prefix that fits a fixed queue-entry cap
+  before each poll, retains old backlog and reports an explicit rejected suffix.
+  An initially fitting queue stays within its cap across finite schedules.
+  Filtering preserves delivered fuel, conditional service of original queued
+  prefixes, exact dispatched-state semantics and the combined dispatch-cost
+  envelope. Entry count is not a byte bound. Offered-batch construction,
+  admission, rejection and storage costs remain outside that envelope.
+  Newly offered cleanup, maintenance, clock and publication events may be
+  rejected; safe delivery or loss/retry semantics require runtime refinement.
+  No service guarantee applies to rejected arrivals. Real fuel delivery,
+  wall-clock latency, cap changes and restart remain open.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
