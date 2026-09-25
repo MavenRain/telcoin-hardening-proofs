@@ -30,7 +30,8 @@
     "persistent_ingress_queue": "The runtime atomically retains the queued continuation and its current resource state between polls, and appends each represented finite arrival batch exactly once behind retained events in arrival order. Queue allocation, capacity, overload loss and concurrent producer refinement are separate obligations.",
     "unit_ingress_service": "Each delivered service round appends its finite arrival batch and dispatches one head event if available, using one unit of poll fuel. The arrivals function names batches by successive round indices. The runtime must deliver enough such rounds; the model does not establish wall-clock latency or fairness for arbitrary poll-fuel schedules.",
     "variable_ingress_service": "A finite schedule lists delivered turns, each with its own finite fuel and finite arrival batch. Each turn appends its batch once behind retained work and then polls with that fuel against the carried resource state. Zero-fuel turns retain arrivals and state; unused fuel is not banked. Prefix progress requires total delivered fuel equal to the prefix length plus a natural-number slack witness. The runtime must refine these turns and supply enough fuel; elapsed time, fairness, queue capacity and overload are separate obligations.",
-    "bounded_ingress_admission": "The queue-entry limit is fixed and the initial backlog fits it. Admission and enqueue linearize before each poll, preserving the old backlog and accepting only the earliest arrivals that fit the free entries. The remaining suffix is rejected. Runtime refinement must bound payloads and admission costs separately and protect required cleanup, clock and control delivery or justify safe loss and retries."
+    "bounded_ingress_admission": "The queue-entry limit is fixed and the initial backlog fits it. Admission and enqueue linearize before each poll, preserving the old backlog and accepting only the earliest arrivals that fit the free entries. The remaining suffix is rejected. Runtime refinement must bound payloads and admission costs separately and protect required cleanup, clock and control delivery or justify safe loss and retries.",
+    "weighted_ingress_payload": "One immutable natural-valued charge function applies to every retained ingress event throughout a finite schedule. Entry and payload limits are fixed, and their respective invariants require initially fitting queues. A runtime refinement must establish that charges dominate retained payload storage, cannot be understated by peers, and cover ownership and sharing correctly; fixed entry overhead needs its own dominance bound. Offered batches, rejected suffixes, temporary selections and proof certificates are outside the retained-queue bound."
   },
   "claims": [
     {
@@ -2772,6 +2773,165 @@
         "Supply dominating dispatch, policy-query and handshake weights in a common unit, including concrete input, roster and table bounds.",
         "Bound admission, overflow reporting, rejected traffic, offered-batch construction, queue storage, empty turns and executor work outside the dispatch envelope.",
         "Relate trusted ticks and fuel to real time, and preserve required clock and control delivery under overload; model cap changes and restarts separately."
+      ]
+    },
+    {
+      "id": "C53",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "For any fixed natural-valued event charge function, FIFO admission respects both a fixed entry limit and a fixed retained-payload budget. Each bound holds before dispatch and after every finite varying-fuel schedule when its corresponding initial queue bound holds. The entry cap also applies to zero-charge events. The charged sum is a model quantity, not an unconditional byte or total-memory bound.",
+      "theorems": [
+        "policyIngressPayloadAppend",
+        "reservePolicyPayloadSplit",
+        "payloadIngressSelectionBound",
+        "policyIngressTakePayloadBound",
+        "policyIngressRemainderPayloadBound",
+        "policyPayloadRemainingBound",
+        "admittedPayloadIngressBound",
+        "payloadIngressReadyEntryBound",
+        "payloadIngressReadyPayloadBound",
+        "payloadIngressTurnPayloadBound",
+        "payloadIngressQueueEntryBound",
+        "payloadIngressQueuePayloadBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Establish immutable, conservative event charges before retaining runtime payloads; account for sharing, ownership, allocator overhead and finite counter arithmetic.",
+        "Refine both queue limits and initial bounds. Cap changes, mutable payload growth, cancellation and restart require separate transitions.",
+        "Bound offered batches, rejected suffixes, temporary selections, certificate storage and admission work separately. The model does not bound total process memory."
+      ]
+    },
+    {
+      "id": "C54",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Every arrival batch is exactly the admitted prefix followed by the rejected suffix after both payload and entry filtering. The payload selector accepts a head whenever capacity equals its charge plus natural slack, including zero-charge heads, and consumes that charge before considering the tail. Existing backlog stays first. Closed checks at literal charges and limits show an oversized head reported in the rejected suffix, a held event consuming the payload space of a later arrival, and payload freed by dispatch admitting a later arrival in a two-turn witness (charge 1, two slots, payload limit 1).",
+      "theorems": [
+        "payloadIngressSelectionPartitions",
+        "payloadIngressPartitionsArrivals",
+        "payloadIngressPrependSelectsHead",
+        "payloadIngressSelectsFittingHead",
+        "payloadIngressSelectsZeroCharges",
+        "payloadIngressRejectsOversizedHead",
+        "payloadIngressBacklogEquation",
+        "payloadIngressAccountsForBacklog",
+        "payloadIngressReportsSlotThenPayloadOverflow",
+        "payloadIngressReusesFreedPayload",
+        "payloadIngressZeroTurnPreservesWork"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "stable_resource_configuration",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine the ordered runtime admission and overflow result. A reported rejected suffix does not prove notification, retry or deallocation.",
+        "Protect required completion, maintenance, trusted-tick and policy-publication delivery, or prove safe loss and retry semantics for events rejected by either limit.",
+        "Establish pre-admission fairness and bound selection, charge computation and rejection work; the functional selector may inspect an entire finite offered batch."
+      ]
+    },
+    {
+      "id": "C55",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "Payload-and-entry-filtered schedules preserve total delivered fuel and dispatch an original queued prefix once cumulative fuel equals its length plus natural slack. The final work state equals execution of the actual dispatched trace; that trace followed by final backlog equals initial backlog followed by all admitted arrivals. Pending occupancy stays within initial pending-pool capacity. These are conditional guarantees for retained events, not rejected arrivals or wall-clock cleanup deadlines.",
+      "theorems": [
+        "payloadIngressPreservesFuel",
+        "payloadIngressServiceEquation",
+        "payloadIngressExecutesTrace",
+        "payloadIngressReassembles",
+        "payloadIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "internal_callback_tokens",
+        "finite_ingress_polls",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "persistent_ingress_queue",
+        "executor_wakeup",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine persistent queue contents, immutable charges, internal receipts and the carried resource state across real polls and concurrent producers.",
+        "Establish actual cumulative fuel delivery, executor wakeups and wall-clock correspondence; the finite conditional theorem does not prove fairness or eventual service.",
+        "Provide safe mandatory-event delivery under both entry and payload overload before claiming resource release or policy progress."
+      ]
+    },
+    {
+      "id": "C56",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "With initially bounded work and handshake balances, payload-and-entry-filtered schedules dispatch no more events than the original total fuel and satisfy the combined dispatch, policy-work and accepted-start cost envelope over the actual dispatched trace. Each initial burst is counted once and only dispatched trusted ticks refill budgets. Payload charge is independent of execution cost; admission, rejection and offered-batch work remain outside this envelope.",
+      "theorems": [
+        "payloadIngressDispatchBound",
+        "payloadIngressCombinedCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "atomic_source_admission",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_dispatch",
+        "trusted_clock",
+        "stable_resource_configuration",
+        "bounded_policy_processing",
+        "bounded_policy_queries",
+        "cost_dominance",
+        "source_admission_receipts",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Justify dominating dispatch, policy-query and handshake weights independently of retained-payload charges, with concrete input and table bounds.",
+        "Bound charge computation, offered-batch construction, selection, rejection reporting, deallocation, empty turns and executor work separately.",
+        "Relate fuel and trusted ticks to real time and preserve mandatory control delivery under overload; model cap changes and restarts separately."
       ]
     }
   ]

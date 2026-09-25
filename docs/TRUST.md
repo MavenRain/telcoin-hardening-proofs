@@ -108,6 +108,16 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   No service guarantee applies to rejected arrivals. Real fuel delivery,
   wall-clock latency, cap changes and restart remain open.
 
+- Module 48 additionally bounds a fixed sum of immutable per-event payload
+  charges, alongside the entry cap, before dispatch and across finite schedules
+  when the corresponding initial bound holds. Exact overflow accounting,
+  conditional original-prefix service and the execution envelope are preserved.
+  Concrete storage dominance and non-forgeable charges remain assumptions.
+  Offered and rejected batches, temporary selections, proof certificates,
+  allocator overhead and charge/admission work are outside the retained-payload
+  bound. Both limits can reject mandatory events. Safe delivery, runtime fuel,
+  wall-clock progress, mutable payloads, cap changes and restart remain open.
+
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial
   bindings and complete security-state classification, including simultaneous

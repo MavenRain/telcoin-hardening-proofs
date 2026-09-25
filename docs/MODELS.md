@@ -849,10 +849,84 @@ cost components.
 All must fail with semantic type mismatches; no parser failure counts.
 
 
+## Payload-aware ingress admission
+
+`48-policy-ingress-payload.mech` adds a second fixed budget to module 47.
+`policyIngressPayload weight queue` sums an immutable natural-valued charge
+for every queued event. Charges may differ between events and may be zero.
+The entry cap remains independent, so zero-charge entries still consume slots.
+
+`reservePolicyPayload` computes either a strict-overflow witness or an exact
+remaining-capacity witness. `selectPayloadIngress` uses those witnesses to
+construct a certificate containing a FIFO prefix, its rejected suffix and a
+checked payload bound. It accepts a fitting head and continues with the
+remaining payload capacity, stopping at the first oversized head. The general
+`payloadIngressSelectsFittingHead` theorem holds for arbitrary charge functions,
+heads, tails and remaining capacity. Zero-charge selection is proved for every
+finite offered trace, so the bound does not rely on rejecting all arrivals.
+
+Admission first selects against the payload space left by existing backlog,
+then applies module 47's free-entry limit to that candidate prefix:
+
+```
+payload(queue) = sum(weight(event) for event in queue)
+payloadRoom = max(payloadLimit - payload(backlog), 0)
+candidates ++ payloadExcess = arrivals
+admitted ++ slotExcess = candidates
+rejected = slotExcess ++ payloadExcess
+admitted ++ rejected = arrivals
+ready = backlog ++ admitted
+```
+
+`payloadIngressPartitionsArrivals` proves the complete ordered split, and
+`payloadIngressBacklogEquation` retains the original backlog first. Separate
+theorems prove `length(ready) <= slots` and `payload(ready) <= payloadLimit`
+under the respective initial bound. Polling cannot increase retained payload.
+`payloadIngressQueueEntryBound` and `payloadIngressQueuePayloadBound` lift both
+invariants to arbitrary finite varying-fuel schedules. Overfull initial queues
+are retained; the corresponding bound requires an initially fitting queue.
+There is no capacity-shrink or mutable-charge transition.
+
+Filtering uses the post-poll queue for the next turn.
+`payloadIngressReusesFreedPayload` is a closed witness (charge 1, two slots,
+payload limit 1, a one-fuel turn then a zero-fuel turn, quantified only over
+the two events): dispatching the held event frees its payload for the later
+arrival. No general space-after-poll law is proved. Zero-fuel turns admit and
+retain events without executing
+them. The filtered schedule preserves total delivered fuel, exact FIFO
+conservation and dispatched-state semantics. `payloadIngressServiceEquation`
+proves that an original queued prefix is dispatched when total delivered fuel
+equals its length plus natural slack. Pending capacity and the combined
+dispatch/policy/handshake cost envelope also survive the additional filter.
+Payload charges and execution weights are distinct quantities.
+
+Atoms C53-C56 cover these results. The retained charged sum is not a proved
+total-memory bound. A runtime refinement must establish that immutable charges
+conservatively cover retained payloads, cannot be understated by peers, and
+account correctly for ownership and sharing. Entry and allocator overhead need
+their own dominance bounds. Offered batches, rejected suffixes, temporary
+candidates and proof certificates are logical values outside the retained-queue
+budget. Selection may inspect an entire finite offered batch even when few
+entries can be admitted. Charge computation, admission, rejection reporting,
+deallocation and other work outside dispatch need separate bounds.
+
+Both limits may reject newly offered completion, maintenance, trusted-tick or
+publication events. Safe delivery, notification and retry remain runtime
+obligations. Rejected arrivals have no service guarantee. Actual fuel delivery,
+wall-clock latency, infinite-arrival fairness, concurrent producers, cancellation,
+restart and cap changes remain open.
+
+Twenty payload mutations erase or duplicate charges, create extra room, ignore
+backlog, deny all arrivals, lose or reorder the split, bypass entry filtering,
+retain the wrong post-poll queue, change delivered fuel or bypass execution and
+trace filtering. They must produce type mismatches, including failures of the
+selection certificates and laws over variables; parser failures do not count.
+
+
 ## Negative controls
 
-The checker rejects 331 invalid variants: three direct checks of equality,
-ordering and termination, plus 328 semantic mutations. Mutations exercise such
+The checker rejects 351 invalid variants: three direct checks of equality,
+ordering and termination, plus 348 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

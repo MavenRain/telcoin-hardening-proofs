@@ -1,0 +1,558 @@
+-- Variable payload charges bound retained ingress alongside the entry limit.
+-- Charges are immutable model inputs. Runtime storage correspondence is open.
+mu PolicyPayloadRoom (0 amount : Count) (0 capacity : Count) : Type 0 with
+| policyPayloadFull : AtMost (next capacity) amount -> PolicyPayloadRoom amount capacity
+| policyPayloadRoom : (room : Count) -> Equal Count (add amount room) capacity -> PolicyPayloadRoom amount capacity
+
+def raisePolicyPayloadRoom : (amount : Count) -> (capacity : Count) ->
+    PolicyPayloadRoom amount capacity -> PolicyPayloadRoom (next amount) (next capacity) :=
+  fun (amount : Count) (capacity : Count) (allocation : PolicyPayloadRoom amount capacity) =>
+    case allocation as self in PolicyPayloadRoom return PolicyPayloadRoom (next amount) (next capacity) with
+    | policyPayloadFull exceeds => policyPayloadFull (lift (next capacity) amount exceeds)
+    | policyPayloadRoom room equation => policyPayloadRoom room
+        (congruent Count Count (fun (n : Count) => next n) (add amount room) capacity equation)
+
+def rec reservePolicyPayload : (amount : Count) -> (capacity : Count) -> PolicyPayloadRoom amount capacity :=
+  fun (amount : Count) =>
+    case amount as self in Count return (capacity : Count) -> PolicyPayloadRoom self capacity with
+    | zero => fun (capacity : Count) => policyPayloadRoom capacity same
+    | next previous => fun (capacity : Count) =>
+        case capacity as cap in Count return PolicyPayloadRoom (next previous) cap with
+        | zero => policyPayloadFull (lift zero previous (least previous))
+        | next remaining => raisePolicyPayloadRoom previous remaining (reservePolicyPayload previous remaining)
+
+def exactPolicyPayloadRoom : (amount : Count) -> (room : Count) -> PolicyPayloadRoom amount (add amount room) :=
+  fun (amount : Count) (room : Count) => policyPayloadRoom room same
+
+def rec reservePolicyPayloadSplit : (amount : Count) -> (room : Count) ->
+    Equal (PolicyPayloadRoom amount (add amount room)) (reservePolicyPayload amount (add amount room)) (exactPolicyPayloadRoom amount room) :=
+  fun (amount : Count) (room : Count) =>
+    case amount as self in Count return
+        Equal (PolicyPayloadRoom self (add self room)) (reservePolicyPayload self (add self room)) (exactPolicyPayloadRoom self room) with
+    | zero => same
+    | next previous => congruent (PolicyPayloadRoom previous (add previous room)) (PolicyPayloadRoom (next previous) (add (next previous) room))
+        (raisePolicyPayloadRoom previous (add previous room))
+        (reservePolicyPayload previous (add previous room)) (exactPolicyPayloadRoom previous room) (reservePolicyPayloadSplit previous room)
+
+def rec policyIngressPayload : (PolicyIngressEvent -> Count) -> PolicyIngressTrace -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (events : PolicyIngressTrace) =>
+    case events as self in PolicyIngressTrace return Count with
+    | policyIngressDone => zero
+    | policyIngressThen event rest => add (weight event) (policyIngressPayload weight rest)
+
+def rec policyIngressPayloadAppend : (weight : PolicyIngressEvent -> Count) ->
+    (first : PolicyIngressTrace) -> (second : PolicyIngressTrace) ->
+    Equal Count (policyIngressPayload weight (appendPolicyIngress first second))
+      (add (policyIngressPayload weight first) (policyIngressPayload weight second)) :=
+  fun (weight : PolicyIngressEvent -> Count) (first : PolicyIngressTrace) (second : PolicyIngressTrace) =>
+    case first as self in PolicyIngressTrace return
+        Equal Count (policyIngressPayload weight (appendPolicyIngress self second))
+          (add (policyIngressPayload weight self) (policyIngressPayload weight second)) with
+    | policyIngressDone => same
+    | policyIngressThen event rest => equalTransitivity Count
+        (add (weight event) (policyIngressPayload weight (appendPolicyIngress rest second)))
+        (add (weight event) (add (policyIngressPayload weight rest) (policyIngressPayload weight second)))
+        (add (add (weight event) (policyIngressPayload weight rest)) (policyIngressPayload weight second))
+        (congruent Count Count (add (weight event))
+          (policyIngressPayload weight (appendPolicyIngress rest second))
+          (add (policyIngressPayload weight rest) (policyIngressPayload weight second))
+          (policyIngressPayloadAppend weight rest second))
+        (equalSymmetry Count
+          (add (add (weight event) (policyIngressPayload weight rest)) (policyIngressPayload weight second))
+          (add (weight event) (add (policyIngressPayload weight rest) (policyIngressPayload weight second)))
+          (addAssociative (weight event) (policyIngressPayload weight rest) (policyIngressPayload weight second)))
+
+-- A computed certificate records the admitted prefix, its rejected suffix and
+-- the payload bound. It accepts a fitting head and stops at the first overflow.
+mu PayloadIngressSelection (0 weight : PolicyIngressEvent -> Count)
+    (0 offered : PolicyIngressTrace) (0 capacity : Count) : Type 0 with
+| payloadIngressSelection : (accepted : PolicyIngressTrace) -> (rejected : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress accepted rejected) offered ->
+    AtMost (policyIngressPayload weight accepted) capacity -> PayloadIngressSelection weight offered capacity
+
+def prependPayloadIngressSelection : (weight : PolicyIngressEvent -> Count) -> (event : PolicyIngressEvent) ->
+    (rest : PolicyIngressTrace) -> (capacity : Count) -> (room : Count) -> Equal Count (add (weight event) room) capacity ->
+    PayloadIngressSelection weight rest room -> PayloadIngressSelection weight (policyIngressThen event rest) capacity :=
+  fun (weight : PolicyIngressEvent -> Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (capacity : Count) (room : Count)
+      (equation : Equal Count (add (weight event) room) capacity) (selection : PayloadIngressSelection weight rest room) =>
+    case selection as self in PayloadIngressSelection return PayloadIngressSelection weight (policyIngressThen event rest) capacity with
+    | payloadIngressSelection accepted rejected partition fits =>
+        payloadIngressSelection (policyIngressThen event accepted) rejected
+          (congruent PolicyIngressTrace PolicyIngressTrace (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+            (appendPolicyIngress accepted rejected) rest partition)
+          (equalTransport Count (fun (cap : Count) => AtMost (add (weight event) (policyIngressPayload weight accepted)) cap)
+            (add (weight event) room) capacity equation
+            (addBounds (weight event) (weight event) (policyIngressPayload weight accepted) room (reflexiveBound (weight event)) fits))
+
+def selectPayloadIngressHead : (weight : PolicyIngressEvent -> Count) -> (event : PolicyIngressEvent) ->
+    (rest : PolicyIngressTrace) -> (capacity : Count) -> ((room : Count) -> PayloadIngressSelection weight rest room) ->
+    PolicyPayloadRoom (weight event) capacity -> PayloadIngressSelection weight (policyIngressThen event rest) capacity :=
+  fun (weight : PolicyIngressEvent -> Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (capacity : Count)
+      (continuation : (room : Count) -> PayloadIngressSelection weight rest room) (allocation : PolicyPayloadRoom (weight event) capacity) =>
+    case allocation as self in PolicyPayloadRoom return PayloadIngressSelection weight (policyIngressThen event rest) capacity with
+    | policyPayloadFull exceeds => payloadIngressSelection policyIngressDone (policyIngressThen event rest) same (least capacity)
+    | policyPayloadRoom room equation => prependPayloadIngressSelection weight event rest capacity room equation (continuation room)
+
+def rec selectPayloadIngress : (weight : PolicyIngressEvent -> Count) ->
+    (offered : PolicyIngressTrace) -> (capacity : Count) -> PayloadIngressSelection weight offered capacity :=
+  fun (weight : PolicyIngressEvent -> Count) (offered : PolicyIngressTrace) =>
+    case offered as self in PolicyIngressTrace return (capacity : Count) -> PayloadIngressSelection weight self capacity with
+    | policyIngressDone => fun (capacity : Count) => payloadIngressSelection policyIngressDone policyIngressDone same (least capacity)
+    | policyIngressThen event rest => fun (capacity : Count) => selectPayloadIngressHead weight event rest capacity
+        (fun (room : Count) => selectPayloadIngress weight rest room) (reservePolicyPayload (weight event) capacity)
+
+def selectedPayloadIngress : (0 weight : PolicyIngressEvent -> Count) -> (0 offered : PolicyIngressTrace) -> (0 capacity : Count) ->
+    PayloadIngressSelection weight offered capacity -> PolicyIngressTrace :=
+  fun (0 weight : PolicyIngressEvent -> Count) (0 offered : PolicyIngressTrace) (0 capacity : Count)
+      (selection : PayloadIngressSelection weight offered capacity) =>
+    case selection as self in PayloadIngressSelection return PolicyIngressTrace with
+    | payloadIngressSelection accepted rejected partition fits => accepted
+
+def deferredPayloadIngress : (0 weight : PolicyIngressEvent -> Count) -> (0 offered : PolicyIngressTrace) -> (0 capacity : Count) ->
+    PayloadIngressSelection weight offered capacity -> PolicyIngressTrace :=
+  fun (0 weight : PolicyIngressEvent -> Count) (0 offered : PolicyIngressTrace) (0 capacity : Count)
+      (selection : PayloadIngressSelection weight offered capacity) =>
+    case selection as self in PayloadIngressSelection return PolicyIngressTrace with
+    | payloadIngressSelection accepted rejected partition fits => rejected
+
+def payloadIngressSelectionBound : (weight : PolicyIngressEvent -> Count) -> (offered : PolicyIngressTrace) -> (capacity : Count) ->
+    (selection : PayloadIngressSelection weight offered capacity) ->
+    AtMost (policyIngressPayload weight (selectedPayloadIngress weight offered capacity selection)) capacity :=
+  fun (weight : PolicyIngressEvent -> Count) (offered : PolicyIngressTrace) (capacity : Count)
+      (selection : PayloadIngressSelection weight offered capacity) =>
+    case selection as self in PayloadIngressSelection return
+        AtMost (policyIngressPayload weight (selectedPayloadIngress weight offered capacity self)) capacity with
+    | payloadIngressSelection accepted rejected partition fits => fits
+
+def payloadIngressSelectionPartitions : (weight : PolicyIngressEvent -> Count) -> (offered : PolicyIngressTrace) -> (capacity : Count) ->
+    (selection : PayloadIngressSelection weight offered capacity) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (selectedPayloadIngress weight offered capacity selection)
+      (deferredPayloadIngress weight offered capacity selection)) offered :=
+  fun (weight : PolicyIngressEvent -> Count) (offered : PolicyIngressTrace) (capacity : Count)
+      (selection : PayloadIngressSelection weight offered capacity) =>
+    case selection as self in PayloadIngressSelection return
+        Equal PolicyIngressTrace (appendPolicyIngress (selectedPayloadIngress weight offered capacity self)
+          (deferredPayloadIngress weight offered capacity self)) offered with
+    | payloadIngressSelection accepted rejected partition fits => partition
+
+def rec policyIngressTakePayloadBound : (weight : PolicyIngressEvent -> Count) -> (fuel : Count) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressPayload weight (policyIngressPollPrefix fuel events)) (policyIngressPayload weight events) :=
+  fun (weight : PolicyIngressEvent -> Count) (fuel : Count) =>
+    case fuel as self in Count return (events : PolicyIngressTrace) ->
+        AtMost (policyIngressPayload weight (policyIngressPollPrefix self events)) (policyIngressPayload weight events) with
+    | zero => fun (events : PolicyIngressTrace) => least (policyIngressPayload weight events)
+    | next remaining => fun (events : PolicyIngressTrace) =>
+        case events as queue in PolicyIngressTrace return
+            AtMost (policyIngressPayload weight (policyIngressPollPrefix (next remaining) queue)) (policyIngressPayload weight queue) with
+        | policyIngressDone => least zero
+        | policyIngressThen event rest => addBounds (weight event) (weight event)
+            (policyIngressPayload weight (policyIngressPollPrefix remaining rest)) (policyIngressPayload weight rest)
+            (reflexiveBound (weight event)) (policyIngressTakePayloadBound weight remaining rest)
+
+def rec policyIngressRemainderPayloadBound : (weight : PolicyIngressEvent -> Count) -> (fuel : Count) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressPayload weight (policyIngressPollRemainder fuel events)) (policyIngressPayload weight events) :=
+  fun (weight : PolicyIngressEvent -> Count) (fuel : Count) =>
+    case fuel as self in Count return (events : PolicyIngressTrace) ->
+        AtMost (policyIngressPayload weight (policyIngressPollRemainder self events)) (policyIngressPayload weight events) with
+    | zero => fun (events : PolicyIngressTrace) => reflexiveBound (policyIngressPayload weight events)
+    | next remaining => fun (events : PolicyIngressTrace) =>
+        case events as queue in PolicyIngressTrace return
+            AtMost (policyIngressPayload weight (policyIngressPollRemainder (next remaining) queue)) (policyIngressPayload weight queue) with
+        | policyIngressDone => least zero
+        | policyIngressThen event rest => prefixBound (weight event)
+            (policyIngressPayload weight (policyIngressPollRemainder remaining rest)) (policyIngressPayload weight rest)
+            (policyIngressRemainderPayloadBound weight remaining rest)
+
+def policyPayloadRemaining : (0 amount : Count) -> (0 capacity : Count) -> PolicyPayloadRoom amount capacity -> Count :=
+  fun (0 amount : Count) (0 capacity : Count) (allocation : PolicyPayloadRoom amount capacity) =>
+    case allocation as self in PolicyPayloadRoom return Count with
+    | policyPayloadFull exceeds => zero
+    | policyPayloadRoom room equation => room
+
+def policyPayloadSpace : Count -> Count -> Count :=
+  fun (amount : Count) (capacity : Count) => policyPayloadRemaining amount capacity (reservePolicyPayload amount capacity)
+
+def policyPayloadRemainingBound : (amount : Count) -> (capacity : Count) -> (allocation : PolicyPayloadRoom amount capacity) ->
+    AtMost amount capacity -> AtMost (add amount (policyPayloadRemaining amount capacity allocation)) capacity :=
+  fun (amount : Count) (capacity : Count) (allocation : PolicyPayloadRoom amount capacity) (fits : AtMost amount capacity) =>
+    case allocation as self in PolicyPayloadRoom return
+        AtMost (add amount (policyPayloadRemaining amount capacity self)) capacity with
+    | policyPayloadFull exceeds => equalTransport Count (fun (used : Count) => AtMost used capacity)
+        amount (add amount zero) (equalSymmetry Count (add amount zero) amount (addRightZero amount)) fits
+    | policyPayloadRoom room equation => equalTransport Count (fun (used : Count) => AtMost used capacity)
+        capacity (add amount room) (equalSymmetry Count (add amount room) capacity equation) (reflexiveBound capacity)
+
+def payloadIngressCandidates : (PolicyIngressEvent -> Count) -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    selectedPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)
+      (selectPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit))
+
+def payloadIngressExcess : (PolicyIngressEvent -> Count) -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    deferredPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)
+      (selectPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit))
+
+def admittedPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    admittedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals)
+
+def rejectedPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    appendPolicyIngress (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals))
+      (payloadIngressExcess weight payloadLimit events arrivals)
+
+def payloadIngressReady : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    boundedPolicyIngressReady slots events (payloadIngressCandidates weight payloadLimit events arrivals)
+
+def payloadIngressPartitionsArrivals : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals)
+      (rejectedPayloadIngress weight slots payloadLimit events arrivals)) arrivals :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals) (rejectedPayloadIngress weight slots payloadLimit events arrivals))
+      (appendPolicyIngress (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals)
+        (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals)))
+        (payloadIngressExcess weight payloadLimit events arrivals)) arrivals
+      (equalSymmetry PolicyIngressTrace
+        (appendPolicyIngress (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals)
+          (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals)))
+          (payloadIngressExcess weight payloadLimit events arrivals))
+        (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals) (rejectedPayloadIngress weight slots payloadLimit events arrivals))
+        (appendPolicyIngressAssociative (admittedPayloadIngress weight slots payloadLimit events arrivals)
+          (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals)) (payloadIngressExcess weight payloadLimit events arrivals)))
+      (equalTransitivity PolicyIngressTrace
+        (appendPolicyIngress (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals)
+          (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals))) (payloadIngressExcess weight payloadLimit events arrivals))
+        (appendPolicyIngress (payloadIngressCandidates weight payloadLimit events arrivals) (payloadIngressExcess weight payloadLimit events arrivals)) arrivals
+        (congruent PolicyIngressTrace PolicyIngressTrace (fun (prefix : PolicyIngressTrace) => appendPolicyIngress prefix (payloadIngressExcess weight payloadLimit events arrivals))
+          (appendPolicyIngress (admittedPayloadIngress weight slots payloadLimit events arrivals)
+            (rejectedPolicyIngress slots events (payloadIngressCandidates weight payloadLimit events arrivals)))
+          (payloadIngressCandidates weight payloadLimit events arrivals)
+          (boundedPolicyIngressPartitionsArrivals slots events (payloadIngressCandidates weight payloadLimit events arrivals)))
+        (payloadIngressSelectionPartitions weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)
+          (selectPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit))))
+
+def admittedPayloadIngressBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals))
+      (policyPayloadSpace (policyIngressPayload weight events) payloadLimit) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    boundTransitive (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals))
+      (policyIngressPayload weight (payloadIngressCandidates weight payloadLimit events arrivals))
+      (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)
+      (policyIngressTakePayloadBound weight (policyIngressFuelAfter slots events) (payloadIngressCandidates weight payloadLimit events arrivals))
+      (payloadIngressSelectionBound weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)
+        (selectPayloadIngress weight arrivals (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)))
+
+def payloadIngressReadyEntryBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> AtMost (policyIngressLength events) slots ->
+    AtMost (policyIngressLength (payloadIngressReady weight slots payloadLimit events arrivals)) slots :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (fits : AtMost (policyIngressLength events) slots) =>
+    boundedPolicyIngressReadyBound slots events (payloadIngressCandidates weight payloadLimit events arrivals) fits
+
+def payloadIngressReadyPayloadBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> AtMost (policyIngressPayload weight events) payloadLimit ->
+    AtMost (policyIngressPayload weight (payloadIngressReady weight slots payloadLimit events arrivals)) payloadLimit :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+    equalTransport Count (fun (used : Count) => AtMost used payloadLimit)
+      (add (policyIngressPayload weight events) (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals)))
+      (policyIngressPayload weight (payloadIngressReady weight slots payloadLimit events arrivals))
+      (equalSymmetry Count (policyIngressPayload weight (payloadIngressReady weight slots payloadLimit events arrivals))
+        (add (policyIngressPayload weight events) (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals)))
+        (policyIngressPayloadAppend weight events (admittedPayloadIngress weight slots payloadLimit events arrivals)))
+      (boundTransitive
+        (add (policyIngressPayload weight events) (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals)))
+        (add (policyIngressPayload weight events) (policyPayloadSpace (policyIngressPayload weight events) payloadLimit)) payloadLimit
+        (addBounds (policyIngressPayload weight events) (policyIngressPayload weight events)
+          (policyIngressPayload weight (admittedPayloadIngress weight slots payloadLimit events arrivals))
+          (policyPayloadSpace (policyIngressPayload weight events) payloadLimit) (reflexiveBound (policyIngressPayload weight events))
+          (admittedPayloadIngressBound weight slots payloadLimit events arrivals))
+        (policyPayloadRemainingBound (policyIngressPayload weight events) payloadLimit
+          (reservePolicyPayload (policyIngressPayload weight events) payloadLimit) fits))
+
+def rec payloadIngressSchedule : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressSchedule :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return PolicyIngressSchedule with
+    | policyIngressScheduleDone => policyIngressScheduleDone
+    | policyIngressTurn fuel arrivals rest => policyIngressTurn fuel (admittedPayloadIngress weight slots payloadLimit events arrivals)
+        (payloadIngressSchedule weight slots payloadLimit rest
+          (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals)))
+
+def runPayloadIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressSchedule -> PolicyWorkConfig -> PolicyIngressQueueState -> PolicyIngressQueueState :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule)
+      (config : PolicyWorkConfig) (queued : PolicyIngressQueueState) =>
+    runPolicyIngressSchedule (payloadIngressSchedule weight slots payloadLimit schedule (queuedPolicyIngress queued)) config queued
+
+def payloadIngressTrace : (PolicyIngressEvent -> Count) -> Count -> Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    policyIngressScheduleTrace (payloadIngressSchedule weight slots payloadLimit schedule events) events
+
+def payloadIngressRetainsBacklog : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    PolicyIngressPrefix events (payloadIngressReady weight slots payloadLimit events arrivals) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) =>
+    boundedPolicyIngressRetainsBacklog slots events (payloadIngressCandidates weight payloadLimit events arrivals)
+
+def payloadIngressTurnPayloadBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (fuel : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    AtMost (policyIngressPayload weight events) payloadLimit ->
+    AtMost (policyIngressPayload weight (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals))) payloadLimit :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (fuel : Count)
+      (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+    boundTransitive
+      (policyIngressPayload weight (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals)))
+      (policyIngressPayload weight (payloadIngressReady weight slots payloadLimit events arrivals)) payloadLimit
+      (policyIngressRemainderPayloadBound weight fuel (payloadIngressReady weight slots payloadLimit events arrivals))
+      (payloadIngressReadyPayloadBound weight slots payloadLimit events arrivals fits)
+
+def rec payloadIngressQueuePayloadBound : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyIngressPayload weight events) payloadLimit ->
+    AtMost (policyIngressPayload weight (queuedPolicyIngress
+      (runPayloadIngress weight slots payloadLimit schedule config (policyIngressQueueState events current)))) payloadLimit :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return (weight : PolicyIngressEvent -> Count) ->
+        (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+        AtMost (policyIngressPayload weight events) payloadLimit ->
+        AtMost (policyIngressPayload weight (queuedPolicyIngress
+          (runPayloadIngress weight slots payloadLimit self config (policyIngressQueueState events current)))) payloadLimit with
+    | policyIngressScheduleDone => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+        (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+        (fits : AtMost (policyIngressPayload weight events) payloadLimit) => fits
+    | policyIngressTurn fuel arrivals rest => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+        (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+        (fits : AtMost (policyIngressPayload weight events) payloadLimit) =>
+        payloadIngressQueuePayloadBound rest weight slots payloadLimit
+          (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals)) config
+          (runPolicyIngressPoll fuel (payloadIngressReady weight slots payloadLimit events arrivals) config current)
+          (payloadIngressTurnPayloadBound weight slots payloadLimit fuel events arrivals fits)
+
+def rec payloadIngressQueueEntryBound : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (policyIngressLength events) slots ->
+    AtMost (policyIngressLength (queuedPolicyIngress
+      (runPayloadIngress weight slots payloadLimit schedule config (policyIngressQueueState events current)))) slots :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return (weight : PolicyIngressEvent -> Count) ->
+        (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+        AtMost (policyIngressLength events) slots ->
+        AtMost (policyIngressLength (queuedPolicyIngress
+          (runPayloadIngress weight slots payloadLimit self config (policyIngressQueueState events current)))) slots with
+    | policyIngressScheduleDone => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+        (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+        (fits : AtMost (policyIngressLength events) slots) => fits
+    | policyIngressTurn fuel arrivals rest => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+        (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState)
+        (fits : AtMost (policyIngressLength events) slots) =>
+        payloadIngressQueueEntryBound rest weight slots payloadLimit
+          (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals)) config
+          (runPolicyIngressPoll fuel (payloadIngressReady weight slots payloadLimit events arrivals) config current)
+          (boundedPolicyIngressTurnBound slots fuel events (payloadIngressCandidates weight payloadLimit events arrivals) fits)
+
+def rec payloadIngressPreservesFuel : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) ->
+    Equal Count (policyIngressScheduleFuel (payloadIngressSchedule weight slots payloadLimit schedule events)) (policyIngressScheduleFuel schedule) :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return (weight : PolicyIngressEvent -> Count) ->
+        (slots : Count) -> (payloadLimit : Count) -> (events : PolicyIngressTrace) ->
+        Equal Count (policyIngressScheduleFuel (payloadIngressSchedule weight slots payloadLimit self events)) (policyIngressScheduleFuel self) with
+    | policyIngressScheduleDone => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) => same
+    | policyIngressTurn fuel arrivals rest => fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) =>
+        congruent Count Count (add fuel)
+          (policyIngressScheduleFuel (payloadIngressSchedule weight slots payloadLimit rest
+            (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals))))
+          (policyIngressScheduleFuel rest)
+          (payloadIngressPreservesFuel rest weight slots payloadLimit
+            (policyIngressPollRemainder fuel (payloadIngressReady weight slots payloadLimit events arrivals)))
+
+def payloadIngressServesPrefix : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix prefix (payloadIngressTrace weight slots payloadLimit schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressScheduleServesPrefix (payloadIngressSchedule weight slots payloadLimit schedule (appendPolicyIngress prefix suffix)) prefix suffix slack
+      (equalTransitivity Count
+        (policyIngressScheduleFuel (payloadIngressSchedule weight slots payloadLimit schedule (appendPolicyIngress prefix suffix)))
+        (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)
+        (payloadIngressPreservesFuel schedule weight slots payloadLimit (appendPolicyIngress prefix suffix)) enough)
+
+def payloadIngressExecutesTrace : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyWorkState (queuedPolicyWork (runPayloadIngress weight slots payloadLimit schedule config (policyIngressQueueState events current)))
+      (runPolicyIngress (payloadIngressTrace weight slots payloadLimit schedule events) config current) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule)
+      (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressScheduleExecutesTrace (payloadIngressSchedule weight slots payloadLimit schedule events) events config current
+
+def payloadIngressServiceSuffix : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack) -> PolicyIngressTrace :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixSuffix prefix (payloadIngressTrace weight slots payloadLimit schedule (appendPolicyIngress prefix suffix))
+      (payloadIngressServesPrefix schedule weight slots payloadLimit prefix suffix slack enough)
+
+def payloadIngressServiceEquation : (schedule : PolicyIngressSchedule) -> (weight : PolicyIngressEvent -> Count) ->
+    (slots : Count) -> (payloadLimit : Count) -> (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace (appendPolicyIngress prefix (payloadIngressServiceSuffix schedule weight slots payloadLimit prefix suffix slack enough))
+      (payloadIngressTrace weight slots payloadLimit schedule (appendPolicyIngress prefix suffix)) :=
+  fun (schedule : PolicyIngressSchedule) (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (enough : Equal Count (policyIngressScheduleFuel schedule) (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation prefix (payloadIngressTrace weight slots payloadLimit schedule (appendPolicyIngress prefix suffix))
+      (payloadIngressServesPrefix schedule weight slots payloadLimit prefix suffix slack enough)
+
+def payloadIngressBacklogEquation : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (payloadIngressReady weight slots payloadLimit events arrivals)
+      (appendPolicyIngress events (admittedPayloadIngress weight slots payloadLimit events arrivals)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace) (arrivals : PolicyIngressTrace) => same
+
+def payloadIngressReassembles : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressTrace (appendPolicyIngress (payloadIngressTrace weight slots payloadLimit schedule events)
+      (queuedPolicyIngress (runPayloadIngress weight slots payloadLimit schedule config (policyIngressQueueState events current))))
+      (appendPolicyIngress events (policyIngressScheduleArrivals (payloadIngressSchedule weight slots payloadLimit schedule events))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule)
+      (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressScheduleReassembles (payloadIngressSchedule weight slots payloadLimit schedule events) events config current
+
+def payloadIngressDispatchBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (payloadIngressTrace weight slots payloadLimit schedule events)) (policyIngressScheduleFuel schedule) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule) (events : PolicyIngressTrace) =>
+    equalTransport Count (fun (fuel : Count) => AtMost (policyIngressLength (payloadIngressTrace weight slots payloadLimit schedule events)) fuel)
+      (policyIngressScheduleFuel (payloadIngressSchedule weight slots payloadLimit schedule events)) (policyIngressScheduleFuel schedule)
+      (payloadIngressPreservesFuel schedule weight slots payloadLimit events)
+      (policyIngressScheduleDispatchBound (payloadIngressSchedule weight slots payloadLimit schedule events) events)
+
+def payloadIngressPendingBound : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    AtMost (leaseOccupancy (admissionPool (policySourceResources (policyWorkSources (queuedPolicyWork
+      (runPayloadIngress weight slots payloadLimit schedule config (policyIngressQueueState events current)))))))
+      (leaseCapacity (admissionPool (policySourceResources (policyWorkSources current)))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule)
+      (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) =>
+    policyIngressSchedulePendingBound (payloadIngressSchedule weight slots payloadLimit schedule events) events config current
+
+def payloadIngressCombinedCostEnvelope : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (schedule : PolicyIngressSchedule) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit schedule events) events config current eventCost policyCost handshakeCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit schedule events) events config eventCost policyCost handshakeCost) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (schedule : PolicyIngressSchedule)
+      (events : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    policyIngressScheduleCombinedCostEnvelope (payloadIngressSchedule weight slots payloadLimit schedule events) events config current
+      eventCost policyCost handshakeCost workInitial handshakeInitial
+
+def payloadIngressPrependSelectsHead : (weight : PolicyIngressEvent -> Count) -> (event : PolicyIngressEvent) ->
+    (rest : PolicyIngressTrace) -> (room : Count) -> (selection : PayloadIngressSelection weight rest room) ->
+    Equal PolicyIngressTrace
+      (selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+        (prependPayloadIngressSelection weight event rest (add (weight event) room) room same selection))
+      (policyIngressThen event (selectedPayloadIngress weight rest room selection)) :=
+  fun (weight : PolicyIngressEvent -> Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (room : Count)
+      (selection : PayloadIngressSelection weight rest room) =>
+    case selection as self in PayloadIngressSelection return
+        Equal PolicyIngressTrace
+          (selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+            (prependPayloadIngressSelection weight event rest (add (weight event) room) room same self))
+          (policyIngressThen event (selectedPayloadIngress weight rest room self)) with
+    | payloadIngressSelection accepted rejected partition fits => same
+
+def payloadIngressSelectsFittingHead : (weight : PolicyIngressEvent -> Count) -> (event : PolicyIngressEvent) ->
+    (rest : PolicyIngressTrace) -> (room : Count) ->
+    Equal PolicyIngressTrace
+      (selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+        (selectPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)))
+      (policyIngressThen event (selectedPayloadIngress weight rest room (selectPayloadIngress weight rest room))) :=
+  fun (weight : PolicyIngressEvent -> Count) (event : PolicyIngressEvent) (rest : PolicyIngressTrace) (room : Count) =>
+    equalTransitivity PolicyIngressTrace
+      (selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+        (selectPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)))
+      (selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+        (prependPayloadIngressSelection weight event rest (add (weight event) room) room same (selectPayloadIngress weight rest room)))
+      (policyIngressThen event (selectedPayloadIngress weight rest room (selectPayloadIngress weight rest room)))
+      (congruent (PolicyPayloadRoom (weight event) (add (weight event) room)) PolicyIngressTrace
+        (fun (allocation : PolicyPayloadRoom (weight event) (add (weight event) room)) =>
+          selectedPayloadIngress weight (policyIngressThen event rest) (add (weight event) room)
+            (selectPayloadIngressHead weight event rest (add (weight event) room)
+              (fun (remaining : Count) => selectPayloadIngress weight rest remaining) allocation))
+        (reservePolicyPayload (weight event) (add (weight event) room)) (exactPolicyPayloadRoom (weight event) room)
+        (reservePolicyPayloadSplit (weight event) room))
+      (payloadIngressPrependSelectsHead weight event rest room (selectPayloadIngress weight rest room))
+
+def rec payloadIngressSelectsZeroCharges : (arrivals : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (selectedPayloadIngress (fun (event : PolicyIngressEvent) => zero) arrivals zero
+        (selectPayloadIngress (fun (event : PolicyIngressEvent) => zero) arrivals zero)) arrivals :=
+  fun (arrivals : PolicyIngressTrace) =>
+    case arrivals as self in PolicyIngressTrace return
+        Equal PolicyIngressTrace
+          (selectedPayloadIngress (fun (event : PolicyIngressEvent) => zero) self zero
+            (selectPayloadIngress (fun (event : PolicyIngressEvent) => zero) self zero)) self with
+    | policyIngressDone => same
+    | policyIngressThen event rest => equalTransitivity PolicyIngressTrace
+        (selectedPayloadIngress (fun (action : PolicyIngressEvent) => zero) (policyIngressThen event rest) zero
+          (selectPayloadIngress (fun (action : PolicyIngressEvent) => zero) (policyIngressThen event rest) zero))
+        (policyIngressThen event (selectedPayloadIngress (fun (action : PolicyIngressEvent) => zero) rest zero
+          (selectPayloadIngress (fun (action : PolicyIngressEvent) => zero) rest zero))) (policyIngressThen event rest)
+        (payloadIngressSelectsFittingHead (fun (action : PolicyIngressEvent) => zero) event rest zero)
+        (congruent PolicyIngressTrace PolicyIngressTrace (fun (tail : PolicyIngressTrace) => policyIngressThen event tail)
+          (selectedPayloadIngress (fun (action : PolicyIngressEvent) => zero) rest zero
+            (selectPayloadIngress (fun (action : PolicyIngressEvent) => zero) rest zero)) rest (payloadIngressSelectsZeroCharges rest))
+
+def payloadIngressRejectsOversizedHead : (event : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (rejectedPayloadIngress (fun (action : PolicyIngressEvent) => next (next zero)) (next (next zero)) (next zero)
+        policyIngressDone (policyIngressThen event rest)) (policyIngressThen event rest) :=
+  fun (event : PolicyIngressEvent) (rest : PolicyIngressTrace) => same
+
+def payloadIngressAccountsForBacklog : (held : PolicyIngressEvent) -> (arrival : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (admittedPayloadIngress (fun (action : PolicyIngressEvent) => next zero) (next (next zero)) (next zero)
+        (policyIngressThen held policyIngressDone) (policyIngressThen arrival policyIngressDone)) policyIngressDone :=
+  fun (held : PolicyIngressEvent) (arrival : PolicyIngressEvent) => same
+
+def payloadIngressReportsSlotThenPayloadOverflow : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) -> (rest : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (rejectedPayloadIngress (fun (action : PolicyIngressEvent) => next zero) (next zero) (next (next zero))
+        policyIngressDone (policyIngressThen first (policyIngressThen second rest))) (policyIngressThen second rest) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) (rest : PolicyIngressTrace) =>
+    case rest as tail in PolicyIngressTrace return
+        Equal PolicyIngressTrace
+          (rejectedPayloadIngress (fun (action : PolicyIngressEvent) => next zero) (next zero) (next (next zero))
+            policyIngressDone (policyIngressThen first (policyIngressThen second tail))) (policyIngressThen second tail) with
+    | policyIngressDone => same
+    | policyIngressThen third more => same
+
+def payloadIngressReusesFreedPayload : (held : PolicyIngressEvent) -> (arrival : PolicyIngressEvent) ->
+    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPayloadIngress (fun (action : PolicyIngressEvent) => next zero) (next (next zero)) (next zero)
+        (policyIngressTurn (next zero) policyIngressDone
+          (policyIngressTurn zero (policyIngressThen arrival policyIngressDone) policyIngressScheduleDone))
+        config (policyIngressQueueState (policyIngressThen held policyIngressDone) current))
+      (policyIngressQueueState (policyIngressThen arrival policyIngressDone) (policyIngressStep config held current)) :=
+  fun (held : PolicyIngressEvent) (arrival : PolicyIngressEvent) (config : PolicyWorkConfig) (current : PolicyWorkState) => same
+
+def payloadIngressZeroTurnPreservesWork : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->
+    Equal PolicyIngressQueueState
+      (runPayloadIngress weight slots payloadLimit (policyIngressTurn zero arrivals policyIngressScheduleDone)
+        config (policyIngressQueueState events current))
+      (policyIngressQueueState (payloadIngressReady weight slots payloadLimit events arrivals) current) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (events : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (config : PolicyWorkConfig) (current : PolicyWorkState) => same

@@ -183,3 +183,22 @@ or control events; safe runtime delivery or loss/retry semantics remain open.
 Real fuel delivery, wall-clock latency, concurrent producers, cancellation,
 restart and cap changes also require refinement. Implementation links are
 `not_checked_this_run`; full qualification remains blocked.
+
+`policy-ingress-payload-model-check.json` records variable immutable payload
+charges composed with the queue-entry cap. The bundle has 589 explicit
+equality/order declarations across 32 modules, 92 atomic obligations and 351
+rejected negative checks, including 20 new payload mutations. Supporting
+relation-valued proofs and computational certificates are also checked.
+The new slice proves exact arrival partitioning, fitting-head acceptance,
+entry and payload bounds across finite schedules, a closed freed-payload
+reuse witness,
+conditional prefix service, dispatched-state semantics, pending capacity and
+the combined execution envelope.
+
+Payload charges need a runtime storage-dominance argument. Offered and rejected
+batches, temporary selections, proof certificates, allocator overhead and
+charge/admission work are outside the retained-queue budget. Safe delivery of
+mandatory events, actual fuel delivery, real-time progress, cancellation,
+restart and cap changes remain open. Implementation links are
+`not_checked_this_run`; full implementation and deployment qualification
+remains blocked.
