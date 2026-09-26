@@ -309,3 +309,20 @@ overflow handling, storage, concrete costs and wall-clock progress remain open.
 The receipt retains incomplete implementation and deployment status. The
 qualification-gate regression runs the complete checker with
 `--require-complete` and verifies that these open obligations still block it.
+
+`policy-ingress-handoff-pauses-model-check.json` records the paused-handoff
+extension: 712 explicit equality and order declarations in 38 modules,
+116 atomic obligations and 490 rejected negative checks. The 25 new controls
+corrupt pause/scan selection and counting, dispatch fuel, FIFO input order,
+retention, overflow, prefix witnesses, the scan bound and the mixed example.
+Every control must fail with a proof type mismatch.
+
+C77-C80 cover bounded deferred retention across zero-or-one-scan schedules,
+exact partial-prefix examination, full examination given enough delivered
+scans, and examined occurrence-count bounds. A four-turn example alternates
+pauses and scans, preserving original priority and chronological overflow.
+Runtime scan delivery, admission, dispatch, storage, concrete costs and latency
+remain open. Queue/resource composition and whole-schedule occurrence
+conservation for this paced schedule remain open as well. The receipt retains
+incomplete implementation and deployment status, and the qualification-gate
+regression must still reject full qualification.

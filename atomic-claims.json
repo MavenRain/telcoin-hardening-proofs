@@ -36,7 +36,8 @@
     "persistent_ingress_resumption": "The caller atomically retains the unexamined FIFO and the admitted queue/resource state across finite delivered turns. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. Only the unexamined suffix is retried; examined admission rejections leave this FIFO. Deferred storage is unbounded in the model and requires separate runtime ownership, capacity and cost arguments. Enough delivered scan fuel ensures examination of an original deferred prefix, not admission or execution; real wakeups, cancellation, restart and mandatory-event delivery require refinement.",
     "bounded_ingress_resumption": "The caller atomically carries the returned deferred FIFO and the admitted queue/resource state into each delivered turn. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. A fixed caller-owned deferred capacity then retains only the earliest unexamined prefix; the remaining suffix is reported to the caller as explicit overflow and is not retried automatically. Examined admission rejections leave the FIFO. The model keeps scan and service allowances, entry and immutable-payload limits, and one carried queue/resource state separate. Runtime ownership, allocation, overflow disposition and resubmission delivery, cancellation, restart and fairness remain refinement obligations.",
     "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations.",
-    "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds."
+    "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds.",
+    "paced_ingress_handoff_service": "Finite sequential schedules independently select zero or one ingress scan on each turn. The caller atomically carries the returned deferred FIFO into each delivered turn, including paused turns, and appends each fresh finite batch exactly once after that FIFO; the turn's zero-or-one scan allowance then examines only the FIFO head. Examined events leave the deferred FIFO whatever later admission decides, and only the unexamined suffix is retained or reported as overflow. Dispatch fuel and finite fresh arrival batches are arbitrary. A fixed deferred capacity retains the earliest unexamined prefix after every turn, including paused turns, and returns the remaining suffix as chronological overflow without internal replay. The terminal deferred bound requires initial fit. Prefix equations require only the original prefix to fit, and full examination additionally requires a natural slack witness that delivered scans cover its length. Overflow histories are output traces with no storage bound. Runtime delivery, exclusive ownership, admission, dispatch, mandatory-event handling, cancellation, restart, concrete costs and latency remain external obligations. This schedule has no composed queue/resource execution theorem."
   },
   "claims": [
     {
@@ -3651,6 +3652,118 @@
       "open_implementation_obligations": [
         "Account for concrete per-scan, queue construction, allocation, overflow and scheduler costs outside the occurrence count.",
         "Refine the fixed scan allowance and finite schedule to actual polls and wakeups without assuming fuel delivery or real-time progress."
+      ]
+    },
+    {
+      "id": "C77",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Finite zero-or-one-scan schedules retain a bounded deferred FIFO when the initial deferred input fits. A paused turn examines nothing but still appends fresh arrivals, caps retention and reports overflow. A fitting original prefix survives a pause exactly; per-turn dispatch fuel is preserved independently of scans.",
+      "theorems": [
+        "pacedDeferredIngressTurn",
+        "pacedDeferredIngressStopped",
+        "pacedDeferredIngressOverflowStep",
+        "pacedDeferredIngressPausedExamined",
+        "pacedDeferredIngressZeroCapacityOverflow",
+        "pacedDeferredIngressBound",
+        "pacedDeferredIngressPauseRetains",
+        "pacedDeferredIngressPreservesFuel"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine per-turn ownership, atomic FIFO handoff and overflow delivery or disposal to runtime behavior.",
+        "Compose this paced schedule with admitted queue/resource execution and prove whole-schedule occurrence conservation.",
+        "Establish storage and allocation bounds beyond the retained deferred prefix."
+      ]
+    },
+    {
+      "id": "C78",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Across arbitrary finite paused and one-scan turns, the examined trace starts with the first min(delivered scan count, original prefix length) occurrences of an original prefix that fits the fixed deferred capacity. A constructed suffix gives an exact append equation. Paused turns add no scans, regardless of dispatch fuel or later arrivals.",
+      "theorems": [
+        "pacedDeferredIngressPrefixEquation",
+        "pacedDeferredIngressExampleScans"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine scan selection and FIFO transfer on every runtime turn, including turns with no ingress examination.",
+        "Generalize beyond zero-or-one scan allowances and fixed deferred capacities."
+      ]
+    },
+    {
+      "id": "C79",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A fitting original deferred prefix is fully examined in FIFO order when the cumulative delivered scan count equals its length plus a natural slack witness, despite arbitrary pauses, later arrivals and overflow. Dispatch fuel may be zero. A mixed four-turn example checks original-prefix examination, a retained fresh event and chronological overflow; a fresh-arrival example checks same-turn examination of a fresh event and one-slot retention.",
+      "theorems": [
+        "pacedDeferredIngressServiceEquation",
+        "pacedDeferredIngressFreshExample",
+        "pacedDeferredIngressExampleExamined",
+        "pacedDeferredIngressExampleRemainder",
+        "pacedDeferredIngressExampleOverflow"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Establish runtime delivery of enough scans; an unbounded sequence of pauses provides no progress guarantee.",
+        "Relate examination to successful admission, rejection handling, eventual dispatch and real-time latency.",
+        "Cover cancellation, restart, larger scan bursts and changing deferred capacity."
+      ]
+    },
+    {
+      "id": "C80",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The length of the chronological examined trace is bounded by the sum of zero-or-one scan allowances actually delivered by a finite schedule. Paused turns consume no modeled scans, and arbitrary dispatch fuel remains independent of that occurrence-count bound. This is not a bound on CPU, allocation, enqueue, overflow processing or output storage.",
+      "theorems": [
+        "pacedDeferredIngressScanBound",
+        "pacedDeferredIngressPausedExamined",
+        "pacedDeferredIngressPreservesFuel"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Justify dominating concrete scan charges and account for concatenation, retention, overflow and other omitted work.",
+        "Compose the count bound with queue/resource execution and whole-schedule cost envelopes."
       ]
     }
   ]

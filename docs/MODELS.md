@@ -1243,10 +1243,51 @@ costs, storage and wall-clock latency remain open. This slice does not extend
 the service theorem to larger or varying scan allowances, changing capacity,
 cancellation or restart.
 
+## Pauses in bounded deferred handoffs
+
+`55-policy-ingress-handoff-pauses.mech` gives each finite scheduled turn an
+independent zero-or-one ingress scan allowance. Dispatch fuel and fresh finite
+arrival batches remain arbitrary. A paused turn examines nothing, but still
+appends arrivals after the deferred FIFO, retains only the fixed-capacity prefix
+and reports overflow. Overflow histories are outputs with no storage bound.
+
+`pacedDeferredIngressTurn` identifies each compiled turn, and
+`pacedDeferredIngressPreservesFuel` preserves cumulative dispatch fuel.
+`pacedDeferredIngressBound` bounds the final deferred FIFO, including an empty
+schedule, when the entire initial deferred input fits. The prefix examination
+results require only the selected original prefix to fit; its suffix may
+overflow. `pacedDeferredIngressPauseRetains` proves exact retention through a
+pause, while the one-scan case reuses the module-54 tail-retention theorem.
+
+`pacedDeferredIngressPrefixEquation` places the first
+`min(scans(schedule), length(prefix))` original occurrences at the start of the
+examined trace, with an explicitly constructed suffix. Pauses add no scans.
+Given `capacity = length(prefix) + capacitySlack` and
+`scans(schedule) = length(prefix) + scanSlack`,
+`pacedDeferredIngressServiceEquation` includes the whole original prefix.
+`pacedDeferredIngressScanBound` bounds all examined occurrences by delivered
+scan allowances independently of dispatch fuel.
+
+A four-turn example alternates pauses and scans. It examines the original two
+events, retains a fresh event, and reports overflow from both pauses in order.
+A zero-capacity paused turn reports its entire offered FIFO as overflow.
+A second example scans a fresh arrival on its own turn and retains only one of
+two paused arrivals at capacity one.
+The 25 negative controls corrupt scan selection and counting, dispatch fuel,
+input order, retention, overflow, prefix witnesses, the scan bound and the
+mixed example. Each must fail with a proof type mismatch.
+
+C77-C80 record these contracts. Enough delivered scans is an explicit premise;
+arbitrarily many pauses do not establish progress. Runtime wakeups, ownership,
+admission, dispatch, mandatory-event handling, concrete costs and latency remain
+open. Larger scan bursts, changing capacity, cancellation and restart remain
+outside this slice. Composition with admitted queue/resource execution and a
+whole-schedule occurrence conservation theorem for paced schedules remain open.
+
 ## Negative controls
 
-The checker rejects 465 invalid variants: three direct checks of equality,
-ordering and termination, plus 462 semantic mutations. Mutations exercise such
+The checker rejects 490 invalid variants: three direct checks of equality,
+ordering and termination, plus 487 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
