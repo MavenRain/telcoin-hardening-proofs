@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 443 additional semantic mutations must
+The 462 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -160,6 +160,18 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   fairness, whole-process memory bounds or concrete cost. Output history may
   grow without bound. Ownership, restart and mandatory-event handling remain
   runtime obligations.
+
+- Module 54 proves conditional examination of a fitting original deferred
+  prefix through bounded handoffs with exactly one ingress scan per turn.
+  An explicit turn-count premise supplies enough turns; the model does not
+  deliver them. Arbitrary later arrivals can overflow, and dispatch fuel may
+  be zero. Exact prefix equations preserve FIFO occurrences, but examination
+  can still end in admission rejection and does not imply dispatch. The general
+  fixed-allowance scan bound counts examined events, excluding concrete CPU,
+  allocation, enqueue and overflow work. Runtime fuel delivery, ownership,
+  storage, mandatory-event handling and real-time service remain unproved.
+  Service with larger or varying scan allowances and changing capacity also
+  remains outside this slice.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

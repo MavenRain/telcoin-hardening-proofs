@@ -82,10 +82,18 @@ Concrete storage, atomic ownership, overflow delivery, runtime resubmission,
 concrete costs, sufficient fuel delivery and safe handling of examined
 rejections still need refinement. Overflow output history has no storage bound.
 
+For bounded handoffs, an original prefix that fits deferred capacity now has
+an exact FIFO examination guarantee with one ingress scan per delivered turn.
+Enough delivered turns, expressed by a natural slack witness, examine the
+whole prefix despite later arrivals and overflow. A separate bound covers
+examined occurrence counts for any fixed scan allowance. Runtime turn delivery,
+admission and dispatch after examination, larger or varying scan allowances,
+changing capacities, concrete costs and real-time latency remain open.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 108 atomic model obligations
+   explicit dispositions. The current 34 groups and 112 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

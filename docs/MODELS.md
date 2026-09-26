@@ -1189,10 +1189,64 @@ cancellation, restart, cost and mandatory-event obligations. No cumulative
 progress theorem for retained prefixes or concrete runtime bound is added by
 this slice.
 
+## Service through bounded deferred handoffs
+
+`54-policy-ingress-handoff-service.mech` extracts the chronological examined
+trace from the actual module-53 schedule. `policyIngressScheduleTurns` counts
+delivered turns independently of dispatch fuel. The service theorems fix the
+ingress scan allowance at one per turn; dispatch fuel and fresh finite arrival
+batches remain arbitrary, including zero dispatch fuel.
+
+An original deferred input is split into `prefix ++ suffix`. Natural slack
+witnesses express the two separate premises:
+
+```
+capacity = length(prefix) + capacitySlack
+turns(schedule) = length(prefix) + turnSlack
+```
+
+Only the original prefix must fit capacity. The suffix and later arrival
+batches may overflow. `boundedDeferredIngressRetainsPrefix` gives an exact
+equation for retaining that prefix followed by the portion of the suffix that
+fits. `boundedDeferredIngressOneScanRetains` applies this equation to the old
+tail after a scan, preserving its position before the previous suffix and
+fresh arrivals.
+
+`boundedDeferredIngressUnitEquation` proves, over arbitrary finite schedules,
+that the first `min(turns(schedule), length(prefix))` original occurrences form
+a prefix of the examined trace. Its constructed suffix makes this an exact
+append equation. With both premises above,
+`boundedDeferredIngressServiceEquation` includes the entire original prefix.
+These statements preserve occurrence order even when event values repeat.
+They establish examination, which can still be followed by admission rejection.
+They do not establish successful admission or dispatch.
+
+For any fixed scan allowance, `boundedDeferredIngressScanBound` bounds examined
+occurrences by the sum of delivered scan allowances. With one scan per turn,
+`boundedDeferredIngressUnitScanBound` bounds them by the turn count. Zero scan
+allowance and an empty schedule examine nothing. These are event-count bounds;
+queue construction, overflow processing, storage, CPU and allocation costs
+remain outside them.
+
+A two-turn example with zero dispatch fuel examines the original two entries,
+reports two overflowing arrivals in order, and retains the first fresh entry.
+Separate boundary examples show loss of service without capacity fit or enough
+turns. The 19 new controls corrupt examined-trace extraction, capacity or scan
+allowance, turn counting, retained suffixes, the unit and service suffixes or
+the finite overflow example. All must produce proof type mismatches. Seventeen
+exercise general statements; two exercise the finite example with variable
+events.
+
+C73-C76 record these contracts. Runtime delivery of scan turns, exclusive FIFO
+ownership, overflow delivery or disposal, examined rejection handling, concrete
+costs, storage and wall-clock latency remain open. This slice does not extend
+the service theorem to larger or varying scan allowances, changing capacity,
+cancellation or restart.
+
 ## Negative controls
 
-The checker rejects 446 invalid variants: three direct checks of equality,
-ordering and termination, plus 443 semantic mutations. Mutations exercise such
+The checker rejects 465 invalid variants: three direct checks of equality,
+ordering and termination, plus 462 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

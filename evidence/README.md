@@ -291,3 +291,21 @@ storage, deferred payload, external delivery, concrete costs, ownership,
 cancellation, restart and progress remain outside this result. Implementation
 links are `not_checked_this_run`; implementation refinement and deployment
 qualification remain blocked.
+
+`policy-ingress-handoff-service-model-check.json` records the conditional
+bounded-handoff service extension: 696 explicit equality and order declarations
+in 37 modules, 112 atomic obligations and 465 rejected negative checks. The
+19 new controls corrupt examined-trace extraction, capacity and scan allowance,
+turn counting, retained suffixes, the unit and service suffixes and the overflow
+example. Seventeen test general statements; two test the finite example with
+variable events. Every control must fail with a proof type mismatch.
+
+C73-C76 cover exact retention of a fitting prefix, progress through arbitrary
+finite schedules with one ingress scan per turn, full examination given enough
+turns, and occurrence-count bounds for any fixed scan allowance. The checked
+examples separate scan work from dispatch fuel and show why capacity fit and
+sufficient turns matter. Runtime delivery of turns, admission and dispatch,
+overflow handling, storage, concrete costs and wall-clock progress remain open.
+The receipt retains incomplete implementation and deployment status. The
+qualification-gate regression runs the complete checker with
+`--require-complete` and verifies that these open obligations still block it.

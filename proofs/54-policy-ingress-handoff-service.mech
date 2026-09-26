@@ -1,0 +1,275 @@
+-- Conditional examination of an original FIFO prefix through bounded handoffs.
+-- One scan is delivered per turn; dispatch fuel and fresh arrivals are arbitrary.
+
+def boundedDeferredIngressExamined : Count -> Count -> PolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (scanFuel : Count) (schedule : PolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    policyIngressScheduleArrivals (boundedDeferredIngressSchedule capacity scanFuel schedule deferred)
+
+def rec policyIngressScheduleTurns : PolicyIngressSchedule -> Count :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return Count with
+    | policyIngressScheduleDone => zero
+    | policyIngressTurn fuel arrivals rest => next (policyIngressScheduleTurns rest)
+
+def boundedDeferredIngressTakeFits : (capacity : Count) -> (prefix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count capacity (add (policyIngressLength prefix) slack) ->
+    Equal PolicyIngressTrace (policyIngressPollPrefix capacity prefix) prefix :=
+  fun (capacity : Count) (prefix : PolicyIngressTrace) (slack : Count)
+      (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) =>
+    equalTransitivity PolicyIngressTrace (policyIngressPollPrefix capacity prefix)
+      (policyIngressPollPrefix (add (policyIngressLength prefix) slack) prefix) prefix
+      (congruent Count PolicyIngressTrace (fun (n : Count) => policyIngressPollPrefix n prefix)
+        capacity (add (policyIngressLength prefix) slack) fits)
+      (policyIngressTakeWithSlack prefix slack)
+
+def boundedDeferredIngressRetainedSuffix : Count -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) =>
+    policyIngressPollPrefix (policyIngressFuelAfter capacity prefix) suffix
+
+def boundedDeferredIngressRetainsPrefix : (capacity : Count) -> (prefix : PolicyIngressTrace) ->
+    (suffix : PolicyIngressTrace) -> (slack : Count) -> Equal Count capacity (add (policyIngressLength prefix) slack) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress prefix (boundedDeferredIngressRetainedSuffix capacity prefix suffix))
+      (policyIngressDeferredPrefix capacity (appendPolicyIngress prefix suffix)) :=
+  fun (capacity : Count) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) =>
+    equalSymmetry PolicyIngressTrace (policyIngressDeferredPrefix capacity (appendPolicyIngress prefix suffix))
+      (appendPolicyIngress prefix (boundedDeferredIngressRetainedSuffix capacity prefix suffix))
+      (equalTransitivity PolicyIngressTrace (policyIngressPollPrefix capacity (appendPolicyIngress prefix suffix))
+        (appendPolicyIngress (policyIngressPollPrefix capacity prefix) (boundedDeferredIngressRetainedSuffix capacity prefix suffix))
+        (appendPolicyIngress prefix (boundedDeferredIngressRetainedSuffix capacity prefix suffix))
+        (policyIngressTakeAppend capacity prefix suffix)
+        (congruent PolicyIngressTrace PolicyIngressTrace
+          (fun (events : PolicyIngressTrace) => appendPolicyIngress events (boundedDeferredIngressRetainedSuffix capacity prefix suffix))
+          (policyIngressPollPrefix capacity prefix) prefix (boundedDeferredIngressTakeFits capacity prefix slack fits)))
+
+def boundedDeferredIngressTailFits : (capacity : Count) -> (prefix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count capacity (next (add (policyIngressLength prefix) slack)) ->
+    Equal Count capacity (add (policyIngressLength prefix) (next slack)) :=
+  fun (capacity : Count) (prefix : PolicyIngressTrace) (slack : Count)
+      (fits : Equal Count capacity (next (add (policyIngressLength prefix) slack))) =>
+    equalTransitivity Count capacity (next (add (policyIngressLength prefix) slack))
+      (add (policyIngressLength prefix) (next slack)) fits
+      (equalSymmetry Count (add (policyIngressLength prefix) (next slack)) (next (add (policyIngressLength prefix) slack))
+        (addRightNext (policyIngressLength prefix) slack))
+
+def boundedDeferredIngressOneScanRetains : (capacity : Count) -> (event : PolicyIngressEvent) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->
+    (slack : Count) -> Equal Count capacity (add (policyIngressLength prefix) slack) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress prefix (boundedDeferredIngressRetainedSuffix capacity prefix (appendPolicyIngress suffix arrivals)))
+      (boundedResumedPolicyIngressDeferred capacity (next zero) (policyIngressThen event (appendPolicyIngress prefix suffix)) arrivals) :=
+  fun (capacity : Count) (event : PolicyIngressEvent) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace)
+      (arrivals : PolicyIngressTrace) (slack : Count) (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) =>
+    equalTransitivity PolicyIngressTrace
+      (appendPolicyIngress prefix (boundedDeferredIngressRetainedSuffix capacity prefix (appendPolicyIngress suffix arrivals)))
+      (policyIngressDeferredPrefix capacity (appendPolicyIngress prefix (appendPolicyIngress suffix arrivals)))
+      (policyIngressDeferredPrefix capacity (appendPolicyIngress (appendPolicyIngress prefix suffix) arrivals))
+      (boundedDeferredIngressRetainsPrefix capacity prefix (appendPolicyIngress suffix arrivals) slack fits)
+      (congruent PolicyIngressTrace PolicyIngressTrace (policyIngressDeferredPrefix capacity)
+        (appendPolicyIngress prefix (appendPolicyIngress suffix arrivals))
+        (appendPolicyIngress (appendPolicyIngress prefix suffix) arrivals)
+        (equalSymmetry PolicyIngressTrace (appendPolicyIngress (appendPolicyIngress prefix suffix) arrivals)
+          (appendPolicyIngress prefix (appendPolicyIngress suffix arrivals)) (appendPolicyIngressAssociative prefix suffix arrivals)))
+
+def rec boundedDeferredIngressUnitPrefix : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count capacity (add (policyIngressLength prefix) slack) ->
+    PolicyIngressPrefix (policyIngressPollPrefix (policyIngressScheduleTurns schedule) prefix)
+      (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix)) :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return
+      (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+      Equal Count capacity (add (policyIngressLength prefix) slack) ->
+      PolicyIngressPrefix (policyIngressPollPrefix (policyIngressScheduleTurns self) prefix)
+        (boundedDeferredIngressExamined capacity (next zero) self (appendPolicyIngress prefix suffix)) with
+    | policyIngressScheduleDone => fun (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+        (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) => policyIngressPrefixWitness policyIngressDone same
+    | policyIngressTurn fuel arrivals rest => fun (prefix : PolicyIngressTrace) =>
+        case prefix as original in PolicyIngressTrace return (suffix : PolicyIngressTrace) -> (slack : Count) ->
+          Equal Count capacity (add (policyIngressLength original) slack) ->
+          PolicyIngressPrefix (policyIngressPollPrefix (next (policyIngressScheduleTurns rest)) original)
+            (boundedDeferredIngressExamined capacity (next zero) (policyIngressTurn fuel arrivals rest) (appendPolicyIngress original suffix)) with
+        | policyIngressDone => fun (suffix : PolicyIngressTrace) (slack : Count) (fits : Equal Count capacity slack) =>
+            policyIngressPrefixWitness (boundedDeferredIngressExamined capacity (next zero) (policyIngressTurn fuel arrivals rest) suffix) same
+        | policyIngressThen event tail => fun (suffix : PolicyIngressTrace) (slack : Count)
+            (fits : Equal Count capacity (next (add (policyIngressLength tail) slack))) =>
+            policyIngressPrefixUnderAppend (policyIngressThen event policyIngressDone)
+              (policyIngressPollPrefix (policyIngressScheduleTurns rest) tail)
+              (boundedDeferredIngressExamined capacity (next zero) rest
+                (boundedResumedPolicyIngressDeferred capacity (next zero) (policyIngressThen event (appendPolicyIngress tail suffix)) arrivals))
+              (equalTransport PolicyIngressTrace
+                (fun (pending : PolicyIngressTrace) => PolicyIngressPrefix (policyIngressPollPrefix (policyIngressScheduleTurns rest) tail)
+                  (boundedDeferredIngressExamined capacity (next zero) rest pending))
+                (appendPolicyIngress tail (boundedDeferredIngressRetainedSuffix capacity tail (appendPolicyIngress suffix arrivals)))
+                (boundedResumedPolicyIngressDeferred capacity (next zero) (policyIngressThen event (appendPolicyIngress tail suffix)) arrivals)
+                (boundedDeferredIngressOneScanRetains capacity event tail suffix arrivals (next slack)
+                  (boundedDeferredIngressTailFits capacity tail slack fits))
+                (boundedDeferredIngressUnitPrefix capacity rest tail
+                  (boundedDeferredIngressRetainedSuffix capacity tail (appendPolicyIngress suffix arrivals)) (next slack)
+                  (boundedDeferredIngressTailFits capacity tail slack fits)))
+
+def boundedDeferredIngressUnitSuffix : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    Equal Count capacity (add (policyIngressLength prefix) slack) -> PolicyIngressTrace :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixSuffix (policyIngressPollPrefix (policyIngressScheduleTurns schedule) prefix)
+      (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix))
+      (boundedDeferredIngressUnitPrefix capacity schedule prefix suffix slack fits)
+
+def boundedDeferredIngressUnitEquation : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (slack : Count) ->
+    (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress (policyIngressPollPrefix (policyIngressScheduleTurns schedule) prefix)
+        (boundedDeferredIngressUnitSuffix capacity schedule prefix suffix slack fits))
+      (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix)) :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace) (slack : Count)
+      (fits : Equal Count capacity (add (policyIngressLength prefix) slack)) =>
+    policyIngressPrefixEquation (policyIngressPollPrefix (policyIngressScheduleTurns schedule) prefix)
+      (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix))
+      (boundedDeferredIngressUnitPrefix capacity schedule prefix suffix slack fits)
+
+def boundedDeferredIngressServesPrefix : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (capacitySlack : Count) -> (turnSlack : Count) ->
+    Equal Count capacity (add (policyIngressLength prefix) capacitySlack) ->
+    Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack) ->
+    PolicyIngressPrefix prefix (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix)) :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace)
+      (capacitySlack : Count) (turnSlack : Count) (fits : Equal Count capacity (add (policyIngressLength prefix) capacitySlack))
+      (enough : Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack)) =>
+    equalTransport PolicyIngressTrace
+      (fun (selected : PolicyIngressTrace) => PolicyIngressPrefix selected
+        (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix)))
+      (policyIngressPollPrefix (policyIngressScheduleTurns schedule) prefix) prefix
+      (boundedDeferredIngressTakeFits (policyIngressScheduleTurns schedule) prefix turnSlack enough)
+      (boundedDeferredIngressUnitPrefix capacity schedule prefix suffix capacitySlack fits)
+
+def boundedDeferredIngressServiceSuffix : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (capacitySlack : Count) -> (turnSlack : Count) ->
+    Equal Count capacity (add (policyIngressLength prefix) capacitySlack) ->
+    Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack) -> PolicyIngressTrace :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace)
+      (capacitySlack : Count) (turnSlack : Count) (fits : Equal Count capacity (add (policyIngressLength prefix) capacitySlack))
+      (enough : Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack)) =>
+    policyIngressPrefixSuffix prefix (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix))
+      (boundedDeferredIngressServesPrefix capacity schedule prefix suffix capacitySlack turnSlack fits enough)
+
+def boundedDeferredIngressServiceEquation : (capacity : Count) -> (schedule : PolicyIngressSchedule) ->
+    (prefix : PolicyIngressTrace) -> (suffix : PolicyIngressTrace) -> (capacitySlack : Count) -> (turnSlack : Count) ->
+    (fits : Equal Count capacity (add (policyIngressLength prefix) capacitySlack)) ->
+    (enough : Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack)) ->
+    Equal PolicyIngressTrace
+      (appendPolicyIngress prefix (boundedDeferredIngressServiceSuffix capacity schedule prefix suffix capacitySlack turnSlack fits enough))
+      (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix)) :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (prefix : PolicyIngressTrace) (suffix : PolicyIngressTrace)
+      (capacitySlack : Count) (turnSlack : Count) (fits : Equal Count capacity (add (policyIngressLength prefix) capacitySlack))
+      (enough : Equal Count (policyIngressScheduleTurns schedule) (add (policyIngressLength prefix) turnSlack)) =>
+    policyIngressPrefixEquation prefix (boundedDeferredIngressExamined capacity (next zero) schedule (appendPolicyIngress prefix suffix))
+      (boundedDeferredIngressServesPrefix capacity schedule prefix suffix capacitySlack turnSlack fits enough)
+
+def rec boundedDeferredIngressScanBound : (capacity : Count) -> (scanFuel : Count) ->
+    (schedule : PolicyIngressSchedule) -> (deferred : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel schedule deferred)) (resumedPolicyIngressScanFuel scanFuel schedule) :=
+  fun (capacity : Count) (scanFuel : Count) (schedule : PolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return
+      AtMost (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel self deferred)) (resumedPolicyIngressScanFuel scanFuel self) with
+    | policyIngressScheduleDone => least zero
+    | policyIngressTurn fuel arrivals rest => equalTransport Count
+        (fun (n : Count) => AtMost n (add scanFuel (resumedPolicyIngressScanFuel scanFuel rest)))
+        (add (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals))
+          (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel rest (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))))
+        (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel (policyIngressTurn fuel arrivals rest) deferred))
+        (equalSymmetry Count
+          (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel (policyIngressTurn fuel arrivals rest) deferred))
+          (add (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals))
+            (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel rest (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))))
+          (appendPolicyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)
+            (boundedDeferredIngressExamined capacity scanFuel rest (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals))))
+        (addBounds (policyIngressLength (boundedResumedPolicyIngressExamined scanFuel deferred arrivals)) scanFuel
+          (policyIngressLength (boundedDeferredIngressExamined capacity scanFuel rest (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)))
+          (resumedPolicyIngressScanFuel scanFuel rest)
+          (policyIngressSelectedFuelBound scanFuel (appendPolicyIngress deferred arrivals))
+          (boundedDeferredIngressScanBound capacity scanFuel rest (boundedResumedPolicyIngressDeferred capacity scanFuel deferred arrivals)))
+
+def rec boundedDeferredIngressUnitAllowance : (schedule : PolicyIngressSchedule) ->
+    Equal Count (resumedPolicyIngressScanFuel (next zero) schedule) (policyIngressScheduleTurns schedule) :=
+  fun (schedule : PolicyIngressSchedule) =>
+    case schedule as self in PolicyIngressSchedule return
+      Equal Count (resumedPolicyIngressScanFuel (next zero) self) (policyIngressScheduleTurns self) with
+    | policyIngressScheduleDone => same
+    | policyIngressTurn fuel arrivals rest => congruent Count Count (fun (n : Count) => next n)
+        (resumedPolicyIngressScanFuel (next zero) rest) (policyIngressScheduleTurns rest) (boundedDeferredIngressUnitAllowance rest)
+
+def boundedDeferredIngressUnitScanBound : (capacity : Count) -> (schedule : PolicyIngressSchedule) -> (deferred : PolicyIngressTrace) ->
+    AtMost (policyIngressLength (boundedDeferredIngressExamined capacity (next zero) schedule deferred)) (policyIngressScheduleTurns schedule) :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    equalTransport Count
+      (fun (n : Count) => AtMost (policyIngressLength (boundedDeferredIngressExamined capacity (next zero) schedule deferred)) n)
+      (resumedPolicyIngressScanFuel (next zero) schedule) (policyIngressScheduleTurns schedule) (boundedDeferredIngressUnitAllowance schedule)
+      (boundedDeferredIngressScanBound capacity (next zero) schedule deferred)
+
+def rec boundedDeferredIngressZeroScanExaminesNothing : (capacity : Count) -> (schedule : PolicyIngressSchedule) -> (deferred : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedDeferredIngressExamined capacity zero schedule deferred) policyIngressDone :=
+  fun (capacity : Count) (schedule : PolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressSchedule return
+      Equal PolicyIngressTrace (boundedDeferredIngressExamined capacity zero self deferred) policyIngressDone with
+    | policyIngressScheduleDone => same
+    | policyIngressTurn fuel arrivals rest => boundedDeferredIngressZeroScanExaminesNothing capacity rest
+        (boundedResumedPolicyIngressDeferred capacity zero deferred arrivals)
+
+def boundedDeferredIngressNoTurnsExaminesNothing : (capacity : Count) -> (scanFuel : Count) -> (deferred : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace (boundedDeferredIngressExamined capacity scanFuel policyIngressScheduleDone deferred) policyIngressDone :=
+  fun (capacity : Count) (scanFuel : Count) (deferred : PolicyIngressTrace) => same
+
+-- Zero dispatch fuel does not remove an ingress scan turn. Fresh arrivals can
+-- overflow while the original fitting prefix is examined in FIFO order.
+def boundedDeferredIngressServiceExample : PolicyIngressEvent -> PolicyIngressEvent -> PolicyIngressEvent -> PolicyIngressSchedule :=
+  fun (fresh : PolicyIngressEvent) (overflowA : PolicyIngressEvent) (overflowB : PolicyIngressEvent) =>
+    policyIngressTurn zero (policyIngressThen fresh (policyIngressThen overflowA (policyIngressThen overflowB policyIngressDone)))
+      (policyIngressTurn zero policyIngressDone policyIngressScheduleDone)
+
+def boundedDeferredIngressServiceDespiteOverflow : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    (fresh : PolicyIngressEvent) -> (overflowA : PolicyIngressEvent) -> (overflowB : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedDeferredIngressExamined (next (next zero)) (next zero) (boundedDeferredIngressServiceExample fresh overflowA overflowB)
+        (policyIngressThen first (policyIngressThen second policyIngressDone)))
+      (policyIngressThen first (policyIngressThen second policyIngressDone)) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) (fresh : PolicyIngressEvent)
+      (overflowA : PolicyIngressEvent) (overflowB : PolicyIngressEvent) => same
+
+def boundedDeferredIngressServiceReportsOverflow : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    (fresh : PolicyIngressEvent) -> (overflowA : PolicyIngressEvent) -> (overflowB : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedDeferredIngressOverflow (next (next zero)) (next zero) (boundedDeferredIngressServiceExample fresh overflowA overflowB)
+        (policyIngressThen first (policyIngressThen second policyIngressDone)))
+      (policyIngressThen overflowA (policyIngressThen overflowB policyIngressDone)) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) (fresh : PolicyIngressEvent)
+      (overflowA : PolicyIngressEvent) (overflowB : PolicyIngressEvent) => same
+
+def boundedDeferredIngressServiceRetainsFresh : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    (fresh : PolicyIngressEvent) -> (overflowA : PolicyIngressEvent) -> (overflowB : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedDeferredIngressRemainder (next (next zero)) (next zero) (boundedDeferredIngressServiceExample fresh overflowA overflowB)
+        (policyIngressThen first (policyIngressThen second policyIngressDone)))
+      (policyIngressThen fresh policyIngressDone) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) (fresh : PolicyIngressEvent)
+      (overflowA : PolicyIngressEvent) (overflowB : PolicyIngressEvent) => same
+
+-- Without initial prefix fit, even enough turns need not examine every event.
+def boundedDeferredIngressInsufficientCapacity : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedDeferredIngressExamined zero (next zero)
+        (policyIngressTurn zero policyIngressDone (policyIngressTurn zero policyIngressDone policyIngressScheduleDone))
+        (policyIngressThen first (policyIngressThen second policyIngressDone)))
+      (policyIngressThen first policyIngressDone) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) => same
+
+def boundedDeferredIngressInsufficientTurns : (first : PolicyIngressEvent) -> (second : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (boundedDeferredIngressExamined (next (next zero)) (next zero)
+        (policyIngressTurn zero policyIngressDone policyIngressScheduleDone)
+        (policyIngressThen first (policyIngressThen second policyIngressDone)))
+      (policyIngressThen first policyIngressDone) :=
+  fun (first : PolicyIngressEvent) (second : PolicyIngressEvent) => same

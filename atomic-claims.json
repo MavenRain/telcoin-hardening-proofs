@@ -35,7 +35,8 @@
     "bounded_ingress_scan": "A fixed natural admission allowance selects only an offered batch's FIFO prefix before payload and entry admission. Examined rejections are distinct from the caller-owned unexamined suffix. Each selected event receives an independent symbolic scanCost, including zero-payload and rejected events. Runtime refinement must bound or lazily produce offered batches, justify dominating scan charges, separately account for backlog measurement and other omitted work, and define external suffix ownership, resubmission, wakeups and mandatory-event delivery.",
     "persistent_ingress_resumption": "The caller atomically retains the unexamined FIFO and the admitted queue/resource state across finite delivered turns. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. Only the unexamined suffix is retried; examined admission rejections leave this FIFO. Deferred storage is unbounded in the model and requires separate runtime ownership, capacity and cost arguments. Enough delivered scan fuel ensures examination of an original deferred prefix, not admission or execution; real wakeups, cancellation, restart and mandatory-event delivery require refinement.",
     "bounded_ingress_resumption": "The caller atomically carries the returned deferred FIFO and the admitted queue/resource state into each delivered turn. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. A fixed caller-owned deferred capacity then retains only the earliest unexamined prefix; the remaining suffix is reported to the caller as explicit overflow and is not retried automatically. Examined admission rejections leave the FIFO. The model keeps scan and service allowances, entry and immutable-payload limits, and one carried queue/resource state separate. Runtime ownership, allocation, overflow disposition and resubmission delivery, cancellation, restart and fairness remain refinement obligations.",
-    "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations."
+    "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations.",
+    "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds."
   },
   "claims": [
     {
@@ -3530,6 +3531,126 @@
         "Refine examined, overflow and retained counters to their exact runtime stages and ownership boundaries.",
         "Connect admitted and rejected examined candidates to their concrete disposal and execution records.",
         "Establish concrete per-turn and whole-schedule costs, including batch construction and overflow reporting."
+      ]
+    },
+    {
+      "id": "C73",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "A deferred prefix whose length fits the fixed capacity survives truncation exactly, followed by an explicitly constructed retained suffix. After one ingress scan, a fitting original tail remains ahead of the previous suffix and fresh arrivals. This preserves FIFO occurrences, without requiring the entire offered suffix to fit.",
+      "theorems": [
+        "boundedDeferredIngressTakeFits",
+        "boundedDeferredIngressRetainsPrefix",
+        "boundedDeferredIngressOneScanRetains"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules",
+        "bounded_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Establish prefix fit and refine fixed-capacity FIFO truncation and exclusive handoff ownership to the runtime.",
+        "Refine overflow delivery or disposal, concrete storage and costs, configuration changes, cancellation and restart."
+      ]
+    },
+    {
+      "id": "C74",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For any finite schedule with exactly one ingress scan per turn, the examined trace starts with the first min(turn count, original prefix length) occurrences of a fitting original prefix. A constructed suffix gives an exact append equation. Fresh arrival batches and dispatch fuel are arbitrary, including zero dispatch fuel.",
+      "theorems": [
+        "boundedDeferredIngressUnitEquation",
+        "boundedDeferredIngressUnitAllowance",
+        "boundedDeferredIngressInsufficientTurns"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules",
+        "bounded_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Deliver actual turns with one ingress scan and preserve the specified FIFO handoff between them.",
+        "Relate examination to runtime admission, examined rejection handling, eventual dispatch and wall-clock progress.",
+        "Generalize the service argument to varying or larger scan allowances and changing deferred capacities."
+      ]
+    },
+    {
+      "id": "C75",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A fitting original deferred prefix is fully examined in FIFO order when a finite schedule delivers at least its length in turns with one ingress scan each. Explicit natural slack witnesses express capacity fit and sufficient turns. The exact service equation permits later examined occurrences. A two-turn example preserves service, chronological overflow and the remaining fresh entry despite zero dispatch fuel; zero capacity demonstrates why initial prefix fit matters.",
+      "theorems": [
+        "boundedDeferredIngressServiceEquation",
+        "boundedDeferredIngressServiceDespiteOverflow",
+        "boundedDeferredIngressServiceReportsOverflow",
+        "boundedDeferredIngressServiceRetainsFresh",
+        "boundedDeferredIngressInsufficientCapacity"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules",
+        "bounded_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Prove runtime delivery of enough scan turns and preservation of initial prefix fit and FIFO ownership.",
+        "Establish safe handling of examined rejections and overflow, and distinguish examination from successful admission or dispatch.",
+        "Establish real-time latency, storage and cost bounds under sustained arrivals and across restarts."
+      ]
+    },
+    {
+      "id": "C76",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For any fixed scan allowance, the number of examined occurrences across a bounded handoff schedule is at most the sum of delivered scan allowances. With one scan per turn this is the turn count. Zero scan allowance and an empty schedule examine nothing. These are event-count bounds; they do not bound CPU, allocation, enqueue, overflow handling or wall-clock work.",
+      "theorems": [
+        "boundedDeferredIngressScanBound",
+        "boundedDeferredIngressUnitScanBound",
+        "boundedDeferredIngressZeroScanExaminesNothing",
+        "boundedDeferredIngressNoTurnsExaminesNothing"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "bounded_ingress_scan",
+        "bounded_ingress_resumption",
+        "bounded_ingress_handoff_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Account for concrete per-scan, queue construction, allocation, overflow and scheduler costs outside the occurrence count.",
+        "Refine the fixed scan allowance and finite schedule to actual polls and wakeups without assuming fuel delivery or real-time progress."
       ]
     }
   ]
