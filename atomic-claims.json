@@ -37,7 +37,7 @@
     "bounded_ingress_resumption": "The caller atomically carries the returned deferred FIFO and the admitted queue/resource state into each delivered turn. Each fresh finite batch is appended exactly once after the deferred FIFO before a fixed scan allowance selects a prefix. A fixed caller-owned deferred capacity then retains only the earliest unexamined prefix; the remaining suffix is reported to the caller as explicit overflow and is not retried automatically. Examined admission rejections leave the FIFO. The model keeps scan and service allowances, entry and immutable-payload limits, and one carried queue/resource state separate. Runtime ownership, allocation, overflow disposition and resubmission delivery, cancellation, restart and fairness remain refinement obligations.",
     "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations.",
     "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds.",
-    "paced_ingress_handoff_service": "Finite sequential schedules independently select zero or one ingress scan on each turn. The caller atomically carries the returned deferred FIFO into each delivered turn, including paused turns, and appends each fresh finite batch exactly once after that FIFO; the turn's zero-or-one scan allowance then examines only the FIFO head. Examined events leave the deferred FIFO whatever later admission decides, and only the unexamined suffix is retained or reported as overflow. Dispatch fuel and finite fresh arrival batches are arbitrary. A fixed deferred capacity retains the earliest unexamined prefix after every turn, including paused turns, and returns the remaining suffix as chronological overflow without internal replay. The terminal deferred bound requires initial fit. Prefix equations require only the original prefix to fit, and full examination additionally requires a natural slack witness that delivered scans cover its length. Overflow histories are output traces with no storage bound. Runtime delivery, exclusive ownership, admission, dispatch, mandatory-event handling, cancellation, restart, concrete costs and latency remain external obligations. This schedule has no composed queue/resource execution theorem."
+    "paced_ingress_handoff_service": "Finite sequential schedules independently select zero or one ingress scan on each turn. The caller atomically carries the returned deferred FIFO into each delivered turn, including paused turns, and appends each fresh finite batch exactly once after that FIFO; the turn's zero-or-one scan allowance then examines only the FIFO head. Examined events leave the deferred FIFO whatever later admission decides, and only the unexamined suffix is retained or reported as overflow. Dispatch fuel and finite fresh arrival batches are arbitrary. A fixed deferred capacity retains the earliest unexamined prefix after every turn, including paused turns, and returns the remaining suffix as chronological overflow without internal replay. The terminal deferred bound requires initial fit. Prefix equations require only the original prefix to fit, and full examination additionally requires a natural slack witness that delivered scans cover its length. Overflow histories are output traces with no storage bound. Runtime delivery, exclusive ownership, admission, dispatch, mandatory-event handling, cancellation, restart, concrete costs and latency remain external obligations. Module 56 composes this schedule with abstract admitted queue/resource execution; runtime refinement remains open."
   },
   "claims": [
     {
@@ -3682,7 +3682,7 @@
       ],
       "open_implementation_obligations": [
         "Refine per-turn ownership, atomic FIFO handoff and overflow delivery or disposal to runtime behavior.",
-        "Compose this paced schedule with admitted queue/resource execution and prove whole-schedule occurrence conservation.",
+        "Refine the module-56 composed queue/resource execution and recursive occurrence conservation to concrete runtime handoffs.",
         "Establish storage and allocation bounds beyond the retained deferred prefix."
       ]
     },
@@ -3763,7 +3763,162 @@
       ],
       "open_implementation_obligations": [
         "Justify dominating concrete scan charges and account for concatenation, retention, overflow and other omitted work.",
-        "Compose the count bound with queue/resource execution and whole-schedule cost envelopes."
+        "Compose the examined-count bound with a dominating concrete scan charge and the module-56 dispatched-work envelope, including omitted admission and overflow costs."
+      ]
+    },
+    {
+      "id": "C81",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Finite paced schedules compose bounded deferred handoffs with payload-filtered queue/resource execution. Empty schedules preserve the initial state, each turn matches the single-turn handoff, subsequent turns carry its returned state, and the executor reports chronological unexamined overflow. A fitting initial deferred FIFO remains within the fixed entry cap.",
+      "theorems": [
+        "pacedDeferredIngressEmpty",
+        "pacedDeferredIngressOneTurn",
+        "pacedDeferredIngressContinuesHandoff",
+        "pacedDeferredIngressReportsOverflow",
+        "pacedDeferredIngressHandoffBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_resumption",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine exclusive ownership, atomic per-turn state transfer and overflow delivery or disposal.",
+        "Establish initial deferred fit and concrete deferred payload, temporary allocation and output storage bounds.",
+        "Extend the fixed-capacity finite schedule to cancellation, restart and changing capacity."
+      ]
+    },
+    {
+      "id": "C82",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          109,
+          109
+        ]
+      },
+      "property": "The paced executor preserves admitted queue entry and immutable-payload bounds under their separate initial-fit premises, and bounds pending occupancy by the initial pending pool capacity. Its queue projection is exactly payload-filtered execution of the examined schedule. Deferred payload and overflow storage are not included.",
+      "theorems": [
+        "pacedDeferredIngressExecutesQueue",
+        "pacedDeferredIngressQueueEntryBound",
+        "pacedDeferredIngressQueuePayloadBound",
+        "pacedDeferredIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_resumption",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine the filtered queue and atomic policy/source/resource transitions to actual handlers.",
+        "Establish admitted initial fit, immutable payload charges and concrete storage dominance.",
+        "Prove safe mandatory-event handling, wakeups and delivered dispatch fuel."
+      ]
+    },
+    {
+      "id": "C83",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          59,
+          61
+        ]
+      },
+      "property": "Across a finite zero-or-one-scan schedule, the recursively accumulated examined and unexamined-overflow occurrence counts plus the terminal deferred count equal the initial deferred count plus all fresh arrivals. The equivalent input-trace length equation needs no initial-fit premise. Examined occurrences include candidates later rejected by admission; this is not an accepted-event or delivery guarantee.",
+      "theorems": [
+        "pacedDeferredIngressConservation",
+        "pacedDeferredIngressArrivalConservation"
+      ],
+      "assumptions": [
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "paced_ingress_handoff_service"
+      ],
+      "open_implementation_obligations": [
+        "Refine occurrence accounting and exactly-once batch ownership to concrete queues and outputs.",
+        "Establish external overflow handling and the disposition of examined admission rejections.",
+        "Relate recursive accounting to concrete output logs without assuming bounded log storage."
+      ]
+    },
+    {
+      "id": "C84",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The paced executor resource state equals execution of its actual payload-filtered dispatched trace. That trace satisfies the existing conditional dispatch, policy-work and handshake cost envelope, with initial work and handshake credits bounded by their capacities. The envelope excludes scanning, concatenation, admission and overflow handling and is not a runtime CPU or latency bound.",
+      "theorems": [
+        "pacedDeferredIngressExecutesTrace",
+        "pacedDeferredIngressCombinedCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "bounded_ingress_scan",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_resumption",
+        "paced_ingress_handoff_service",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine the dispatched trace and clock/refill events to concrete handlers.",
+        "Justify cost dominance and initial credits; compose concrete scan, admission, retention and overflow costs.",
+        "Prove runtime service delivery and wall-clock latency separately."
       ]
     }
   ]

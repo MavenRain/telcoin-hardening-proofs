@@ -323,6 +323,20 @@ scans, and examined occurrence-count bounds. A four-turn example alternates
 pauses and scans, preserving original priority and chronological overflow.
 Runtime scan delivery, admission, dispatch, storage, concrete costs and latency
 remain open. Queue/resource composition and whole-schedule occurrence
-conservation for this paced schedule remain open as well. The receipt retains
+conservation were open at this receipt's revision. The receipt retains
 incomplete implementation and deployment status, and the qualification-gate
 regression must still reject full qualification.
+
+`policy-ingress-paced-execution-model-check.json` records the paced executor
+extension: 725 explicit equality and order declarations in 39 modules,
+120 atomic obligations and 508 rejected negative checks. C81-C84 link the
+executor, conditional retained-queue and pending bounds, recursive occurrence-count
+identity and dispatched-trace cost envelope. All 18 new controls require
+semantic mismatches. The prior queue-erasure control gains unique surrounding
+context while retaining its original mutation.
+
+The receipt does not establish concrete scan or admission costs, deferred or
+overflow storage bounds, runtime refinement, service delivery or latency.
+The qualification-gate regression runs the entire checker and requires the
+incomplete-qualification exit status 2. Implementation and deployment remain
+unproved and unqualified.

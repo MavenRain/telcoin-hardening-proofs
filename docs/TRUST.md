@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 487 additional semantic mutations must
+The 505 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -180,9 +180,21 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   deferred bound includes an initial-fit premise for an empty schedule.
   Occurrence-count bounds exclude concrete processing and storage costs.
   Runtime scan delivery, admission, dispatch, mandatory-event handling and
-  latency remain unproved. Queue/resource composition, whole-schedule occurrence
-  conservation, larger scans, changing capacity, cancellation and restart remain
-  open for this paced schedule.
+  latency remain unproved. Larger scans, changing capacity, cancellation and
+  restart remain open for this paced schedule.
+- Module 56 composes paced handoffs with abstract payload-filtered execution.
+  Queue entry and payload bounds each require initial fit; the deferred bound
+  also requires initial fit, including for an empty schedule. Pending occupancy
+  remains bounded by the original pool capacity. Recursive examined, overflow
+  and terminal deferred occurrence counts sum to the initial deferred count
+  plus all fresh arrivals, without initial fit. This is a count identity; it
+  does not prove unique event identities or trace-level conservation. Examined
+  events can still be rejected by admission.
+  The dispatched trace satisfies the existing conditional dispatch, policy-work
+  and handshake cost envelope under initial credit bounds. Concrete scanning,
+  admission, retention, overflow, output storage and real-time progress remain
+  outside that envelope. The executor is an abstract model, with no new runtime
+  refinement or deployment evidence.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

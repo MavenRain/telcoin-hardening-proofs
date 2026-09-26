@@ -1281,13 +1281,57 @@ C77-C80 record these contracts. Enough delivered scans is an explicit premise;
 arbitrarily many pauses do not establish progress. Runtime wakeups, ownership,
 admission, dispatch, mandatory-event handling, concrete costs and latency remain
 open. Larger scan bursts, changing capacity, cancellation and restart remain
-outside this slice. Composition with admitted queue/resource execution and a
-whole-schedule occurrence conservation theorem for paced schedules remain open.
+outside this slice. Module 56 supplies abstract queue/resource composition and
+a recursive whole-schedule occurrence-count identity.
+
+## Paced handoff execution
+
+`56-policy-ingress-paced-execution.mech` runs the examined schedule through
+payload and entry admission, then dispatches according to each turn's service
+fuel. It returns chronological unexamined overflow separately from the final
+deferred FIFO and admitted queue/resource state. `pacedDeferredIngressEmpty`,
+`pacedDeferredIngressOneTurn` and `pacedDeferredIngressContinuesHandoff` identify
+empty execution, the single-turn handoff and exact state transfer to later
+turns. These equations quantify over the scan flag, so paused turns still
+retain arrivals and service the existing admitted queue. Their overflow comes
+from `pacedDeferredIngressReportsOverflow` with the module-55
+`pacedDeferredIngressOverflowStep`.
+
+`pacedDeferredIngressExecutesQueue` projects exactly the payload-filtered
+runner. Entry and immutable-payload bounds each require their own initial-fit
+premise. The deferred bound also requires initial fit because an empty schedule
+does not trim the initial FIFO. Pending occupancy remains bounded by the
+original pending pool capacity. These are separate model bounds, not a bound
+on total process memory, deferred payload or output-history storage.
+
+`pacedDeferredIngressAccounted` recursively adds the examined and unexamined
+overflow occurrence counts at each turn, ending with the terminal deferred
+count. `pacedDeferredIngressConservation` equates this total with the initial
+deferred count plus all fresh arrivals; `pacedDeferredIngressArrivalConservation`
+states the same input side as a concatenated trace length. Neither theorem
+requires initial fit. Examined occurrences include candidates subsequently
+rejected by admission. This accounting does not assert successful admission,
+external delivery or a bound on the storage of output traces.
+
+`pacedDeferredIngressExecutesTrace` identifies the resource state with execution
+of the actual payload-filtered dispatched trace. The combined cost theorem
+reuses that trace's dispatch/policy/handshake envelope, counting each initial
+burst once and requiring the corresponding initial credit bounds. Scanning,
+concatenation, admission, deferred retention and overflow costs remain omitted.
+C81-C84 record the statements, assumptions and remaining runtime obligations.
+
+The 18 new negative controls corrupt overflow and deferred state, compute
+overflow without the deferred FIFO, skip queue execution, erase the existing
+queue, bypass scans, change capacity, ignore deferred input, enlarge admission
+limits, omit occurrence counts or recursion, count examined occurrences with
+the wrong scan allowance and overclaim the dispatched cost bound. Each must fail with a proof mismatch.
+One older queue-erasure target gains context to remain unique; it still
+constructs exactly the same mutated bundle as before.
 
 ## Negative controls
 
-The checker rejects 490 invalid variants: three direct checks of equality,
-ordering and termination, plus 487 semantic mutations. Mutations exercise such
+The checker rejects 508 invalid variants: three direct checks of equality,
+ordering and termination, plus 505 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

@@ -87,15 +87,20 @@ an exact FIFO examination guarantee with one ingress scan per delivered turn,
 or independently paused and one-scan turns. Enough cumulative delivered scans,
 expressed by a natural slack witness, examine the whole prefix despite later
 arrivals and overflow. Occurrence-count bounds cover both fixed scan allowances
-and the paced zero-or-one schedule. Next compose paced schedules with admitted
-queue/resource execution and whole-schedule occurrence conservation. Runtime
+and the paced zero-or-one schedule. Paced schedules now compose with admitted
+queue/resource execution, preserve conditional queue and pending bounds, and
+conserve recursive examined/overflow/final-deferred occurrence counts across
+the whole schedule. The actual dispatched trace inherits the conditional
+dispatch/policy/handshake cost envelope. Next combine the examined-count bound
+with a dominating scan charge and that envelope, explicitly accounting for
+admission, retention and overflow work. Runtime
 scan delivery, admission and dispatch after examination, larger scan allowances,
 changing capacities, concrete costs and real-time latency remain open.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 116 atomic model obligations
+   explicit dispositions. The current 34 groups and 120 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
