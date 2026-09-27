@@ -91,16 +91,24 @@ and the paced zero-or-one schedule. Paced schedules now compose with admitted
 queue/resource execution, preserve conditional queue and pending bounds, and
 conserve recursive examined/overflow/final-deferred occurrence counts across
 the whole schedule. The actual dispatched trace inherits the conditional
-dispatch/policy/handshake cost envelope. Next combine the examined-count bound
-with a dominating scan charge and that envelope, explicitly accounting for
-admission, retention and overflow work. Runtime
-scan delivery, admission and dispatch after examination, larger scan allowances,
-changing capacities, concrete costs and real-time latency remain open.
+dispatch/policy/handshake cost envelope. A weighted examination charge now
+composes with offered-item handoff visits and fixed work for every delivered
+turn, including pauses and empty turns. Handoff visits use actual initial
+deferred length on the first turn and fixed deferred capacity thereafter,
+plus every fresh batch, so repeated retention and oversized overflow are
+charged. This administrative ledger composes with the actual dispatched-work
+envelope under the existing initial credit bounds. Next generalize the paced
+zero-or-one scan schedule to varying natural scan allowances while preserving
+FIFO service, handoff bounds and cost accounting. Concrete domination of all
+scan, admission, concatenation, retention, overflow and per-turn costs still
+requires runtime refinement. Offered-batch construction, output-history storage,
+scan delivery, admission and dispatch after examination, changing capacities
+and real-time latency remain open.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 120 atomic model obligations
+   explicit dispositions. The current 34 groups and 124 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

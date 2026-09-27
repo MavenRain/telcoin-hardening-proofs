@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 505 additional semantic mutations must
+The 529 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -195,6 +195,19 @@ third-party attestation. File hashes detect drift, not semantic correctness.
   admission, retention, overflow, output storage and real-time progress remain
   outside that envelope. The executor is an abstract model, with no new runtime
   refinement or deployment evidence.
+
+- Module 57 composes symbolic examination/admission, offered-item handoff and
+  per-turn charges with the paced dispatched-work envelope. Its visit bound
+  uses actual initial deferred length and all fresh arrivals, then fixed
+  deferred capacity for subsequent turns. It charges repeated retention during
+  pauses and includes oversized overflow, without an initial-fit premise.
+  All six weights require concrete domination in a common unit: admission and
+  rejection, charge computation, all handoff passes, concatenation, retention,
+  overflow transfer, fixed overhead and backlog measurement must be covered.
+  Arbitrarily large offered batches can still require arbitrarily large work.
+  The theorem does not establish runtime CPU, output-history storage, external
+  batch construction, executor scheduling or latency bounds. The inherited
+  execution envelope still requires initial work and handshake credit bounds.
 
 - Source-table churn preserves supplied rate debt and bans in a fixed slot vector.
   Runtime refinement must establish canonical validated keys, unique initial

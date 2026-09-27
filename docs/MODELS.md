@@ -1328,10 +1328,77 @@ the wrong scan allowance and overclaim the dispatched cost bound. Each must fail
 One older queue-erasure target gains context to remain unique; it still
 constructs exactly the same mutated bundle as before.
 
+## Paced handoff administrative costs
+
+`57-policy-ingress-paced-cost.mech` extends the paced executor's cost ledger.
+`pacedDeferredIngressScanCost` charges every examined occurrence with an
+independent `scanCost`. `pacedDeferredIngressScanCostBound` bounds that total by
+delivered zero-or-one scan allowances times the weight, regardless of dispatch
+fuel or whether subsequent admission accepts or rejects the examined event.
+
+`pacedDeferredIngressVisits` counts the full offered FIFO on every delivered
+turn, then recurses with the actual retained suffix. `VisitsOffered` identifies
+the first summand with the length of the concatenated deferred and fresh FIFO.
+Here and below, abbreviated theorem names have the `pacedDeferredIngress`
+prefix. Retained occurrences are counted again on later turns, including
+pauses; overflow is included on the turn that reports it. Duplicate event
+values remain separate occurrences. This is neither a unique-event count nor
+a storage bound on accumulated overflow output.
+
+`pacedDeferredIngressVisitLimit capacity schedule initial` uses the recurrence
+`L(done, initial) = 0` and
+`L(turn(arrivals, rest), initial) = initial + length(arrivals) + L(rest, capacity)`.
+`VisitBound` proves visits are at most that limit. The first turn uses the
+actual initial deferred length, with no initial-fit premise. Later turns may
+each retain a full buffer. Every fresh batch is charged in full, even when scan
+allowance, dispatch fuel or deferred capacity is zero. A fixed deferred cap
+therefore does not imply bounded work for arbitrarily large fresh batches.
+
+`AdminCountsWork` gives the exact symbolic administrative sum:
+
+```
+examined occurrences * scanCost
+  + offered-item visits * handoffCost
+  + delivered turns * turnCost
+```
+
+`AdminBound` replaces examined count with delivered scan allowances and visits
+with the visit limit. `AdminStopped` charges no work without turns, even with
+an initial suffix. `EmptyTurnCost` charges fixed overhead for an empty paused
+turn. The retention, oversized-overflow and zero-dispatch witnesses show that
+these costs persist during pauses, at zero deferred capacity and without
+dispatch fuel. The witnesses complement the arbitrary-schedule inequalities.
+
+`CostCountsWork` adds this administrative ledger to the cost of the actual
+payload-filtered dispatched schedule. `CostEnvelope` composes their bounds
+under the same initial policy-work and handshake-credit premises as module 56.
+The dispatched envelope counts each initial resource burst once across the
+whole schedule. No new initial queue or deferred fit premise is needed for
+this cost inequality; their separate storage invariants still require fit.
+
+Runtime interpretation requires six dominating weights in a common unit.
+`scanCost` covers examined admission decisions, charge computation and rejection.
+`handoffCost` covers all per-offered-item passes, concatenation, retained suffix
+handling and overflow materialization/transfer. `turnCost` covers remaining
+per-turn work, including empty turns and any backlog measurement not charged
+per item. Execution weights retain their existing dispatch, policy and
+handshake obligations. Concrete domination, external batch construction,
+uncharged allocations, output-history storage, scheduling and real-time latency
+remain open. The natural-number ledger is not a measured CPU bound.
+
+The 24 new controls erase turn, deferred, arrival and recursive visit charges;
+charge a finished schedule for a turn or for occurrences still deferred after
+the final turn; mis-thread retained suffixes, scan allowances or capacity;
+weaken initial, arrival or repeated-retention limits; alter examination
+counting; and omit administrative or execution components and their limits.
+Each mutated definition bundle type-checks before the module-57 proof
+declarations are restored; all 24 complete bundles fail with semantic
+mismatches.
+
 ## Negative controls
 
-The checker rejects 508 invalid variants: three direct checks of equality,
-ordering and termination, plus 505 semantic mutations. Mutations exercise such
+The checker rejects 532 invalid variants: three direct checks of equality,
+ordering and termination, plus 529 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

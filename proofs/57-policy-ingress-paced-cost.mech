@@ -1,0 +1,248 @@
+-- Symbolic scan, admission and handoff work across paced finite schedules.
+-- Concrete per-item and per-turn cost dominance remains a refinement obligation.
+
+def rec pacedPolicyIngressTurns : PacedPolicyIngressSchedule -> Count :=
+  fun (schedule : PacedPolicyIngressSchedule) =>
+    case schedule as self in PacedPolicyIngressSchedule return Count with
+    | pacedPolicyIngressDone => zero
+    | pacedPolicyIngressTurn scan fuel arrivals rest => next (pacedPolicyIngressTurns rest)
+
+-- A retained occurrence is visited again on every later delivered turn.
+def rec pacedDeferredIngressVisits : Count -> PacedPolicyIngressSchedule -> PolicyIngressTrace -> Count :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    case schedule as self in PacedPolicyIngressSchedule return Count with
+    | pacedPolicyIngressDone => zero
+    | pacedPolicyIngressTurn scan fuel arrivals rest => add
+        (add (policyIngressLength deferred) (policyIngressLength arrivals))
+        (pacedDeferredIngressVisits capacity rest
+          (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals))
+
+-- The first turn pays for the actual initial suffix, even if it is oversized.
+-- Later turns may each carry a full deferred buffer. Empty schedules cost zero.
+def rec pacedDeferredIngressVisitLimit : Count -> PacedPolicyIngressSchedule -> Count -> Count :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (initial : Count) =>
+    case schedule as self in PacedPolicyIngressSchedule return Count with
+    | pacedPolicyIngressDone => zero
+    | pacedPolicyIngressTurn scan fuel arrivals rest => add
+        (add initial (policyIngressLength arrivals))
+        (pacedDeferredIngressVisitLimit capacity rest capacity)
+
+def pacedDeferredIngressVisitLimitMonotone : (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (lower : Count) -> (upper : Count) -> AtMost lower upper ->
+    AtMost (pacedDeferredIngressVisitLimit capacity schedule lower)
+      (pacedDeferredIngressVisitLimit capacity schedule upper) :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (lower : Count) (upper : Count)
+      (bounded : AtMost lower upper) =>
+    case schedule as self in PacedPolicyIngressSchedule return
+      AtMost (pacedDeferredIngressVisitLimit capacity self lower)
+        (pacedDeferredIngressVisitLimit capacity self upper) with
+    | pacedPolicyIngressDone => least zero
+    | pacedPolicyIngressTurn scan fuel arrivals rest => addBounds
+        (add lower (policyIngressLength arrivals)) (add upper (policyIngressLength arrivals))
+        (pacedDeferredIngressVisitLimit capacity rest capacity) (pacedDeferredIngressVisitLimit capacity rest capacity)
+        (addBounds lower upper (policyIngressLength arrivals) (policyIngressLength arrivals)
+          bounded (reflexiveBound (policyIngressLength arrivals)))
+        (reflexiveBound (pacedDeferredIngressVisitLimit capacity rest capacity))
+
+def rec pacedDeferredIngressVisitBound : (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> AtMost (pacedDeferredIngressVisits capacity schedule deferred)
+      (pacedDeferredIngressVisitLimit capacity schedule (policyIngressLength deferred)) :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    case schedule as self in PacedPolicyIngressSchedule return
+      AtMost (pacedDeferredIngressVisits capacity self deferred)
+        (pacedDeferredIngressVisitLimit capacity self (policyIngressLength deferred)) with
+    | pacedPolicyIngressDone => least zero
+    | pacedPolicyIngressTurn scan fuel arrivals rest => addBounds
+        (add (policyIngressLength deferred) (policyIngressLength arrivals))
+        (add (policyIngressLength deferred) (policyIngressLength arrivals))
+        (pacedDeferredIngressVisits capacity rest
+          (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals))
+        (pacedDeferredIngressVisitLimit capacity rest capacity)
+        (reflexiveBound (add (policyIngressLength deferred) (policyIngressLength arrivals)))
+        (boundTransitive
+          (pacedDeferredIngressVisits capacity rest
+            (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals))
+          (pacedDeferredIngressVisitLimit capacity rest
+            (policyIngressLength (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals)))
+          (pacedDeferredIngressVisitLimit capacity rest capacity)
+          (pacedDeferredIngressVisitBound capacity rest
+            (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals))
+          (pacedDeferredIngressVisitLimitMonotone capacity rest
+            (policyIngressLength (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals)) capacity
+            (boundedResumedPolicyIngressDeferredBound capacity (policyIngressScanAllowance scan) deferred arrivals)))
+
+def pacedDeferredIngressVisitsOffered : (capacity : Count) -> (scan : Flag) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (rest : PacedPolicyIngressSchedule) -> (deferred : PolicyIngressTrace) -> Equal Count
+      (pacedDeferredIngressVisits capacity (pacedPolicyIngressTurn scan fuel arrivals rest) deferred)
+      (add (policyIngressLength (boundedResumedPolicyIngressOffered deferred arrivals))
+        (pacedDeferredIngressVisits capacity rest
+          (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals))) :=
+  fun (capacity : Count) (scan : Flag) (fuel : Count) (arrivals : PolicyIngressTrace)
+      (rest : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) =>
+    congruent Count Count
+      (fun (n : Count) => add n (pacedDeferredIngressVisits capacity rest
+        (boundedResumedPolicyIngressDeferred capacity (policyIngressScanAllowance scan) deferred arrivals)))
+      (add (policyIngressLength deferred) (policyIngressLength arrivals))
+      (policyIngressLength (boundedResumedPolicyIngressOffered deferred arrivals))
+      (equalSymmetry Count (policyIngressLength (appendPolicyIngress deferred arrivals))
+        (add (policyIngressLength deferred) (policyIngressLength arrivals))
+        (appendPolicyIngressLength deferred arrivals))
+
+def pacedDeferredIngressScanCost : Count -> PacedPolicyIngressSchedule -> PolicyIngressTrace -> Count -> Count :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (scanCost : Count) =>
+    multiply (policyIngressLength (pacedDeferredIngressExamined capacity schedule deferred)) scanCost
+
+def pacedDeferredIngressScanCostBound : (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> (scanCost : Count) ->
+    AtMost (pacedDeferredIngressScanCost capacity schedule deferred scanCost)
+      (multiply (pacedPolicyIngressScans schedule) scanCost) :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (scanCost : Count) =>
+    multipliedBounds (policyIngressLength (pacedDeferredIngressExamined capacity schedule deferred))
+      (pacedPolicyIngressScans schedule) scanCost (pacedDeferredIngressScanBound capacity schedule deferred)
+
+-- scanCost covers admission decisions for each examined occurrence.
+-- handoffCost covers all offered-item passes, including retention and overflow.
+-- turnCost covers fixed work on every turn, including empty and paused turns.
+def pacedDeferredIngressAdminCost : Count -> PacedPolicyIngressSchedule -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (pacedDeferredIngressScanCost capacity schedule deferred scanCost)
+      (add (multiply (pacedDeferredIngressVisits capacity schedule deferred) handoffCost)
+        (multiply (pacedPolicyIngressTurns schedule) turnCost))
+
+def pacedDeferredIngressAdminLimit : Count -> PacedPolicyIngressSchedule -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (multiply (pacedPolicyIngressScans schedule) scanCost)
+      (add (multiply (pacedDeferredIngressVisitLimit capacity schedule (policyIngressLength deferred)) handoffCost)
+        (multiply (pacedPolicyIngressTurns schedule) turnCost))
+
+def pacedDeferredIngressAdminCountsWork : (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> Equal Count
+      (pacedDeferredIngressAdminCost capacity schedule deferred scanCost handoffCost turnCost)
+      (add (multiply (policyIngressLength (pacedDeferredIngressExamined capacity schedule deferred)) scanCost)
+        (add (multiply (pacedDeferredIngressVisits capacity schedule deferred) handoffCost)
+          (multiply (pacedPolicyIngressTurns schedule) turnCost))) :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    same
+
+def pacedDeferredIngressAdminBound : (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) ->
+    AtMost (pacedDeferredIngressAdminCost capacity schedule deferred scanCost handoffCost turnCost)
+      (pacedDeferredIngressAdminLimit capacity schedule deferred scanCost handoffCost turnCost) :=
+  fun (capacity : Count) (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    addBounds (pacedDeferredIngressScanCost capacity schedule deferred scanCost)
+      (multiply (pacedPolicyIngressScans schedule) scanCost)
+      (add (multiply (pacedDeferredIngressVisits capacity schedule deferred) handoffCost)
+        (multiply (pacedPolicyIngressTurns schedule) turnCost))
+      (add (multiply (pacedDeferredIngressVisitLimit capacity schedule (policyIngressLength deferred)) handoffCost)
+        (multiply (pacedPolicyIngressTurns schedule) turnCost))
+      (pacedDeferredIngressScanCostBound capacity schedule deferred scanCost)
+      (addBounds (multiply (pacedDeferredIngressVisits capacity schedule deferred) handoffCost)
+        (multiply (pacedDeferredIngressVisitLimit capacity schedule (policyIngressLength deferred)) handoffCost)
+        (multiply (pacedPolicyIngressTurns schedule) turnCost) (multiply (pacedPolicyIngressTurns schedule) turnCost)
+        (multipliedBounds (pacedDeferredIngressVisits capacity schedule deferred)
+          (pacedDeferredIngressVisitLimit capacity schedule (policyIngressLength deferred)) handoffCost
+          (pacedDeferredIngressVisitBound capacity schedule deferred))
+        (reflexiveBound (multiply (pacedPolicyIngressTurns schedule) turnCost)))
+
+def pacedDeferredIngressAdminStopped : (capacity : Count) -> (deferred : PolicyIngressTrace) ->
+    (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> Equal Count
+      (pacedDeferredIngressAdminCost capacity pacedPolicyIngressDone deferred scanCost handoffCost turnCost) zero :=
+  fun (capacity : Count) (deferred : PolicyIngressTrace) (scanCost : Count) (handoffCost : Count) (turnCost : Count) => same
+
+def pacedDeferredIngressEmptyTurnCost : (capacity : Count) -> (scanCost : Count) ->
+    (handoffCost : Count) -> (turnCost : Count) -> Equal Count
+      (pacedDeferredIngressAdminCost capacity
+        (pacedPolicyIngressTurn off zero policyIngressDone pacedPolicyIngressDone) policyIngressDone
+        scanCost handoffCost turnCost) turnCost :=
+  fun (capacity : Count) (scanCost : Count) (handoffCost : Count) (turnCost : Count) => addRightZero turnCost
+
+def pacedDeferredIngressPausedRetentionCost : (event : PolicyIngressEvent) -> Equal Count
+    (pacedDeferredIngressAdminCost (next zero)
+      (pacedPolicyIngressTurn off zero policyIngressDone
+        (pacedPolicyIngressTurn off zero policyIngressDone pacedPolicyIngressDone))
+      (policyIngressThen event policyIngressDone) (next zero) (next zero) (next zero))
+    (next (next (next (next zero)))) :=
+  fun (event : PolicyIngressEvent) => same
+
+def pacedDeferredIngressOversizedOverflowCost : (event : PolicyIngressEvent) -> Equal Count
+    (pacedDeferredIngressAdminCost zero
+      (pacedPolicyIngressTurn off zero (policyIngressThen event policyIngressDone) pacedPolicyIngressDone)
+      (policyIngressThen event (policyIngressThen event policyIngressDone)) (next zero) (next zero) (next zero))
+    (next (next (next (next zero)))) :=
+  fun (event : PolicyIngressEvent) => same
+
+def pacedDeferredIngressZeroDispatchScanCost : (event : PolicyIngressEvent) -> Equal Count
+    (pacedDeferredIngressAdminCost (next zero)
+      (pacedPolicyIngressTurn on zero policyIngressDone pacedPolicyIngressDone)
+      (policyIngressThen event policyIngressDone) (next zero) (next zero) (next zero))
+    (next (next (next zero))) :=
+  fun (event : PolicyIngressEvent) => same
+
+def pacedDeferredIngressCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PacedPolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (pacedDeferredIngressAdminCost capacity schedule deferred scanCost handoffCost turnCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (pacedDeferredIngressSchedule capacity schedule deferred) events) events config current eventCost policyCost handshakeCost)
+
+def pacedDeferredIngressCostLimit : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PacedPolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (scanCost : Count) (handoffCost : Count) (turnCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (pacedDeferredIngressAdminLimit capacity schedule deferred scanCost handoffCost turnCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (pacedDeferredIngressSchedule capacity schedule deferred) events) events config eventCost policyCost handshakeCost)
+
+def pacedDeferredIngressCostCountsWork : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) ->
+    (current : PolicyWorkState) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) ->
+    (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) -> Equal Count
+      (pacedDeferredIngressCost weight slots payloadLimit capacity schedule deferred events config current
+        scanCost handoffCost turnCost eventCost policyCost handshakeCost)
+      (add (pacedDeferredIngressAdminCost capacity schedule deferred scanCost handoffCost turnCost)
+        (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+          (pacedDeferredIngressSchedule capacity schedule deferred) events) events config current eventCost policyCost handshakeCost)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    same
+
+def pacedDeferredIngressCostEnvelope : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (capacity : Count) -> (schedule : PacedPolicyIngressSchedule) ->
+    (deferred : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) ->
+    (current : PolicyWorkState) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) ->
+    (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) ->
+    AtMost (pacedDeferredIngressCost weight slots payloadLimit capacity schedule deferred events config current
+        scanCost handoffCost turnCost eventCost policyCost handshakeCost)
+      (pacedDeferredIngressCostLimit weight slots payloadLimit capacity schedule deferred events config
+        scanCost handoffCost turnCost eventCost policyCost handshakeCost) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PacedPolicyIngressSchedule) (deferred : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds (pacedDeferredIngressAdminCost capacity schedule deferred scanCost handoffCost turnCost)
+      (pacedDeferredIngressAdminLimit capacity schedule deferred scanCost handoffCost turnCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (pacedDeferredIngressSchedule capacity schedule deferred) events) events config current eventCost policyCost handshakeCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (pacedDeferredIngressSchedule capacity schedule deferred) events) events config eventCost policyCost handshakeCost)
+      (pacedDeferredIngressAdminBound capacity schedule deferred scanCost handoffCost turnCost)
+      (pacedDeferredIngressCombinedCostEnvelope weight slots payloadLimit capacity schedule deferred events config current
+        eventCost policyCost handshakeCost workInitial handshakeInitial)

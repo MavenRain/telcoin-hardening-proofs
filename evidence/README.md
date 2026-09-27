@@ -340,3 +340,21 @@ overflow storage bounds, runtime refinement, service delivery or latency.
 The qualification-gate regression runs the entire checker and requires the
 incomplete-qualification exit status 2. Implementation and deployment remain
 unproved and unqualified.
+
+`policy-ingress-paced-cost-model-check.json` records the paced administrative
+cost extension: 738 explicit equality and order declarations in 40 modules,
+124 atomic obligations and 532 rejected negative checks. C85-C88 link weighted
+examination, repeated offered-item visits, administrative costs and the composed
+execution envelope. The 24 new controls each type-check with module-57 proof
+declarations removed and are rejected when those proofs are restored. Controls
+cover omitted charges, weakened limits and incorrect handoff threading.
+
+The visit limit accounts for the actual initial deferred suffix and every fresh
+batch, then permits a full deferred buffer on each later turn. Pauses, repeated
+retention, oversized overflow and zero dispatch fuel do not erase work. A fixed
+turn charge also covers empty turns. Runtime interpretation requires dominating
+scan/admission, handoff and fixed-turn weights alongside the existing execution
+weights, all in a common unit. Concrete cost dominance, external batch costs,
+output-history storage and real-time progress remain open. The receipt keeps
+`implementation_links` as `not_checked_this_run`; implementation refinement and
+deployment qualification remain false.
