@@ -38,7 +38,8 @@
     "bounded_ingress_handoff_schedules": "Finite sequential caller-supplied schedules use a fixed deferred capacity and scan allowance, with per-turn service fuel and fresh arrival batches. Each turn transfers only the capped deferred prefix and admitted queue/resource state; unexamined overflow is returned as chronological output history. The empty-schedule deferred bound requires initial fit. Output histories need not fit the deferred cap. Concrete ownership, overflow delivery/disposal, storage, cancellation, restart, fairness and fuel delivery remain external obligations.",
     "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds.",
     "paced_ingress_handoff_service": "Finite sequential schedules independently select zero or one ingress scan on each turn. The caller atomically carries the returned deferred FIFO into each delivered turn, including paused turns, and appends each fresh finite batch exactly once after that FIFO; the turn's zero-or-one scan allowance then examines only the FIFO head. Examined events leave the deferred FIFO whatever later admission decides, and only the unexamined suffix is retained or reported as overflow. Dispatch fuel and finite fresh arrival batches are arbitrary. A fixed deferred capacity retains the earliest unexamined prefix after every turn, including paused turns, and returns the remaining suffix as chronological overflow without internal replay. The terminal deferred bound requires initial fit. Prefix equations require only the original prefix to fit, and full examination additionally requires a natural slack witness that delivered scans cover its length. Overflow histories are output traces with no storage bound. Runtime delivery, exclusive ownership, admission, dispatch, mandatory-event handling, cancellation, restart, concrete costs and latency remain external obligations. Module 56 composes this schedule with abstract admitted queue/resource execution; runtime refinement remains open.",
-    "paced_ingress_administrative_costs": "The symbolic scanCost dominates admission work for every examined occurrence, including payload/entry decisions, charge computation and examined rejection. The independent handoffCost dominates each offered occurrence on each delivered turn, including all concatenation and partition passes, retained suffix handling, overflow materialization and ownership transfer. Retained occurrences are charged again on later turns, including pauses; initial and fresh offered batches may exceed deferred capacity. turnCost dominates remaining per-turn work, including empty and paused turns and any backlog measurement not covered by per-item charges. All six administrative and execution weights use a common nonnegative unit. These are runtime domination obligations, not measured costs or kernel assumptions. The visit limit uses the actual initial deferred length on the first turn and fixed deferred capacity thereafter, plus every fresh batch length. No arrival-rate, offered-batch size, output-history storage, external construction, uncharged allocation, executor scheduling or wall-clock bound follows without separate refinement and evidence."
+    "paced_ingress_administrative_costs": "The symbolic scanCost dominates admission work for every examined occurrence, including payload/entry decisions, charge computation and examined rejection. The independent handoffCost dominates each offered occurrence on each delivered turn, including all concatenation and partition passes, retained suffix handling, overflow materialization and ownership transfer. Retained occurrences are charged again on later turns, including pauses; initial and fresh offered batches may exceed deferred capacity. turnCost dominates remaining per-turn work, including empty and paused turns and any backlog measurement not covered by per-item charges. All six administrative and execution weights use a common nonnegative unit. These are runtime domination obligations, not measured costs or kernel assumptions. The visit limit uses the actual initial deferred length on the first turn and fixed deferred capacity thereafter, plus every fresh batch length. No arrival-rate, offered-batch size, output-history storage, external construction, uncharged allocation, executor scheduling or wall-clock bound follows without separate refinement and evidence.",
+    "variable_ingress_scan_schedule": "Finite sequential schedules supply an arbitrary natural scan allowance on each delivered turn, independently of dispatch fuel. The caller atomically transfers the deferred FIFO and admitted queue/resource state; each finite fresh batch is appended exactly once behind deferred work. The scan selects the earliest offered prefix, then a fixed deferred capacity retains the earliest unexamined suffix and returns the rest as chronological overflow. Paused turns still append, retain and report overflow. Examined occurrences leave deferred ownership regardless of subsequent admission. The terminal deferred bound requires initial fit, including for an empty schedule. Original-prefix protection requires that prefix to fit capacity; complete examination additionally requires total delivered scan allowances to cover its length with a natural slack witness. Admission and dispatch are separate from examination. Runtime delivery, exclusive ownership, mandatory events, cancellation, restart, changing capacities, offered-batch construction, output-history storage, concrete costs and wall-clock latency remain external obligations."
   },
   "claims": [
     {
@@ -4058,6 +4059,159 @@
         "Refine actual admission, handoff and dispatched work and justify all six weights in a common unit.",
         "Verify initial credits, trusted refill/expiry events and stable configuration against runtime state.",
         "Bound external batch construction, scheduling, output history and wall-clock latency separately."
+      ]
+    },
+    {
+      "id": "C89",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Finite schedules independently supply arbitrary natural scan allowances and dispatch fuel. Each turn examines only its offered FIFO prefix, carries the bounded unexamined suffix forward, and reports chronological overflow. Total examined occurrences are bounded by the sum of scan allowances, and dispatch fuel is preserved. A 2, 0, 3 allowance witness covers fresh arrivals, a pause and overflow.",
+      "theorems": [
+        "variableDeferredIngressTurn",
+        "variableDeferredIngressStopped",
+        "variableDeferredIngressOverflowStep",
+        "variableDeferredIngressPausedExamined",
+        "variableDeferredIngressZeroCapacityOverflow",
+        "variableDeferredIngressScanBound",
+        "variableDeferredIngressPreservesFuel",
+        "variableDeferredIngressMixedExamined",
+        "variableDeferredIngressMixedRemainder",
+        "variableDeferredIngressMixedOverflow"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine per-turn scan delivery independently of dispatch fuel and preserve exclusive FIFO ownership.",
+        "Account separately for external batch construction, examined rejection and mandatory-event delivery."
+      ]
+    },
+    {
+      "id": "C90",
+      "parent": "H16",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For arbitrary finite natural-allowance schedules and fresh batches, an original prefix that fits the fixed deferred capacity retains FIFO priority. The take of that prefix by the total scan allowance is a prefix of the chronological examined trace. If total scans cover its length, the entire original prefix is examined. Examination does not imply admission, dispatch or a real-time deadline.",
+      "theorems": [
+        "variableDeferredIngressPrefixEquation",
+        "variableDeferredIngressServiceEquation"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Supply enough scan allowances and establish the original-prefix capacity witness in runtime state.",
+        "Refine FIFO retention across pauses and overflow; prove admission, dispatch and latency separately."
+      ]
+    },
+    {
+      "id": "C91",
+      "parent": "H05",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The natural-allowance handoff executor feeds its actual examined schedule through payload/entry admission and resource execution and reports the chronological overflow of its actual schedule. The final deferred length, admitted queue length, admitted payload weight and pending-resource occupancy retain their respective fixed bounds when each corresponding initial bound holds. Empty schedules preserve initial deferred ownership.",
+      "theorems": [
+        "variableDeferredIngressExecutesQueue",
+        "variableDeferredIngressReportsOverflow",
+        "variableDeferredIngressBound",
+        "variableDeferredIngressHandoffBound",
+        "variableDeferredIngressQueueEntryBound",
+        "variableDeferredIngressQueuePayloadBound",
+        "variableDeferredIngressPendingBound",
+        "variableDeferredIngressStopped"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine payload admission, queue/resource state transfer and independent initial bounds.",
+        "Preserve examined rejection and unexamined overflow as distinct ownership outcomes; handle mandatory events and cancellation."
+      ]
+    },
+    {
+      "id": "C92",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Across finite natural-allowance schedules, weighted examination, every offered-item handoff visit and fixed work on every delivered turn satisfy an administrative bound. The visit limit pays actual initial deferred length first and fixed capacity thereafter, plus every fresh batch. Administrative cost plus the actual payload-filtered dispatched-work cost satisfies the combined envelope under the initial work/handshake credit bounds, counting each execution burst once. Costs remain symbolic.",
+      "theorems": [
+        "variableDeferredIngressVisitsOffered",
+        "variablePolicyIngressTurnsStep",
+        "variableDeferredIngressVisitBound",
+        "variableDeferredIngressScanCostBound",
+        "variableDeferredIngressAdminCountsWork",
+        "variableDeferredIngressAdminBound",
+        "variableDeferredIngressAdminStopped",
+        "variableDeferredIngressCostCountsWork",
+        "variableDeferredIngressCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance",
+        "paced_ingress_administrative_costs",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Justify all six cost weights in a common unit, including repeated retention, examined rejection, overflow and paused/empty turns.",
+        "Verify initial credits, trusted refill/expiry and stable resource configuration.",
+        "Bound external construction, output-history storage, scheduling and wall-clock latency separately."
       ]
     }
   ]

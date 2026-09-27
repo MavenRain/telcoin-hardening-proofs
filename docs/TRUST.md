@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 529 additional semantic mutations must
+The 562 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -30,6 +30,13 @@ third-party attestation. File hashes detect drift, not semantic correctness.
 
 ## Open boundaries
 
+- Natural scan allowances in module 58 are supplied per delivered turn,
+  independently of dispatch fuel. Prefix protection requires that the original
+  prefix fit the fixed deferred capacity; full examination also requires enough
+  total scans. Terminal deferred and admitted-state bounds retain their initial
+  conditions. These proofs establish examination progress and symbolic work
+  accounting. Runtime scan delivery, exclusive ownership, admission, dispatch,
+  changing capacities, concrete cost domination and latency require refinement.
 - `Reachability.validated` must be connected to correct QUIC token semantics,
   return reachability and restart/key behavior. The model does not verify tokens.
 - Authentication, policy freshness, committee membership and source attribution

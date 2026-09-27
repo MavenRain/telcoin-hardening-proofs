@@ -97,18 +97,22 @@ turn, including pauses and empty turns. Handoff visits use actual initial
 deferred length on the first turn and fixed deferred capacity thereafter,
 plus every fresh batch, so repeated retention and oversized overflow are
 charged. This administrative ledger composes with the actual dispatched-work
-envelope under the existing initial credit bounds. Next generalize the paced
-zero-or-one scan schedule to varying natural scan allowances while preserving
-FIFO service, handoff bounds and cost accounting. Concrete domination of all
-scan, admission, concatenation, retention, overflow and per-turn costs still
-requires runtime refinement. Offered-batch construction, output-history storage,
-scan delivery, admission and dispatch after examination, changing capacities
-and real-time latency remain open.
+envelope under the existing initial credit bounds. Varying natural scan
+allowances now preserve fitting-prefix FIFO service and conditional handoff and
+admitted-state bounds, independent dispatch fuel and the combined symbolic cost
+envelope. The prefix induction handles multiple examinations within one turn, as
+well as pauses and fresh batches. Next establish exact chronological occurrence
+accounting across variable-allowance schedules, including examined work, final
+deferred work and overflow, with explicit ordering of the per-turn partitions.
+Concrete domination of all scan, admission, concatenation, retention, overflow
+and per-turn costs still requires runtime refinement. Offered-batch
+construction, output-history storage, scan delivery, admission and dispatch
+after examination, changing capacities and real-time latency remain open.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 124 atomic model obligations
+   explicit dispositions. The current 34 groups and 128 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

@@ -358,3 +358,21 @@ weights, all in a common unit. Concrete cost dominance, external batch costs,
 output-history storage and real-time progress remain open. The receipt keeps
 `implementation_links` as `not_checked_this_run`; implementation refinement and
 deployment qualification remain false.
+
+`policy-ingress-variable-scans-model-check.json` records the natural-allowance
+extension: 768 explicit equality and order declarations in 41 modules, 128
+atomic obligations and 565 rejected negative checks. Module 58 adds 30 proof
+declarations and C89-C92 link variable scan accounting, original-prefix FIFO
+service, conditional state bounds and the combined symbolic cost envelope.
+All 33 new controls also reject after removing `variableDeferredIngressMixedExamined`,
+`variableDeferredIngressMixedRemainder` and `variableDeferredIngressMixedOverflow`;
+the general equations and bounds detect the faults without these fixed-schedule
+witnesses. Existing mutation rows and gate logic are unchanged.
+
+The full `make gate-regression` run checks the positive bundle, empty axiom
+disclosure, source and catalog freshness, all negative controls, and the expected
+qualification-blocked exit 2. This receipt is copied from that full report and
+its input hashes match the final checked files. Runtime scan delivery, exclusive
+ownership, concrete domination of the six cost weights, output-history storage
+and latency remain open. Implementation links remain `not_checked_this_run`;
+implementation refinement and deployment qualification remain false.

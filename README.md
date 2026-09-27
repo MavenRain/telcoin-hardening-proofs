@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[124 atomic model obligations](atomic-claims.json) documenting theorem links,
+[128 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 532 deliberately invalid
+source hashes and coverage freshness, and requires 565 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-738 explicit equality and order proof declarations across 40 modules. This count
+768 explicit equality and order proof declarations across 41 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -108,6 +108,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `55-policy-ingress-handoff-pauses.mech` | Paused and one-scan turns preserve a fitting original FIFO prefix. Exact examination equations count delivered scans independently of dispatch fuel, with full-prefix examination given enough scans, bounded deferred retention and chronological overflow. Runtime delivery remains open. |
 | `56-policy-ingress-paced-execution.mech` | Paced handoffs compose with payload-filtered queue/resource execution, retain conditional queue bounds and pending capacity, conserve recursive examined/overflow/deferred occurrence counts, and inherit the dispatched-work cost envelope. Concrete scanning, storage, delivery and latency remain open. |
 | `57-policy-ingress-paced-cost.mech` | Weighted examination, all offered-item handoff visits and fixed per-turn work compose with the dispatched-work envelope. Pauses, repeated retention, oversized overflow and zero dispatch fuel remain charged. Runtime cost dominance and latency remain open. |
+| `58-policy-ingress-variable-scans.mech` | Independent natural scan allowances examine a fitting original deferred prefix in FIFO order, and examine all of it given enough total scans. They keep conditional deferred and admitted-state bounds, separate dispatch fuel, and the combined symbolic cost envelope. A mixed 2, 0, 3 allowance schedule checks fresh arrivals and overflow across a pause. Runtime scan delivery, cost dominance and latency remain open. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

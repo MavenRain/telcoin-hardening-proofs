@@ -1395,10 +1395,60 @@ Each mutated definition bundle type-checks before the module-57 proof
 declarations are restored; all 24 complete bundles fail with semantic
 mismatches.
 
+## Natural scan allowances across handoffs
+
+`58-policy-ingress-variable-scans.mech` replaces the paced scan flag with a
+natural allowance on each finite scheduled turn. Scan allowance, dispatch fuel
+and the fresh arrival batch are independent. Each turn appends fresh arrivals
+behind the retained FIFO, examines its allowance-limited prefix, retains the
+earliest unexamined suffix up to fixed deferred capacity, and reports the rest
+as chronological overflow. Zero-allowance turns still perform the handoff.
+
+`variableDeferredIngressTurn`, `variableDeferredIngressOverflowStep` and
+`variableDeferredIngressPausedExamined` specify these equations over variables.
+`variableDeferredIngressScanBound` bounds examined occurrences by the sum of
+delivered allowances. `variableDeferredIngressPreservesFuel` separately preserves
+the sum of dispatch fuel. The mixed witness uses allowances 2, 0 and 3 with fuel
+0, 1 and 0: original events `a,b,c` precede fresh `d,e`, pause-time arrival `f`
+overflows, and final arrival `g` remains deferred at capacity three.
+
+`variableDeferredIngressPrefixStep` inducts over the current natural allowance.
+Its successor consumes one original event; its zero case transfers the retained
+prefix to the remaining schedule. `variableDeferredIngressPrefixEquation`
+extracts an explicit suffix after the original prefix selected by total scans.
+The original prefix must fit deferred capacity; arbitrary later arrivals and
+overflow do not overtake it. `variableDeferredIngressServiceEquation` gives the
+whole-prefix equation when total scans cover that prefix with a natural slack
+witness. These statements concern examination, with admission and dispatch
+remaining separate obligations.
+
+`runVariableDeferredIngress` passes the actual examined schedule to the existing
+payload/entry admission and resource executor. The corresponding deferred,
+queue-entry, payload and pending-resource bounds retain their individual initial
+conditions. In particular, a schedule with no turns does not repair an initially
+oversized deferred buffer. There is no bound on accumulated overflow history.
+
+The administrative ledger charges examined occurrences by `scanCost`, every
+offered occurrence on every delivered turn by `handoffCost`, and every turn by
+`turnCost`. Its limit uses total scan allowances, actual initial deferred length
+on the first turn, fixed deferred capacity thereafter, and all fresh arrivals.
+It therefore includes repeated retention, oversized first offers, empty turns
+and pauses. `variableDeferredIngressCostEnvelope` composes this bound with the
+actual payload-filtered dispatch/policy/handshake envelope under initial credit
+bounds. Each initial execution burst is counted once. Concrete domination by
+all six weights, external batch construction, changing capacities, delivery,
+cancellation, mandatory events and real-time latency remain unproved.
+
+C89-C92 record these contracts. The 33 new semantic mutations alter scan totals,
+scan/fuel separation, FIFO order, retained capacity, replay, overflow, executor
+overflow reporting, admitted limits, initial and repeated visit charges, the
+turn count, each cost component and each cost limit component. They must
+fail with semantic mismatches; parser failures and crashes do not count.
+
 ## Negative controls
 
-The checker rejects 532 invalid variants: three direct checks of equality,
-ordering and termination, plus 529 semantic mutations. Mutations exercise such
+The checker rejects 565 invalid variants: three direct checks of equality,
+ordering and termination, plus 562 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
