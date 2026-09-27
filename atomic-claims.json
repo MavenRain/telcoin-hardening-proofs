@@ -4324,6 +4324,118 @@
         "Add concrete runtime regressions for pause-time overflow, equal-valued repeated events and later admission of fresh work.",
         "Distinguish event-value equality from occurrence identity when recording or consuming runtime evidence."
       ]
+    },
+    {
+      "id": "C97",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Concatenating finite variable-scan schedules preserves every turn's scan allowance, dispatch fuel and arrivals, with identity and associativity laws. Ledger splicing preserves each turn and has associativity and a compatible-terminal identity. Building a ledger for concatenated schedules equals splicing the first ledger with a second ledger resumed from the first schedule's exact deferred suffix at the same capacity; final deferred traces obey the corresponding composition equation.",
+      "theorems": [
+        "appendVariablePolicyIngressScheduleLeftIdentity",
+        "appendVariablePolicyIngressScheduleRightIdentity",
+        "appendVariablePolicyIngressScheduleAssociative",
+        "appendPolicyIngressLedgerTerminalIdentity",
+        "appendPolicyIngressLedgerAssociative",
+        "variableDeferredIngressRemainderAppend",
+        "variableDeferredIngressLedgerAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine schedule splitting and terminal replacement to atomic runtime ownership transfer without losing or replaying deferred work.",
+        "Establish construction and storage costs separately; these equations require the same deferred capacity on both schedule segments."
+      ]
+    },
+    {
+      "id": "C98",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The examined and overflow projections of a spliced ledger concatenate each segment's traces in order, while the final deferred projection comes only from the second ledger. For generated ledgers resumed from the first segment's exact deferred suffix, the deferred and overflow projections equal the actual model execution handoff fields of the concatenated schedule for arbitrary execution parameters and initial state.",
+      "theorems": [
+        "appendPolicyIngressLedgerExamined",
+        "appendPolicyIngressLedgerDeferred",
+        "appendPolicyIngressLedgerOverflow",
+        "composedVariableDeferredIngressHandoffDeferred",
+        "composedVariableDeferredIngressHandoffOverflow"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Relate these mathematical output projections to concrete runtime ownership, overflow delivery and retained-state storage.",
+        "Prove composition of the complete runtime execution state separately; these theorems identify deferred and overflow fields, not all state fields or post-examination admission and dispatch outcomes."
+      ]
+    },
+    {
+      "id": "C99",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For arbitrary finite schedule segments, fixed deferred capacity and initial deferred trace, chronological reconstruction of their composed generated ledger equals the initial deferred trace followed by both segments' fresh arrivals in order. The exact trace equality preserves equal-valued occurrences and requires no initial-fit premise.",
+      "theorems": [
+        "variablePolicyIngressArrivalsAppend",
+        "composedVariableDeferredIngressChronological"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine occurrence-preserving concatenation, retained-prefix boundaries and ledger reconstruction to the runtime.",
+        "Bound concrete reconstruction and output-history storage independently; arbitrary raw ledgers do not satisfy this chronological concatenation claim without a compatible continuation."
+      ]
+    },
+    {
+      "id": "C100",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A two-segment witness starts with an over-capacity deferred trace, pauses with nonzero dispatch fuel and fresh arrivals, then scans two occurrences with zero dispatch fuel. Composition retains the exact overflow before later arrivals and reconstructs a repeated equal-valued event twice in chronological order. Event values are arbitrary; capacities and schedule shapes are fixed by the witnesses.",
+      "theorems": [
+        "composedVariableDeferredIngressPauseOverflow",
+        "composedVariableDeferredIngressRepeatedChronology"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Validate runtime pause, overflow and continuation behavior under real scheduling and ownership transitions.",
+        "These finite witnesses do not establish unique occurrence identities, fairness, wall-clock progress or runtime memory and cost bounds."
+      ]
     }
   ]
 }

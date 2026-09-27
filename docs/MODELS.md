@@ -1492,10 +1492,57 @@ Rejection must be a type mismatch. Existing controls and gate logic are unchange
 Ledger storage, reconstruction cost, runtime occurrence identity, cancellation,
 restart, mandatory events and real-time delivery remain implementation obligations.
 
+## Composition across ingress schedules
+
+`60-policy-ingress-composition.mech` concatenates finite variable-scan schedules
+without changing their scan allowances, dispatch fuel or arrival batches.
+Schedule identity and associativity laws preserve the complete turn structure.
+`appendPolicyIngressLedger` replaces the first ledger's terminal node with a
+second ledger, preserving all earlier examined blocks, retained-prefix lengths
+and overflow blocks. Its terminal identity uses the first ledger's own final
+deferred trace; an arbitrary empty terminal is not a right identity.
+
+`composedVariableDeferredIngressLedger` builds the second segment from the first
+segment's exact deferred remainder at the same capacity.
+`variableDeferredIngressLedgerAppend` proves that this splice equals the ledger
+generated for the concatenated schedule. The final-remainder equation separately
+identifies the deferred handoff across that boundary. All these equations range
+over arbitrary finite schedules, capacities and initial deferred traces.
+
+The examined and overflow projections concatenate the two segment projections
+in order. The final deferred projection comes only from the second ledger.
+The two composed handoff theorems identify deferred and overflow with the fields
+returned by `runVariableDeferredIngress` for the concatenated schedule, under
+arbitrary execution parameters. They do not assert equality of every execution
+state field or composition of concrete runtime executions.
+
+`composedVariableDeferredIngressChronological` reconstructs initial deferred work
+followed by the first segment's fresh arrivals and then the second's. It requires
+no initial-fit premise. This theorem is for generated ledgers with the exact
+continuation, not arbitrary raw ledger pairs. Concatenating their independently
+reconstructed histories would count the carried deferred suffix twice.
+
+The two fixed-schedule witnesses begin with `a,b` at capacity one. A paused turn
+with dispatch fuel two receives `c`, retains `a`, and reports overflow `b,c`.
+The second segment receives another `a` and scans two occurrences with zero
+dispatch fuel. The composed ledger examines `a,a`, while its reconstructed input
+is `a,b,c,a`. Event values remain arbitrary and may coincide.
+
+C97-C100 link these contracts. The 22 new mutation controls corrupt schedule
+segments and budgets, ledger fields and terminal replacement, or the resumed
+schedule, capacity and deferred suffix. All reject with proof type mismatches
+even after removing both fixed-schedule witnesses; the remaining positive bundle
+also checks. Existing mutation rows are unchanged.
+
+These are finite mathematical ledger equations. Runtime ownership transfer,
+changing deferred capacity, construction and output-history storage costs,
+overflow delivery, admission and dispatch after examination, and real-time
+service remain open.
+
 ## Negative controls
 
-The checker rejects 590 invalid variants: three direct checks of equality,
-ordering and termination, plus 587 semantic mutations. Mutations exercise such
+The checker rejects 612 invalid variants: three direct checks of equality,
+ordering and termination, plus 609 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

@@ -397,3 +397,25 @@ report and its input hashes match the final checked files. Reconstruction is a
 finite mathematical history, with no proved runtime storage or cost bound.
 Implementation links remain `not_checked_this_run`; implementation refinement
 and deployment qualification remain false.
+
+`policy-ingress-composition-model-check.json` records finite schedule and ledger
+composition: 799 explicit equality and order declarations in 43 modules, 136
+atomic obligations and 612 rejected negative checks. Module 60 adds 16 proof
+declarations; C97-C100 link schedule and ledger laws, exact deferred continuation,
+output projections, chronological concatenation and pause/overflow witnesses.
+
+All 22 new controls also reject after removing
+`composedVariableDeferredIngressPauseOverflow` and
+`composedVariableDeferredIngressRepeatedChronology`. The reduced positive bundle
+checks, and all 22 faults produce proof type mismatches in the remaining general
+proofs. Three direct equality, order and termination checks also reject.
+Existing mutation rows are unchanged.
+
+The full `make gate-regression` run checks the positive bundle, empty axiom
+disclosure, source and catalog freshness, all 612 negative controls, and the
+expected qualification-blocked exit 2. The receipt copies that report with
+input hashes matching the final checked files. The model assumes the same
+deferred capacity for both schedule segments. Complete runtime state composition,
+ownership transfer, construction and output-history storage remain open.
+Implementation links remain `not_checked_this_run`; implementation refinement
+and deployment qualification remain false.
