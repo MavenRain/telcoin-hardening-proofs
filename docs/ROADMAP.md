@@ -101,9 +101,13 @@ envelope under the existing initial credit bounds. Varying natural scan
 allowances now preserve fitting-prefix FIFO service and conditional handoff and
 admitted-state bounds, independent dispatch fuel and the combined symbolic cost
 envelope. The prefix induction handles multiple examinations within one turn, as
-well as pauses and fresh batches. Next establish exact chronological occurrence
-accounting across variable-allowance schedules, including examined work, final
-deferred work and overflow, with explicit ordering of the per-turn partitions.
+well as pauses and fresh batches. A finite occurrence ledger now projects to
+examined work, final deferred work and actual handoff overflow. Recorded
+retained-prefix lengths place per-turn overflow before later arrivals, so the
+reconstructed trace equals initial deferred work followed by every fresh batch
+in chronological order. This equality includes repeated equal-valued events and
+requires no initial-fit premise. Next compose these ledgers across schedule
+concatenation and relate their construction and storage to the runtime.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -112,7 +116,7 @@ after examination, changing capacities and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 128 atomic model obligations
+   explicit dispositions. The current 34 groups and 132 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

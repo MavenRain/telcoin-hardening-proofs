@@ -376,3 +376,24 @@ its input hashes match the final checked files. Runtime scan delivery, exclusive
 ownership, concrete domination of the six cost weights, output-history storage
 and latency remain open. Implementation links remain `not_checked_this_run`;
 implementation refinement and deployment qualification remain false.
+
+`policy-ingress-accounting-model-check.json` records chronological occurrence
+accounting: 783 explicit equality and order declarations in 42 modules, 132 atomic
+obligations and 590 rejected negative checks. Module 59 adds 15 proof declarations;
+C93-C96 link per-turn reconstruction, actual-output projections, whole-schedule
+chronology and its count corollary, and fixed-schedule boundary witnesses.
+
+All 25 new controls also reject after removing `variableDeferredIngressLedgerMixed`,
+`variableDeferredIngressLedgerInterleaving`, `variableDeferredIngressChronologicalInterleaving`,
+`variableDeferredIngressLedgerDuplicateOccurrences` and `variableDeferredIngressLedgerZeroCapacity`.
+The remaining positive bundle still checks, and the general proofs reject each
+fault with a type mismatch. Three direct equality, order and termination checks
+also reject in that reduced-witness run. Existing mutation rows are unchanged.
+
+The full `make gate-regression` run checks the positive bundle, empty axiom
+disclosure, source and catalog freshness, all 590 negative controls, and the
+expected qualification-blocked exit 2. This receipt is copied from that full
+report and its input hashes match the final checked files. Reconstruction is a
+finite mathematical history, with no proved runtime storage or cost bound.
+Implementation links remain `not_checked_this_run`; implementation refinement
+and deployment qualification remain false.

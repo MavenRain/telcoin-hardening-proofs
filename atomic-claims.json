@@ -4213,6 +4213,117 @@
         "Verify initial credits, trusted refill/expiry and stable resource configuration.",
         "Bound external construction, output-history storage, scheduling and wall-clock latency separately."
       ]
+    },
+    {
+      "id": "C93",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Given the exact examined, retained and overflow partition of one offered FIFO, reinserting overflow after the retained prefix reconstructs that offer followed by later arrivals. The retained prefix length locates the boundary; overflow precedes later arrivals even when those arrivals are examined on a later turn. When the continuation is shorter than the retained count, overflow follows the whole continuation.",
+      "theorems": [
+        "insertPolicyIngressOverflowAfterPrefix",
+        "reconstructPolicyIngressRound",
+        "insertPolicyIngressOverflowShortContinuation"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine the per-turn partition and retained-prefix boundary to concrete queue ownership and occurrence-preserving operations.",
+        "Bound the concrete cost of reconstructing or streaming any accounting history separately."
+      ]
+    },
+    {
+      "id": "C94",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The finite variable-allowance ledger projects exactly to the existing model's chronological examined trace, final deferred trace and chronological overflow trace. The deferred and overflow projections also equal the actual execution handoff fields for arbitrary execution parameters and initial state.",
+      "theorems": [
+        "variableDeferredIngressLedgerExamined",
+        "variableDeferredIngressLedgerDeferred",
+        "variableDeferredIngressLedgerOverflow",
+        "variableDeferredIngressLedgerHandoffDeferred",
+        "variableDeferredIngressLedgerHandoffOverflow"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine ledger projections to the runtime handoff and preserve exclusive ownership across each transfer.",
+        "Account separately for admission rejection, dispatch, cancellation and mandatory-event delivery after examination."
+      ]
+    },
+    {
+      "id": "C95",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For every finite variable-allowance schedule, chronological reconstruction from its examined blocks, overflow blocks, retained-prefix lengths and final deferred tail equals initial deferred input followed by every fresh batch in schedule order. The reconstructed occurrence count therefore equals the input count. No initial-fit premise is required; this does not establish a terminal capacity bound for an oversized initial FIFO and an empty schedule.",
+      "theorems": [
+        "variableDeferredIngressChronological",
+        "variableDeferredIngressChronologicalCount"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Preserve concrete input occurrences, per-turn boundaries and batch chronology through the runtime refinement.",
+        "Bound retained output history, its construction cost and wall-clock service separately; the ledger is finite mathematical evidence."
+      ]
+    },
+    {
+      "id": "C96",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Fixed-schedule witnesses over variable event values cover allowances 2, 0 and 3, pause-time overflow, an overflow occurrence preceding a later examined occurrence, three equal-valued occurrences split across examined, deferred and overflow outputs, and zero deferred capacity. The general reconstruction and projection proofs establish the corresponding arbitrary-schedule equations.",
+      "theorems": [
+        "variableDeferredIngressLedgerMixed",
+        "variableDeferredIngressLedgerInterleaving",
+        "variableDeferredIngressChronologicalInterleaving",
+        "variableDeferredIngressLedgerDuplicateOccurrences",
+        "variableDeferredIngressLedgerZeroCapacity"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Add concrete runtime regressions for pause-time overflow, equal-valued repeated events and later admission of fresh work.",
+        "Distinguish event-value equality from occurrence identity when recording or consuming runtime evidence."
+      ]
     }
   ]
 }

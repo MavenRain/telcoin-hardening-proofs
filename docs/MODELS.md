@@ -1445,10 +1445,57 @@ overflow reporting, admitted limits, initial and repeated visit charges, the
 turn count, each cost component and each cost limit component. They must
 fail with semantic mismatches; parser failures and crashes do not count.
 
+## Chronological occurrence accounting
+
+`59-policy-ingress-accounting.mech` records a finite `PolicyIngressLedger` for
+the existing natural-allowance handoff model. Each turn records its examined
+block, the length of its retained prefix, its overflow block and the next ledger.
+The terminal node records the final deferred trace. Retained events are carried
+to the next turn, rather than copied into a second event-history field.
+
+`variableDeferredIngressLedgerExamined`, `variableDeferredIngressLedgerDeferred`
+and `variableDeferredIngressLedgerOverflow` identify these projections with the
+existing examined, final-deferred and chronological-overflow traces. The two
+handoff projection theorems identify deferred and overflow with the actual fields
+returned by `runVariableDeferredIngress`, for arbitrary execution parameters.
+Examination remains separate from admission and dispatch.
+
+The input chronology is not generally the concatenation of the three output
+projections. At capacity one, a paused first turn offering `a,b` retains `a` and
+reports `b`; a later turn offering `c` with allowance two examines `a,c`.
+Chronological input is `a,b,c`, although examination order is `a,c` and overflow
+is `b`. `variableDeferredIngressLedgerInterleaving` records this ledger and
+`variableDeferredIngressChronologicalInterleaving` reconstructs its input.
+
+`insertPolicyIngressOverflowAfterPrefix` inserts an overflow block after the
+retained prefix of a reconstructed continuation, before later arrivals.
+`insertPolicyIngressOverflowShortContinuation` fixes the short-continuation case:
+overflow follows the whole continuation.
+`reconstructPolicyIngressRound` combines that equation with the exact one-turn
+partition, ordered as examined, retained and overflow. Structural induction over
+the schedule gives `variableDeferredIngressChronological`: reconstruction from
+the ledger equals the initial deferred trace followed by every fresh batch in
+schedule order. `variableDeferredIngressChronologicalCount` applies trace length
+to this equality. No initial-fit premise is needed for accounting; an empty
+schedule preserves even an oversized initial FIFO and does not repair its bound.
+
+The mixed 2, 0, 3 allowance witness retains the original FIFO ahead of fresh
+arrivals and records overflow on the paused turn. Further witnesses cover three
+equal-valued events split across all three outputs and zero deferred capacity.
+Trace equality preserves value multiplicity and order; it does not assign unique
+runtime identities to equal-valued occurrences.
+
+C93-C96 link these contracts. All 25 new mutation controls also reject with the
+five fixed-schedule witnesses removed. They alter splice position and contents,
+projection order, terminal state, scan/fuel separation, carried state and capacity.
+Rejection must be a type mismatch. Existing controls and gate logic are unchanged.
+Ledger storage, reconstruction cost, runtime occurrence identity, cancellation,
+restart, mandatory events and real-time delivery remain implementation obligations.
+
 ## Negative controls
 
-The checker rejects 565 invalid variants: three direct checks of equality,
-ordering and termination, plus 562 semantic mutations. Mutations exercise such
+The checker rejects 590 invalid variants: three direct checks of equality,
+ordering and termination, plus 587 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
