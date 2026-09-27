@@ -1539,10 +1539,62 @@ changing deferred capacity, construction and output-history storage costs,
 overflow delivery, admission and dispatch after examination, and real-time
 service remain open.
 
+## Execution across ingress schedule boundaries
+
+`61-policy-ingress-execution-composition.mech` extends the ledger equations to
+the complete execution result. Ordinary schedule concatenation preserves every
+turn's dispatch fuel and arrival batch. `runPolicyIngressScheduleAppend` carries
+the complete queue state into the second segment. `runPayloadIngressAppend`
+establishes the same equation with payload and slot admission applied at each
+turn, using the evolving admitted backlog.
+
+`variableDeferredIngressScheduleAppend` proves that scanning a concatenation is
+the same as concatenating the filtered schedules, with the second starting from
+the first exact deferred remainder. `variableDeferredIngressOverflowAppend`
+preserves the order of both overflow histories. These equations support
+`variableDeferredIngressStateAppend` and `runVariableDeferredIngressAppend`:
+`composedVariableDeferredIngress` runs the second segment with the first complete
+handoff state, joins the overflow outputs in order, and returns the second state.
+Equality includes deferred work, admitted queue and every policy/resource field.
+
+All composition theorems quantify over arbitrary finite schedules and initial
+states, including empty schedules, oversized initial deferred work, zero
+capacities and paused turns. They require no initial-fit premise. Both segments
+use the same weight function, slot and payload limits, deferred capacity and
+policy configuration. Initial-fit premises remain necessary for the separate
+capacity bounds; these equalities do not supply them.
+
+`variableDeferredIngressDispatchedAppend` concatenates the actual model dispatch
+histories after scanning, admission and polling. The second history starts from
+the first resulting queue, and `variableDeferredIngressExecutesDispatched`
+identifies its resource execution with the final handoff's policy/resource state.
+Examined work that admission rejects is not part of that dispatched history.
+
+The boundary witness starts with queued `a`, admits `b` during a turn with zero
+dispatch fuel, then dispatches `a` on a turn with zero scan allowance. That turn
+receives `c,d`, retains `c` at deferred capacity one, and reports `d` as overflow.
+The final admitted queue is `b`, and the resource state reflects the dispatch of
+`a`. Event values, initial resource state and configuration remain arbitrary.
+
+C101-C104 link these contracts. The 29 new controls corrupt schedule fuel,
+arrivals or tails; overflow order, retention or duplication; carried deferred,
+queue or resource state; continuation parameters, configuration or boundary
+capacity; and dispatch projection or admission parameters.
+Every control rejects with a type mismatch even with the boundary witness
+removed, and that reduced positive bundle also checks. Existing controls are
+unchanged. The new module adds 14 equality proofs and four operational definitions.
+
+Runtime simulation, atomic ownership transfer, changes to configuration or
+capacity, concrete construction and storage costs, overflow delivery and real
+executor service remain open. Output-history storage has no bound here. The
+next composition step is to account for administrative and execution costs
+without charging the initial resource bursts again at schedule boundaries.
+
+
 ## Negative controls
 
-The checker rejects 612 invalid variants: three direct checks of equality,
-ordering and termination, plus 609 semantic mutations. Mutations exercise such
+The checker rejects 641 invalid variants: three direct checks of equality,
+ordering and termination, plus 638 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

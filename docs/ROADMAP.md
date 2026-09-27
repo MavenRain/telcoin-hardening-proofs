@@ -111,9 +111,14 @@ concatenation by carrying the first segment's exact deferred suffix into the
 second at the same capacity. The composed examined and overflow histories retain
 their order, final deferred work comes from the second ledger, and reconstruction
 preserves both fresh-arrival histories. Deferred and overflow projections match
-the concatenated schedule's model handoff fields. Next establish composition of
-the complete execution state and relate ledger ownership, construction and
-storage to the runtime.
+the concatenated schedule's model handoff fields. Complete execution now also
+composes across that boundary: deferred work, admitted queue, policy/resource
+state, ordered overflow and dispatched histories match sequential execution
+carrying the exact first handoff state. Parameters stay fixed, and no
+initial-fit premise is needed. Next compose administrative and execution cost
+accounting without charging initial resource bursts again at the boundary,
+and relate carried state, ledger ownership, construction and storage to the
+runtime.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -122,7 +127,7 @@ after examination, changing capacities and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 136 atomic model obligations
+   explicit dispositions. The current 34 groups and 140 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

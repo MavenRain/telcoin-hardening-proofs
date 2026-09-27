@@ -419,3 +419,26 @@ deferred capacity for both schedule segments. Complete runtime state composition
 ownership transfer, construction and output-history storage remain open.
 Implementation links remain `not_checked_this_run`; implementation refinement
 and deployment qualification remain false.
+
+`policy-ingress-execution-composition-model-check.json` records complete model
+execution across schedule boundaries: 813 equality and order declarations in
+44 modules, 140 atomic obligations and 641 rejected negative checks. Module 61
+adds 14 equality proofs, four operational definitions, atoms C101-C104 and 29
+semantic mutations. Complete handoff equality covers the deferred trace,
+admitted queue, policy/resource state and ordered overflow. Dispatch histories
+compose using the exact intermediate state, at fixed parameters and without
+an initial-fit premise.
+
+All 29 new controls also reject with type mismatches after removing
+`variableDeferredIngressExecutionPauseBoundary`; the reduced positive bundle
+checks. The fixed witness separately covers paused dispatch, carried backlog,
+nonzero service, deferred retention and overflow with arbitrary event values,
+resource state and configuration. Existing mutation rows are unchanged.
+
+The full `make gate-regression` run checks the positive bundle, empty axiom
+disclosure, source and catalog freshness, all 641 negative controls and the
+expected qualification-blocked exit 2. The receipt is copied from that report
+and its input hashes match the checked files. Implementation links remain
+`not_checked_this_run`; runtime refinement and deployment qualification remain
+false. Concrete ownership, parameter changes, storage and cost domination are
+outside these finite model equalities.

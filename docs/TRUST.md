@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 609 additional semantic mutations must
+The 638 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -24,9 +24,16 @@ Finite schedule composition resumes the second ledger from the first segment's
 exact deferred suffix at unchanged capacity. It preserves ledger projections and
 chronological reconstruction, including repeated equal-valued events. The model
 handoff equations identify deferred and overflow fields only. Arbitrary raw
-ledger splices need a compatible continuation for the chronology claim; runtime
-ownership transfer, complete execution-state composition, construction and
-history storage still require refinement.
+ledger splices need a compatible continuation for the chronology claim.
+Module 61 covers complete model state composition; runtime ownership transfer,
+construction and history storage still require refinement.
+
+Module 61 proves complete model execution composition at schedule boundaries,
+including deferred work, admitted queue, policy/resource state, ordered
+overflow and dispatched history. Both segments use the same weights, limits,
+capacity and configuration. No initial-fit premise is needed for the
+equalities. Runtime simulation, atomic ownership transfer, parameter changes,
+concrete costs and output-history storage still require refinement.
 
 ## Trusted components
 

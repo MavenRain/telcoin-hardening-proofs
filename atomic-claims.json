@@ -4436,6 +4436,124 @@
         "Validate runtime pause, overflow and continuation behavior under real scheduling and ownership transitions.",
         "These finite witnesses do not establish unique occurrence identities, fairness, wall-clock progress or runtime memory and cost bounds."
       ]
+    },
+    {
+      "id": "C101",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Executing concatenated finite ingress schedules equals executing the first segment and then the second with the complete resulting queue and policy/resource state. This equality also holds under payload admission with the same weight function, slot limit and payload limit; dispatched traces concatenate using the first segment's resulting queued backlog.",
+      "theorems": [
+        "runPolicyIngressScheduleAppend",
+        "runPayloadIngressAppend",
+        "payloadIngressTraceAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine schedule concatenation, payload admission and complete queue-state transfer to the runtime.",
+        "Justify stable weights, limits and policy/resource configuration across the boundary; parameter changes are outside these equalities."
+      ]
+    },
+    {
+      "id": "C102",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For arbitrary finite variable-scan schedules at one deferred capacity, filtering a concatenation equals concatenating the first filtered schedule with the second filtered from the exact first deferred remainder. Overflow histories concatenate in order across the same boundary. These equations require no initial-fit premise.",
+      "theorems": [
+        "policyIngressAppendStep",
+        "variableDeferredIngressScheduleAppend",
+        "variableDeferredIngressOverflowAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine the exact deferred continuation and ordered overflow output to atomic runtime ownership transfer.",
+        "Bound overflow-history storage and concrete scan, retention and concatenation costs separately."
+      ]
+    },
+    {
+      "id": "C103",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "At fixed weights, limits, capacity and policy configuration, the complete handoff for a concatenated schedule equals two sequential executions carrying the first handoff state, appending overflow histories, and retaining the second final state. Equality includes deferred work, admitted queue and every policy/resource state field. Empty schedules preserve the entire input state and emit no overflow, without an initial-fit premise.",
+      "theorems": [
+        "congruentBinary",
+        "variableDeferredIngressQueueAppend",
+        "variableDeferredIngressStateAppend",
+        "runVariableDeferredIngressAppend",
+        "variableDeferredIngressEmptyExecution"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "weighted_ingress_payload",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Prove simulation from concrete runtime execution and atomic ownership transfer to the complete mathematical handoff.",
+        "Handle configuration or capacity changes, concurrent mutation, overflow delivery, storage costs and real executor progress separately."
+      ]
+    },
+    {
+      "id": "C104",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The dispatched history of a concatenated variable-scan schedule equals the ordered concatenation of each segment's dispatched history, with the second using the first complete handoff state. Executing that history yields the handoff's policy/resource state. A two-turn witness retains an admitted arrival across a zero-dispatch turn, then dispatches the original queued head while retaining one deferred arrival and reporting one overflow occurrence; event values, initial resource state and configuration remain arbitrary.",
+      "theorems": [
+        "variableDeferredIngressExecutesDispatched",
+        "variableDeferredIngressDispatchedAppend",
+        "variableDeferredIngressExecutionPauseBoundary"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "weighted_ingress_payload",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Relate the mathematical dispatched history to concrete callbacks, queue ownership and resource updates.",
+        "Establish real fuel delivery, timing, storage and cost domination separately; the witness fixes its schedule and capacities."
+      ]
     }
   ]
 }
