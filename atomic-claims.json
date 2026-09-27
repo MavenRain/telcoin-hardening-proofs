@@ -4554,6 +4554,159 @@
         "Relate the mathematical dispatched history to concrete callbacks, queue ownership and resource updates.",
         "Establish real fuel delivery, timing, storage and cost domination separately; the witness fixes its schedule and capacities."
       ]
+    },
+    {
+      "id": "C105",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "For two finite variable-scan schedules at one deferred capacity, delivered turns, examined occurrence counts and offered-item visits add across the split when the second segment starts from the exact first deferred remainder. Their three weighted administrative charges therefore add exactly, including pauses, empty schedules, repeated retention and oversized initial buffers, without an initial-fit premise.",
+      "theorems": [
+        "costAddSwap",
+        "costAddInterchange",
+        "costMultiplyAdd",
+        "costThreeSums",
+        "costTripleAdd",
+        "costTripleCongruent",
+        "costTraceLengthAppend",
+        "variablePolicyIngressTurnsAppend",
+        "variableDeferredIngressVisitsAppend",
+        "policyIngressScheduleArrivalsAppend",
+        "variableDeferredIngressExaminedAppend",
+        "variableDeferredIngressExaminedLengthAppend",
+        "variableDeferredIngressAdminCostAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "paced_ingress_administrative_costs"
+      ],
+      "open_implementation_obligations": [
+        "Refine chronological schedule splitting and exact deferred ownership transfer, including repeated visits and oversized initial work.",
+        "Justify stable scan, handoff and turn weights in a common nonnegative unit. Concrete allocation, construction, history storage and latency are not bounded by the equality."
+      ]
+    },
+    {
+      "id": "C106",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Processed-policy receipt counts and accepted-handshake counts add over concatenated ingress traces when the second trace uses the resource state produced by the first. Together with dispatched occurrence counts, all three weighted trace charges add exactly for arbitrary initial resource states and natural weights.",
+      "theorems": [
+        "policyIngressProcessedAppend",
+        "policyIngressStartsAppend",
+        "policyIngressTraceCostAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine internal policy receipts, accepted-handshake receipts and serialized state evolution to the exact runtime callbacks.",
+        "Establish concrete domination of the event, query and accepted-handshake weights. Trace additivity supplies no independent timing or arrival-rate bound."
+      ]
+    },
+    {
+      "id": "C107",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The existing six-weight variable-ingress cost of a concatenated schedule equals the sum of the first cost and the second cost evaluated at the complete actual first handoff state. Administrative and dispatched charges compose together, carrying deferred work, admitted backlog and policy/resource state. Weight function, limits, configuration and all six cost weights stay fixed; the equality requires no initial-fit or initial-credit premise.",
+      "theorems": [
+        "variableDeferredIngressCostBoundaryWork",
+        "variableDeferredIngressDispatchCostAppend",
+        "variableDeferredIngressExecutionCostCountsWork",
+        "variableDeferredIngressExecutionCostAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance",
+        "paced_ingress_administrative_costs",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Refine the complete handoff boundary, admitted dispatch history and retained resource state to runtime ownership and execution.",
+        "Justify one cost vector and resource configuration across both segments. Configuration changes, concrete cost measurement, construction and output-history storage remain open."
+      ]
+    },
+    {
+      "id": "C108",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Under only the original work-credit and handshake-credit bounds, the sum of the two actual segment costs is bounded by the existing single whole-schedule six-weight envelope. The second segment resumes the exact first handoff state, so the proof neither restarts initial resource bursts nor needs an extra credit premise at the boundary. No initial queue or deferred-fit premise is required for this cost bound.",
+      "theorems": [
+        "composedVariableDeferredIngressCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance",
+        "paced_ingress_administrative_costs",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "Establish the original credit bounds, trusted tick correspondence and concrete domination of every symbolic cost component.",
+        "Refine boundary state transfer without reset or duplicated work. Real scheduling, changing parameters, mandatory-event delivery, uncharged allocations and wall-clock bounds remain separate obligations."
+      ]
     }
   ]
 }

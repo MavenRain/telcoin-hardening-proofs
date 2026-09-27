@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 638 additional semantic mutations must
+The 672 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -34,6 +34,15 @@ overflow and dispatched history. Both segments use the same weights, limits,
 capacity and configuration. No initial-fit premise is needed for the
 equalities. Runtime simulation, atomic ownership transfer, parameter changes,
 concrete costs and output-history storage still require refinement.
+
+Module 62 preserves the existing six-weight symbolic cost across schedule
+splits, using the complete actual handoff state and fixed parameters. The sum
+of both segment costs inherits one whole-schedule envelope under the original
+work and handshake credit bounds. No fresh burst or credit premise is added
+at the split. All 34 new controls reject against universal statements, without
+closed witnesses. This establishes neither concrete cost domination nor runtime
+ownership transfer, bounded history storage, changed-parameter behavior or
+wall-clock service.
 
 ## Trusted components
 

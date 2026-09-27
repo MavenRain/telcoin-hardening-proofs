@@ -1587,14 +1587,71 @@ unchanged. The new module adds 14 equality proofs and four operational definitio
 Runtime simulation, atomic ownership transfer, changes to configuration or
 capacity, concrete construction and storage costs, overflow delivery and real
 executor service remain open. Output-history storage has no bound here. The
-next composition step is to account for administrative and execution costs
-without charging the initial resource bursts again at schedule boundaries.
+symbolic administrative and execution costs now compose in module 62 without
+charging initial resource bursts again at schedule boundaries.
 
+
+## Cost accounting across ingress schedule boundaries
+
+`62-policy-ingress-cost-composition.mech` proves that the existing symbolic
+six-weight cost is unchanged by splitting a finite variable-scan schedule and
+resuming its exact intermediate state. The module adds 21 equality and order
+proofs and five operational definitions, linked by C105-C108.
+
+`variablePolicyIngressTurnsAppend`, `variableDeferredIngressVisitsAppend` and
+`variableDeferredIngressExaminedLengthAppend` add the three administrative
+counts. The second segment starts with the first exact deferred remainder.
+An occurrence retained across the split is visited again on subsequent turns;
+empty and paused turns still incur their fixed charge. Initial deferred work
+may exceed capacity. `variableDeferredIngressAdminCostAppend` distributes the
+scan, handoff and turn weights over these counts.
+
+`policyIngressProcessedAppend` and `policyIngressStartsAppend` add the
+processed-policy and accepted-handshake counts across arbitrary ingress traces.
+The second trace uses the resource state obtained by executing the first.
+`policyIngressTraceCostAppend` combines those equalities with dispatched trace
+length to distribute event, policy and handshake charges.
+
+`variableDeferredIngressCostBoundary` is the actual first handoff state, and
+`variableDeferredIngressCostBoundaryWork` identifies its resource state with
+execution of the actual dispatched history. The admitted backlog also passes
+through this boundary. `variableDeferredIngressDispatchCostAppend` therefore
+uses the second segment's actual dispatch history and resulting starting state.
+Examined work rejected by admission is charged administratively but does not
+receive a dispatch charge.
+
+`variableDeferredIngressExecutionCost` packages module 58's existing cost with
+the resume state. `variableDeferredIngressExecutionCostCountsWork` checks its
+identity with the administrative and dispatched charges, and
+`variableDeferredIngressExecutionCostAppend` proves equality with their sum
+across both segments. All six weights, the payload weight function, limits,
+deferred capacity and configuration stay fixed. The equality holds for empty
+segments, zero weights or capacities, pauses, repeated values and oversized
+initial work. It requires neither initial-fit nor initial-credit premises.
+
+`composedVariableDeferredIngressCostEnvelope` transports the existing single
+whole-schedule bound to the sum of the two actual costs. It requires only the
+original work-credit and handshake-credit bounds. It does not add a fresh
+resource burst or another credit premise at the split. The same whole-schedule
+visit limit accounts for the actual initial deferred length just once.
+
+The 34 controls corrupt carried state or boundary limits, change the
+second-segment payload weight or configuration, erase queued or deferred work
+and individual cost weights, or supply incorrect induction and composition
+arguments. They all fail with type mismatches against universally
+quantified statements; this module contains no closed example proofs. The
+argument mutations test proof constraints, not distinct runtime transitions.
+Existing mutation rows and their rejection criteria are unchanged.
+
+Runtime simulation, concrete domination of the six weights, construction and
+output-history storage, parameter changes, mandatory-event delivery and real
+executor service remain open. These are finite symbolic cost equalities and a
+conditional bound, not measured cost or latency evidence.
 
 ## Negative controls
 
-The checker rejects 641 invalid variants: three direct checks of equality,
-ordering and termination, plus 638 semantic mutations. Mutations exercise such
+The checker rejects 675 invalid variants: three direct checks of equality,
+ordering and termination, plus 672 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

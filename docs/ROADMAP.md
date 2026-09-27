@@ -115,10 +115,12 @@ the concatenated schedule's model handoff fields. Complete execution now also
 composes across that boundary: deferred work, admitted queue, policy/resource
 state, ordered overflow and dispatched histories match sequential execution
 carrying the exact first handoff state. Parameters stay fixed, and no
-initial-fit premise is needed. Next compose administrative and execution cost
-accounting without charging initial resource bursts again at the boundary,
-and relate carried state, ledger ownership, construction and storage to the
-runtime.
+initial-fit premise is needed. The existing six-weight administrative and
+execution costs now add across that exact handoff state. Their sum inherits the
+single whole-schedule envelope under the original credit bounds, without a new
+resource burst or credit premise at the split. Weights and parameters stay
+fixed. Relating carried state, ledger ownership, construction and storage to
+the runtime remains open.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -127,7 +129,7 @@ after examination, changing capacities and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 140 atomic model obligations
+   explicit dispositions. The current 34 groups and 144 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

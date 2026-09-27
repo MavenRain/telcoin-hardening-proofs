@@ -442,3 +442,28 @@ and its input hashes match the checked files. Implementation links remain
 `not_checked_this_run`; runtime refinement and deployment qualification remain
 false. Concrete ownership, parameter changes, storage and cost domination are
 outside these finite model equalities.
+
+`policy-ingress-cost-composition-model-check.json` records symbolic cost
+composition across schedule boundaries: 834 equality and order declarations in
+45 modules, 144 atomic obligations and 675 rejected negative checks. Module 62
+adds 21 proofs, five operational definitions, C105-C108 and 34 controls.
+Administrative visits and turns, dispatched occurrences, processed-policy
+operations and accepted handshakes retain their existing charges across a
+split that carries the actual deferred, queued and resource state. The sum of
+the segment costs inherits the single whole-schedule envelope under the
+original credit bounds, with no fresh resource burst at the boundary.
+
+All 34 new controls reject with type mismatches against universal statements;
+module 62 has no closed example proofs. Controls include corrupted boundary
+state and limits, changed second-segment weight or configuration, lost
+deferred or queued work, erased cost components and incorrect induction or
+composition arguments. The latter check proof-term constraints. Existing
+mutation rows and rejection criteria remain unchanged.
+
+The full `make gate-regression` run checks the positive bundle, empty axiom
+disclosure, catalog and source freshness, all 675 controls and the expected
+qualification-blocked exit 2. This receipt is copied from that report, with
+matching input hashes. Implementation links remain `not_checked_this_run`;
+implementation refinement and deployment qualification remain false. Concrete
+cost domination, runtime state transfer, configuration changes, construction,
+history storage and real-time delivery remain open.
