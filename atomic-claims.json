@@ -4952,6 +4952,94 @@
         "Use runtime traces with stable occurrence ownership to validate boundary overflow, pause behavior and later examination. These finite witnesses do not establish live schedule delivery or progress.",
         "Refine runtime event identity and storage without deduplicating equal-valued occurrences; arbitrary repeated resize schedules and their cost accounting remain open."
       ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C117",
+      "property": "Across one change from any old deferred capacity to any new capacity, a preceding finite variable-scan segment and the resized following segment reconstruct the initial deferred trace followed by both fresh-arrival histories in order. Exact trace equality preserves every occurrence, including equal-valued events, without initial fit.",
+      "theorems": [
+        "appendPolicyIngressLedgerChronologicalCongruent",
+        "capacityComposedDeferredIngressChronological",
+        "capacityComposedDeferredIngressChronologicalCount"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
+        "Arbitrary repeated capacity changes, cost composition across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C118",
+      "property": "The composed ledger concatenates the examined projections of both segments and concatenates their overflow projections in segment order. Final deferred work is exactly the resized second ledger's deferred projection. An empty first schedule reduces to the existing resize ledger.",
+      "theorems": [
+        "capacityComposedDeferredIngressExamined",
+        "capacityComposedDeferredIngressDeferred",
+        "capacityComposedDeferredIngressOverflow",
+        "capacityComposedDeferredIngressEmptyFirst"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
+        "Arbitrary repeated capacity changes, cost composition across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C119",
+      "property": "Finite witnesses preserve chronological reconstruction, examined work, overflow order and final deferred ownership when a scanned first segment overflows, a shrink removes a deferred suffix and a second segment scans and overflows. Separate witnesses cover a zero-capacity boundary after earlier overflow and growth with no scheduled turns.",
+      "theorems": [
+        "capacityCompositionInterleavedChronological",
+        "capacityCompositionInterleavedExamined",
+        "capacityCompositionInterleavedOverflow",
+        "capacityCompositionInterleavedDeferred",
+        "capacityCompositionZeroBoundary",
+        "capacityCompositionGrowthPreservesDeferred"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
+        "Arbitrary repeated capacity changes, cost composition across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+      ]
     }
   ]
 }

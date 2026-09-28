@@ -1306,6 +1306,34 @@ MUTATIONS += [
 ]
 
 
+_CAPACITY_COMPOSITION_LEDGER = """def capacityComposedDeferredIngressLedger : Count -> Count -> VariablePolicyIngressSchedule ->
+    VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressLedger :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedger (variableDeferredIngressLedger oldCapacity first waiting)
+      (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))"""
+
+MUTATIONS += [
+    (f"policy_capacity_composition_{name}", _CAPACITY_COMPOSITION_LEDGER,
+     _CAPACITY_COMPOSITION_LEDGER.replace(before, after))
+    for name, before, after in [
+        ("drops_first_history", "(variableDeferredIngressLedger oldCapacity first waiting)", "(policyIngressLedgerDone waiting)"),
+        ("first_uses_new_capacity", "(variableDeferredIngressLedger oldCapacity first waiting)", "(variableDeferredIngressLedger newCapacity first waiting)"),
+        ("first_erases_schedule", "(variableDeferredIngressLedger oldCapacity first waiting)\n      (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))", "(variableDeferredIngressLedger oldCapacity variablePolicyIngressDone waiting)\n      (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity variablePolicyIngressDone waiting))"),
+        ("first_erases_waiting", "(variableDeferredIngressLedger oldCapacity first waiting)", "(variableDeferredIngressLedger oldCapacity first policyIngressDone)"),
+        ("boundary_uses_old_capacity", "resizedDeferredIngressLedger newCapacity second", "resizedDeferredIngressLedger oldCapacity second"),
+        ("boundary_uses_zero_capacity", "resizedDeferredIngressLedger newCapacity second", "resizedDeferredIngressLedger zero second"),
+        ("boundary_erases_schedule", "resizedDeferredIngressLedger newCapacity second", "resizedDeferredIngressLedger newCapacity variablePolicyIngressDone"),
+        ("boundary_replays_first_schedule", "resizedDeferredIngressLedger newCapacity second", "resizedDeferredIngressLedger newCapacity first"),
+        ("boundary_replays_original", "(variableDeferredIngressRemainder oldCapacity first waiting)", "waiting"),
+        ("boundary_drops_carried_suffix", "(variableDeferredIngressRemainder oldCapacity first waiting)", "policyIngressDone"),
+        ("handoff_uses_new_capacity", "variableDeferredIngressRemainder oldCapacity first waiting", "variableDeferredIngressRemainder newCapacity first waiting"),
+        ("boundary_omits_resize", "resizedDeferredIngressLedger newCapacity second", "variableDeferredIngressLedger newCapacity second"),
+    ]
+]
+
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

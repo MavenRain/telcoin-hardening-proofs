@@ -1699,8 +1699,9 @@ control delivery, persistence, traversal and allocation costs, rejected-event
 storage and real-time latency remain open. The fixed-parameter cost and ledger
 composition results in modules 60-62 do not extend across this resize. Module 64
 supplies chronological reconstruction for this boundary and its following
-segment. A preceding segment, arbitrary repeated capacity changes, symbolic
-resize charges and Rust refinement still require further proof.
+segment. Module 65 supplies preceding-ledger composition. Arbitrary repeated
+capacity changes, symbolic resize charges and Rust refinement still require
+further proof.
 
 ## Occurrence accounting across a deferred-capacity boundary
 
@@ -1746,14 +1747,50 @@ every altered term denotes an extensionally different chronological trace.
 
 Runtime authority, serialization, exclusive occurrence ownership, cleanup,
 history storage, construction and traversal costs remain open. This result
-covers one resize and its following finite segment. Splicing a preceding
-segment, arbitrary repeated capacity changes, symbolic resize charges, other
-resource-limit changes and wall-clock delivery require further work.
+covers one resize and its following finite segment. Module 65 extends ledger
+accounting to a preceding segment. Arbitrary repeated capacity changes, symbolic
+resize charges, other resource-limit changes and wall-clock delivery require
+further work.
+
+## Ledger composition across a deferred-capacity change
+
+`65-policy-ingress-capacity-composition.mech` adds 13 equality proofs, one
+operational definition and C117-C119. `capacityComposedDeferredIngressLedger`
+appends the first segment's ledger to the existing resize ledger, passing the
+exact first segment remainder into the boundary. The old capacity applies to
+the first segment and its remainder; the new capacity applies to the boundary
+and the following segment. Scan allowances and dispatch fuel remain independent.
+
+A recursive congruence lemma allows a ledger continuation to be replaced by
+another continuation with the same chronological projection. Combining that
+lemma with the existing boundary reconstruction and fixed-capacity composition
+proofs reconstructs the initial deferred trace followed by the first and second
+arrival histories. Trace length preserves the corresponding occurrence count.
+The statements require neither initial fit nor distinct event values.
+
+Examined and overflow projections concatenate the two segment-ledger projections
+in order; final deferred work is the second ledger's deferred projection.
+The resize ledger contributes no boundary examination and reports boundary
+overflow before subsequent turn overflow. The empty-first identity reduces the
+construction to module 64, including oversized initial inputs and empty second
+schedules. These are ledger projection laws, not a new full execution theorem.
+
+Closed witnesses over arbitrary event values exercise examination and overflow
+in both segments with a shrink between them. They distinguish first-segment,
+boundary and second-segment overflow order. Additional witnesses cover a zero
+boundary after earlier overflow and capacity growth with empty schedules.
+Twelve controls alter history retention, capacities, schedules, carried input or
+the resize itself. Their definitions must typecheck before the full proofs
+reject them with type mismatches.
+
+Full policy/resource execution composition across the changed capacity, repeated
+resize schedules, cost composition, runtime ownership, mandatory-event delivery,
+wall-clock progress and bounded output-history storage remain open.
 
 ## Negative controls
 
-The checker rejects 712 invalid variants: three direct checks of equality,
-ordering and termination, plus 709 semantic mutations. Mutations exercise such
+The checker rejects 724 invalid variants: three direct checks of equality,
+ordering and termination, plus 721 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

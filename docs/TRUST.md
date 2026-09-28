@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 709 additional semantic mutations must
+The 721 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -62,9 +62,12 @@ Its examined projection matches the resized input's execution trace; deferred
 and overflow projections equal the actual resized-execution handoff fields.
 No initially fitting deferred input is required. Finite witnesses cover pauses,
 later multi-item examination and repeated equal-valued occurrences. The ledger
-record does not deliver a scheduler turn or implement cleanup. Composition with
-a preceding segment, repeated changing limits, resize costs, runtime ownership
-and bounded history storage remain open.
+record does not deliver a scheduler turn or implement cleanup. Module 65
+composes a preceding ledger with this boundary and its following segment,
+preserving exact chronological reconstruction and segment-ordered projections.
+It carries the exact first remainder and requires no initial fit. Full execution
+composition across changed limits, repeated capacity changes, resize costs,
+runtime ownership and bounded history storage remain open.
 
 ## Trusted components
 

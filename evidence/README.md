@@ -518,3 +518,27 @@ matching input hashes. Implementation links remain `not_checked_this_run`;
 implementation refinement and deployment qualification remain false. Runtime
 authority, occurrence ownership, cleanup, resize costs and history storage,
 composition with a preceding segment and repeated capacity changes remain open.
+
+## Capacity composition model check
+
+`policy-ingress-capacity-composition-model-check.json` records 886 checked proof
+declarations in 48 modules, 155 atomic obligations and 724 rejected negative
+checks. Module 65 adds 13 proofs, one operational definition, C117-C119 and
+12 controls. The ledger joins a preceding variable-scan segment, one explicit
+deferred-capacity boundary and a following segment. It reconstructs the exact
+initial deferred input and both fresh-arrival histories, including multiplicity,
+without initial fit. Examined and overflow projections concatenate in segment
+order; final deferred ownership comes from the resized following ledger.
+
+Each altered definition typechecks before its full bundle fails with a proof
+type mismatch. The controls remove or corrupt earlier history, change capacity
+or schedule selection, replay or drop carried input, or omit the resize.
+Finite witnesses distinguish overflow before, at and after the boundary and
+cover zero capacity and growth with empty schedules.
+
+The receipt comes from the full `make gate-regression` report, including empty
+axiom disclosure, freshness checks, all 724 negatives and the expected blocked
+qualification exit 2. Implementation refinement and deployment qualification
+remain false. Full execution and cost composition across changed limits,
+repeated resizes, runtime ownership, cleanup and bounded history storage remain
+open. Earlier receipts above describe their respective historical slices.

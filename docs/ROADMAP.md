@@ -135,8 +135,13 @@ by every arrival in the subsequent variable-scan segment. It records the actual
 retained-prefix length, preserving boundary overflow before later arrivals and
 overflow. Examined work and the final deferred and overflow traces match the
 resized execution, including empty schedules, zero capacity and repeated event
-values. Composition with a preceding segment and arbitrary sequences of capacity
-changes remain open, together with runtime ownership and bounded history storage.
+values. A preceding segment ledger now composes with that boundary and following
+segment at independently chosen old and new capacities. Exact chronological
+reconstruction and occurrence counts survive without initial fit; examined and
+overflow histories concatenate in segment order and final deferred ownership
+comes from the resized segment. Full policy/resource execution composition
+across changed limits and arbitrary sequences of capacity changes remain open,
+together with runtime ownership and bounded history storage.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -145,7 +150,7 @@ after examination, other capacity changes and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 152 atomic model obligations
+   explicit dispositions. The current 34 groups and 155 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

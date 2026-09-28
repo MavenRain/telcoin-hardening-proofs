@@ -1,0 +1,162 @@
+-- Compose one explicit deferred-capacity boundary with a preceding segment.
+-- Pure finite occurrence accounting; runtime ownership and cost refinement remain open.
+
+def rec appendPolicyIngressLedgerChronologicalCongruent : (prefix : PolicyIngressLedger) ->
+    (left : PolicyIngressLedger) -> (right : PolicyIngressLedger) ->
+    Equal PolicyIngressTrace (policyIngressLedgerChronological left) (policyIngressLedgerChronological right) ->
+    Equal PolicyIngressTrace
+      (policyIngressLedgerChronological (appendPolicyIngressLedger prefix left))
+      (policyIngressLedgerChronological (appendPolicyIngressLedger prefix right)) :=
+  fun (prefix : PolicyIngressLedger) (left : PolicyIngressLedger) (right : PolicyIngressLedger)
+      (agreement : Equal PolicyIngressTrace (policyIngressLedgerChronological left) (policyIngressLedgerChronological right)) =>
+    case prefix as self in PolicyIngressLedger return Equal PolicyIngressTrace
+      (policyIngressLedgerChronological (appendPolicyIngressLedger self left))
+      (policyIngressLedgerChronological (appendPolicyIngressLedger self right)) with
+    | policyIngressLedgerDone waiting => agreement
+    | policyIngressLedgerTurn examined retained overflow rest => congruent PolicyIngressTrace PolicyIngressTrace
+        (fun (tail : PolicyIngressTrace) => appendPolicyIngress examined (insertPolicyIngressOverflow retained overflow tail))
+        (policyIngressLedgerChronological (appendPolicyIngressLedger rest left))
+        (policyIngressLedgerChronological (appendPolicyIngressLedger rest right))
+        (appendPolicyIngressLedgerChronologicalCongruent rest left right agreement)
+
+def capacityComposedDeferredIngressLedger : Count -> Count -> VariablePolicyIngressSchedule ->
+    VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressLedger :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedger (variableDeferredIngressLedger oldCapacity first waiting)
+      (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+
+def capacityComposedDeferredIngressChronological : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerChronological (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (appendPolicyIngress waiting (appendPolicyIngress (policyIngressScheduleArrivals (variablePolicyIngressInput first))
+        (policyIngressScheduleArrivals (variablePolicyIngressInput second)))) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (policyIngressLedgerChronological (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (policyIngressLedgerChronological (composedVariableDeferredIngressLedger oldCapacity first second waiting))
+      (appendPolicyIngress waiting (appendPolicyIngress (policyIngressScheduleArrivals (variablePolicyIngressInput first))
+        (policyIngressScheduleArrivals (variablePolicyIngressInput second))))
+      (appendPolicyIngressLedgerChronologicalCongruent (variableDeferredIngressLedger oldCapacity first waiting)
+        (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+        (variableDeferredIngressLedger oldCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+        (equalTransitivity PolicyIngressTrace
+          (policyIngressLedgerChronological (resizedDeferredIngressLedger newCapacity second
+            (variableDeferredIngressRemainder oldCapacity first waiting)))
+          (appendPolicyIngress (variableDeferredIngressRemainder oldCapacity first waiting)
+            (policyIngressScheduleArrivals (variablePolicyIngressInput second)))
+          (policyIngressLedgerChronological (variableDeferredIngressLedger oldCapacity second
+            (variableDeferredIngressRemainder oldCapacity first waiting)))
+          (resizedDeferredIngressLedgerChronological newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+          (equalSymmetry PolicyIngressTrace
+            (policyIngressLedgerChronological (variableDeferredIngressLedger oldCapacity second
+              (variableDeferredIngressRemainder oldCapacity first waiting)))
+            (appendPolicyIngress (variableDeferredIngressRemainder oldCapacity first waiting)
+              (policyIngressScheduleArrivals (variablePolicyIngressInput second)))
+            (variableDeferredIngressChronological oldCapacity second (variableDeferredIngressRemainder oldCapacity first waiting)))))
+      (composedVariableDeferredIngressChronological oldCapacity first second waiting)
+def capacityComposedDeferredIngressExamined : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerExamined (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (appendPolicyIngress (policyIngressLedgerExamined (variableDeferredIngressLedger oldCapacity first waiting))
+        (policyIngressLedgerExamined (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting)))) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedgerExamined (variableDeferredIngressLedger oldCapacity first waiting) (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+
+def capacityComposedDeferredIngressDeferred : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerDeferred (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (policyIngressLedgerDeferred (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedgerDeferred (variableDeferredIngressLedger oldCapacity first waiting) (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+
+def capacityComposedDeferredIngressOverflow : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (appendPolicyIngress (policyIngressLedgerOverflow (variableDeferredIngressLedger oldCapacity first waiting))
+        (policyIngressLedgerOverflow (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting)))) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedgerOverflow (variableDeferredIngressLedger oldCapacity first waiting) (resizedDeferredIngressLedger newCapacity second (variableDeferredIngressRemainder oldCapacity first waiting))
+
+def capacityComposedDeferredIngressChronologicalCount : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal Count
+      (policyIngressLength (policyIngressLedgerChronological (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)))
+      (policyIngressLength (appendPolicyIngress waiting (appendPolicyIngress (policyIngressScheduleArrivals (variablePolicyIngressInput first))
+        (policyIngressScheduleArrivals (variablePolicyIngressInput second))))) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressTrace Count policyIngressLength
+      (policyIngressLedgerChronological (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting))
+      (appendPolicyIngress waiting (appendPolicyIngress (policyIngressScheduleArrivals (variablePolicyIngressInput first))
+        (policyIngressScheduleArrivals (variablePolicyIngressInput second))))
+      (capacityComposedDeferredIngressChronological oldCapacity newCapacity first second waiting)
+
+def capacityComposedDeferredIngressEmptyFirst : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (second : VariablePolicyIngressSchedule) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressLedger
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity variablePolicyIngressDone second waiting)
+      (resizedDeferredIngressLedger newCapacity second waiting) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) => same
+
+def capacityCompositionInterleavedChronological : (a : PolicyIngressEvent) -> (b : PolicyIngressEvent) ->
+    (c : PolicyIngressEvent) -> (d : PolicyIngressEvent) -> (e : PolicyIngressEvent) -> (f : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace (policyIngressLedgerChronological (capacityComposedDeferredIngressLedger (next (next zero)) (next zero)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen d policyIngressDone) variablePolicyIngressDone)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen e (policyIngressThen f policyIngressDone)) variablePolicyIngressDone)
+        (policyIngressThen a (policyIngressThen b (policyIngressThen c policyIngressDone)))))
+      (policyIngressThen a (policyIngressThen b (policyIngressThen c (policyIngressThen d (policyIngressThen e (policyIngressThen f policyIngressDone)))))) :=
+  fun (a : PolicyIngressEvent) (b : PolicyIngressEvent) (c : PolicyIngressEvent)
+      (d : PolicyIngressEvent) (e : PolicyIngressEvent) (f : PolicyIngressEvent) => same
+
+def capacityCompositionInterleavedExamined : (a : PolicyIngressEvent) -> (b : PolicyIngressEvent) ->
+    (c : PolicyIngressEvent) -> (d : PolicyIngressEvent) -> (e : PolicyIngressEvent) -> (f : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace (policyIngressLedgerExamined (capacityComposedDeferredIngressLedger (next (next zero)) (next zero)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen d policyIngressDone) variablePolicyIngressDone)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen e (policyIngressThen f policyIngressDone)) variablePolicyIngressDone)
+        (policyIngressThen a (policyIngressThen b (policyIngressThen c policyIngressDone)))))
+      (policyIngressThen a (policyIngressThen b policyIngressDone)) :=
+  fun (a : PolicyIngressEvent) (b : PolicyIngressEvent) (c : PolicyIngressEvent)
+      (d : PolicyIngressEvent) (e : PolicyIngressEvent) (f : PolicyIngressEvent) => same
+
+def capacityCompositionInterleavedOverflow : (a : PolicyIngressEvent) -> (b : PolicyIngressEvent) ->
+    (c : PolicyIngressEvent) -> (d : PolicyIngressEvent) -> (e : PolicyIngressEvent) -> (f : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace (policyIngressLedgerOverflow (capacityComposedDeferredIngressLedger (next (next zero)) (next zero)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen d policyIngressDone) variablePolicyIngressDone)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen e (policyIngressThen f policyIngressDone)) variablePolicyIngressDone)
+        (policyIngressThen a (policyIngressThen b (policyIngressThen c policyIngressDone)))))
+      (policyIngressThen d (policyIngressThen c (policyIngressThen f policyIngressDone))) :=
+  fun (a : PolicyIngressEvent) (b : PolicyIngressEvent) (c : PolicyIngressEvent)
+      (d : PolicyIngressEvent) (e : PolicyIngressEvent) (f : PolicyIngressEvent) => same
+
+def capacityCompositionInterleavedDeferred : (a : PolicyIngressEvent) -> (b : PolicyIngressEvent) ->
+    (c : PolicyIngressEvent) -> (d : PolicyIngressEvent) -> (e : PolicyIngressEvent) -> (f : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace (policyIngressLedgerDeferred (capacityComposedDeferredIngressLedger (next (next zero)) (next zero)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen d policyIngressDone) variablePolicyIngressDone)
+        (variablePolicyIngressTurn (next zero) zero (policyIngressThen e (policyIngressThen f policyIngressDone)) variablePolicyIngressDone)
+        (policyIngressThen a (policyIngressThen b (policyIngressThen c policyIngressDone)))))
+      (policyIngressThen e policyIngressDone) :=
+  fun (a : PolicyIngressEvent) (b : PolicyIngressEvent) (c : PolicyIngressEvent)
+      (d : PolicyIngressEvent) (e : PolicyIngressEvent) (f : PolicyIngressEvent) => same
+
+def capacityCompositionZeroBoundary : (a : PolicyIngressEvent) -> (b : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityComposedDeferredIngressLedger (next zero) zero
+        (variablePolicyIngressTurn zero zero (policyIngressThen b policyIngressDone) variablePolicyIngressDone)
+        variablePolicyIngressDone (policyIngressThen a policyIngressDone)))
+      (policyIngressThen b (policyIngressThen a policyIngressDone)) :=
+  fun (a : PolicyIngressEvent) (b : PolicyIngressEvent) => same
+
+def capacityCompositionGrowthPreservesDeferred : (a : PolicyIngressEvent) ->
+    Equal PolicyIngressTrace
+      (policyIngressLedgerDeferred (capacityComposedDeferredIngressLedger (next zero) (next (next zero))
+        variablePolicyIngressDone variablePolicyIngressDone (policyIngressThen a policyIngressDone)))
+      (policyIngressThen a policyIngressDone) :=
+  fun (a : PolicyIngressEvent) => same
