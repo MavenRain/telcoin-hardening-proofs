@@ -128,8 +128,15 @@ same-capacity idempotence hold for arbitrary finite inputs. Subsequent
 variable-scan execution reports boundary overflow before later overflow and
 satisfies the new deferred bound, even from an oversized input or an empty
 schedule. Admitted entry and payload bounds keep their initial-fit premises.
-Runtime authority, cleanup, resize costs and storage remain open, as do
-chronological ledger and cost composition across changing limits.
+Runtime authority, cleanup, resize costs and storage remain open, as does
+cost composition across changing limits.
+A boundary ledger now reconstructs the exact pre-resize deferred input followed
+by every arrival in the subsequent variable-scan segment. It records the actual
+retained-prefix length, preserving boundary overflow before later arrivals and
+overflow. Examined work and the final deferred and overflow traces match the
+resized execution, including empty schedules, zero capacity and repeated event
+values. Composition with a preceding segment and arbitrary sequences of capacity
+changes remain open, together with runtime ownership and bounded history storage.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -138,7 +145,7 @@ after examination, other capacity changes and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 148 atomic model obligations
+   explicit dispositions. The current 34 groups and 152 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

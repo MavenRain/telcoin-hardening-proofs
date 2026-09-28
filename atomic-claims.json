@@ -4831,6 +4831,127 @@
         "These finite reductions are witnesses, not general liveness, increasing-capacity or growth-composition theorems. Nonzero fuel in a witness does not assert successful admission or dispatch.",
         "Repeated equal-valued occurrences establish multiplicity in the trace model, not authenticated runtime identity or exactly-once external cleanup."
       ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C113",
+      "property": "A ledger with an explicit deferred-capacity boundary reconstructs the exact original deferred trace followed by every fresh arrival in chronological order. The boundary inserts its overflow after the actual retained prefix. Reconstruction preserves every occurrence and its count without an initial-fit premise.",
+      "theorems": [
+        "resizedDeferredIngressLedgerChronological",
+        "resizedDeferredIngressLedgerChronologicalCount"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine authoritative resize boundaries, retained-prefix metadata and exclusive occurrence ownership to the runtime. A ledger record is not a delivered scheduler turn or an implemented cleanup action.",
+        "Bound ledger construction and history storage. Composition with a preceding segment and cost composition across changing limits remain open."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C114",
+      "property": "The resized ledger's examined, final-deferred and overflow projections equal the corresponding variable-scan execution traces starting from the retained prefix, so the boundary records no examination. Deferred and overflow projections also equal the actual runResizedDeferredIngress handoff fields for arbitrary weight, admitted limits, configuration and state; boundary overflow precedes later overflow.",
+      "theorems": [
+        "resizedDeferredIngressLedgerExamined",
+        "resizedDeferredIngressLedgerDeferred",
+        "resizedDeferredIngressLedgerOverflow",
+        "resizedDeferredIngressLedgerHandoffDeferred",
+        "resizedDeferredIngressLedgerHandoffOverflow"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes",
+        "persistent_ingress_queue",
+        "stable_resource_configuration",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Prove the runtime handoff and execution implement the same atomic resize and retained FIFO state. The ledger records examination, which alone does not establish admission or dispatch.",
+        "Admitted limits, payload weights and policy/resource configuration stay fixed. Other capacity changes and concrete resize, cleanup and history-storage costs remain open."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C115",
+      "property": "An empty post-resize schedule examines nothing, retains exactly the capacity-selected prefix, reports exactly the removed suffix and reconstructs the entire original deferred trace. At zero capacity every original occurrence precedes subsequent execution overflow and an empty schedule leaves no deferred work.",
+      "theorems": [
+        "resizedDeferredIngressLedgerEmptyExamined",
+        "resizedDeferredIngressLedgerEmptyDeferred",
+        "resizedDeferredIngressLedgerEmptyOverflow",
+        "resizedDeferredIngressLedgerEmptyChronological",
+        "resizedDeferredIngressLedgerZeroOverflow",
+        "resizedDeferredIngressLedgerZeroEmptyDeferred"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Establish that the runtime performs and reports a resize even when it delivers no subsequent scheduler turn. Returning overflow does not implement cancellation, release, retry or mandatory control delivery.",
+        "Prove storage and traversal bounds for oversized finite input, zero capacity and increases in capacity. The ledger supplies no real-time progress or cost bound."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C116",
+      "property": "Finite witnesses over arbitrary event values reconstruct chronological input across a shrink, a paused turn with fresh overflow and a later two-scan turn. Separate projections preserve boundary-before-later overflow, the examined FIFO trace and final deferred work. A repeated-value witness preserves three distinct occurrences without requiring distinct event values.",
+      "theorems": [
+        "capacityAccountingInterleavedChronological",
+        "capacityAccountingInterleavedOverflow",
+        "capacityAccountingInterleavedExamined",
+        "capacityAccountingInterleavedDeferred",
+        "capacityAccountingRepeatedOccurrences"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Use runtime traces with stable occurrence ownership to validate boundary overflow, pause behavior and later examination. These finite witnesses do not establish live schedule delivery or progress.",
+        "Refine runtime event identity and storage without deduplicating equal-valued occurrences; arbitrary repeated resize schedules and their cost accounting remain open."
+      ]
     }
   ]
 }

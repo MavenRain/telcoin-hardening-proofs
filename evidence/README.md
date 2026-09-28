@@ -491,3 +491,30 @@ matching input hashes. Implementation links remain `not_checked_this_run`;
 implementation refinement and deployment qualification remain false. Runtime
 authority, overflow cleanup, resizing costs and storage, other resource-limit
 changes, and ledger/cost composition across the boundary remain open.
+
+`policy-ingress-capacity-accounting-model-check.json` records occurrence
+accounting across a deferred-capacity boundary: 873 equality and order
+declarations in 47 modules, 152 atomic obligations and 712 rejected negative
+checks. Module 64 adds 18 proofs, one operational definition, one witness
+schedule, C113-C116 and 16 controls. The boundary ledger reconstructs the
+original deferred input followed by every subsequent arrival, preserving order
+and multiplicity without initial fit. Its examined projection matches the
+resized-prefix execution; deferred and overflow projections equal the actual
+resized-execution fields. Empty schedules and zero capacity retain the
+boundary disposition, while finite witnesses cover fresh overflow during a
+pause, later multi-item examination and repeated equal-valued occurrences.
+
+The 16 altered ledger definitions were checked through their declarations
+before the full bundle rejected them with proof type mismatches at statements
+over variables. They change boundary examination, retained-length metadata,
+overflow or the continuation's input, capacity or schedule. These controls test
+the definitions' constraints on proof terms; rejection alone does not establish
+that every variant has different extensional behavior.
+
+The full `make gate-regression` checks the positive bundle, empty axiom
+disclosure, catalog and source freshness, all 712 controls and the expected
+qualification-blocked exit 2. The receipt is copied from its report with
+matching input hashes. Implementation links remain `not_checked_this_run`;
+implementation refinement and deployment qualification remain false. Runtime
+authority, occurrence ownership, cleanup, resize costs and history storage,
+composition with a preceding segment and repeated capacity changes remain open.

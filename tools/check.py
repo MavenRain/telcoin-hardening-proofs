@@ -1266,6 +1266,46 @@ MUTATIONS += [
 ]
 
 
+_CAPACITY_ACCOUNTING_LEDGER = """def resizedDeferredIngressLedger : Count -> VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressLedger :=
+  fun (capacity : Count) (schedule : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    policyIngressLedgerTurn policyIngressDone
+      (policyIngressLength (policyIngressDeferredPrefix capacity waiting))
+      (policyIngressDeferredOverflow capacity waiting)
+      (variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))"""
+
+MUTATIONS += [
+    (f"policy_capacity_accounting_{name}", _CAPACITY_ACCOUNTING_LEDGER,
+     _CAPACITY_ACCOUNTING_LEDGER.replace(before, after))
+    for name, before, after in [
+        ("examines_retained_at_boundary", "policyIngressLedgerTurn policyIngressDone",
+         "policyIngressLedgerTurn (policyIngressDeferredPrefix capacity waiting)"),
+        ("examines_original_at_boundary", "policyIngressLedgerTurn policyIngressDone",
+         "policyIngressLedgerTurn waiting"),
+        ("boundary_uses_capacity", "(policyIngressLength (policyIngressDeferredPrefix capacity waiting))", "capacity"),
+        ("boundary_uses_zero", "(policyIngressLength (policyIngressDeferredPrefix capacity waiting))", "zero"),
+        ("boundary_counts_original", "(policyIngressLength (policyIngressDeferredPrefix capacity waiting))", "(policyIngressLength waiting)"),
+        ("erases_boundary_overflow", "(policyIngressDeferredOverflow capacity waiting)", "policyIngressDone"),
+        ("reports_retained_as_overflow", "(policyIngressDeferredOverflow capacity waiting)", "(policyIngressDeferredPrefix capacity waiting)"),
+        ("skips_first_rejected", "(policyIngressDeferredOverflow capacity waiting)", "(policyIngressDeferredOverflow (next capacity) waiting)"),
+        ("reports_original_as_overflow", "(policyIngressDeferredOverflow capacity waiting)", "waiting"),
+        ("continuation_replays_original", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger capacity schedule waiting)"),
+        ("continuation_replays_overflow", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredOverflow capacity waiting))"),
+        ("continuation_erases_retained", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger capacity schedule policyIngressDone)"),
+        ("continuation_changes_limit", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger (next capacity) schedule (policyIngressDeferredPrefix capacity waiting))"),
+        ("continuation_zero_limit", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger zero schedule (policyIngressDeferredPrefix capacity waiting))"),
+        ("continuation_erases_schedule", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger capacity variablePolicyIngressDone (policyIngressDeferredPrefix capacity waiting))"),
+        ("continuation_retains_extra", "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix capacity waiting))",
+         "(variableDeferredIngressLedger capacity schedule (policyIngressDeferredPrefix (next capacity) waiting))"),
+    ]
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

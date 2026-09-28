@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[148 atomic model obligations](atomic-claims.json) documenting theorem links,
+[152 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 696 deliberately invalid
+source hashes and coverage freshness, and requires 712 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-855 explicit equality and order proof declarations across 46 modules. This count
+873 explicit equality and order proof declarations across 47 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -114,6 +114,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `61-policy-ingress-execution-composition.mech` | Concatenated schedules equal sequential execution carrying the complete handoff state at fixed parameters. Deferred work, admitted queue, policy/resource state, ordered overflow and dispatched histories compose without an initial-fit premise. Runtime refinement, changing parameters and concrete costs remain open. |
 | `62-policy-ingress-cost-composition.mech` | All six symbolic cost components add across schedule segments carrying the actual handoff state. Their sum inherits one whole-schedule envelope under the original credit bounds, without a fresh resource burst at the split. Parameters and weights stay fixed; concrete costs and runtime refinement remain open. |
 | `63-policy-ingress-capacity-handoff.mech` | An explicit deferred-capacity change retains a bounded FIFO prefix, reports the removed suffix and carries the admitted queue and policy/resource state unchanged. Repeating the limit preserves the resized state without further overflow; resumed execution reports boundary overflow first and satisfies the new deferred bound. Runtime authority, cleanup and resize costs remain open. |
+| `64-policy-ingress-capacity-accounting.mech` | A boundary ledger reconstructs the original deferred input followed by every later arrival, preserving occurrence order and multiplicity across a resize. Its projections match examined work and the resized execution's deferred and overflow fields, including empty schedules and zero capacity. Runtime ownership, history storage, resize costs and composition with a preceding segment remain open. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

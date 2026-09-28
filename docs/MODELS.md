@@ -1697,14 +1697,63 @@ This is an abstract atomic boundary, not a runtime configuration protocol.
 Authority to change limits, serialization, ownership, mandatory cleanup and
 control delivery, persistence, traversal and allocation costs, rejected-event
 storage and real-time latency remain open. The fixed-parameter cost and ledger
-composition results in modules 60-62 do not extend across this resize. No
-symbolic charge for resizing, general chronological ledger reconstruction
-across changing limits or Rust refinement is claimed.
+composition results in modules 60-62 do not extend across this resize. Module 64
+supplies chronological reconstruction for this boundary and its following
+segment. A preceding segment, arbitrary repeated capacity changes, symbolic
+resize charges and Rust refinement still require further proof.
+
+## Occurrence accounting across a deferred-capacity boundary
+
+`64-policy-ingress-capacity-accounting.mech` adds 18 equality proofs, one
+operational definition, one witness schedule and C113-C116.
+`resizedDeferredIngressLedger` represents the boundary using a ledger record
+with an empty examined trace, the length of the actual retained prefix and the
+removed suffix. Its continuation is the existing variable-scan ledger at the
+new capacity, starting from that retained prefix. This administrative record
+neither delivers a scheduler turn nor consumes scan or dispatch fuel.
+
+The chronological projection reconstructs exactly the original deferred input
+followed by every fresh arrival in the subsequent segment. The proof combines
+the existing continuation reconstruction with the boundary partition law and
+the overflow insertion lemma. Inserting the removed suffix after the retained
+prefix puts original overflow before later arrivals, even if retained events
+are examined in later turns. The equality preserves order and multiplicity,
+and applying trace length yields occurrence-count conservation. Neither proof
+requires an initially fitting input or distinct event values.
+
+The examined and final-deferred projections equal the existing variable-scan
+traces from the resized prefix. The overflow projection is boundary overflow
+followed by subsequent overflow. Deferred and overflow also equal the actual
+`runResizedDeferredIngress` handoff fields for arbitrary admitted limits,
+weights, configuration and state. These parameters remain fixed during the
+post-resize segment. Examination alone does not establish admission or dispatch.
+
+An empty schedule still reports the removed suffix and retains the selected
+prefix without examining anything. Its chronological projection recovers the
+entire original input. At zero capacity all original occurrences precede later
+overflow, and an empty schedule leaves no deferred work. Finite witnesses shrink
+two events to one, overflow fresh arrivals during a pause, then examine two
+events and retain the final fresh arrival. Their separate projections constrain
+overflow order, examination and final retention. A repeated-value witness keeps
+all three occurrences.
+
+Sixteen controls change boundary examination, retained-prefix metadata,
+overflow selection or the continuation's input, capacity or schedule. Each
+altered definition typechecks in isolation from the new proofs; the full
+bundle rejects each at a statement over variables with a proof type mismatch.
+These checks constrain the definitions and proof terms, without asserting that
+every altered term denotes an extensionally different chronological trace.
+
+Runtime authority, serialization, exclusive occurrence ownership, cleanup,
+history storage, construction and traversal costs remain open. This result
+covers one resize and its following finite segment. Splicing a preceding
+segment, arbitrary repeated capacity changes, symbolic resize charges, other
+resource-limit changes and wall-clock delivery require further work.
 
 ## Negative controls
 
-The checker rejects 696 invalid variants: three direct checks of equality,
-ordering and termination, plus 693 semantic mutations. Mutations exercise such
+The checker rejects 712 invalid variants: three direct checks of equality,
+ordering and termination, plus 709 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
