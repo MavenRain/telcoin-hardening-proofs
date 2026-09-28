@@ -1648,10 +1648,63 @@ output-history storage, parameter changes, mandatory-event delivery and real
 executor service remain open. These are finite symbolic cost equalities and a
 conditional bound, not measured cost or latency evidence.
 
+## Deferred-capacity changes at handoff
+
+`63-policy-ingress-capacity-handoff.mech` adds an explicit boundary operation
+before a variable-scan segment: 21 equality and order proofs, two operational
+definitions and C109-C112. The new limit applies only to the deferred,
+unexamined FIFO. Admitted entry and payload limits, weights and policy/resource
+configuration remain unchanged.
+
+`resizeDeferredPolicyIngress` returns a `BoundedPolicyIngressHandoff`: the
+old deferred trace is split into its earliest capacity-sized prefix and an
+explicit overflow suffix. The new state carries the entire admitted queue and
+policy/resource state. The retained prefix always fits the new limit, and
+appending its overflow reconstructs the original trace in order, including
+repeated equal-valued occurrences. Zero capacity retains nothing and reports
+all deferred occurrences. These statements require no old capacity or
+initial-fit premise.
+
+Structural induction proves that selecting the same prefix twice is
+idempotent and that the selected prefix has no overflow at that capacity.
+Consequently, applying the same resize to its returned state leaves deferred
+work unchanged and produces no second rejection report. This requires using
+the returned state, rather than replaying the original input. The theorem does
+not cover arbitrary sequences of different capacities.
+
+`runResizedDeferredIngress` starts the existing variable-scan execution from
+the exact resized state. Its overflow is boundary overflow followed by the
+segment's chronological overflow. Even a stopped schedule retains the
+boundary disposition. The terminal deferred bound is unconditional because
+resizing establishes initial fit; admitted entry and immutable-payload bounds
+retain their own initial-fit premises. The pending bound refers to the
+original lease capacity.
+
+Finite reductions check shrinking two events to one, retaining both at
+capacity three, paused-turn overflow following boundary overflow with a
+repeated event value, and retention of a fresh arrival after a one-item scan.
+Event values and the carried queue are variables. These witnesses do not
+establish general growth laws, admission, dispatch or eventual delivery.
+
+Twenty-one controls alter the two operational definitions: erase or misreport
+boundary overflow, retain the wrong suffix or too many events, erase admitted
+work, reorder or lose later overflow, resume from the original input, or change
+the execution capacity, schedule, slots, payload limit, charge function or
+configuration.
+Each must be rejected with a type mismatch under the existing gate criteria.
+
+This is an abstract atomic boundary, not a runtime configuration protocol.
+Authority to change limits, serialization, ownership, mandatory cleanup and
+control delivery, persistence, traversal and allocation costs, rejected-event
+storage and real-time latency remain open. The fixed-parameter cost and ledger
+composition results in modules 60-62 do not extend across this resize. No
+symbolic charge for resizing, general chronological ledger reconstruction
+across changing limits or Rust refinement is claimed.
+
 ## Negative controls
 
-The checker rejects 675 invalid variants: three direct checks of equality,
-ordering and termination, plus 672 semantic mutations. Mutations exercise such
+The checker rejects 696 invalid variants: three direct checks of equality,
+ordering and termination, plus 693 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

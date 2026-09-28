@@ -39,7 +39,8 @@
     "bounded_ingress_handoff_service": "Service uses a finite sequential schedule with exactly one ingress scan per delivered turn and a fixed deferred capacity. An explicit natural slack witness requires the original prefix, not necessarily the whole deferred input, to fit capacity. Only whole-prefix examination also takes a second slack witness that the delivered turn count covers the prefix length; the partial-prefix equation takes no turn-count premise. Fresh finite arrival batches and dispatch fuel are arbitrary. Examination is separate from successful admission and dispatch. The model does not supply runtime turns, fairness, wall-clock latency, storage or concrete cost bounds.",
     "paced_ingress_handoff_service": "Finite sequential schedules independently select zero or one ingress scan on each turn. The caller atomically carries the returned deferred FIFO into each delivered turn, including paused turns, and appends each fresh finite batch exactly once after that FIFO; the turn's zero-or-one scan allowance then examines only the FIFO head. Examined events leave the deferred FIFO whatever later admission decides, and only the unexamined suffix is retained or reported as overflow. Dispatch fuel and finite fresh arrival batches are arbitrary. A fixed deferred capacity retains the earliest unexamined prefix after every turn, including paused turns, and returns the remaining suffix as chronological overflow without internal replay. The terminal deferred bound requires initial fit. Prefix equations require only the original prefix to fit, and full examination additionally requires a natural slack witness that delivered scans cover its length. Overflow histories are output traces with no storage bound. Runtime delivery, exclusive ownership, admission, dispatch, mandatory-event handling, cancellation, restart, concrete costs and latency remain external obligations. Module 56 composes this schedule with abstract admitted queue/resource execution; runtime refinement remains open.",
     "paced_ingress_administrative_costs": "The symbolic scanCost dominates admission work for every examined occurrence, including payload/entry decisions, charge computation and examined rejection. The independent handoffCost dominates each offered occurrence on each delivered turn, including all concatenation and partition passes, retained suffix handling, overflow materialization and ownership transfer. Retained occurrences are charged again on later turns, including pauses; initial and fresh offered batches may exceed deferred capacity. turnCost dominates remaining per-turn work, including empty and paused turns and any backlog measurement not covered by per-item charges. All six administrative and execution weights use a common nonnegative unit. These are runtime domination obligations, not measured costs or kernel assumptions. The visit limit uses the actual initial deferred length on the first turn and fixed deferred capacity thereafter, plus every fresh batch length. No arrival-rate, offered-batch size, output-history storage, external construction, uncharged allocation, executor scheduling or wall-clock bound follows without separate refinement and evidence.",
-    "variable_ingress_scan_schedule": "Finite sequential schedules supply an arbitrary natural scan allowance on each delivered turn, independently of dispatch fuel. The caller atomically transfers the deferred FIFO and admitted queue/resource state; each finite fresh batch is appended exactly once behind deferred work. The scan selects the earliest offered prefix, then a fixed deferred capacity retains the earliest unexamined suffix and returns the rest as chronological overflow. Paused turns still append, retain and report overflow. Examined occurrences leave deferred ownership regardless of subsequent admission. The terminal deferred bound requires initial fit, including for an empty schedule. Original-prefix protection requires that prefix to fit capacity; complete examination additionally requires total delivered scan allowances to cover its length with a natural slack witness. Admission and dispatch are separate from examination. Runtime delivery, exclusive ownership, mandatory events, cancellation, restart, changing capacities, offered-batch construction, output-history storage, concrete costs and wall-clock latency remain external obligations."
+    "variable_ingress_scan_schedule": "Finite sequential schedules supply an arbitrary natural scan allowance on each delivered turn, independently of dispatch fuel. The caller atomically transfers the deferred FIFO and admitted queue/resource state; each finite fresh batch is appended exactly once behind deferred work. The scan selects the earliest offered prefix, then a fixed deferred capacity retains the earliest unexamined suffix and returns the rest as chronological overflow. Paused turns still append, retain and report overflow. Examined occurrences leave deferred ownership regardless of subsequent admission. The terminal deferred bound requires initial fit, including for an empty schedule. Original-prefix protection requires that prefix to fit capacity; complete examination additionally requires total delivered scan allowances to cover its length with a natural slack witness. Admission and dispatch are separate from examination. Runtime delivery, exclusive ownership, mandatory events, cancellation, restart, changing capacities, offered-batch construction, output-history storage, concrete costs and wall-clock latency remain external obligations.",
+    "deferred_ingress_capacity_changes": "An explicit atomic boundary chooses a new natural deferred capacity, retains the earliest prefix of the current deferred FIFO and returns the removed suffix as overflow. The admitted queue and its complete policy/resource state are carried unchanged; entry and payload limits, event charges and work configuration are not reconfigured. Subsequent turns use the new deferred capacity throughout their finite segment. Boundary overflow is reported before later turn overflow and is not automatically retried. Runtime authority, serialization, exclusive ownership, actual cleanup, mandatory control delivery, restart, cost domination and history storage remain refinement obligations."
   },
   "claims": [
     {
@@ -4706,6 +4707,129 @@
       "open_implementation_obligations": [
         "Establish the original credit bounds, trusted tick correspondence and concrete domination of every symbolic cost component.",
         "Refine boundary state transfer without reset or duplicated work. Real scheduling, changing parameters, mandatory-event delivery, uncharged allocations and wall-clock bounds remain separate obligations."
+      ]
+    },
+    {
+      "id": "C109",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "At an explicit deferred-capacity boundary, the retained FIFO prefix satisfies the new capacity and appending the returned overflow suffix reconstructs the exact original deferred trace. The entire admitted queue and policy/resource state is preserved. Zero capacity retains nothing and reports every deferred occurrence; no initial-fit premise is needed.",
+      "theorems": [
+        "resizedDeferredIngressBound",
+        "resizedDeferredIngressPartition",
+        "resizedDeferredIngressCarriesQueue",
+        "resizedDeferredIngressZeroRetainsNothing",
+        "resizedDeferredIngressZeroReportsAll"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine an authorized, atomic deferred-limit change and exclusive transfer of retained and rejected occurrences. Returning overflow does not implement cleanup, retry or mandatory control delivery.",
+        "Bound boundary traversal, temporary allocation and overflow storage; admitted entry, payload and policy/resource limits do not change in this model."
+      ]
+    },
+    {
+      "id": "C110",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Reapplying the same deferred capacity to the first resize result leaves its retained FIFO unchanged and reports no further overflow, for arbitrary finite traces and capacities. Together with carried-queue equality, repeated resizing cannot reject the same removed occurrence twice.",
+      "theorems": [
+        "deferredIngressPrefixIdempotent",
+        "deferredIngressPrefixHasNoOverflow",
+        "resizedDeferredIngressIdempotent",
+        "resizedDeferredIngressDoesNotRejectTwice"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Ensure the runtime resumes from the returned state and consumes each overflow report once; reusing the original input is outside this law.",
+        "Idempotence is for the same capacity. Arbitrary sequences of changing limits, runtime event identities and persistence remain unproved."
+      ]
+    },
+    {
+      "id": "C111",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A finite variable-scan execution after an explicit resize starts from the exact resized state and reports boundary overflow before later schedule overflow. Its terminal deferred queue satisfies the new capacity even for an oversized initial FIFO or an empty schedule. The admitted entry and immutable-payload bounds retain their respective initial-fit premises, and pending occupancy remains bounded by the original lease capacity.",
+      "theorems": [
+        "resizedDeferredIngressReportsOverflow",
+        "resizedDeferredIngressExecutesFromBoundary",
+        "resizedDeferredIngressExecutionBound",
+        "resizedDeferredIngressQueueEntryBound",
+        "resizedDeferredIngressQueuePayloadBound",
+        "resizedDeferredIngressPendingBound",
+        "resizedDeferredIngressStoppedOverflow"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine the resize boundary followed by the existing delivered schedule, with one fixed new deferred capacity throughout that segment. The admitted limits, charge function and configuration remain fixed.",
+        "Establish runtime overflow disposition, admission, dispatch, mandatory cleanup and control delivery. No cost envelope is extended to pay for resizing or overflow history.",
+        "Connect this boundary to real configuration publication and prior execution; complete chronological ledger reconstruction across changing limits remains open."
+      ]
+    },
+    {
+      "id": "C112",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Finite witnesses over arbitrary event values check shrinking to one retained item, reporting the removed suffix, retaining two items at capacity three, chronological boundary and paused-turn overflow with a repeated event value, and retention of a fresh arrival after a one-item scan. Queue state, configuration and payload weights remain arbitrary where present.",
+      "theorems": [
+        "resizedDeferredIngressShrinkKeepsFirst",
+        "resizedDeferredIngressShrinkReportsSuffix",
+        "resizedDeferredIngressSpareCapacity",
+        "resizedDeferredIngressOverflowChronology",
+        "resizedDeferredIngressScanRetainsArrival"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule"
+      ],
+      "open_implementation_obligations": [
+        "These finite reductions are witnesses, not general liveness, increasing-capacity or growth-composition theorems. Nonzero fuel in a witness does not assert successful admission or dispatch.",
+        "Repeated equal-valued occurrences establish multiplicity in the trace model, not authenticated runtime identity or exactly-once external cleanup."
       ]
     }
   ]

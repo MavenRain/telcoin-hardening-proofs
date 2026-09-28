@@ -121,15 +121,24 @@ single whole-schedule envelope under the original credit bounds, without a new
 resource burst or credit premise at the split. Weights and parameters stay
 fixed. Relating carried state, ledger ownership, construction and storage to
 the runtime remains open.
+An explicit deferred-capacity boundary now retains the earliest bounded FIFO
+prefix and reports the removed suffix while carrying the complete admitted
+queue and policy/resource state unchanged. Partition conservation and
+same-capacity idempotence hold for arbitrary finite inputs. Subsequent
+variable-scan execution reports boundary overflow before later overflow and
+satisfies the new deferred bound, even from an oversized input or an empty
+schedule. Admitted entry and payload bounds keep their initial-fit premises.
+Runtime authority, cleanup, resize costs and storage remain open, as do
+chronological ledger and cost composition across changing limits.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
-after examination, changing capacities and real-time latency remain open.
+after examination, other capacity changes and real-time latency remain open.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 144 atomic model obligations
+   explicit dispositions. The current 34 groups and 148 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
@@ -147,7 +156,7 @@ after examination, changing capacities and real-time latency remain open.
    policy/source/global/pending enforcement against one pre-state.
    Verify expiry authority, current restriction generations, clock correspondence,
    bounded retention time and restart persistence. Extend the
-   transition systems to resource-cap changes, authoritative policy ordering,
+   transition systems to admitted and policy/resource-cap changes, authoritative policy ordering,
    reconnect/bootstrap, timestamp freshness and full rotation/reload behavior.
    Refine the committee threshold, any cache-preserving policy updates and the
    queue scheduler. Cover the Hub, Rotation and Later tiers as well as Launch,

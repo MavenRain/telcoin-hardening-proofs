@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 672 additional semantic mutations must
+The 693 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -43,6 +43,17 @@ at the split. All 34 new controls reject against universal statements, without
 closed witnesses. This establishes neither concrete cost domination nor runtime
 ownership transfer, bounded history storage, changed-parameter behavior or
 wall-clock service.
+
+Module 63 models an explicit deferred-capacity boundary. Partition conservation
+and same-capacity idempotence preserve occurrence order and multiplicity while
+carrying the admitted queue and complete policy/resource state. Resumed
+execution accounts for boundary overflow before later overflow, including an
+empty schedule, and its deferred bound requires no initially fitting input.
+The admitted entry and payload bounds still require their initial-fit premises.
+Authorization, atomic runtime state transfer, actual overflow cleanup, resize
+costs and storage remain open. Other limits and configuration do not change;
+the earlier fixed-parameter cost and ledger composition laws do not apply
+across this boundary without further proof.
 
 ## Trusted components
 

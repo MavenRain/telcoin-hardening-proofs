@@ -467,3 +467,27 @@ matching input hashes. Implementation links remain `not_checked_this_run`;
 implementation refinement and deployment qualification remain false. Concrete
 cost domination, runtime state transfer, configuration changes, construction,
 history storage and real-time delivery remain open.
+
+`policy-ingress-capacity-handoff-model-check.json` records explicit deferred
+capacity changes at a handoff: 855 equality and order declarations in 46
+modules, 148 atomic obligations and 696 rejected negative checks. Module 63
+adds 21 proofs, two operational definitions, C109-C112 and 21 controls.
+Resizing preserves the exact partition of retained and rejected occurrences,
+carries the admitted queue and policy/resource state, and preserves retained
+work without further overflow when the same limit is reapplied. Resumed
+execution reports boundary overflow before later overflow
+and satisfies the new deferred bound without an initial-fit premise, including
+an empty schedule. The admitted entry and payload bounds retain their premises.
+
+The new controls corrupt boundary disposition, retained capacity, admitted
+state, overflow chronology or resumption parameters. They must produce proof
+type mismatches under the unchanged gate criteria. Finite witnesses cover
+shrinking, spare capacity, repeated occurrences, paused turns and a later scan.
+
+The full `make gate-regression` checks the positive bundle, empty axiom
+disclosure, catalog and source freshness, all 696 controls and the expected
+qualification-blocked exit 2. The receipt is copied from its report with
+matching input hashes. Implementation links remain `not_checked_this_run`;
+implementation refinement and deployment qualification remain false. Runtime
+authority, overflow cleanup, resizing costs and storage, other resource-limit
+changes, and ledger/cost composition across the boundary remain open.
