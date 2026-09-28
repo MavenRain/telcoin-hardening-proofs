@@ -1783,14 +1783,55 @@ Twelve controls alter history retention, capacities, schedules, carried input or
 the resize itself. Their definitions must typecheck before the full proofs
 reject them with type mismatches.
 
-Full policy/resource execution composition across the changed capacity, repeated
-resize schedules, cost composition, runtime ownership, mandatory-event delivery,
-wall-clock progress and bounded output-history storage remain open.
+Module 66 supplies the corresponding full queue and policy/resource execution
+composition across this deferred-capacity change. Repeated resize schedules,
+administrative and resize cost composition, runtime ownership, mandatory-event
+delivery, wall-clock progress and bounded output-history storage remain open.
+
+## Execution across a deferred-capacity change
+
+`66-policy-ingress-capacity-execution.mech` adds 16 equality and order proofs,
+three operational definitions and C120-C123. `runCapacityComposedIngress` runs
+the first segment at the old deferred capacity, passes its complete handoff
+state to the explicit resize, and runs the second segment at the new capacity.
+Admitted entry and payload limits, weights and policy/resource configuration
+remain fixed. The combined generated schedule uses the exact first deferred
+remainder, trimmed at the new capacity before the second segment begins.
+
+Execution of that combined schedule equals the final admitted queue and complete
+policy/resource state of the sequential operation. The dispatched trace is the
+ordered concatenation of both segments' dispatched traces, using the actual
+carried queue for the second segment. Running that trace produces the actual
+final policy/resource state. These equalities require no initial-fit premise.
+
+The final deferred length is bounded by the new capacity even for oversized
+initial deferred input or empty schedules. Admitted entry and payload bounds
+retain their respective initial-fit premises, and final pending occupancy is
+bounded by the original lease capacity. The capacity-composed ledger's deferred
+and ordered overflow projections equal the actual execution handoff fields.
+
+Empty schedules reduce to the existing empty resized execution. A zero-capacity
+boundary carries the admitted queue unchanged. Finite witnesses check a shrink
+with later arrivals and overflow, repeated equal-valued occurrences, growth with
+empty schedules and dispatch of admitted backlog before newly examined work.
+The combined payload-filtered schedule inherits the symbolic dispatch-cost
+envelope under the original work and handshake credit bounds, without an extra
+credit premise at the boundary.
+
+Twenty-seven controls alter capacities, schedules, second-segment limits,
+weights and configuration, resizing, carried deferred input, overflow, queue or
+resource state, and dispatch filtering. Each altered
+definition typechecks by itself; general theorems reject every control without
+the concrete witnesses. The dispatch envelope excludes scanning, admission,
+retention, overflow handling and the resize itself. Repeated capacity changes,
+combined administrative and resize cost bounds, other parameter changes,
+runtime ownership, cleanup, real service delivery and bounded history storage
+remain open.
 
 ## Negative controls
 
-The checker rejects 724 invalid variants: three direct checks of equality,
-ordering and termination, plus 721 semantic mutations. Mutations exercise such
+The checker rejects 751 invalid variants: three direct checks of equality,
+ordering and termination, plus 748 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

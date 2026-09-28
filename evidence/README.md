@@ -542,3 +542,27 @@ qualification exit 2. Implementation refinement and deployment qualification
 remain false. Full execution and cost composition across changed limits,
 repeated resizes, runtime ownership, cleanup and bounded history storage remain
 open. Earlier receipts above describe their respective historical slices.
+## Capacity execution model check
+
+`policy-ingress-capacity-execution-model-check.json` records 902 checked proof
+declarations in 49 modules, 159 atomic obligations and 751 rejected negative
+checks. Module 66 adds 16 proofs, three operational definitions, C120-C123 and
+27 controls. Two execution segments use independently chosen deferred capacities
+and the exact first handoff state. Their combined filtered schedule executes
+the actual final queue and policy/resource state, dispatch histories concatenate
+in order, and ledger deferred/overflow projections match the execution handoff.
+
+The final deferred bound needs no initial fit; admitted entry and payload bounds
+retain their respective initial-fit premises. Pending occupancy stays within
+the original lease capacity. Empty, zero-capacity, shrink, growth and repeated
+event witnesses cover the boundary and carried queue. The dispatch-cost envelope
+uses the original credit bounds and excludes scanning, admission, retention,
+overflow handling and resizing costs.
+
+Each altered definition typechecks before the universal statements reject it
+with a type mismatch, without the concrete witnesses. The full
+`make gate-regression` report includes empty axiom disclosure, freshness checks,
+all 751 negatives and the expected qualification-blocked exit 2. Implementation
+refinement and deployment qualification remain false. Repeated capacity changes,
+administrative and resize cost composition, other parameter changes, runtime
+ownership, cleanup, real delivery and bounded history storage remain open.

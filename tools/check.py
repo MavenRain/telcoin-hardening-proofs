@@ -1061,8 +1061,8 @@ MUTATIONS += [
      '      (runVariableDeferredIngress weight slots payloadLimit capacity second config',
      '      (runVariableDeferredIngress (fun (event : PolicyIngressEvent) => zero) slots payloadLimit capacity second config'),
     ('policy_execution_dispatch_drops_backlog',
-     '      (queuedPolicyIngress (resumedPolicyIngressQueue state))',
-     '      policyIngressDone'),
+     '      (variableDeferredIngressSchedule capacity schedule (deferredPolicyIngress state))\n      (queuedPolicyIngress (resumedPolicyIngressQueue state))',
+     '      (variableDeferredIngressSchedule capacity schedule (deferredPolicyIngress state))\n      policyIngressDone'),
     ('policy_execution_dispatch_changes_capacity',
      '    payloadIngressTrace weight slots payloadLimit\n      (variableDeferredIngressSchedule capacity schedule (deferredPolicyIngress state))',
      '    payloadIngressTrace weight slots payloadLimit\n      (variableDeferredIngressSchedule zero schedule (deferredPolicyIngress state))'),
@@ -1332,6 +1332,87 @@ MUTATIONS += [
     ]
 ]
 
+
+
+_CAPACITY_EXECUTION_SCHEDULE = """def capacityComposedIngressSchedule : Count -> Count -> VariablePolicyIngressSchedule ->
+    VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressSchedule :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressSchedule (variableDeferredIngressSchedule oldCapacity first waiting)
+      (variableDeferredIngressSchedule newCapacity second
+        (policyIngressDeferredPrefix newCapacity (variableDeferredIngressRemainder oldCapacity first waiting)))"""
+
+_CAPACITY_EXECUTION_RUN = """def runCapacityComposedIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    VariablePolicyIngressSchedule -> VariablePolicyIngressSchedule -> PolicyWorkConfig ->
+    PolicyIngressResumeState -> BoundedPolicyIngressHandoff :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    appendBoundedPolicyIngressHandoff
+      (runVariableDeferredIngress weight slots payloadLimit oldCapacity first config state)
+      (runResizedDeferredIngress weight slots payloadLimit newCapacity second config
+        (policyIngressHandoffState (runVariableDeferredIngress weight slots payloadLimit oldCapacity first config state)))"""
+
+_CAPACITY_EXECUTION_DISPATCHED = """def capacityComposedIngressDispatched : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    VariablePolicyIngressSchedule -> VariablePolicyIngressSchedule -> PolicyIngressResumeState -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (state : PolicyIngressResumeState) =>
+    payloadIngressTrace weight slots payloadLimit
+      (capacityComposedIngressSchedule oldCapacity newCapacity first second (deferredPolicyIngress state))
+      (queuedPolicyIngress (resumedPolicyIngressQueue state))"""
+
+_CAPACITY_EXECUTION_MIDDLE = "(policyIngressHandoffState (runVariableDeferredIngress weight slots payloadLimit oldCapacity first config state))"
+_CAPACITY_EXECUTION_RESET_QUEUE = "(policyIngressResumeState (deferredPolicyIngress " + _CAPACITY_EXECUTION_MIDDLE + ") (policyIngressQueueState policyIngressDone (ingressCostWork " + _CAPACITY_EXECUTION_MIDDLE + ")))"
+_CAPACITY_EXECUTION_RESET_WORK = "(policyIngressResumeState (deferredPolicyIngress " + _CAPACITY_EXECUTION_MIDDLE + ") (policyIngressQueueState (queuedPolicyIngress (resumedPolicyIngressQueue " + _CAPACITY_EXECUTION_MIDDLE + ")) (ingressCostWork state)))"
+
+MUTATIONS += [
+    (f"policy_capacity_execution_{name}", _CAPACITY_EXECUTION_RUN,
+     _CAPACITY_EXECUTION_RUN.replace(before, after))
+    for name, before, after in [
+        ("first_uses_new_capacity", "oldCapacity first config state", "newCapacity first config state"),
+        ("first_erases_schedule", "oldCapacity first config state", "oldCapacity variablePolicyIngressDone config state"),
+        ("first_erases_waiting", "first config state", "first config (policyIngressResumeState policyIngressDone (resumedPolicyIngressQueue state))"),
+        ("boundary_uses_old_capacity", "newCapacity second config", "oldCapacity second config"),
+        ("boundary_uses_zero_capacity", "newCapacity second config", "zero second config"),
+        ("second_replays_first", "newCapacity second config", "newCapacity first config"),
+        ("second_erases_schedule", "newCapacity second config", "newCapacity variablePolicyIngressDone config"),
+        ("boundary_omits_resize", "runResizedDeferredIngress", "runVariableDeferredIngress"),
+        ("boundary_restarts_original_state", _CAPACITY_EXECUTION_MIDDLE, "state"),
+        ("boundary_discards_queue", _CAPACITY_EXECUTION_MIDDLE, _CAPACITY_EXECUTION_RESET_QUEUE),
+        ("boundary_resets_resources", _CAPACITY_EXECUTION_MIDDLE, _CAPACITY_EXECUTION_RESET_WORK),
+        ("drops_first_overflow", "appendBoundedPolicyIngressHandoff\n      (runVariableDeferredIngress weight slots payloadLimit oldCapacity first config state)", "appendBoundedPolicyIngressHandoff\n      (boundedPolicyIngressHandoff policyIngressDone state)"),
+        ("second_changes_slots", "runResizedDeferredIngress weight slots payloadLimit newCapacity", "runResizedDeferredIngress weight zero payloadLimit newCapacity"),
+        ("second_changes_payload", "runResizedDeferredIngress weight slots payloadLimit newCapacity", "runResizedDeferredIngress weight slots zero newCapacity"),
+        ("second_changes_weight", "runResizedDeferredIngress weight slots payloadLimit newCapacity", "runResizedDeferredIngress (fun (event : PolicyIngressEvent) => zero) slots payloadLimit newCapacity"),
+        ("second_changes_config", "newCapacity second config", "newCapacity second (policyWorkConfig zero zero zero zero zero)"),
+    ]
+]
+
+MUTATIONS += [
+    (f"policy_capacity_execution_{name}", _CAPACITY_EXECUTION_SCHEDULE,
+     _CAPACITY_EXECUTION_SCHEDULE.replace(before, after))
+    for name, before, after in [
+        ("schedule_first_uses_new_capacity", "variableDeferredIngressSchedule oldCapacity first", "variableDeferredIngressSchedule newCapacity first"),
+        ("schedule_second_uses_old_capacity", "variableDeferredIngressSchedule newCapacity second", "variableDeferredIngressSchedule oldCapacity second"),
+        ("schedule_prefix_uses_old_capacity", "policyIngressDeferredPrefix newCapacity", "policyIngressDeferredPrefix oldCapacity"),
+        ("schedule_restarts_waiting", "(variableDeferredIngressRemainder oldCapacity first waiting)", "waiting"),
+        ("schedule_drops_first", "appendPolicyIngressSchedule (variableDeferredIngressSchedule oldCapacity first waiting)", "appendPolicyIngressSchedule policyIngressScheduleDone"),
+    ]
+]
+
+MUTATIONS += [
+    (f"policy_capacity_execution_{name}", _CAPACITY_EXECUTION_DISPATCHED,
+     _CAPACITY_EXECUTION_DISPATCHED.replace(before, after))
+    for name, before, after in [
+        ("dispatch_drops_initial_queue", "(queuedPolicyIngress (resumedPolicyIngressQueue state))", "policyIngressDone"),
+        ("dispatch_uses_zero_slots", "payloadIngressTrace weight slots payloadLimit", "payloadIngressTrace weight zero payloadLimit"),
+        ("dispatch_uses_zero_payload", "payloadIngressTrace weight slots payloadLimit", "payloadIngressTrace weight slots zero"),
+        ("dispatch_changes_weight", "payloadIngressTrace weight slots payloadLimit", "payloadIngressTrace (fun (event : PolicyIngressEvent) => zero) slots payloadLimit"),
+        ("dispatch_swaps_capacities", "capacityComposedIngressSchedule oldCapacity newCapacity first", "capacityComposedIngressSchedule newCapacity oldCapacity first"),
+        ("dispatch_drops_waiting", "first second (deferredPolicyIngress state)", "first second policyIngressDone"),
+    ]
+]
 
 
 def invoke(compiler: Path, command: str, bundle: Path):

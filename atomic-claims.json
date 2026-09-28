@@ -5040,6 +5040,146 @@
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
         "Arbitrary repeated capacity changes, cost composition across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C120",
+      "property": "Two finite variable-scan execution segments at independently chosen deferred capacities carry the complete first handoff into an explicit resize and then the second segment. Their final admitted queue and policy/resource state equal execution of the concatenated filtered schedules. Dispatched histories concatenate in order using the actual carried queue; empty schedules reduce to the existing empty resized execution, and a zero-capacity boundary does not clear the admitted queue. No initial-fit premise is required for these equalities.",
+      "theorems": [
+        "capacityComposedIngressExecutesQueue",
+        "capacityComposedIngressExecutesDispatched",
+        "capacityComposedIngressDispatchOrder",
+        "capacityComposedIngressEmptySchedules",
+        "capacityComposedIngressZeroBoundaryCarriesQueue",
+        "capacityComposedIngressDispatchesCarriedQueueFirst"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine serialized runtime transfer of the complete admitted queue and policy/resource state across an authorized deferred-capacity change.",
+        "Weights, admitted entry and payload limits, resource configuration and policy configuration stay fixed. Repeated capacity changes, other parameter changes, concrete execution costs and real service delivery remain open."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C121",
+      "property": "The two-segment execution ends within the new deferred capacity without initial deferred fit, including empty schedules. Admitted queue entry and payload bounds retain their respective initial-fit premises. Final pending occupancy is bounded by the original lease capacity.",
+      "theorems": [
+        "capacityComposedIngressDeferredBound",
+        "capacityComposedIngressQueueEntryBound",
+        "capacityComposedIngressQueuePayloadBound",
+        "capacityComposedIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Establish storage and immutable payload-charge correspondence for runtime deferred and admitted queues, and preserve exclusive resource ownership across the resize.",
+        "The model does not bound temporary allocations, cleanup work, history storage or wall-clock latency, and does not change admitted or resource capacities."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C122",
+      "property": "The capacity-composed ledger's final deferred and ordered overflow projections equal the actual two-segment execution handoff fields without an initial-fit premise. Finite witnesses over arbitrary event values distinguish the retained prefix, boundary overflow, later overflow and admitted backlog; repeated event values retain their multiplicity, and growth with empty schedules preserves waiting work.",
+      "theorems": [
+        "capacityComposedIngressLedgerDeferred",
+        "capacityComposedIngressLedgerOverflow",
+        "capacityComposedIngressShrinkExecution",
+        "capacityComposedIngressRepeatedExecution",
+        "capacityComposedIngressGrowthKeepsWaiting"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload"
+      ],
+      "open_implementation_obligations": [
+        "Refine occurrence ownership, overflow notification and mandatory cleanup from these finite ledger and execution equalities to runtime behavior.",
+        "No bounded ledger storage, runtime event identity for equal values, mandatory-event delivery or arbitrary repeated resize theorem is established."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C123",
+      "property": "The payload-filtered schedule for the two execution segments satisfies the existing symbolic dispatch-cost envelope under the original work-credit and handshake-credit bounds. It holds for arbitrary capacities, segment schedules, deferred input and admitted events, and requires no fresh credit premise at the capacity boundary.",
+      "theorems": [
+        "capacityComposedIngressDispatchCostEnvelope"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes"
+      ],
+      "open_implementation_obligations": [
+        "Refine the symbolic event, policy and handshake weights to concrete runtime dispatch work.",
+        "Scanning, admission, retention, overflow handling, the resize operation itself, construction and output-history storage are excluded. A combined administrative and resize cost envelope across changed capacity remains open."
+      ]
     }
   ]
 }

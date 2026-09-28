@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[155 atomic model obligations](atomic-claims.json) documenting theorem links,
+[159 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 724 deliberately invalid
+source hashes and coverage freshness, and requires 751 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-886 explicit equality and order proof declarations across 48 modules. This count
+902 explicit equality and order proof declarations across 49 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -115,7 +115,8 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `62-policy-ingress-cost-composition.mech` | All six symbolic cost components add across schedule segments carrying the actual handoff state. Their sum inherits one whole-schedule envelope under the original credit bounds, without a fresh resource burst at the split. Parameters and weights stay fixed; concrete costs and runtime refinement remain open. |
 | `63-policy-ingress-capacity-handoff.mech` | An explicit deferred-capacity change retains a bounded FIFO prefix, reports the removed suffix and carries the admitted queue and policy/resource state unchanged. Repeating the limit preserves the resized state without further overflow; resumed execution reports boundary overflow first and satisfies the new deferred bound. Runtime authority, cleanup and resize costs remain open. |
 | `64-policy-ingress-capacity-accounting.mech` | A boundary ledger reconstructs the original deferred input followed by every later arrival, preserving occurrence order and multiplicity across a resize. Its projections match examined work and the resized execution's deferred and overflow fields, including empty schedules and zero capacity. Runtime ownership, history storage and resize costs remain open; module 65 supplies preceding-ledger composition. |
-| `65-policy-ingress-capacity-composition.mech` | A preceding segment ledger composes with one capacity boundary and a following segment. Exact chronological reconstruction preserves occurrences without initial fit; examined and overflow histories concatenate in segment order, and final deferred work comes from the resized segment. Full execution and cost composition across changed limits remain open. |
+| `65-policy-ingress-capacity-composition.mech` | A preceding segment ledger composes with one capacity boundary and a following segment. Exact chronological reconstruction preserves occurrences without initial fit; examined and overflow histories concatenate in segment order, and final deferred work comes from the resized segment. Module 66 links this ledger to the actual execution handoff. |
+| `66-policy-ingress-capacity-execution.mech` | Complete queue and policy/resource execution composes across one deferred-capacity change, preserving dispatch order and matching ledger outputs. The new deferred bound is unconditional; admitted bounds retain initial-fit premises. The dispatch-cost envelope excludes administrative and resize costs. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

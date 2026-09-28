@@ -128,8 +128,7 @@ same-capacity idempotence hold for arbitrary finite inputs. Subsequent
 variable-scan execution reports boundary overflow before later overflow and
 satisfies the new deferred bound, even from an oversized input or an empty
 schedule. Admitted entry and payload bounds keep their initial-fit premises.
-Runtime authority, cleanup, resize costs and storage remain open, as does
-cost composition across changing limits.
+Runtime authority, cleanup, resize costs and storage remain open.
 A boundary ledger now reconstructs the exact pre-resize deferred input followed
 by every arrival in the subsequent variable-scan segment. It records the actual
 retained-prefix length, preserving boundary overflow before later arrivals and
@@ -139,9 +138,17 @@ values. A preceding segment ledger now composes with that boundary and following
 segment at independently chosen old and new capacities. Exact chronological
 reconstruction and occurrence counts survive without initial fit; examined and
 overflow histories concatenate in segment order and final deferred ownership
-comes from the resized segment. Full policy/resource execution composition
-across changed limits and arbitrary sequences of capacity changes remain open,
-together with runtime ownership and bounded history storage.
+comes from the resized segment. Complete queue and policy/resource execution now
+composes across the same deferred-capacity boundary using the exact first
+handoff state. The combined filtered schedule executes the final state, dispatch
+histories concatenate in order, and ledger deferred/overflow fields match the
+actual handoff. The new deferred bound needs no initial fit; admitted entry and
+payload bounds retain their respective premises, and pending occupancy remains
+within the original lease capacity. The symbolic dispatch-cost envelope uses
+the original credit bounds. Arbitrary sequences of capacity changes, combined
+administrative and resize cost bounds, other parameter changes, runtime
+ownership, cleanup, real service delivery and bounded history storage remain
+open.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -150,7 +157,7 @@ after examination, other capacity changes and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 155 atomic model obligations
+   explicit dispositions. The current 34 groups and 159 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

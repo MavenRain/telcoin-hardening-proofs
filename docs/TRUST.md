@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 721 additional semantic mutations must
+The 748 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -65,9 +65,21 @@ later multi-item examination and repeated equal-valued occurrences. The ledger
 record does not deliver a scheduler turn or implement cleanup. Module 65
 composes a preceding ledger with this boundary and its following segment,
 preserving exact chronological reconstruction and segment-ordered projections.
-It carries the exact first remainder and requires no initial fit. Full execution
-composition across changed limits, repeated capacity changes, resize costs,
-runtime ownership and bounded history storage remain open.
+It carries the exact first remainder and requires no initial fit. Module 66
+connects this ledger to complete execution across one deferred-capacity change.
+Repeated capacity changes, resize costs, runtime ownership and bounded history
+storage remain open.
+
+Module 66 carries the complete first execution handoff through the resize and
+the second segment. Queue and policy/resource execution equals the concatenated
+filtered schedule, dispatched histories compose in order, and the ledger's
+deferred and overflow fields match the actual handoff. The new deferred bound
+requires no initial fit; admitted entry and payload bounds keep their respective
+premises. The dispatch-cost envelope uses the original credit bounds. It excludes
+administrative and resize costs and does not change admitted limits, weights or
+configuration. All 27 controls typecheck as definitions and reject against
+general theorems without concrete witnesses. Runtime refinement, cleanup, real
+delivery and other parameter changes remain open.
 
 ## Trusted components
 
