@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 748 additional semantic mutations must
+The 774 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -67,8 +67,8 @@ composes a preceding ledger with this boundary and its following segment,
 preserving exact chronological reconstruction and segment-ordered projections.
 It carries the exact first remainder and requires no initial fit. Module 66
 connects this ledger to complete execution across one deferred-capacity change.
-Repeated capacity changes, resize costs, runtime ownership and bounded history
-storage remain open.
+Repeated capacity changes, concrete resize cost domination, runtime ownership
+and bounded history storage remain open.
 
 Module 66 carries the complete first execution handoff through the resize and
 the second segment. Queue and policy/resource execution equals the concatenated
@@ -80,6 +80,18 @@ administrative and resize costs and does not change admitted limits, weights or
 configuration. All 27 controls typecheck as definitions and reject against
 general theorems without concrete witnesses. Runtime refinement, cleanup, real
 delivery and other parameter changes remain open.
+
+Module 67 combines administrative, resize and dispatch costs across that one
+boundary. It charges each logical retained or removed occurrence and one fixed
+boundary cost, including empty input. The administrative limit retains the
+actual resize-input charge and needs no initial deferred fit. The full envelope
+uses the original work and handshake credit premises. Logical occurrence counts
+do not establish the number of physical traversal passes. The new disclosed
+`deferred_ingress_resize_costs` assumption requires concrete domination of all
+partition, materialization, ownership and cleanup work in a common unit with
+the existing costs. No new kernel axiom is introduced. Runtime cost domination,
+repeated capacity changes, allocation and history-storage bounds, real service
+delivery and elapsed time remain open.
 
 ## Trusted components
 

@@ -566,3 +566,29 @@ all 751 negatives and the expected qualification-blocked exit 2. Implementation
 refinement and deployment qualification remain false. Repeated capacity changes,
 administrative and resize cost composition, other parameter changes, runtime
 ownership, cleanup, real delivery and bounded history storage remain open.
+## Capacity cost model check
+
+`policy-ingress-capacity-cost-model-check.json` records 912 checked proof
+declarations in 50 modules, 162 atomic obligations and 777 rejected negative
+checks. Module 67 adds ten proofs, six cost definitions, C124-C126 and 26 controls.
+
+The logical resize count includes retained and rejected occurrences and equals
+the complete boundary input length. Its charge includes one fixed boundary
+cost even for empty input. The actual first execution handoff supplies the
+resize input; the next administrative segment starts from the retained prefix
+at the new capacity. Administrative costs combine with the composed schedule's
+dispatch cost under the original work and handshake credit bounds. The limit
+retains the actual resize-input charge and needs no initial deferred fit.
+
+All 26 altered definitions typecheck independently, and general proofs reject
+all 26 without the three specialized witnesses. The existing 748 mutation rows
+are unchanged. `make gate-regression` checks the complete bundle, empty axiom
+disclosure, source and catalog freshness, all 777 negative checks and the
+expected qualification-blocked exit 2.
+
+Implementation links were not checked in this run. Implementation refinement
+and deployment qualification remain false. The new disclosed resize-cost
+assumption still requires concrete domination of every partition pass,
+materialization, ownership transfer and mandatory cleanup in a common cost
+unit. Repeated reconfiguration, external construction, uncharged allocation,
+bounded history storage, real service delivery and elapsed time remain open.

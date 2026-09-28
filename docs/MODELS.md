@@ -1784,9 +1784,10 @@ the resize itself. Their definitions must typecheck before the full proofs
 reject them with type mismatches.
 
 Module 66 supplies the corresponding full queue and policy/resource execution
-composition across this deferred-capacity change. Repeated resize schedules,
-administrative and resize cost composition, runtime ownership, mandatory-event
-delivery, wall-clock progress and bounded output-history storage remain open.
+composition across this deferred-capacity change. Module 67 adds symbolic
+administrative and resize cost composition. Repeated resize schedules, concrete
+cost domination, runtime ownership, mandatory-event delivery, wall-clock
+progress and bounded output-history storage remain open.
 
 ## Execution across a deferred-capacity change
 
@@ -1823,15 +1824,58 @@ weights and configuration, resizing, carried deferred input, overflow, queue or
 resource state, and dispatch filtering. Each altered
 definition typechecks by itself; general theorems reject every control without
 the concrete witnesses. The dispatch envelope excludes scanning, admission,
-retention, overflow handling and the resize itself. Repeated capacity changes,
-combined administrative and resize cost bounds, other parameter changes,
-runtime ownership, cleanup, real service delivery and bounded history storage
-remain open.
+retention, overflow handling and the resize itself. Module 67 adds a combined
+symbolic administrative, resize and dispatch bound. Repeated capacity changes,
+concrete cost domination, other parameter changes, runtime ownership, cleanup,
+real service delivery and bounded history storage remain open.
+
+## Costs across a deferred-capacity change
+
+`67-policy-ingress-capacity-cost.mech` adds ten equality and order proofs,
+six cost definitions and C124-C126. Resize work counts the retained prefix and
+removed suffix. Their lengths sum to the complete pre-resize input length,
+preserving repeated occurrences. A per-occurrence weight charges that sum and
+one independent fixed weight charges the boundary, including empty input.
+The handoff theorem connects this charge to the actual first execution's
+deferred field. Empty-input, zero-capacity and repeated-value witnesses pin the
+boundary cases.
+
+The administrative cost adds the first segment at its old capacity, the resize
+of its exact remainder, and the second segment at its new capacity starting
+from the retained prefix. Its bound combines the two existing administrative
+limits and the exact resize charge. It permits arbitrary natural capacities,
+finite variable-scan schedules and initial deferred input, without initial fit.
+In particular, the bound retains the actual boundary input size; it is not a
+constant bound in the new capacity alone.
+
+The complete cost adds the payload-filtered composed schedule's dispatch cost.
+The eight independent natural weights cover scans, handoff occurrences, turns,
+resize occurrences, fixed boundary work, events, policy work and handshakes.
+The envelope uses only the original work-credit and handshake-credit bounds.
+It adds no fresh credit premise at the boundary and no initial deferred or
+admitted fit premise. Admitted limits, payload weights and policy/resource
+configuration remain fixed, as in module 66.
+
+Twenty-six controls remove retained or overflow counts, change resize weights,
+omit boundary or segment work, use the initial deferred input at the boundary,
+reuse an untrimmed or wrong-capacity second input, replay the first segment,
+change the dispatch weight, slots or payload limit, drop the carried deferred
+input of the dispatched schedule, or undercount administrative and dispatch limits. The changed definitions
+typecheck independently; general proofs reject every control without the three
+concrete witnesses.
+
+These are symbolic costs. The logical occurrence count does not prove a single
+physical traversal. The disclosed `deferred_ingress_resize_costs` assumption
+requires the weights to dominate all partition passes, materialization,
+ownership transfer and mandatory cleanup in the same unit as the existing
+costs. Concrete domination, repeated reconfiguration, external construction,
+uncharged allocation, bounded history storage, actual service delivery and
+wall-clock bounds remain open.
 
 ## Negative controls
 
-The checker rejects 751 invalid variants: three direct checks of equality,
-ordering and termination, plus 748 semantic mutations. Mutations exercise such
+The checker rejects 777 invalid variants: three direct checks of equality,
+ordering and termination, plus 774 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

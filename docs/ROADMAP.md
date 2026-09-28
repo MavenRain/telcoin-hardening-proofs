@@ -128,7 +128,7 @@ same-capacity idempotence hold for arbitrary finite inputs. Subsequent
 variable-scan execution reports boundary overflow before later overflow and
 satisfies the new deferred bound, even from an oversized input or an empty
 schedule. Admitted entry and payload bounds keep their initial-fit premises.
-Runtime authority, cleanup, resize costs and storage remain open.
+Runtime authority, cleanup, concrete resize cost domination and storage remain open.
 A boundary ledger now reconstructs the exact pre-resize deferred input followed
 by every arrival in the subsequent variable-scan segment. It records the actual
 retained-prefix length, preserving boundary overflow before later arrivals and
@@ -145,10 +145,13 @@ histories concatenate in order, and ledger deferred/overflow fields match the
 actual handoff. The new deferred bound needs no initial fit; admitted entry and
 payload bounds retain their respective premises, and pending occupancy remains
 within the original lease capacity. The symbolic dispatch-cost envelope uses
-the original credit bounds. Arbitrary sequences of capacity changes, combined
-administrative and resize cost bounds, other parameter changes, runtime
-ownership, cleanup, real service delivery and bounded history storage remain
-open.
+the original credit bounds. Administrative and resize charges now join that
+dispatch envelope across one boundary. The logical resize count includes both
+retained and rejected occurrences, and an empty input still incurs one fixed
+boundary charge. The limit keeps the actual resize-input charge and requires
+no initial deferred fit. Concrete domination by all eight weights, arbitrary
+sequences of capacity changes, other parameter changes, runtime ownership,
+cleanup, real service delivery and bounded history storage remain open.
 Concrete domination of all scan, admission, concatenation, retention, overflow
 and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
@@ -157,7 +160,7 @@ after examination, other capacity changes and real-time latency remain open.
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 159 atomic model obligations
+   explicit dispositions. The current 34 groups and 162 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

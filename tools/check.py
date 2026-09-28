@@ -1415,6 +1415,133 @@ MUTATIONS += [
 ]
 
 
+
+# Costs across one deferred-capacity boundary, including resize work.
+_CAPACITY_COST_VISITS = """def deferredIngressResizeVisits : Count -> PolicyIngressTrace -> Count :=
+  fun (capacity : Count) (waiting : PolicyIngressTrace) =>
+    add (policyIngressLength (policyIngressDeferredPrefix capacity waiting))
+      (policyIngressLength (policyIngressDeferredOverflow capacity waiting))"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_VISITS, _CAPACITY_COST_VISITS.replace(before, after))
+    for name, before, after in [
+        ("drops_retained", "(policyIngressLength (policyIngressDeferredPrefix capacity waiting))", "zero"),
+        ("drops_overflow", "(policyIngressLength (policyIngressDeferredOverflow capacity waiting))", "zero"),
+        ("counts_retained_twice", "policyIngressDeferredOverflow capacity waiting", "policyIngressDeferredPrefix capacity waiting"),
+    ]
+]
+
+_CAPACITY_COST_RESIZE = """def deferredIngressResizeCost : Count -> PolicyIngressTrace -> Count -> Count -> Count :=
+  fun (capacity : Count) (waiting : PolicyIngressTrace) (resizeCost : Count) (boundaryCost : Count) =>
+    add (multiply (deferredIngressResizeVisits capacity waiting) resizeCost) boundaryCost"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_RESIZE, _CAPACITY_COST_RESIZE.replace(before, after))
+    for name, before, after in [
+        ("drops_visit_charge", "(multiply (deferredIngressResizeVisits capacity waiting) resizeCost)", "zero"),
+        ("drops_boundary_charge", "resizeCost) boundaryCost", "resizeCost) zero"),
+        ("uses_boundary_weight_for_visits", "waiting) resizeCost", "waiting) boundaryCost"),
+    ]
+]
+
+_CAPACITY_COST_ADMIN = """def capacityComposedIngressAdminCost : Count -> Count -> VariablePolicyIngressSchedule ->
+    VariablePolicyIngressSchedule -> PolicyIngressTrace -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    add (variableDeferredIngressAdminCost oldCapacity first waiting scanCost handoffCost turnCost)
+      (add (deferredIngressResizeCost newCapacity (variableDeferredIngressRemainder oldCapacity first waiting)
+          resizeCost boundaryCost)
+        (variableDeferredIngressAdminCost newCapacity second
+          (policyIngressDeferredPrefix newCapacity (variableDeferredIngressRemainder oldCapacity first waiting))
+          scanCost handoffCost turnCost))"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_ADMIN, _CAPACITY_COST_ADMIN.replace(before, after))
+    for name, before, after in [
+        ("first_uses_new_capacity", "variableDeferredIngressAdminCost oldCapacity first", "variableDeferredIngressAdminCost newCapacity first"),
+        ("drops_first_segment", "(variableDeferredIngressAdminCost oldCapacity first waiting scanCost handoffCost turnCost)", "zero"),
+        ("resizes_initial_waiting", "deferredIngressResizeCost newCapacity (variableDeferredIngressRemainder oldCapacity first waiting)", "deferredIngressResizeCost newCapacity waiting"),
+        ("drops_resize_visits", "resizeCost boundaryCost)", "zero boundaryCost)"),
+        ("drops_second_segment", "variableDeferredIngressAdminCost newCapacity second", "variableDeferredIngressAdminCost newCapacity variablePolicyIngressDone"),
+        ("second_uses_old_capacity", "variableDeferredIngressAdminCost newCapacity second", "variableDeferredIngressAdminCost oldCapacity second"),
+        ("second_uses_untrimmed_input", "(policyIngressDeferredPrefix newCapacity (variableDeferredIngressRemainder oldCapacity first waiting))", "(variableDeferredIngressRemainder oldCapacity first waiting)"),
+        ("second_replays_first", "variableDeferredIngressAdminCost newCapacity second", "variableDeferredIngressAdminCost newCapacity first"),
+    ]
+]
+
+_CAPACITY_COST_ADMIN_LIMIT = """def capacityComposedIngressAdminLimit : Count -> Count -> VariablePolicyIngressSchedule ->
+    VariablePolicyIngressSchedule -> PolicyIngressTrace -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    add (variableDeferredIngressAdminLimit oldCapacity first waiting scanCost handoffCost turnCost)
+      (add (deferredIngressResizeCost newCapacity (variableDeferredIngressRemainder oldCapacity first waiting)
+          resizeCost boundaryCost)
+        (variableDeferredIngressAdminLimit newCapacity second
+          (policyIngressDeferredPrefix newCapacity (variableDeferredIngressRemainder oldCapacity first waiting))
+          scanCost handoffCost turnCost))"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_ADMIN_LIMIT, _CAPACITY_COST_ADMIN_LIMIT.replace(before, after))
+    for name, before, after in [
+        ("limit_drops_first_scan", "variableDeferredIngressAdminLimit oldCapacity first waiting scanCost", "variableDeferredIngressAdminLimit oldCapacity first waiting zero"),
+        ("limit_drops_boundary_charge", "resizeCost boundaryCost)", "resizeCost zero)"),
+        ("limit_drops_second_weights", "scanCost handoffCost turnCost))", "zero zero zero))"),
+    ]
+]
+
+_CAPACITY_COST_EXECUTION = """def capacityComposedIngressCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    VariablePolicyIngressSchedule -> VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace ->
+    PolicyWorkConfig -> PolicyWorkState -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityComposedIngressAdminCost oldCapacity newCapacity first second waiting
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (capacityComposedIngressSchedule oldCapacity newCapacity first second waiting) events)
+        events config current eventCost policyCost handshakeCost)"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_EXECUTION, _CAPACITY_COST_EXECUTION.replace(before, after))
+    for name, before, after in [
+        ("execution_drops_admin", "scanCost handoffCost turnCost resizeCost boundaryCost)", "zero zero zero zero zero)"),
+        ("execution_drops_dispatch", "events config current eventCost policyCost handshakeCost)", "events config current zero zero zero)"),
+        ("execution_swaps_capacities", "capacityComposedIngressSchedule oldCapacity newCapacity", "capacityComposedIngressSchedule newCapacity oldCapacity"),
+        ("execution_uses_zero_slots", "payloadIngressSchedule weight slots payloadLimit", "payloadIngressSchedule weight zero payloadLimit"),
+        ("execution_uses_zero_payload", "payloadIngressSchedule weight slots payloadLimit", "payloadIngressSchedule weight slots zero"),
+        ("execution_changes_weight", "payloadIngressSchedule weight slots payloadLimit", "payloadIngressSchedule (fun (event : PolicyIngressEvent) => zero) slots payloadLimit"),
+        ("execution_drops_waiting", "first second waiting) events)", "first second policyIngressDone) events)"),
+    ]
+]
+
+_CAPACITY_COST_LIMIT = """def capacityComposedIngressCostLimit : (PolicyIngressEvent -> Count) -> Count -> Count -> Count -> Count ->
+    VariablePolicyIngressSchedule -> VariablePolicyIngressSchedule -> PolicyIngressTrace -> PolicyIngressTrace ->
+    PolicyWorkConfig -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityComposedIngressAdminLimit oldCapacity newCapacity first second waiting
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (capacityComposedIngressSchedule oldCapacity newCapacity first second waiting) events)
+        events config eventCost policyCost handshakeCost)"""
+
+MUTATIONS += [
+    (f"policy_capacity_cost_{name}", _CAPACITY_COST_LIMIT, _CAPACITY_COST_LIMIT.replace(before, after))
+    for name, before, after in [
+        ("limit_drops_dispatch", "events config eventCost policyCost handshakeCost)", "events config zero zero zero)"),
+        ("limit_drops_admin", "scanCost handoffCost turnCost resizeCost boundaryCost)", "zero zero zero zero zero)"),
+    ]
+]
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 
