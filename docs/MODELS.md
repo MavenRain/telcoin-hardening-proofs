@@ -1699,9 +1699,10 @@ control delivery, persistence, traversal and allocation costs, rejected-event
 storage and real-time latency remain open. The fixed-parameter cost and ledger
 composition results in modules 60-62 do not extend across this resize. Module 64
 supplies chronological reconstruction for this boundary and its following
-segment. Module 65 supplies preceding-ledger composition. Arbitrary repeated
-capacity changes, symbolic resize charges and Rust refinement still require
-further proof.
+segment. Module 65 supplies preceding-ledger composition. Module 67 adds
+symbolic resize charges and module 68 adds deferred accounting across arbitrary
+finite capacity schedules. Repeated-change execution and costs and Rust
+refinement still require further proof.
 
 ## Occurrence accounting across a deferred-capacity boundary
 
@@ -1748,9 +1749,10 @@ every altered term denotes an extensionally different chronological trace.
 Runtime authority, serialization, exclusive occurrence ownership, cleanup,
 history storage, construction and traversal costs remain open. This result
 covers one resize and its following finite segment. Module 65 extends ledger
-accounting to a preceding segment. Arbitrary repeated capacity changes, symbolic
-resize charges, other resource-limit changes and wall-clock delivery require
-further work.
+accounting to a preceding segment. Module 67 adds symbolic resize charges and
+module 68 extends this ledger to arbitrary finite capacity schedules.
+Repeated-change execution and costs, other resource-limit changes and wall-clock
+delivery require further work.
 
 ## Ledger composition across a deferred-capacity change
 
@@ -1785,9 +1787,10 @@ reject them with type mismatches.
 
 Module 66 supplies the corresponding full queue and policy/resource execution
 composition across this deferred-capacity change. Module 67 adds symbolic
-administrative and resize cost composition. Repeated resize schedules, concrete
-cost domination, runtime ownership, mandatory-event delivery, wall-clock
-progress and bounded output-history storage remain open.
+administrative and resize cost composition. Module 68 separately proves
+deferred accounting across finite resize schedules. Their execution and costs,
+concrete cost domination, runtime ownership, mandatory-event delivery,
+wall-clock progress and bounded output-history storage remain open.
 
 ## Execution across a deferred-capacity change
 
@@ -1872,10 +1875,51 @@ costs. Concrete domination, repeated reconfiguration, external construction,
 uncharged allocation, bounded history storage, actual service delivery and
 wall-clock bounds remain open.
 
+## Finite schedules of deferred-capacity changes
+
+`68-policy-ingress-capacity-schedule.mech` extends deferred occurrence accounting
+to a finite sequence of resize boundaries and polling turns. A resize retains
+the earliest prefix at the new capacity, records the removed suffix as overflow,
+and continues at that capacity without examining any event. A turn appends its
+fresh batch behind the current deferred FIFO, examines the earliest prefix up
+to its scan allowance, and retains the earliest remaining prefix at the current
+capacity. Zero-scan turns still accept offered batches and record overflow.
+
+The recursive ledger reconstructs the initial deferred FIFO followed by every
+fresh batch in offered order, for arbitrary schedules and event values. The
+corresponding occurrence count agrees as well. These equalities require no
+initial-fit premise. The terminal deferred length is at most the last configured
+capacity when the initial FIFO fits the initial capacity, including an empty
+schedule. A leading resize establishes this bound without initial fit.
+
+Embedding the earlier variable-scan schedule gives exactly its fixed-capacity
+ledger. A leading resize followed by that embedding gives exactly the earlier
+single-resize ledger. Dispatch fuel is erased by the embedding because this
+layer accounts only for deferred occurrences; it does not execute admitted work.
+
+One operational witness starts with `a,b,c`, shrinks from capacity three to two,
+polls one event with arrivals `d,e`, shrinks to one, grows to three, offers `f`
+on a zero-scan turn, then polls one event. It reconstructs `a,b,c,d,e,f`, examines
+`a,b`, emits overflow `c,e,d` in disposition order, and retains `f`. Event values
+are universally quantified and may coincide. Separately, shrinking to zero and
+then growing retains none of an arbitrary initial waiting trace.
+
+The 30 controls alter the recursive ledger, offered-arrival projection, final
+capacity and fixed-schedule embedding. They omit or reorder arrivals, drop or
+replay retained and rejected work, fabricate examination or retained lengths,
+keep an old capacity, stop a continuation, or erase scan allowances. Each must
+be rejected with a proof type mismatch. These controls constrain the written
+definitions and proof terms; they do not establish checker soundness.
+
+This closes finite repeated-change deferred accounting only. Repeated-change
+admitted queue/resource execution and costs, authority and serialization,
+cleanup, mandatory event delivery, bounded history storage, runtime refinement,
+service guarantees and wall-clock latency remain open.
+
 ## Negative controls
 
-The checker rejects 777 invalid variants: three direct checks of equality,
-ordering and termination, plus 774 semantic mutations. Mutations exercise such
+The checker rejects 807 invalid variants: three direct checks of equality,
+ordering and termination, plus 804 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

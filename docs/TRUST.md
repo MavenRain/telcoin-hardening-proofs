@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 774 additional semantic mutations must
+The 804 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -67,8 +67,9 @@ composes a preceding ledger with this boundary and its following segment,
 preserving exact chronological reconstruction and segment-ordered projections.
 It carries the exact first remainder and requires no initial fit. Module 66
 connects this ledger to complete execution across one deferred-capacity change.
-Repeated capacity changes, concrete resize cost domination, runtime ownership
-and bounded history storage remain open.
+Module 68 separately proves deferred accounting across finite repeated capacity
+changes. Their execution and costs, concrete resize cost domination, runtime
+ownership and bounded history storage remain open.
 
 Module 66 carries the complete first execution handoff through the resize and
 the second segment. Queue and policy/resource execution equals the concatenated
@@ -92,6 +93,15 @@ partition, materialization, ownership and cleanup work in a common unit with
 the existing costs. No new kernel axiom is introduced. Runtime cost domination,
 repeated capacity changes, allocation and history-storage bounds, real service
 delivery and elapsed time remain open.
+
+The finite capacity-schedule layer adds induction over arbitrary finite
+interleavings of resize boundaries and polling turns. Its chronological ledger
+reconstructs offered occurrences and its terminal deferred bound uses the final
+capacity. The general bound requires initial fit; a leading resize establishes
+fit. Fixed-capacity and single-resize embeddings agree with the earlier ledgers.
+The model erases dispatch fuel and does not extend admitted queue/resource
+execution or cost bounds across repeated changes. Authority, runtime ownership,
+overflow cleanup, history storage and real service guarantees remain external.
 
 ## Trusted components
 

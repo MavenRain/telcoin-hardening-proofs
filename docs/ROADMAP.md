@@ -149,7 +149,7 @@ the original credit bounds. Administrative and resize charges now join that
 dispatch envelope across one boundary. The logical resize count includes both
 retained and rejected occurrences, and an empty input still incurs one fixed
 boundary charge. The limit keeps the actual resize-input charge and requires
-no initial deferred fit. Concrete domination by all eight weights, arbitrary
+no initial deferred fit. Concrete domination by all eight weights, cost bounds for arbitrary
 sequences of capacity changes, other parameter changes, runtime ownership,
 cleanup, real service delivery and bounded history storage remain open.
 Concrete domination of all scan, admission, concatenation, retention, overflow
@@ -157,10 +157,18 @@ and per-turn costs still requires runtime refinement. Offered-batch
 construction, output-history storage, scan delivery, admission and dispatch
 after examination, other capacity changes and real-time latency remain open.
 
+The capacity-schedule slice now accounts for arbitrary finite interleavings of
+deferred-capacity changes and polling turns. It reconstructs all offered
+occurrences, bounds terminal deferred work by the final capacity with initial
+fit (or a leading resize), and agrees with the earlier fixed-capacity and
+single-resize ledgers. Repeated-change admitted queue/resource execution and
+cost composition remain next steps, along with runtime authority, ownership,
+cleanup, history storage and service delivery.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 162 atomic model obligations
+   explicit dispositions. The current 34 groups and 166 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

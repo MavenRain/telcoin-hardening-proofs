@@ -41,7 +41,8 @@
     "paced_ingress_administrative_costs": "The symbolic scanCost dominates admission work for every examined occurrence, including payload/entry decisions, charge computation and examined rejection. The independent handoffCost dominates each offered occurrence on each delivered turn, including all concatenation and partition passes, retained suffix handling, overflow materialization and ownership transfer. Retained occurrences are charged again on later turns, including pauses; initial and fresh offered batches may exceed deferred capacity. turnCost dominates remaining per-turn work, including empty and paused turns and any backlog measurement not covered by per-item charges. All six administrative and execution weights use a common nonnegative unit. These are runtime domination obligations, not measured costs or kernel assumptions. The visit limit uses the actual initial deferred length on the first turn and fixed deferred capacity thereafter, plus every fresh batch length. No arrival-rate, offered-batch size, output-history storage, external construction, uncharged allocation, executor scheduling or wall-clock bound follows without separate refinement and evidence.",
     "variable_ingress_scan_schedule": "Finite sequential schedules supply an arbitrary natural scan allowance on each delivered turn, independently of dispatch fuel. The caller atomically transfers the deferred FIFO and admitted queue/resource state; each finite fresh batch is appended exactly once behind deferred work. The scan selects the earliest offered prefix, then a fixed deferred capacity retains the earliest unexamined suffix and returns the rest as chronological overflow. Paused turns still append, retain and report overflow. Examined occurrences leave deferred ownership regardless of subsequent admission. The terminal deferred bound requires initial fit, including for an empty schedule. Original-prefix protection requires that prefix to fit capacity; complete examination additionally requires total delivered scan allowances to cover its length with a natural slack witness. Admission and dispatch are separate from examination. Runtime delivery, exclusive ownership, mandatory events, cancellation, restart, changing capacities, offered-batch construction, output-history storage, concrete costs and wall-clock latency remain external obligations.",
     "deferred_ingress_capacity_changes": "An explicit atomic boundary chooses a new natural deferred capacity, retains the earliest prefix of the current deferred FIFO and returns the removed suffix as overflow. The admitted queue and its complete policy/resource state are carried unchanged; entry and payload limits, event charges and work configuration are not reconfigured. Subsequent turns use the new deferred capacity throughout their finite segment. Boundary overflow is reported before later turn overflow and is not automatically retried. Runtime authority, serialization, exclusive ownership, actual cleanup, mandatory control delivery, restart, cost domination and history storage remain refinement obligations.",
-    "deferred_ingress_resize_costs": "The resize model charges each retained or removed boundary occurrence once at resizeCost, plus boundaryCost once even for empty input. These logical occurrence counts do not establish a single physical traversal. Runtime resizeCost must dominate all partition, retention, overflow materialization, ownership and mandatory cleanup work attributable to each boundary occurrence, including repeated passes; boundaryCost must dominate remaining fixed boundary work. Both weights must use the same nonnegative unit as the six existing administrative and dispatch weights. Concrete domination, external construction, uncharged allocations, history storage and elapsed time remain open."
+    "deferred_ingress_resize_costs": "The resize model charges each retained or removed boundary occurrence once at resizeCost, plus boundaryCost once even for empty input. These logical occurrence counts do not establish a single physical traversal. Runtime resizeCost must dominate all partition, retention, overflow materialization, ownership and mandatory cleanup work attributable to each boundary occurrence, including repeated passes; boundaryCost must dominate remaining fixed boundary work. Both weights must use the same nonnegative unit as the six existing administrative and dispatch weights. Concrete domination, external construction, uncharged allocations, history storage and elapsed time remain open.",
+    "deferred_ingress_capacity_schedules": "A finite sequential schedule interleaves explicit deferred-capacity boundaries with polling turns. Each boundary keeps the earliest prefix at its new natural capacity and emits the removed suffix without examination. Each turn appends a finite offered batch exactly once, scans its earliest prefix, then retains at the current capacity and emits overflow. Resize output is not retried automatically. The terminal bound requires initial fit unless a leading resize establishes fit. This is deferred occurrence accounting; admitted execution, dispatch fuel, authority, serialization, runtime ownership, cleanup, cost domination, bounded history storage and service delivery require separate refinement."
   },
   "claims": [
     {
@@ -4951,7 +4952,7 @@
       ],
       "open_implementation_obligations": [
         "Use runtime traces with stable occurrence ownership to validate boundary overflow, pause behavior and later examination. These finite witnesses do not establish live schedule delivery or progress.",
-        "Refine runtime event identity and storage without deduplicating equal-valued occurrences; arbitrary repeated resize schedules and their cost accounting remain open."
+        "Refine runtime event identity and storage without deduplicating equal-valued occurrences; C127 and C128 cover the deferred ledger for arbitrary finite resize schedules; their execution and cost accounting remain open."
       ]
     },
     {
@@ -4979,7 +4980,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Arbitrary repeated capacity changes, concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5008,7 +5009,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Arbitrary repeated capacity changes, concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5039,7 +5040,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Arbitrary repeated capacity changes, concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5138,7 +5139,7 @@
       ],
       "open_implementation_obligations": [
         "Refine occurrence ownership, overflow notification and mandatory cleanup from these finite ledger and execution equalities to runtime behavior.",
-        "No bounded ledger storage, runtime event identity for equal values, mandatory-event delivery or arbitrary repeated resize theorem is established."
+        "No bounded ledger storage, runtime event identity for equal values, mandatory-event delivery or arbitrary repeated resize execution theorem is established."
       ]
     },
     {
@@ -5285,6 +5286,122 @@
       "open_implementation_obligations": [
         "Justify all eight natural weights in one runtime cost unit, including every partition pass, admission decision, overflow materialization and mandatory cleanup.",
         "The envelope uses the exact resize-input charge and makes no arrival-rate, allocation, history-storage, wall-clock or repeated-resize guarantee. Rust refinement and deployment qualification remain incomplete."
+      ]
+    },
+    {
+      "id": "C127",
+      "property": "For arbitrary finite schedules interleaving deferred-capacity changes with polling turns, the chronological ledger reconstructs the initial deferred FIFO followed by every offered batch in order, with the same occurrence count. This requires no initial capacity fit. Each resize contributes no examined occurrences beyond those recorded by its continuation.",
+      "theorems": [
+        "capacityDeferredIngressChronological",
+        "capacityDeferredIngressChronologicalCount",
+        "capacityResizeScheduleExaminesNothing"
+      ],
+      "open_implementation_obligations": [
+        "Refine the abstract interleaving to authorized, serialized runtime capacity updates and delivered polls with exclusive deferred ownership.",
+        "Implement overflow delivery, cleanup and chronological history storage; repeated-change admitted-state execution and concrete cost bounds are not proved here."
+      ],
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes",
+        "deferred_ingress_capacity_schedules",
+        "variable_ingress_scan_schedule"
+      ]
+    },
+    {
+      "id": "C128",
+      "property": "The terminal deferred occurrence count is at most the final configured capacity for every finite capacity schedule when the initial FIFO fits the initial capacity, including an empty schedule. A schedule beginning with a resize establishes the same terminal bound without any initial-fit premise.",
+      "theorems": [
+        "capacityDeferredIngressBound",
+        "capacityResizeScheduleBound"
+      ],
+      "open_implementation_obligations": [
+        "Refine occurrence capacity to runtime storage and preserve ownership during every boundary and poll.",
+        "Establish admitted-resource and payload limits, bounded history storage and cost domination across repeated changes; this terminal bound is not a liveness or latency theorem."
+      ],
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes",
+        "deferred_ingress_capacity_schedules",
+        "variable_ingress_scan_schedule"
+      ]
+    },
+    {
+      "id": "C129",
+      "property": "Embedding any finite variable-scan schedule without resize operations produces exactly the existing fixed-capacity deferred ledger. Prefixing that embedding by one resize produces exactly the existing single-resize ledger, for arbitrary initial capacities and waiting traces. Dispatch fuel is erased only from this deferred-accounting view.",
+      "theorems": [
+        "embeddedCapacityScheduleLedger",
+        "singleResizeCapacityScheduleLedger"
+      ],
+      "open_implementation_obligations": [
+        "Extend this equality of deferred ledgers to admitted queue/resource execution, wakeups and the cost model for repeated changes.",
+        "Refine the embedding and boundary ordering to actual runtime poll and reconfiguration events; it proves no authority or service delivery guarantee."
+      ],
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes",
+        "deferred_ingress_capacity_schedules",
+        "variable_ingress_scan_schedule"
+      ]
+    },
+    {
+      "id": "C130",
+      "property": "A finite witness schedule with two shrinks, a growth, and a zero-scan arrival turn reconstructs offered occurrences a,b,c,d,e,f, examines a,b, emits overflow c,e,d and retains f, for arbitrary event values. A zero-capacity boundary followed by growth retains nothing from any initial waiting trace, so growth does not revive that discarded deferred work.",
+      "theorems": [
+        "capacityScheduleInterleavedChronological",
+        "capacityScheduleInterleavedExamined",
+        "capacityScheduleInterleavedOverflow",
+        "capacityScheduleInterleavedDeferred",
+        "capacityScheduleZeroThenGrowth"
+      ],
+      "open_implementation_obligations": [
+        "The interleaving endpoints constrain one finite operational witness; they do not establish a general service or latency bound under repeated reconfiguration.",
+        "Refine overflow ownership, cleanup and non-retry behavior to runtime code, including equal-valued occurrences, cancellation and restart."
+      ],
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "deferred_ingress_capacity_changes",
+        "deferred_ingress_capacity_schedules",
+        "variable_ingress_scan_schedule"
       ]
     }
   ]

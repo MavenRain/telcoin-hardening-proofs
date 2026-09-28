@@ -592,3 +592,22 @@ assumption still requires concrete domination of every partition pass,
 materialization, ownership transfer and mandatory cleanup in a common cost
 unit. Repeated reconfiguration, external construction, uncharged allocation,
 bounded history storage, real service delivery and elapsed time remain open.
+
+## Capacity schedule model check
+
+`policy-ingress-capacity-schedule-model-check.json` records the passing checks
+for `68-policy-ingress-capacity-schedule.mech`, atoms C127-C130, and the complete
+proof bundle. The slice adds a finite resize/poll schedule, chronological
+occurrence reconstruction and count, the terminal bound at the final capacity,
+and equality with the earlier fixed-capacity and single-resize ledgers.
+
+The initial-fit premise is required for the general terminal bound, including
+the empty schedule. A leading resize establishes the terminal bound without
+initial fit. Chronological reconstruction has no such premise. A mixed witness
+checks two shrinks, growth and zero-scan arrivals; a separate theorem checks
+that growth after a zero-capacity boundary does not revive discarded work.
+
+All 30 new controls require semantic proof rejection. The full receipt retains
+empty axiom disclosure and the existing incomplete qualification status.
+Repeated-change execution and cost composition, runtime authority, ownership,
+cleanup, real service delivery and bounded history storage remain open.
