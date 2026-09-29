@@ -1702,7 +1702,7 @@ supplies chronological reconstruction for this boundary and its following
 segment. Module 65 supplies preceding-ledger composition. Module 67 adds
 symbolic resize charges and module 68 adds deferred accounting across arbitrary
 finite capacity schedules; module 69 adds their admitted execution.
-Repeated-change costs and Rust refinement still require further proof.
+Module 70 adds repeated-change symbolic costs; Rust refinement remains open.
 
 ## Occurrence accounting across a deferred-capacity boundary
 
@@ -1751,8 +1751,8 @@ history storage, construction and traversal costs remain open. This result
 covers one resize and its following finite segment. Module 65 extends ledger
 accounting to a preceding segment. Module 67 adds symbolic resize charges and
 module 68 extends this ledger to arbitrary finite capacity schedules and
-module 69 adds their admitted execution. Repeated-change costs, other
-resource-limit changes and wall-clock delivery require further work.
+module 69 adds their admitted execution. Module 70 adds repeated-change costs;
+other resource-limit changes and wall-clock delivery require further work.
 
 ## Ledger composition across a deferred-capacity change
 
@@ -1788,10 +1788,10 @@ reject them with type mismatches.
 Module 66 supplies the corresponding full queue and policy/resource execution
 composition across this deferred-capacity change. Module 67 adds symbolic
 administrative and resize cost composition. Module 68 separately proves
-deferred accounting across finite resize schedules, and module 69 adds their
-admitted execution. Their costs, concrete cost domination, runtime ownership,
-mandatory-event delivery, wall-clock progress and bounded output-history
-storage remain open.
+deferred accounting across finite resize schedules, module 69 adds their
+admitted execution and module 70 adds their symbolic costs. Concrete cost
+domination, runtime ownership, mandatory-event delivery, wall-clock progress
+and bounded output-history storage remain open.
 
 ## Execution across a deferred-capacity change
 
@@ -1831,9 +1831,9 @@ the concrete witnesses. The dispatch envelope excludes scanning, admission,
 retention, overflow handling and the resize itself. Module 67 adds a combined
 symbolic administrative, resize and dispatch bound. Module 68 adds deferred
 accounting and module 69 adds admitted execution across finite repeated
-capacity changes. Repeated-change costs, concrete cost domination, other
-parameter changes, runtime ownership, cleanup, real service delivery and
-bounded history storage remain open.
+capacity changes. Module 70 adds repeated-change costs. Concrete cost
+domination, other parameter changes, runtime ownership, cleanup, real service
+delivery and bounded history storage remain open.
 
 ## Costs across a deferred-capacity change
 
@@ -1915,9 +1915,10 @@ be rejected with a proof type mismatch. These controls constrain the written
 definitions and proof terms; they do not establish checker soundness.
 
 This layer closes finite repeated-change deferred accounting. Module 69 adds
-admitted queue/resource execution. Repeated-change costs, authority and
-serialization, cleanup, mandatory event delivery, bounded history storage,
-runtime refinement, service guarantees and wall-clock latency remain open.
+admitted queue/resource execution and module 70 adds repeated-change costs.
+Authority and serialization, cleanup, mandatory event delivery, bounded history
+storage, runtime refinement, service guarantees and wall-clock latency remain
+open.
 
 ## Execution under finite deferred-capacity schedules
 
@@ -1960,13 +1961,70 @@ runner and fixed-schedule embedding. They drop or replay input, lose resize or
 turn continuations, swap fuel or queue limits, restore rejected work, clear
 admitted state or corrupt handoff fields. Each must fail with a semantic proof
 mismatch. Runtime authority, exclusive ownership, overflow delivery, cleanup,
-bounded history storage, repeated-change cost composition and wall-clock
-service remain open.
+bounded history storage and wall-clock service remain open. Module 70 supplies
+the repeated-change symbolic cost envelope.
+
+## Capacity schedule cost
+
+`70-policy-ingress-capacity-schedule-cost.mech` adds symbolic administrative and
+dispatch work for the arbitrary finite execution schedules of module 69.
+All eight weights are natural numbers in one common unit: scan, handoff, turn,
+resize, boundary, event, policy and handshake costs. Admitted limits, immutable
+payload weights and policy/resource configuration remain fixed.
+
+`capacityIngressPollAdminCost` charges the examined occurrence count at
+`scanCost`, every waiting and fresh offered occurrence at `handoffCost`, and
+one `turnCost`. A zero-scan turn still charges all offered visits and fixed
+turn work, independently of dispatch fuel. Its limit replaces examination by
+scan fuel and the initial waiting length by a supplied upper bound.
+
+`capacityScheduledIngressAdminCost` follows the same deferred transitions as
+the execution schedule. At a resize it adds the module-67 charge for every
+boundary input occurrence and one fixed boundary charge, then recurses on the
+retained prefix at the new capacity. At a poll it adds the polling charge and
+recurses on the bounded unexamined suffix at the current capacity. The empty
+schedule costs zero. Resize overflow is charged once at its boundary and is
+not carried into later visit charges.
+
+`capacityScheduledIngressAdminLimit` needs only the schedule, the current
+capacity and a scalar initial suffix bound. After a resize it propagates the
+new capacity as the next suffix bound; after a poll it propagates the current
+capacity. The inductive `capacityScheduledIngressAdminBound` requires only
+that the initial suffix length is below the supplied bound. It therefore
+covers oversized initial input, empty boundaries, pauses, and arbitrary
+finite shrink/growth interleavings. The limit can be conservative when a
+growth leaves fewer retained occurrences than the new capacity.
+
+`capacityScheduledIngressCost` adds this administrative cost to dispatch over
+the exact `capacityExecutionSchedule`, passed through payload-aware admission
+with the carried admitted queue. Its envelope uses the actual initial deferred
+length and the original work-credit and handshake-credit bounds. It needs no
+fresh credit premise at a boundary and no initial deferred, entry or payload
+fit premise. Those occupancy properties retain their separate premises.
+
+The empty-cost theorem is general. Two concrete schedules quantify over event
+values and cost weights: a pause retaining one of two equal occurrences before
+a zero-capacity resize, and shrink-then-growth charging two occurrences at the
+first boundary and only the retained one at the second. They supplement the
+general bound without claiming runtime liveness or arbitrary cost equivalence.
+
+The 33 controls change six operational cost/limit definitions. They omit
+scans, offered visits, turn work, boundary work or continuations; confuse scan
+and dispatch fuel; restore overflow; propagate the wrong capacity or suffix
+bound; and omit or misdirect administrative or admitted dispatch work. Every
+control must produce a semantic proof mismatch. These are constraints on the
+stated proof terms, not independent measurements of runtime costs.
+
+Runtime domination of all eight weights, physical traversal counts, authority,
+ownership, cleanup, allocation, bounded history storage and service delivery
+remain open. The bound depends on the finite schedule and offered batch sizes;
+it does not bound how many resizes or arrivals the environment supplies.
+Equality with earlier segmented cost models also remains open.
 
 ## Negative controls
 
-The checker rejects 839 invalid variants: three direct checks of equality,
-ordering and termination, plus 836 semantic mutations. Mutations exercise such
+The checker rejects 872 invalid variants: three direct checks of equality,
+ordering and termination, plus 869 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

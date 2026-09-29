@@ -610,8 +610,8 @@ that growth after a zero-capacity boundary does not revive discarded work.
 All 30 new controls require semantic proof rejection. The full receipt retains
 empty axiom disclosure and the existing incomplete qualification status.
 This receipt covers deferred accounting. Module 69 adds repeated-change
-execution; cost composition, runtime authority, ownership, cleanup, real service
-delivery and bounded history storage remain open.
+execution and module 70 adds cost composition. Runtime authority, ownership,
+cleanup, real service delivery and bounded history storage remain open.
 
 ## Capacity schedule execution model check
 
@@ -632,6 +632,41 @@ values and resource state without claiming general liveness.
 
 All 32 new controls require semantic proof rejection. The full receipt retains
 empty axiom disclosure and the existing incomplete qualification status.
-Repeated-change cost composition, runtime simulation, authorized serialized
-updates, ownership, cleanup, real service delivery and bounded history storage
-remain open.
+Module 70 adds repeated-change cost composition. Runtime simulation, authorized
+serialized updates, ownership, cleanup, real service delivery and bounded
+history storage remain open.
+
+## Capacity schedule cost model check
+
+`policy-ingress-capacity-schedule-cost-model-check.json` records the passing
+full gate for module 70 and atoms C135-C138: 951 proof declarations across 53
+modules, 174 atomic obligations, 1,383 source units and 872 rejected negative
+checks. The ten new proof declarations establish polling and resize charges,
+the inductive administrative bound, the combined dispatch envelope, empty
+cost, and two concrete schedules with duplicate occurrences and a pause.
+
+The administrative limit starts from the actual deferred input length and
+propagates the active capacity after every resize or poll. Every boundary pays
+for its input occurrences and fixed work. Every poll pays for examined work,
+all offered visits and fixed work even when scanning or dispatch is paused.
+The combined envelope requires only the original work and handshake credit
+bounds, with fixed admitted limits, payload weights and resource configuration.
+
+All 33 new controls require semantic proof rejection. The full run checks empty
+axiom disclosure, source and catalog freshness, all existing controls, and the
+expected qualification-blocked exit 2. The receipt reports implementation links
+as not checked in this run. Runtime refinement and deployment qualification
+remain incomplete; no cost weight, real service rate, allocation bound or
+bounded history storage has been established by these symbolic proofs.
+
+The completed gate uses `python3 -I tools/check_gate.py --jobs 4`. An initial
+serial run was stopped as it approached the runner's one-hour limit. The
+parallel mode retains the per-check timeout, semantic diagnostic rules, full
+case set and deterministic report order. A duplicate case name is rejected
+before workers start; the default worker count and CI commands remain unchanged.
+`tools/check.py` collects worker results with `ThreadPoolExecutor.map`, so the
+report keeps case order and a failed rejection in any worker fails the run.
+It rejects duplicate case names and a worker count outside 1-8 before any
+worker starts. No repository test compares the results of different worker
+counts. Both command-line entry points also reject an invalid worker count
+before starting the checker.

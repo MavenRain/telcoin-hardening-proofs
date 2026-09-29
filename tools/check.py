@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
 import os
@@ -1731,11 +1732,147 @@ MUTATIONS += [
 ]
 
 
+_CAPACITY_SCHEDULE_COST_POLL_COST = """def capacityIngressPollAdminCost : Count -> PolicyIngressTrace -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (scan : Count) (waiting : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scanCost)
+      (add (multiply (add (policyIngressLength waiting) (policyIngressLength arrivals)) handoffCost) turnCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_POLL_COST, _CAPACITY_SCHEDULE_COST_POLL_COST.replace(before, after))
+    for name, before, after in [
+        ('poll_omits_scan', 'multiply (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scanCost', 'multiply zero scanCost'),
+        ('poll_omits_waiting_visits', 'add (policyIngressLength waiting) (policyIngressLength arrivals)', 'add zero (policyIngressLength arrivals)'),
+        ('poll_omits_arrival_visits', 'add (policyIngressLength waiting) (policyIngressLength arrivals)', 'add (policyIngressLength waiting) zero'),
+        ('poll_omits_turn_charge', 'handoffCost) turnCost)', 'handoffCost) zero)'),
+        ('poll_uses_handoff_scan_weight', 'arrivals)) scanCost)', 'arrivals)) handoffCost)'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_POLL_LIMIT = """def capacityIngressPollAdminLimit : Count -> Count -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (scan : Count) (initial : Count) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (multiply scan scanCost)
+      (add (multiply (add initial (policyIngressLength arrivals)) handoffCost) turnCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_POLL_LIMIT, _CAPACITY_SCHEDULE_COST_POLL_LIMIT.replace(before, after))
+    for name, before, after in [
+        ('poll_admin_limit_omits_scan', 'add (multiply scan scanCost)', 'add (multiply zero scanCost)'),
+        ('poll_admin_limit_omits_initial', 'add initial (policyIngressLength arrivals)', 'add zero (policyIngressLength arrivals)'),
+        ('poll_admin_limit_omits_arrivals', 'add initial (policyIngressLength arrivals)', 'add initial zero'),
+        ('poll_admin_limit_omits_turn', 'handoffCost) turnCost)', 'handoffCost) zero)'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_ADMIN_COST = """def rec capacityScheduledIngressAdminCost : Count -> PolicyIngressCapacityExecution -> PolicyIngressTrace ->
+    Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    case schedule as self in PolicyIngressCapacityExecution return Count with
+    | policyIngressCapacityExecutionDone => zero
+    | policyIngressCapacityExecutionResize resized rest =>
+        add (deferredIngressResizeCost resized waiting resizeCost boundaryCost)
+          (capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest =>
+        add (capacityIngressPollAdminCost scan waiting arrivals scanCost handoffCost turnCost)
+          (capacityScheduledIngressAdminCost capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_ADMIN_COST, _CAPACITY_SCHEDULE_COST_ADMIN_COST.replace(before, after))
+    for name, before, after in [
+        ('done_charges_boundary', '| policyIngressCapacityExecutionDone => zero', '| policyIngressCapacityExecutionDone => boundaryCost'),
+        ('resize_omits_input_visits', 'deferredIngressResizeCost resized waiting resizeCost boundaryCost', 'deferredIngressResizeCost resized policyIngressDone resizeCost boundaryCost'),
+        ('resize_omits_boundary', 'deferredIngressResizeCost resized waiting resizeCost boundaryCost', 'deferredIngressResizeCost resized waiting resizeCost zero'),
+        ('resize_keeps_old_capacity', 'capacityScheduledIngressAdminCost resized rest', 'capacityScheduledIngressAdminCost capacity rest'),
+        ('resize_restores_overflow', '(policyIngressDeferredPrefix resized waiting)', 'waiting'),
+        ('resize_drops_tail', 'capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)\n            scanCost handoffCost turnCost resizeCost boundaryCost', 'zero'),
+        ('poll_scans_dispatch_fuel', 'capacityIngressPollAdminCost scan waiting arrivals', 'capacityIngressPollAdminCost fuel waiting arrivals'),
+        ('poll_drops_tail', 'capacityScheduledIngressAdminCost capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)\n            scanCost handoffCost turnCost resizeCost boundaryCost', 'zero'),
+        ('poll_replays_waiting', '(boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)', 'waiting'),
+        ('poll_retains_by_dispatch_fuel', '(boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)', '(boundedResumedPolicyIngressDeferred capacity fuel waiting arrivals)'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_ADMIN_LIMIT = """def rec capacityScheduledIngressAdminLimit : Count -> PolicyIngressCapacityExecution -> Count ->
+    Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (initial : Count)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    case schedule as self in PolicyIngressCapacityExecution return Count with
+    | policyIngressCapacityExecutionDone => zero
+    | policyIngressCapacityExecutionResize resized rest =>
+        add (add (multiply initial resizeCost) boundaryCost)
+          (capacityScheduledIngressAdminLimit resized rest resized scanCost handoffCost turnCost resizeCost boundaryCost)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest =>
+        add (capacityIngressPollAdminLimit scan initial arrivals scanCost handoffCost turnCost)
+          (capacityScheduledIngressAdminLimit capacity rest capacity scanCost handoffCost turnCost resizeCost boundaryCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_ADMIN_LIMIT, _CAPACITY_SCHEDULE_COST_ADMIN_LIMIT.replace(before, after))
+    for name, before, after in [
+        ('resize_limit_uses_new_size', 'multiply initial resizeCost', 'multiply resized resizeCost'),
+        ('resize_limit_omits_boundary', 'multiply initial resizeCost) boundaryCost', 'multiply initial resizeCost) zero'),
+        ('resize_limit_keeps_old_capacity', 'capacityScheduledIngressAdminLimit resized rest resized', 'capacityScheduledIngressAdminLimit capacity rest resized'),
+        ('resize_limit_drops_retained_bound', 'capacityScheduledIngressAdminLimit resized rest resized', 'capacityScheduledIngressAdminLimit resized rest zero'),
+        ('poll_limit_uses_dispatch_fuel', 'capacityIngressPollAdminLimit scan initial arrivals', 'capacityIngressPollAdminLimit fuel initial arrivals'),
+        ('poll_limit_caps_initial_suffix', 'capacityIngressPollAdminLimit scan initial arrivals', 'capacityIngressPollAdminLimit scan capacity arrivals'),
+        ('poll_limit_drops_retained_bound', 'capacityScheduledIngressAdminLimit capacity rest capacity', 'capacityScheduledIngressAdminLimit capacity rest zero'),
+        ('limit_done_charges_boundary', '| policyIngressCapacityExecutionDone => zero', '| policyIngressCapacityExecutionDone => boundaryCost'),
+        ('poll_limit_omits_offered_arrivals', 'capacityIngressPollAdminLimit scan initial arrivals', 'capacityIngressPollAdminLimit scan initial policyIngressDone'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_TOTAL_COST = """def capacityScheduledIngressCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityScheduledIngressAdminCost capacity schedule waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config current eventCost policyCost handshakeCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_TOTAL_COST, _CAPACITY_SCHEDULE_COST_TOTAL_COST.replace(before, after))
+    for name, before, after in [
+        ('total_omits_admin', 'capacityScheduledIngressAdminCost capacity schedule waiting', 'capacityScheduledIngressAdminCost capacity policyIngressCapacityExecutionDone waiting'),
+        ('total_omits_dispatch', 'capacityExecutionSchedule capacity schedule waiting', 'capacityExecutionSchedule capacity policyIngressCapacityExecutionDone waiting'),
+        ('total_confuses_backlogs', ') events) events config current', ') waiting) waiting config current'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_TOTAL_LIMIT = """def capacityScheduledIngressCostLimit : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityScheduledIngressAdminLimit capacity schedule (policyIngressLength waiting)
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config eventCost policyCost handshakeCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_{name}", _CAPACITY_SCHEDULE_COST_TOTAL_LIMIT, _CAPACITY_SCHEDULE_COST_TOTAL_LIMIT.replace(before, after))
+    for name, before, after in [
+        ('total_limit_caps_initial_suffix', 'capacityScheduledIngressAdminLimit capacity schedule (policyIngressLength waiting)', 'capacityScheduledIngressAdminLimit capacity schedule capacity'),
+        ('total_limit_omits_dispatch', 'capacityExecutionSchedule capacity schedule waiting', 'capacityExecutionSchedule capacity policyIngressCapacityExecutionDone waiting'),
+    ]
+]
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 
 
-def negative_checks(compiler: Path, source: str, build: Path) -> list[str]:
+def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
+    if jobs not in range(1, 9):
+        raise ValueError("negative-check jobs must be between 1 and 8")
     cases = [(name, source.replace(before, after)) for name, before, after in MUTATIONS]
     if any(source.count(before) != 1 for _, before, _ in MUTATIONS):
         raise ValueError("a mutation target is absent or ambiguous")
@@ -1744,10 +1881,13 @@ def negative_checks(compiler: Path, source: str, build: Path) -> list[str]:
         ("false_bound", source + "\ndef impossible : AtMost (next zero) zero := least zero\n"),
         ("nonterminating_proof", source + "\ndef rec loop : Count -> Count := fun (n : Count) => loop n\n"),
     ])
-    rejected = []
+    if len({name for name, _ in cases}) != len(cases):
+        raise ValueError("duplicate negative check names")
     negative_dir = build / "negative"
     negative_dir.mkdir(exist_ok=True)
-    for name, candidate in cases:
+
+    def reject_case(case: tuple[str, str]) -> str:
+        name, candidate = case
         path = negative_dir / f"{name}.mech"
         path.write_text(candidate)
         result = invoke(compiler, "check", path)
@@ -1757,8 +1897,13 @@ def negative_checks(compiler: Path, source: str, build: Path) -> list[str]:
         expected = "termination:" if name == "nonterminating_proof" else "mismatch:"
         if result.returncode != 1 or not diagnostic.strip().startswith(expected):
             raise ValueError(f"negative check {name} did not produce a type/termination rejection: {diagnostic}")
-        rejected.append(name)
-    return rejected
+        return name
+
+    if jobs == 1:
+        return [reject_case(case) for case in cases]
+    with ThreadPoolExecutor(max_workers=jobs) as executor:
+        # map preserves report order while each checker writes distinct files.
+        return list(executor.map(reject_case, cases))
 
 
 def validate_compiler(compiler: Path, catalog: dict) -> dict:
@@ -1807,6 +1952,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--mech", default=os.environ.get("MECH", str(ROOT / ".cache/mechanism-lang/_build/default/bin/mech.exe")))
     parser.add_argument("--implementation", type=Path)
+    parser.add_argument("--jobs", type=int, choices=range(1, 9), default=1,
+                        help="independent negative-check workers (default: 1)")
     parser.add_argument("--require-complete", action="store_true",
                         help="also require every implementation and deployment claim to be proved")
     args = parser.parse_args()
@@ -1840,7 +1987,7 @@ def main() -> int:
         if command == "axioms" and (result.stdout.strip() or result.stderr.strip()):
             print("nonempty axiom disclosure", file=sys.stderr)
             return 1
-    rejected = negative_checks(compiler, source, build)
+    rejected = negative_checks(compiler, source, build, args.jobs)
     claims = catalog["load"](ROOT / "claims.json")["claims"]
     atoms = catalog["atomic_claims"](catalog["theorem_names"](source), {row["id"] for row in claims})
     if checked_inputs != input_hashes():

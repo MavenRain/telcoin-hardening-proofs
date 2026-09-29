@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 836 additional semantic mutations must
+The 869 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -68,9 +68,9 @@ preserving exact chronological reconstruction and segment-ordered projections.
 It carries the exact first remainder and requires no initial fit. Module 66
 connects this ledger to complete execution across one deferred-capacity change.
 Module 68 separately proves deferred accounting across finite repeated capacity
-changes, and module 69 adds their admitted queue/resource execution. Their
-costs, concrete resize cost domination, runtime ownership and bounded history
-storage remain open.
+changes, module 69 adds their admitted queue/resource execution and module 70
+adds their symbolic costs. Concrete resize cost domination, runtime ownership
+and bounded history storage remain open.
 
 Module 66 carries the complete first execution handoff through the resize and
 the second segment. Queue and policy/resource execution equals the concatenated
@@ -115,8 +115,22 @@ The terminal deferred bound requires initial fit or a leading resize. Admitted
 entry and payload bounds retain their respective initial-fit premises; pending
 occupancy is bounded by the original lease capacity. Admitted limits, weights
 and policy/resource configuration stay fixed. No new shared assumption or
-kernel axiom is introduced. Repeated-change cost composition and the runtime
-ownership, cleanup, delivery and storage obligations remain open.
+kernel axiom is introduced.
+
+Module 70 composes administrative, repeated-resize and dispatch charges in a
+common eight-weight symbolic envelope. Each resize charges every input
+occurrence plus fixed boundary work, including empty boundaries. Each poll
+charges examination, all offered visits and fixed turn work, including pauses.
+The administrative limit carries an upper bound on the initial suffix length
+and then the active capacity after every boundary or turn. The combined bound
+uses the actual initial suffix length and the original work and handshake
+credit premises; it requires no initial deferred or admitted fit. Admitted
+limits, payload weights and policy/resource configuration still stay fixed.
+The existing runtime cost-domination assumptions now describe both fixed and
+changing-capacity limits. They do not prove concrete traversal counts, measured
+weights, allocation costs, bounded history storage or elapsed time. Runtime
+ownership, cleanup, delivery and equality with earlier segmented costs remain
+open. No kernel assumption is added.
 
 ## Trusted components
 

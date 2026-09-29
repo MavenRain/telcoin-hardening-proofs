@@ -1,0 +1,248 @@
+-- Symbolic work for arbitrary finite deferred-capacity execution schedules.
+-- The limit carries a count bound, charging the actual initial suffix and then
+-- the active capacity. Runtime traversal and cost domination remain external.
+
+def capacityIngressPollAdminCost : Count -> PolicyIngressTrace -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (scan : Count) (waiting : PolicyIngressTrace) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scanCost)
+      (add (multiply (add (policyIngressLength waiting) (policyIngressLength arrivals)) handoffCost) turnCost)
+
+def capacityIngressPollAdminLimit : Count -> Count -> PolicyIngressTrace -> Count -> Count -> Count -> Count :=
+  fun (scan : Count) (initial : Count) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) =>
+    add (multiply scan scanCost)
+      (add (multiply (add initial (policyIngressLength arrivals)) handoffCost) turnCost)
+
+def capacityIngressPollAdminBound : (scan : Count) -> (waiting : PolicyIngressTrace) ->
+    (initial : Count) -> (arrivals : PolicyIngressTrace) -> (scanCost : Count) ->
+    (handoffCost : Count) -> (turnCost : Count) -> AtMost (policyIngressLength waiting) initial ->
+    AtMost (capacityIngressPollAdminCost scan waiting arrivals scanCost handoffCost turnCost)
+      (capacityIngressPollAdminLimit scan initial arrivals scanCost handoffCost turnCost) :=
+  fun (scan : Count) (waiting : PolicyIngressTrace) (initial : Count) (arrivals : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count)
+      (bound : AtMost (policyIngressLength waiting) initial) =>
+    addBounds (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scanCost)
+      (multiply scan scanCost)
+      (add (multiply (add (policyIngressLength waiting) (policyIngressLength arrivals)) handoffCost) turnCost)
+      (add (multiply (add initial (policyIngressLength arrivals)) handoffCost) turnCost)
+      (multipliedBounds (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scan scanCost
+        (policyIngressSelectedFuelBound scan (appendPolicyIngress waiting arrivals)))
+      (addBounds (multiply (add (policyIngressLength waiting) (policyIngressLength arrivals)) handoffCost)
+        (multiply (add initial (policyIngressLength arrivals)) handoffCost) turnCost turnCost
+        (multipliedBounds (add (policyIngressLength waiting) (policyIngressLength arrivals))
+          (add initial (policyIngressLength arrivals)) handoffCost
+          (addBounds (policyIngressLength waiting) initial (policyIngressLength arrivals) (policyIngressLength arrivals)
+            bound (reflexiveBound (policyIngressLength arrivals))))
+        (reflexiveBound turnCost))
+
+def capacityIngressResizeCostBound : (resized : Count) -> (waiting : PolicyIngressTrace) ->
+    (initial : Count) -> (resizeCost : Count) -> (boundaryCost : Count) ->
+    AtMost (policyIngressLength waiting) initial ->
+    AtMost (deferredIngressResizeCost resized waiting resizeCost boundaryCost)
+      (add (multiply initial resizeCost) boundaryCost) :=
+  fun (resized : Count) (waiting : PolicyIngressTrace) (initial : Count)
+      (resizeCost : Count) (boundaryCost : Count) (bound : AtMost (policyIngressLength waiting) initial) =>
+    addBounds (multiply (deferredIngressResizeVisits resized waiting) resizeCost)
+      (multiply initial resizeCost) boundaryCost boundaryCost
+      (multipliedBounds (deferredIngressResizeVisits resized waiting) initial resizeCost
+        (equalTransport Count (fun (visits : Count) => AtMost visits initial)
+          (policyIngressLength waiting) (deferredIngressResizeVisits resized waiting)
+          (equalSymmetry Count (deferredIngressResizeVisits resized waiting) (policyIngressLength waiting)
+            (deferredIngressResizeVisitsPartition resized waiting)) bound))
+      (reflexiveBound boundaryCost)
+
+def rec capacityScheduledIngressAdminCost : Count -> PolicyIngressCapacityExecution -> PolicyIngressTrace ->
+    Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    case schedule as self in PolicyIngressCapacityExecution return Count with
+    | policyIngressCapacityExecutionDone => zero
+    | policyIngressCapacityExecutionResize resized rest =>
+        add (deferredIngressResizeCost resized waiting resizeCost boundaryCost)
+          (capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest =>
+        add (capacityIngressPollAdminCost scan waiting arrivals scanCost handoffCost turnCost)
+          (capacityScheduledIngressAdminCost capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+
+def rec capacityScheduledIngressAdminLimit : Count -> PolicyIngressCapacityExecution -> Count ->
+    Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (initial : Count)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    case schedule as self in PolicyIngressCapacityExecution return Count with
+    | policyIngressCapacityExecutionDone => zero
+    | policyIngressCapacityExecutionResize resized rest =>
+        add (add (multiply initial resizeCost) boundaryCost)
+          (capacityScheduledIngressAdminLimit resized rest resized scanCost handoffCost turnCost resizeCost boundaryCost)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest =>
+        add (capacityIngressPollAdminLimit scan initial arrivals scanCost handoffCost turnCost)
+          (capacityScheduledIngressAdminLimit capacity rest capacity scanCost handoffCost turnCost resizeCost boundaryCost)
+
+def rec capacityScheduledIngressAdminBound : (capacity : Count) -> (schedule : PolicyIngressCapacityExecution) ->
+    (waiting : PolicyIngressTrace) -> (initial : Count) -> (scanCost : Count) -> (handoffCost : Count) ->
+    (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) ->
+    AtMost (policyIngressLength waiting) initial ->
+    AtMost (capacityScheduledIngressAdminCost capacity schedule waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+      (capacityScheduledIngressAdminLimit capacity schedule initial scanCost handoffCost turnCost resizeCost boundaryCost) :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (initial : Count)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    case schedule as self in PolicyIngressCapacityExecution return AtMost (policyIngressLength waiting) initial ->
+      AtMost (capacityScheduledIngressAdminCost capacity self waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+        (capacityScheduledIngressAdminLimit capacity self initial scanCost handoffCost turnCost resizeCost boundaryCost) with
+    | policyIngressCapacityExecutionDone => fun (bound : AtMost (policyIngressLength waiting) initial) => least zero
+    | policyIngressCapacityExecutionResize resized rest => fun (bound : AtMost (policyIngressLength waiting) initial) =>
+        addBounds (deferredIngressResizeCost resized waiting resizeCost boundaryCost)
+          (add (multiply initial resizeCost) boundaryCost)
+          (capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+          (capacityScheduledIngressAdminLimit resized rest resized scanCost handoffCost turnCost resizeCost boundaryCost)
+          (capacityIngressResizeCostBound resized waiting initial resizeCost boundaryCost bound)
+          (capacityScheduledIngressAdminBound resized rest (policyIngressDeferredPrefix resized waiting) resized
+            scanCost handoffCost turnCost resizeCost boundaryCost (policyIngressDeferredBound resized waiting))
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => fun (bound : AtMost (policyIngressLength waiting) initial) =>
+        addBounds (capacityIngressPollAdminCost scan waiting arrivals scanCost handoffCost turnCost)
+          (capacityIngressPollAdminLimit scan initial arrivals scanCost handoffCost turnCost)
+          (capacityScheduledIngressAdminCost capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)
+            scanCost handoffCost turnCost resizeCost boundaryCost)
+          (capacityScheduledIngressAdminLimit capacity rest capacity scanCost handoffCost turnCost resizeCost boundaryCost)
+          (capacityIngressPollAdminBound scan waiting initial arrivals scanCost handoffCost turnCost bound)
+          (capacityScheduledIngressAdminBound capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals) capacity
+            scanCost handoffCost turnCost resizeCost boundaryCost
+            (boundedResumedPolicyIngressDeferredBound capacity scan waiting arrivals))
+
+def capacityScheduledIngressAdminEmpty : (capacity : Count) -> (waiting : PolicyIngressTrace) ->
+    (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) ->
+    Equal Count (capacityScheduledIngressAdminCost capacity policyIngressCapacityExecutionDone waiting
+      scanCost handoffCost turnCost resizeCost boundaryCost) zero :=
+  fun (capacity : Count) (waiting : PolicyIngressTrace) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) => same
+
+def capacityScheduledIngressResizeChargesInput : (capacity : Count) -> (resized : Count) ->
+    (rest : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) -> (scanCost : Count) ->
+    (handoffCost : Count) -> (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) -> Equal Count
+      (capacityScheduledIngressAdminCost capacity (policyIngressCapacityExecutionResize resized rest) waiting
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (add (add (multiply (policyIngressLength waiting) resizeCost) boundaryCost)
+        (capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)
+          scanCost handoffCost turnCost resizeCost boundaryCost)) :=
+  fun (capacity : Count) (resized : Count) (rest : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) =>
+    congruent Count Count (fun (head : Count) => add head
+      (capacityScheduledIngressAdminCost resized rest (policyIngressDeferredPrefix resized waiting)
+        scanCost handoffCost turnCost resizeCost boundaryCost))
+      (deferredIngressResizeCost resized waiting resizeCost boundaryCost)
+      (add (multiply (policyIngressLength waiting) resizeCost) boundaryCost)
+      (deferredIngressResizeCostCountsInput resized waiting resizeCost boundaryCost)
+
+def capacityScheduledIngressPollChargesWork : (capacity : Count) -> (scan : Count) -> (fuel : Count) ->
+    (arrivals : PolicyIngressTrace) -> (rest : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) ->
+    (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) -> Equal Count
+      (capacityScheduledIngressAdminCost capacity (policyIngressCapacityExecutionTurn scan fuel arrivals rest) waiting
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (add (add (multiply (policyIngressLength (boundedResumedPolicyIngressExamined scan waiting arrivals)) scanCost)
+          (add (multiply (add (policyIngressLength waiting) (policyIngressLength arrivals)) handoffCost) turnCost))
+        (capacityScheduledIngressAdminCost capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)
+          scanCost handoffCost turnCost resizeCost boundaryCost)) :=
+  fun (capacity : Count) (scan : Count) (fuel : Count) (arrivals : PolicyIngressTrace) (rest : PolicyIngressCapacityExecution)
+      (waiting : PolicyIngressTrace) (scanCost : Count) (handoffCost : Count) (turnCost : Count)
+      (resizeCost : Count) (boundaryCost : Count) => same
+
+def capacityScheduledIngressCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig -> PolicyWorkState ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityScheduledIngressAdminCost capacity schedule waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config current eventCost policyCost handshakeCost)
+
+def capacityScheduledIngressCostLimit : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace -> PolicyWorkConfig ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityScheduledIngressAdminLimit capacity schedule (policyIngressLength waiting)
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config eventCost policyCost handshakeCost)
+
+def capacityScheduledIngressCostCountsWork : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (capacity : Count) -> (schedule : PolicyIngressCapacityExecution) ->
+    (waiting : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) ->
+    (current : PolicyWorkState) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) ->
+    (resizeCost : Count) -> (boundaryCost : Count) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) -> Equal Count
+      (capacityScheduledIngressCost weight slots payloadLimit capacity schedule waiting events config current
+        scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost)
+      (add (capacityScheduledIngressAdminCost capacity schedule waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+        (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+          (capacityExecutionSchedule capacity schedule waiting) events) events config current eventCost policyCost handshakeCost)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count) => same
+
+def capacityScheduledIngressCostEnvelope : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (capacity : Count) -> (schedule : PolicyIngressCapacityExecution) ->
+    (waiting : PolicyIngressTrace) -> (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) ->
+    (current : PolicyWorkState) -> (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) ->
+    (resizeCost : Count) -> (boundaryCost : Count) -> (eventCost : Count) -> (policyCost : Count) -> (handshakeCost : Count) ->
+    AtMost (policyWorkCredits current) (workCapacity config) ->
+    AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config) -> AtMost
+      (capacityScheduledIngressCost weight slots payloadLimit capacity schedule waiting events config current
+        scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost)
+      (capacityScheduledIngressCostLimit weight slots payloadLimit capacity schedule waiting events config
+        scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) (events : PolicyIngressTrace)
+      (config : PolicyWorkConfig) (current : PolicyWorkState) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count)
+      (eventCost : Count) (policyCost : Count) (handshakeCost : Count)
+      (workInitial : AtMost (policyWorkCredits current) (workCapacity config))
+      (handshakeInitial : AtMost (admissionCredits (policySourceResources (policyWorkSources current))) (workHandshakeCapacity config)) =>
+    addBounds
+      (capacityScheduledIngressAdminCost capacity schedule waiting scanCost handoffCost turnCost resizeCost boundaryCost)
+      (capacityScheduledIngressAdminLimit capacity schedule (policyIngressLength waiting)
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (policyIngressScheduleCost (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config current eventCost policyCost handshakeCost)
+      (policyIngressScheduleCostLimit (payloadIngressSchedule weight slots payloadLimit
+        (capacityExecutionSchedule capacity schedule waiting) events) events config eventCost policyCost handshakeCost)
+      (capacityScheduledIngressAdminBound capacity schedule waiting (policyIngressLength waiting)
+        scanCost handoffCost turnCost resizeCost boundaryCost (reflexiveBound (policyIngressLength waiting)))
+      (payloadIngressCombinedCostEnvelope weight slots payloadLimit (capacityExecutionSchedule capacity schedule waiting) events
+        config current eventCost policyCost handshakeCost workInitial handshakeInitial)
+
+-- Two equal occurrences survive a pause as one retained occurrence. The later
+-- zero-capacity resize visits that occurrence and pays its boundary charge.
+def capacityScheduledIngressPausedResizeCost : (event : PolicyIngressEvent) -> (fuel : Count) ->
+    (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) -> Equal Count
+      (capacityScheduledIngressAdminCost (next zero)
+        (policyIngressCapacityExecutionTurn zero fuel policyIngressDone
+          (policyIngressCapacityExecutionResize zero policyIngressCapacityExecutionDone))
+        (policyIngressThen event (policyIngressThen event policyIngressDone))
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (add (add (multiply (next (next zero)) handoffCost) turnCost)
+        (add (add (multiply (next zero) resizeCost) boundaryCost) zero)) :=
+  fun (event : PolicyIngressEvent) (fuel : Count) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) => same
+
+def capacityScheduledIngressRepeatedResizeCost : (event : PolicyIngressEvent) ->
+    (scanCost : Count) -> (handoffCost : Count) -> (turnCost : Count) -> (resizeCost : Count) -> (boundaryCost : Count) -> Equal Count
+      (capacityScheduledIngressAdminCost (next (next zero))
+        (policyIngressCapacityExecutionResize (next zero)
+          (policyIngressCapacityExecutionResize (next (next zero)) policyIngressCapacityExecutionDone))
+        (policyIngressThen event (policyIngressThen event policyIngressDone))
+        scanCost handoffCost turnCost resizeCost boundaryCost)
+      (add (add (multiply (next (next zero)) resizeCost) boundaryCost)
+        (add (add (multiply (next zero) resizeCost) boundaryCost) zero)) :=
+  fun (event : PolicyIngressEvent) (scanCost : Count) (handoffCost : Count)
+      (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) => same

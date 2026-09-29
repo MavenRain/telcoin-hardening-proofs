@@ -168,15 +168,20 @@ ledger-examined occurrences. Its runner constructs the deferred and overflow
 handoff fields from that ledger.
 Deferred fit uses the final capacity with initial fit or a leading resize;
 admitted entry and payload bounds retain their own initial-fit premises, and
-pending occupancy retains the original lease capacity. Repeated-change cost
-composition and equality with earlier full execution handoffs remain next
-steps, along with runtime authority, ownership, cleanup, history storage and
-service delivery.
+pending occupancy retains the original lease capacity. Module 70 adds an
+eight-weight administrative and dispatch cost envelope for arbitrary finite
+resize/poll schedules. Its scalar administrative limit charges the actual
+initial suffix, then propagates the active capacity after every resize or poll.
+The envelope uses the original work and handshake credit bounds without an
+initial deferred or admitted fit premise. Equality with earlier full execution
+handoffs and segmented cost models remains a next step, along with runtime
+authority, cost domination, ownership, cleanup, history storage and service
+delivery.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 170 atomic model obligations
+   explicit dispositions. The current 34 groups and 174 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy
