@@ -178,10 +178,19 @@ handoffs and segmented cost models remains a next step, along with runtime
 authority, cost domination, ownership, cleanup, history storage and service
 delivery.
 
+The capacity schedule composition model now connects arbitrary execution
+segments across cuts. Concatenation is associative and has a right identity;
+the second segment carries the first segment's final deferred capacity,
+deferred suffix and complete admitted queue state. General equalities preserve
+the ledger, lowered schedule, final queue, deferred suffix and ordered overflow
+without initial-fit premises. Equality with the earlier single-boundary
+execution and segmented cost models remains open, together with runtime
+serialization, authority, ownership, cleanup, storage and delivered service.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 174 atomic model obligations
+   explicit dispositions. The current 34 groups and 177 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

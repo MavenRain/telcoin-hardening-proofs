@@ -1,0 +1,200 @@
+-- Arbitrary execution segments carry the active deferred capacity across a cut.
+-- Queue limits, payload weights and policy configuration remain fixed.
+-- These finite equalities do not establish runtime authority or cost refinement.
+
+def rec appendCapacityExecution : PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution :=
+  fun (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) =>
+    case first as self in PolicyIngressCapacityExecution return PolicyIngressCapacityExecution with
+    | policyIngressCapacityExecutionDone => second
+    | policyIngressCapacityExecutionResize resized rest => policyIngressCapacityExecutionResize resized (appendCapacityExecution rest second)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => policyIngressCapacityExecutionTurn scan fuel arrivals (appendCapacityExecution rest second)
+
+def capacityExecutionLimit : Count -> PolicyIngressCapacityExecution -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) =>
+    capacityScheduleLimit capacity (capacityExecutionAccounting schedule)
+
+def capacityExecutionRemainder : Count -> PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule waiting)
+
+def rec appendCapacityExecutionRightIdentity : (schedule : PolicyIngressCapacityExecution) -> Equal PolicyIngressCapacityExecution
+    (appendCapacityExecution schedule policyIngressCapacityExecutionDone) schedule :=
+  fun (schedule : PolicyIngressCapacityExecution) =>
+    case schedule as self in PolicyIngressCapacityExecution return Equal PolicyIngressCapacityExecution
+      (appendCapacityExecution self policyIngressCapacityExecutionDone) self with
+    | policyIngressCapacityExecutionDone => same
+    | policyIngressCapacityExecutionResize resized rest => congruent PolicyIngressCapacityExecution PolicyIngressCapacityExecution
+        (fun (tail : PolicyIngressCapacityExecution) => policyIngressCapacityExecutionResize resized tail)
+        (appendCapacityExecution rest policyIngressCapacityExecutionDone) rest (appendCapacityExecutionRightIdentity rest)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => congruent PolicyIngressCapacityExecution PolicyIngressCapacityExecution
+        (fun (tail : PolicyIngressCapacityExecution) => policyIngressCapacityExecutionTurn scan fuel arrivals tail)
+        (appendCapacityExecution rest policyIngressCapacityExecutionDone) rest (appendCapacityExecutionRightIdentity rest)
+
+def rec appendCapacityExecutionAssociative : (first : PolicyIngressCapacityExecution) -> (second : PolicyIngressCapacityExecution) ->
+    (third : PolicyIngressCapacityExecution) -> Equal PolicyIngressCapacityExecution
+      (appendCapacityExecution (appendCapacityExecution first second) third)
+      (appendCapacityExecution first (appendCapacityExecution second third)) :=
+  fun (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (third : PolicyIngressCapacityExecution) =>
+    case first as self in PolicyIngressCapacityExecution return Equal PolicyIngressCapacityExecution
+      (appendCapacityExecution (appendCapacityExecution self second) third)
+      (appendCapacityExecution self (appendCapacityExecution second third)) with
+    | policyIngressCapacityExecutionDone => same
+    | policyIngressCapacityExecutionResize resized rest => congruent PolicyIngressCapacityExecution PolicyIngressCapacityExecution
+        (fun (tail : PolicyIngressCapacityExecution) => policyIngressCapacityExecutionResize resized tail)
+        (appendCapacityExecution (appendCapacityExecution rest second) third)
+        (appendCapacityExecution rest (appendCapacityExecution second third))
+        (appendCapacityExecutionAssociative rest second third)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => congruent PolicyIngressCapacityExecution PolicyIngressCapacityExecution
+        (fun (tail : PolicyIngressCapacityExecution) => policyIngressCapacityExecutionTurn scan fuel arrivals tail)
+        (appendCapacityExecution (appendCapacityExecution rest second) third)
+        (appendCapacityExecution rest (appendCapacityExecution second third))
+        (appendCapacityExecutionAssociative rest second third)
+
+def rec capacityExecutionLimitAppend : (capacity : Count) -> (first : PolicyIngressCapacityExecution) ->
+    (second : PolicyIngressCapacityExecution) -> Equal Count
+      (capacityExecutionLimit capacity (appendCapacityExecution first second))
+      (capacityExecutionLimit (capacityExecutionLimit capacity first) second) :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) =>
+    case first as self in PolicyIngressCapacityExecution return Equal Count
+      (capacityExecutionLimit capacity (appendCapacityExecution self second))
+      (capacityExecutionLimit (capacityExecutionLimit capacity self) second) with
+    | policyIngressCapacityExecutionDone => same
+    | policyIngressCapacityExecutionResize resized rest => capacityExecutionLimitAppend resized rest second
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => capacityExecutionLimitAppend capacity rest second
+
+def composedCapacityExecutionLedger : Count -> PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressLedger :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedger (capacityExecutionLedger capacity first waiting)
+      (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting))
+
+def rec capacityExecutionLedgerAppend : (capacity : Count) -> (first : PolicyIngressCapacityExecution) ->
+    (second : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressLedger
+      (capacityExecutionLedger capacity (appendCapacityExecution first second) waiting)
+      (composedCapacityExecutionLedger capacity first second waiting) :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    case first as self in PolicyIngressCapacityExecution return Equal PolicyIngressLedger
+      (capacityExecutionLedger capacity (appendCapacityExecution self second) waiting)
+      (composedCapacityExecutionLedger capacity self second waiting) with
+    | policyIngressCapacityExecutionDone => same
+    | policyIngressCapacityExecutionResize resized rest => congruent PolicyIngressLedger PolicyIngressLedger
+        (fun (tail : PolicyIngressLedger) => policyIngressLedgerTurn policyIngressDone
+          (policyIngressLength (policyIngressDeferredPrefix resized waiting)) (policyIngressDeferredOverflow resized waiting) tail)
+        (capacityExecutionLedger resized (appendCapacityExecution rest second) (policyIngressDeferredPrefix resized waiting))
+        (composedCapacityExecutionLedger resized rest second (policyIngressDeferredPrefix resized waiting))
+        (capacityExecutionLedgerAppend resized rest second (policyIngressDeferredPrefix resized waiting))
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => congruent PolicyIngressLedger PolicyIngressLedger
+        (fun (tail : PolicyIngressLedger) => policyIngressLedgerTurn (boundedResumedPolicyIngressExamined scan waiting arrivals)
+          (policyIngressLength (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+          (boundedResumedPolicyIngressOverflow capacity scan waiting arrivals) tail)
+        (capacityExecutionLedger capacity (appendCapacityExecution rest second) (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+        (composedCapacityExecutionLedger capacity rest second (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+        (capacityExecutionLedgerAppend capacity rest second (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+
+def capacityExecutionDeferredAppend : (capacity : Count) -> (first : PolicyIngressCapacityExecution) ->
+    (second : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (capacityExecutionRemainder capacity (appendCapacityExecution first second) waiting)
+      (capacityExecutionRemainder (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting)) :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (capacityExecutionRemainder capacity (appendCapacityExecution first second) waiting)
+      (policyIngressLedgerDeferred (composedCapacityExecutionLedger capacity first second waiting))
+      (capacityExecutionRemainder (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting))
+      (congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerDeferred
+        (capacityExecutionLedger capacity (appendCapacityExecution first second) waiting)
+        (composedCapacityExecutionLedger capacity first second waiting) (capacityExecutionLedgerAppend capacity first second waiting))
+      (appendPolicyIngressLedgerDeferred (capacityExecutionLedger capacity first waiting)
+        (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting)))
+
+def capacityExecutionOverflowAppend : (capacity : Count) -> (first : PolicyIngressCapacityExecution) ->
+    (second : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityExecutionLedger capacity (appendCapacityExecution first second) waiting))
+      (appendPolicyIngress (policyIngressLedgerOverflow (capacityExecutionLedger capacity first waiting))
+        (policyIngressLedgerOverflow (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting)))) :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    equalTransitivity PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityExecutionLedger capacity (appendCapacityExecution first second) waiting))
+      (policyIngressLedgerOverflow (composedCapacityExecutionLedger capacity first second waiting))
+      (appendPolicyIngress (policyIngressLedgerOverflow (capacityExecutionLedger capacity first waiting))
+        (policyIngressLedgerOverflow (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting))))
+      (congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerOverflow
+        (capacityExecutionLedger capacity (appendCapacityExecution first second) waiting)
+        (composedCapacityExecutionLedger capacity first second waiting) (capacityExecutionLedgerAppend capacity first second waiting))
+      (appendPolicyIngressLedgerOverflow (capacityExecutionLedger capacity first waiting)
+        (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting)))
+
+def rec capacityExecutionScheduleAppend : (capacity : Count) -> (first : PolicyIngressCapacityExecution) ->
+    (second : PolicyIngressCapacityExecution) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressSchedule
+      (capacityExecutionSchedule capacity (appendCapacityExecution first second) waiting)
+      (appendPolicyIngressSchedule (capacityExecutionSchedule capacity first waiting)
+        (capacityExecutionSchedule (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting))) :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    case first as self in PolicyIngressCapacityExecution return Equal PolicyIngressSchedule
+      (capacityExecutionSchedule capacity (appendCapacityExecution self second) waiting)
+      (appendPolicyIngressSchedule (capacityExecutionSchedule capacity self waiting)
+        (capacityExecutionSchedule (capacityExecutionLimit capacity self) second (capacityExecutionRemainder capacity self waiting))) with
+    | policyIngressCapacityExecutionDone => same
+    | policyIngressCapacityExecutionResize resized rest => capacityExecutionScheduleAppend resized rest second (policyIngressDeferredPrefix resized waiting)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => congruent PolicyIngressSchedule PolicyIngressSchedule
+        (fun (tail : PolicyIngressSchedule) => policyIngressTurn fuel (boundedResumedPolicyIngressExamined scan waiting arrivals) tail)
+        (capacityExecutionSchedule capacity (appendCapacityExecution rest second) (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+        (appendPolicyIngressSchedule (capacityExecutionSchedule capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+          (capacityExecutionSchedule (capacityExecutionLimit capacity rest) second
+            (capacityExecutionRemainder capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))))
+        (capacityExecutionScheduleAppend capacity rest second (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+
+def runComposedCapacityScheduledIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState -> BoundedPolicyIngressHandoff :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    appendBoundedPolicyIngressHandoff (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)
+      (runCapacityScheduledIngress weight slots payloadLimit (capacityExecutionLimit capacity first) second config
+        (policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)))
+
+def capacityScheduledIngressAppendDeferred : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (capacity : Count) -> (first : PolicyIngressCapacityExecution) -> (second : PolicyIngressCapacityExecution) ->
+    (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) -> Equal PolicyIngressTrace
+      (deferredPolicyIngress (policyIngressHandoffState
+        (runCapacityScheduledIngress weight slots payloadLimit capacity (appendCapacityExecution first second) config state)))
+      (deferredPolicyIngress (policyIngressHandoffState
+        (runComposedCapacityScheduledIngress weight slots payloadLimit capacity first second config state))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    capacityExecutionDeferredAppend capacity first second (deferredPolicyIngress state)
+
+def capacityScheduledIngressAppendOverflow : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (capacity : Count) -> (first : PolicyIngressCapacityExecution) -> (second : PolicyIngressCapacityExecution) ->
+    (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) -> Equal PolicyIngressTrace
+      (policyIngressHandoffOverflow (runCapacityScheduledIngress weight slots payloadLimit capacity (appendCapacityExecution first second) config state))
+      (policyIngressHandoffOverflow (runComposedCapacityScheduledIngress weight slots payloadLimit capacity first second config state)) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    capacityExecutionOverflowAppend capacity first second (deferredPolicyIngress state)
+
+def capacityScheduledIngressAppendQueue : (weight : PolicyIngressEvent -> Count) -> (slots : Count) -> (payloadLimit : Count) ->
+    (capacity : Count) -> (first : PolicyIngressCapacityExecution) -> (second : PolicyIngressCapacityExecution) ->
+    (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) -> Equal PolicyIngressQueueState
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runCapacityScheduledIngress weight slots payloadLimit capacity (appendCapacityExecution first second) config state)))
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runComposedCapacityScheduledIngress weight slots payloadLimit capacity first second config state))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    equalTransitivity PolicyIngressQueueState
+      (runPayloadIngress weight slots payloadLimit (capacityExecutionSchedule capacity (appendCapacityExecution first second) (deferredPolicyIngress state))
+        config (resumedPolicyIngressQueue state))
+      (runPayloadIngress weight slots payloadLimit
+        (appendPolicyIngressSchedule (capacityExecutionSchedule capacity first (deferredPolicyIngress state))
+          (capacityExecutionSchedule (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first (deferredPolicyIngress state))))
+        config (resumedPolicyIngressQueue state))
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runComposedCapacityScheduledIngress weight slots payloadLimit capacity first second config state)))
+      (congruent PolicyIngressSchedule PolicyIngressQueueState
+        (fun (schedule : PolicyIngressSchedule) => runPayloadIngress weight slots payloadLimit schedule config (resumedPolicyIngressQueue state))
+        (capacityExecutionSchedule capacity (appendCapacityExecution first second) (deferredPolicyIngress state))
+        (appendPolicyIngressSchedule (capacityExecutionSchedule capacity first (deferredPolicyIngress state))
+          (capacityExecutionSchedule (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first (deferredPolicyIngress state))))
+        (capacityExecutionScheduleAppend capacity first second (deferredPolicyIngress state)))
+      (runPayloadIngressAppend weight slots payloadLimit
+        (capacityExecutionSchedule capacity first (deferredPolicyIngress state))
+        (capacityExecutionSchedule (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first (deferredPolicyIngress state)))
+        config (resumedPolicyIngressQueue state))

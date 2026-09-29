@@ -1866,6 +1866,82 @@ MUTATIONS += [
     ]
 ]
 
+_CAPACITY_SCHEDULE_COMPOSITION_APPEND = """def rec appendCapacityExecution : PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution :=
+  fun (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) =>
+    case first as self in PolicyIngressCapacityExecution return PolicyIngressCapacityExecution with
+    | policyIngressCapacityExecutionDone => second
+    | policyIngressCapacityExecutionResize resized rest => policyIngressCapacityExecutionResize resized (appendCapacityExecution rest second)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => policyIngressCapacityExecutionTurn scan fuel arrivals (appendCapacityExecution rest second)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_composition_{name}", _CAPACITY_SCHEDULE_COMPOSITION_APPEND, _CAPACITY_SCHEDULE_COMPOSITION_APPEND.replace(before, after))
+    for name, before, after in [
+        ('done_drops_second', 'policyIngressCapacityExecutionDone => second', 'policyIngressCapacityExecutionDone => policyIngressCapacityExecutionDone'),
+        ('resize_drops_boundary', 'policyIngressCapacityExecutionResize resized (appendCapacityExecution rest second)', 'appendCapacityExecution rest second'),
+        ('resize_uses_zero', 'policyIngressCapacityExecutionResize resized (appendCapacityExecution rest second)', 'policyIngressCapacityExecutionResize zero (appendCapacityExecution rest second)'),
+        ('resize_drops_tail', 'policyIngressCapacityExecutionResize resized (appendCapacityExecution rest second)', 'policyIngressCapacityExecutionResize resized second'),
+        ('turn_drops_tail', 'policyIngressCapacityExecutionTurn scan fuel arrivals (appendCapacityExecution rest second)', 'policyIngressCapacityExecutionTurn scan fuel arrivals second'),
+        ('turn_swaps_fuel', 'policyIngressCapacityExecutionTurn scan fuel arrivals (appendCapacityExecution rest second)', 'policyIngressCapacityExecutionTurn fuel scan arrivals (appendCapacityExecution rest second)'),
+        ('turn_drops_arrivals', 'policyIngressCapacityExecutionTurn scan fuel arrivals (appendCapacityExecution rest second)', 'policyIngressCapacityExecutionTurn scan fuel policyIngressDone (appendCapacityExecution rest second)'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COMPOSITION_LIMIT = """def capacityExecutionLimit : Count -> PolicyIngressCapacityExecution -> Count :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) =>
+    capacityScheduleLimit capacity (capacityExecutionAccounting schedule)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_composition_{name}", _CAPACITY_SCHEDULE_COMPOSITION_LIMIT, _CAPACITY_SCHEDULE_COMPOSITION_LIMIT.replace(before, after))
+    for name, before, after in [
+        ('limit_forgets_schedule', 'capacityScheduleLimit capacity (capacityExecutionAccounting schedule)', 'capacityScheduleLimit capacity policyIngressCapacityDone'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COMPOSITION_REMAINDER = """def capacityExecutionRemainder : Count -> PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressTrace :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule waiting)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_composition_{name}", _CAPACITY_SCHEDULE_COMPOSITION_REMAINDER, _CAPACITY_SCHEDULE_COMPOSITION_REMAINDER.replace(before, after))
+    for name, before, after in [
+        ('remainder_restarts_input', 'policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule waiting)', 'waiting'),
+        ('remainder_discards_input', 'policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule waiting)', 'policyIngressDone'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COMPOSITION_LEDGER = """def composedCapacityExecutionLedger : Count -> PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressLedger :=
+  fun (capacity : Count) (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    appendPolicyIngressLedger (capacityExecutionLedger capacity first waiting)
+      (capacityExecutionLedger (capacityExecutionLimit capacity first) second (capacityExecutionRemainder capacity first waiting))
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_composition_{name}", _CAPACITY_SCHEDULE_COMPOSITION_LEDGER, _CAPACITY_SCHEDULE_COMPOSITION_LEDGER.replace(before, after))
+    for name, before, after in [
+        ('ledger_stale_capacity', '(capacityExecutionLimit capacity first)', 'capacity'),
+        ('ledger_restarts_input', '(capacityExecutionRemainder capacity first waiting)', 'waiting'),
+        ('ledger_drops_prefix', 'appendPolicyIngressLedger (capacityExecutionLedger capacity first waiting)', 'appendPolicyIngressLedger (policyIngressLedgerDone waiting)'),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COMPOSITION_HANDOFF = """def runComposedCapacityScheduledIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState -> BoundedPolicyIngressHandoff :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    appendBoundedPolicyIngressHandoff (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)
+      (runCapacityScheduledIngress weight slots payloadLimit (capacityExecutionLimit capacity first) second config
+        (policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)))
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_composition_{name}", _CAPACITY_SCHEDULE_COMPOSITION_HANDOFF, _CAPACITY_SCHEDULE_COMPOSITION_HANDOFF.replace(before, after))
+    for name, before, after in [
+        ('handoff_stale_capacity', '(capacityExecutionLimit capacity first)', 'capacity'),
+        ('handoff_restarts_queue', '(policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state))', '(policyIngressResumeState (deferredPolicyIngress (policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state))) (resumedPolicyIngressQueue state))'),
+        ('handoff_discards_deferred', '(policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state))', '(policyIngressResumeState policyIngressDone (resumedPolicyIngressQueue (policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state))))'),
+        ('handoff_drops_overflow', 'appendBoundedPolicyIngressHandoff (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)', 'appendBoundedPolicyIngressHandoff (boundedPolicyIngressHandoff policyIngressDone (policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity first config state)))'),
+        ('handoff_skips_second', '(capacityExecutionLimit capacity first) second config', '(capacityExecutionLimit capacity first) policyIngressCapacityExecutionDone config'),
+    ]
+]
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

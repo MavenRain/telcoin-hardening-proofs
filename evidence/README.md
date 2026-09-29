@@ -670,3 +670,28 @@ It rejects duplicate case names and a worker count outside 1-8 before any
 worker starts. No repository test compares the results of different worker
 counts. Both command-line entry points also reject an invalid worker count
 before starting the checker.
+
+## Capacity schedule composition model check
+
+`policy-ingress-capacity-schedule-composition-model-check.json` records the
+full gate for module 71 and atoms C139-C141: 961 proof declarations across 54
+modules, 177 atomic obligations, 1,383 source units and 890 rejected negative
+checks. The ten new proofs cover associative schedule concatenation, its right
+identity, active-capacity propagation, ledger and lowered schedule composition,
+and final deferred, overflow and admitted queue agreement across arbitrary
+finite execution cuts.
+
+The second segment receives the actual terminal deferred suffix and admitted
+queue state at the first segment's final capacity. Admitted limits, payload
+weights and policy configuration stay fixed. The equalities have no initial-fit
+premise and do not establish resource bounds for invalid initial states.
+
+All 18 new controls require semantic proof rejection. They corrupt five
+operational definitions and test lost boundaries, continuations, arrivals and
+overflow, swapped scan/dispatch fuel, stale capacity, discarded or restarted
+deferred work, restarted admitted state and a skipped second segment. The gate
+also checks all prior controls, empty axiom disclosure, source hashes, catalog
+freshness and the expected qualification-blocked exit 2. The receipt reports
+implementation links as not checked in this run. Runtime refinement, deployment
+qualification, earlier single-boundary execution equivalence and segmented
+cost equivalence remain incomplete.

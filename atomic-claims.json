@@ -5679,6 +5679,103 @@
         "The two concrete schedules are arithmetic witnesses, not general runtime or liveness results; the general administrative envelope is C136.",
         "Map runtime occurrence identity, retained ownership, all traversal passes and actual cost weights to the model."
       ]
+    },
+    {
+      "id": "C139",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Concatenation preserves arbitrary finite capacity execution segments in order, has a right identity and is associative. The final deferred capacity equals the final capacity of the second segment started with the first segment's final capacity.",
+      "theorems": [
+        "appendCapacityExecutionRightIdentity",
+        "appendCapacityExecutionAssociative",
+        "capacityExecutionLimitAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime schedule cuts to ordered concatenation, with authorized serialized capacity changes and the actual active capacity carried across each cut.",
+        "The equality is finite and structural. It does not supply service, resize authority, wall-clock bounds or equality with the earlier single-boundary execution model."
+      ]
+    },
+    {
+      "id": "C140",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The ledger of concatenated capacity execution segments equals the appended segment ledgers when the second segment starts with the first segment's final capacity and deferred suffix. The terminal deferred suffix agrees, and overflow is the ordered concatenation of both segment overflow traces.",
+      "theorems": [
+        "capacityExecutionLedgerAppend",
+        "capacityExecutionDeferredAppend",
+        "capacityExecutionOverflowAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine ledger boundaries to runtime occurrence ownership, preserving duplicates and exactly one disposition for every occurrence.",
+        "Ledger equality does not prove overflow cleanup, physical history storage bounds or the authority of resize operations."
+      ]
+    },
+    {
+      "id": "C141",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Lowering a concatenated capacity execution schedule equals concatenating its lowered segments at the carried capacity and deferred suffix. Executing those segments with the complete first handoff state preserves the final admitted queue, including policy/resource state, deferred suffix and ordered overflow. Admitted limits, payload weights and policy configuration are fixed across the cut.",
+      "theorems": [
+        "capacityExecutionScheduleAppend",
+        "capacityScheduledIngressAppendDeferred",
+        "capacityScheduledIngressAppendOverflow",
+        "capacityScheduledIngressAppendQueue"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime handoff serialization to transfer the complete admitted queue and policy/resource state together with the deferred suffix and active capacity.",
+        "No initial fit premise is needed for these equalities. They do not establish resource bounds for invalid initial states, segmented cost equality, delivered service or runtime refinement."
+      ]
     }
   ]
 }

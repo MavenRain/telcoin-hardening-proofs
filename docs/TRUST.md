@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 869 additional semantic mutations must
+The 887 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -131,6 +131,17 @@ changing-capacity limits. They do not prove concrete traversal counts, measured
 weights, allocation costs, bounded history storage or elapsed time. Runtime
 ownership, cleanup, delivery and equality with earlier segmented costs remain
 open. No kernel assumption is added.
+
+Module 71 proves composition across arbitrary finite capacity execution
+segments. The second segment receives the first segment's final deferred
+capacity, terminal deferred suffix and complete admitted queue state. Ledger
+and lowered schedule equalities imply identical final queue, deferred and
+overflow projections, without an initial-fit premise. Admitted limits,
+weights and policy configuration remain fixed. These are equalities between
+pure model executions, not a proof of runtime serialization, cleanup or
+service delivery. Invalid initial states do not acquire resource bounds from
+these equalities. Earlier single-boundary execution and segmented cost
+equivalence remain open. No shared assumption or kernel axiom is added.
 
 ## Trusted components
 

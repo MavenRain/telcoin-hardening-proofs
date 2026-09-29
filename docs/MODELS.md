@@ -2021,10 +2021,51 @@ remain open. The bound depends on the finite schedule and offered batch sizes;
 it does not bound how many resizes or arrivals the environment supplies.
 Equality with earlier segmented cost models also remains open.
 
+## Composition across capacity execution schedules
+
+`71-policy-ingress-capacity-schedule-composition.mech` adds concatenation of
+arbitrary finite execution segments, preserving resize boundaries, arrivals,
+scan allowances and dispatch fuel. Its right identity and associativity are
+proved by structural recursion. `capacityExecutionLimitAppend` carries the
+first segment's final deferred capacity into the second segment, including
+cuts after polls, pauses, resize-only prefixes and empty segments.
+
+`capacityExecutionLedgerAppend` identifies the complete ledger of concatenated
+execution with the appended segment ledgers. The second ledger starts with the
+first ledger's terminal deferred suffix at the carried capacity. Projecting
+this equality proves terminal deferred equality and ordered overflow
+concatenation. Occurrences retain their order even when event values are equal.
+
+`capacityExecutionScheduleAppend` connects the exact lowered dispatch schedules
+at the same boundary. `runComposedCapacityScheduledIngress` passes the first
+execution handoff's entire state into the second execution, and appends their
+overflow traces. Three general theorems equate the final deferred suffix,
+overflow and admitted queue with uninterrupted execution. The queue equality
+includes policy/resource state. The queue proof uses `runPayloadIngressAppend`,
+so it accounts for admitted backlog and payload filtering across the cut.
+
+All equalities quantify over both schedules and the initial state. They require
+fixed admitted limits, immutable payload weights and policy configuration, with
+no initial-fit premise. They do not supply resource bounds for an invalid
+initial state. The ten new proof declarations are linked by atoms C139-C141.
+
+The 18 controls change five operational definitions: concatenation, the carried
+capacity, the deferred remainder, ledger composition and execution composition.
+They drop or alter a resize, turn, arrival or continuation; confuse scan and
+dispatch fuel; restart or discard the deferred input; use stale capacity; lose
+overflow; restart the admitted queue; or skip the second segment. Each must
+produce a semantic proof mismatch. These controls constrain the model and its
+proof terms; they are not a runtime executor test.
+
+Runtime serialization, resize authority, occurrence ownership, mandatory
+cleanup, storage dominance and delivery of service remain open. Equality with
+the earlier single-boundary execution and segmented cost models also remains
+open. No shared assumption or kernel axiom is added.
+
 ## Negative controls
 
-The checker rejects 872 invalid variants: three direct checks of equality,
-ordering and termination, plus 869 semantic mutations. Mutations exercise such
+The checker rejects 890 invalid variants: three direct checks of equality,
+ordering and termination, plus 887 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
