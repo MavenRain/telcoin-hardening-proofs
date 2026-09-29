@@ -695,3 +695,26 @@ freshness and the expected qualification-blocked exit 2. The receipt reports
 implementation links as not checked in this run. Runtime refinement, deployment
 qualification, earlier single-boundary execution equivalence and segmented
 cost equivalence remain incomplete.
+
+## Capacity schedule cost composition model check
+
+`policy-ingress-capacity-schedule-cost-composition-model-check.json` records the
+full gate for module 72 and atoms C142-C144: 970 proof declarations across 55
+modules, 180 atomic obligations, 1,383 source units and 910 rejected negative
+checks. The nine new proofs connect additive administrative charges, the
+actual deferred and work-state boundary, dispatched-trace and dispatch-cost
+composition, total-cost equality, its combined envelope and empty execution.
+
+All 20 new controls require semantic proof rejection. They alter five
+operational definitions to skip execution, lose deferred or queued input,
+omit charges, use stale capacity, discard a segment or restart boundary state.
+The new controls were also checked separately with the three direct negative
+checks before the full gate. The gate checks all prior controls, empty axiom
+disclosure, source hashes, catalog freshness and the expected
+qualification-blocked exit 2.
+
+The bound uses one concatenated-schedule limit under the original work-credit
+and handshake-credit premises, with no initial deferred/admitted fit premise.
+The receipt reports implementation links as not checked in this run. Runtime
+refinement and deployment qualification remain incomplete, as does compatibility
+with the earlier fixed-capacity and single-boundary segmented cost models.

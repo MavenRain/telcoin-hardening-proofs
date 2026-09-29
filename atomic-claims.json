@@ -5774,7 +5774,122 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime handoff serialization to transfer the complete admitted queue and policy/resource state together with the deferred suffix and active capacity.",
-        "No initial fit premise is needed for these equalities. They do not establish resource bounds for invalid initial states, segmented cost equality, delivered service or runtime refinement."
+        "No initial fit premise is needed for these equalities. They do not establish resource bounds for invalid initial states, delivered service or runtime refinement. Segmented cost equality and its conditional envelope are now C143-C144."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C142",
+      "property": "Administrative cost is additive across arbitrary finite capacity execution segments when the second segment starts with the first segment's terminal capacity and exact deferred remainder. The equality covers empty segments, zero scan or dispatch fuel, repeated resizes, duplicate occurrences and initially oversized deferred input without an initial-fit premise.",
+      "theorems": [
+        "capacityScheduledIngressAdminCostAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes",
+        "deferred_ingress_capacity_schedules",
+        "paced_ingress_administrative_costs",
+        "deferred_ingress_resize_costs",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime resize and poll traversal to the modeled visits and justify the five administrative weights, including overflow construction and boundary work.",
+        "This equality does not establish runtime cost domination, authority, ownership, cleanup, bounded history storage or delivery of service."
+      ]
+    },
+    {
+      "id": "C143",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The actual capacity execution handoff supplies the deferred suffix, admitted queue and policy/resource state at the cost boundary. Dispatched traces concatenate at that boundary, and dispatch costs add using the post-prefix work state with one fixed configuration and cost vector. No initial-fit or credit-bound premise is needed for these equalities.",
+      "theorems": [
+        "capacityScheduledIngressBoundaryDeferred",
+        "capacityScheduledIngressBoundaryWork",
+        "capacityScheduledIngressDispatchedAppend",
+        "capacityScheduledIngressDispatchCostAppend"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "cost_dominance"
+      ],
+      "open_implementation_obligations": [
+        "Refine the complete runtime handoff and immutable payload charges to the modeled deferred, queue and policy/resource state.",
+        "Establish concrete dispatch, policy-query and handshake cost domination; these equalities do not grant resource bounds to invalid initial states or prove delivered service."
+      ]
+    },
+    {
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "id": "C144",
+      "property": "The eight-weight execution cost equals the sum of administrative and dispatched work, is zero for an empty schedule, and equals the sum of two segment costs at the actual terminal-capacity handoff. That segment sum satisfies the single concatenated-schedule envelope under the original work-credit and handshake-credit bounds, without adding a second initial burst or requiring initial deferred/admitted fit. Admitted limits, payload weights, configuration and cost weights are fixed across the cut.",
+      "theorems": [
+        "capacityScheduledIngressExecutionCostCountsWork",
+        "capacityScheduledIngressExecutionCostAppend",
+        "composedCapacityScheduledIngressCostEnvelope",
+        "capacityScheduledIngressExecutionCostEmpty"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "persistent_ingress_queue",
+        "variable_ingress_service",
+        "bounded_ingress_admission",
+        "weighted_ingress_payload",
+        "atomic_policy_publication",
+        "atomic_source_admission",
+        "internal_callback_tokens",
+        "source_admission_receipts",
+        "trusted_source_expiry",
+        "stable_resource_configuration",
+        "bounded_policy_queries",
+        "bounded_ingress_dispatch",
+        "bounded_policy_processing",
+        "trusted_clock",
+        "cost_dominance",
+        "variable_ingress_scan_schedule",
+        "deferred_ingress_capacity_changes",
+        "paced_ingress_administrative_costs",
+        "deferred_ingress_resize_costs",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Justify all eight weights in one concrete runtime unit, including scanning, admission, resizing, overflow materialization and mandatory cleanup.",
+        "Compatibility with the earlier fixed-capacity and single-boundary segmented cost models, changing admitted or policy/resource limits, external allocations, bounded history storage and real service delivery remain open."
       ]
     }
   ]

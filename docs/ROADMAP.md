@@ -187,10 +187,20 @@ without initial-fit premises. Equality with the earlier single-boundary
 execution and segmented cost models remains open, together with runtime
 serialization, authority, ownership, cleanup, storage and delivered service.
 
+The capacity schedule cost composition slice now equates the concatenated
+execution cost with the sum of segment costs at the actual terminal-capacity
+handoff. The second segment carries the deferred suffix, admitted queue and
+post-prefix resource state. Its combined envelope uses the original credit
+bounds and one schedule limit, without a second initial burst or initial
+deferred/admitted fit. Compatibility with earlier fixed-capacity and
+single-boundary segmented cost models remains open, together with concrete
+runtime refinement, cost domination, ownership, cleanup, storage and service
+delivery.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 177 atomic model obligations
+   explicit dispositions. The current 34 groups and 180 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

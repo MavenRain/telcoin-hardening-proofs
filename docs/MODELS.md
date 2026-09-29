@@ -2062,10 +2062,49 @@ cleanup, storage dominance and delivery of service remain open. Equality with
 the earlier single-boundary execution and segmented cost models also remains
 open. No shared assumption or kernel axiom is added.
 
+## Cost composition across capacity execution schedules
+
+`72-policy-ingress-capacity-schedule-cost-composition.mech` proves that the
+cost of arbitrary concatenated capacity execution segments equals the sum of
+their costs at the actual handoff. The second segment inherits the first
+segment's terminal deferred capacity, exact deferred suffix, admitted queue
+and policy/resource state. Admitted limits, payload weights, configuration
+and all eight cost weights stay fixed across the cut.
+
+`capacityScheduledIngressAdminCostAppend` adds the five administrative charges
+by structural recursion over resize and polling steps. It uses the exact
+retained suffix, including after pauses, zero-capacity resizes and repeated
+shrink/growth. Empty segments and initially oversized input require no special
+fit premise. `capacityScheduledIngressBoundaryDeferred` and
+`capacityScheduledIngressBoundaryWork` identify the actual handoff fields;
+`capacityScheduledIngressDispatchedAppend` preserves the ordered dispatched
+trace across the cut. `capacityScheduledIngressDispatchCostAppend` charges
+the second trace using the work state produced by the first trace.
+
+The total-cost equality combines those administrative and dispatch equalities.
+`composedCapacityScheduledIngressCostEnvelope` transports the module-70 bound
+to the sum of the two actual segment costs. It uses the original work-credit
+and handshake-credit bounds and one concatenated-schedule limit, so it does
+not add a second initial burst. Initial deferred and admitted fit are not
+premises. `capacityScheduledIngressExecutionCostEmpty` proves zero total cost
+for an empty schedule. Atoms C142-C144 link the nine new proof declarations.
+
+The 20 controls mutate five operational definitions. They skip execution,
+use zero or stale capacity, drop queued or deferred work, omit event, policy,
+handshake, resize or boundary charges, discard a segment, or restart the
+boundary's deferred input or work state. Each must produce a semantic proof
+mismatch. They constrain the abstract model and proof terms.
+
+Compatibility with the earlier fixed-capacity and single-boundary segmented
+cost models remains open. Runtime serialization, cost domination, ownership,
+cleanup, history storage and actual service delivery also remain open. This
+slice adds no shared assumption or kernel axiom.
+
+
 ## Negative controls
 
-The checker rejects 890 invalid variants: three direct checks of equality,
-ordering and termination, plus 887 semantic mutations. Mutations exercise such
+The checker rejects 910 invalid variants: three direct checks of equality,
+ordering and termination, plus 907 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

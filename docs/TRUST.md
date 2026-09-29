@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 887 additional semantic mutations must
+The 907 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -142,6 +142,19 @@ pure model executions, not a proof of runtime serialization, cleanup or
 service delivery. Invalid initial states do not acquire resource bounds from
 these equalities. Earlier single-boundary execution and segmented cost
 equivalence remain open. No shared assumption or kernel axiom is added.
+
+Module 72 equates the concatenated execution cost with the sum of segment
+costs at the actual handoff. The carried boundary includes the final deferred
+capacity and suffix, admitted queue and post-prefix policy/resource state.
+Administrative and dispatch equalities require no initial fit or credit bounds.
+The combined envelope retains the original work and handshake credit premises
+and counts a single initial burst across the concatenated schedule. Admitted
+limits, payload weights, configuration and all eight symbolic weights remain
+fixed. Runtime handoff serialization, concrete cost domination, ownership,
+cleanup, storage and delivered service remain external. Compatibility with
+earlier fixed-capacity and single-boundary segmented cost models is still open.
+No shared assumption or kernel axiom is added.
+
 
 ## Trusted components
 

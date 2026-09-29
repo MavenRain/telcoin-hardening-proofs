@@ -1942,6 +1942,95 @@ MUTATIONS += [
     ]
 ]
 
+
+_CAPACITY_SCHEDULE_COST_COMPOSITION_BOUNDARY = """def capacityScheduledIngressCostBoundary : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState -> PolicyIngressResumeState :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity schedule config state)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_composition_{name}", _CAPACITY_SCHEDULE_COST_COMPOSITION_BOUNDARY, _CAPACITY_SCHEDULE_COST_COMPOSITION_BOUNDARY.replace(before, after))
+    for name, before, after in [
+        ("boundary_skips_execution", "policyIngressHandoffState (runCapacityScheduledIngress weight slots payloadLimit capacity schedule config state)", "state"),
+        ("boundary_uses_zero_capacity", "runCapacityScheduledIngress weight slots payloadLimit capacity schedule", "runCapacityScheduledIngress weight slots payloadLimit zero schedule"),
+        ("boundary_drops_queue", "runCapacityScheduledIngress weight slots payloadLimit capacity schedule config state", "runCapacityScheduledIngress weight slots payloadLimit capacity schedule config (policyIngressResumeState (deferredPolicyIngress state) (policyIngressQueueState policyIngressDone (ingressCostWork state)))"),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_COMPOSITION_TRACE = """def capacityScheduledIngressDispatched : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressResumeState -> PolicyIngressTrace :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (state : PolicyIngressResumeState) =>
+    payloadIngressTrace weight slots payloadLimit (capacityExecutionSchedule capacity schedule (deferredPolicyIngress state))
+      (queuedPolicyIngress (resumedPolicyIngressQueue state))
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_composition_{name}", _CAPACITY_SCHEDULE_COST_COMPOSITION_TRACE, _CAPACITY_SCHEDULE_COST_COMPOSITION_TRACE.replace(before, after))
+    for name, before, after in [
+        ("trace_skips_schedule", "capacityExecutionSchedule capacity schedule (deferredPolicyIngress state)", "capacityExecutionSchedule capacity policyIngressCapacityExecutionDone (deferredPolicyIngress state)"),
+        ("trace_drops_deferred", "(deferredPolicyIngress state)", "policyIngressDone"),
+        ("trace_drops_queue", "(queuedPolicyIngress (resumedPolicyIngressQueue state))", "policyIngressDone"),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_COMPOSITION_DISPATCH = """def capacityScheduledIngressDispatchCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    policyIngressTraceCost (capacityScheduledIngressDispatched weight slots payloadLimit capacity schedule state) config (ingressCostWork state) eventCost policyCost handshakeCost
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_composition_{name}", _CAPACITY_SCHEDULE_COST_COMPOSITION_DISPATCH, _CAPACITY_SCHEDULE_COST_COMPOSITION_DISPATCH.replace(before, after))
+    for name, before, after in [
+        ("dispatch_omits_events", "config (ingressCostWork state) eventCost policyCost handshakeCost", "config (ingressCostWork state) zero policyCost handshakeCost"),
+        ("dispatch_omits_policy", "config (ingressCostWork state) eventCost policyCost handshakeCost", "config (ingressCostWork state) eventCost zero handshakeCost"),
+        ("dispatch_omits_handshakes", "config (ingressCostWork state) eventCost policyCost handshakeCost", "config (ingressCostWork state) eventCost policyCost zero"),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_COMPOSITION_TOTAL = """def capacityScheduledIngressExecutionCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    capacityScheduledIngressCost weight slots payloadLimit capacity schedule (deferredPolicyIngress state)
+      (queuedPolicyIngress (resumedPolicyIngressQueue state)) config (ingressCostWork state) scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_composition_{name}", _CAPACITY_SCHEDULE_COST_COMPOSITION_TOTAL, _CAPACITY_SCHEDULE_COST_COMPOSITION_TOTAL.replace(before, after))
+    for name, before, after in [
+        ("total_skips_schedule", "capacityScheduledIngressCost weight slots payloadLimit capacity schedule", "capacityScheduledIngressCost weight slots payloadLimit capacity policyIngressCapacityExecutionDone"),
+        ("total_drops_deferred", "(deferredPolicyIngress state)", "policyIngressDone"),
+        ("total_drops_queue", "(queuedPolicyIngress (resumedPolicyIngressQueue state))", "policyIngressDone"),
+        ("total_omits_resize", "config (ingressCostWork state) scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost", "config (ingressCostWork state) scanCost handoffCost turnCost zero boundaryCost eventCost policyCost handshakeCost"),
+        ("total_omits_boundary", "config (ingressCostWork state) scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost", "config (ingressCostWork state) scanCost handoffCost turnCost resizeCost zero eventCost policyCost handshakeCost"),
+    ]
+]
+
+_CAPACITY_SCHEDULE_COST_COMPOSITION_COMPOSED = """def composedCapacityScheduledIngressCost : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState ->
+    Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count -> Count :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (first : PolicyIngressCapacityExecution) (second : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState)
+      (scanCost : Count) (handoffCost : Count) (turnCost : Count) (resizeCost : Count) (boundaryCost : Count) (eventCost : Count) (policyCost : Count) (handshakeCost : Count) =>
+    add (capacityScheduledIngressExecutionCost weight slots payloadLimit capacity first config state scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost)
+      (capacityScheduledIngressExecutionCost weight slots payloadLimit (capacityExecutionLimit capacity first) second config (capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state) scanCost handoffCost turnCost resizeCost boundaryCost eventCost policyCost handshakeCost)
+"""
+MUTATIONS += [
+    (f"policy_capacity_schedule_cost_composition_{name}", _CAPACITY_SCHEDULE_COST_COMPOSITION_COMPOSED, _CAPACITY_SCHEDULE_COST_COMPOSITION_COMPOSED.replace(before, after))
+    for name, before, after in [
+        ("composed_stale_capacity", "(capacityExecutionLimit capacity first)", "capacity"),
+        ("composed_restarts_state", "(capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state)", "state"),
+        ("composed_drops_prefix", "capacityScheduledIngressExecutionCost weight slots payloadLimit capacity first config state", "capacityScheduledIngressExecutionCost weight slots payloadLimit capacity policyIngressCapacityExecutionDone config state"),
+        ("composed_drops_suffix", "(capacityExecutionLimit capacity first) second config", "(capacityExecutionLimit capacity first) policyIngressCapacityExecutionDone config"),
+        ("composed_restarts_deferred", "(capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state)", "(policyIngressResumeState (deferredPolicyIngress state) (resumedPolicyIngressQueue (capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state)))"),
+        ("composed_restarts_work", "(capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state)", "(policyIngressResumeState (deferredPolicyIngress (capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state)) (policyIngressQueueState (queuedPolicyIngress (resumedPolicyIngressQueue (capacityScheduledIngressCostBoundary weight slots payloadLimit capacity first config state))) (ingressCostWork state)))"),
+    ]
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 
