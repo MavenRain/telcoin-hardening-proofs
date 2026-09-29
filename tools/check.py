@@ -1630,6 +1630,107 @@ MUTATIONS += [
 ]
 
 
+_CAPACITY_EXECUTION_ACCOUNTING = """def rec capacityExecutionAccounting : PolicyIngressCapacityExecution -> PolicyIngressCapacitySchedule :=
+  fun (schedule : PolicyIngressCapacityExecution) =>
+    case schedule as self in PolicyIngressCapacityExecution return PolicyIngressCapacitySchedule with
+    | policyIngressCapacityExecutionDone => policyIngressCapacityDone
+    | policyIngressCapacityExecutionResize resized rest => policyIngressCapacityResize resized (capacityExecutionAccounting rest)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => policyIngressCapacityTurn scan arrivals (capacityExecutionAccounting rest)"""
+MUTATIONS += [
+    (f"policy_capacity_scheduled_{name}", _CAPACITY_EXECUTION_ACCOUNTING, _CAPACITY_EXECUTION_ACCOUNTING.replace(before, after))
+    for name, before, after in [
+        ('accounting_ignores_resize', 'policyIngressCapacityResize resized (capacityExecutionAccounting rest)', 'capacityExecutionAccounting rest'),
+        ('accounting_scans_dispatch_fuel', 'policyIngressCapacityTurn scan arrivals', 'policyIngressCapacityTurn fuel arrivals'),
+        ('accounting_drops_arrivals', 'policyIngressCapacityTurn scan arrivals', 'policyIngressCapacityTurn scan policyIngressDone'),
+        ('accounting_drops_resize_continuation', 'policyIngressCapacityResize resized (capacityExecutionAccounting rest)', 'policyIngressCapacityResize resized policyIngressCapacityDone'),
+        ('accounting_drops_turn_continuation', 'policyIngressCapacityTurn scan arrivals (capacityExecutionAccounting rest)', 'policyIngressCapacityTurn scan arrivals policyIngressCapacityDone'),
+    ]
+]
+
+_CAPACITY_EXECUTION_SCHEDULE = """def rec capacityExecutionSchedule : Count -> PolicyIngressCapacityExecution -> PolicyIngressTrace -> PolicyIngressSchedule :=
+  fun (capacity : Count) (schedule : PolicyIngressCapacityExecution) (waiting : PolicyIngressTrace) =>
+    case schedule as self in PolicyIngressCapacityExecution return PolicyIngressSchedule with
+    | policyIngressCapacityExecutionDone => policyIngressScheduleDone
+    | policyIngressCapacityExecutionResize resized rest =>
+        capacityExecutionSchedule resized rest (policyIngressDeferredPrefix resized waiting)
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => policyIngressTurn fuel
+        (boundedResumedPolicyIngressExamined scan waiting arrivals)
+        (capacityExecutionSchedule capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))"""
+MUTATIONS += [
+    (f"policy_capacity_scheduled_{name}", _CAPACITY_EXECUTION_SCHEDULE, _CAPACITY_EXECUTION_SCHEDULE.replace(before, after))
+    for name, before, after in [
+        ('resize_keeps_old_capacity', 'capacityExecutionSchedule resized rest', 'capacityExecutionSchedule capacity rest'),
+        ('resize_keeps_rejected_suffix', '(policyIngressDeferredPrefix resized waiting)', 'waiting'),
+        ('resize_replays_overflow', '(policyIngressDeferredPrefix resized waiting)', '(policyIngressDeferredOverflow resized waiting)'),
+        ('resize_drops_execution_continuation', 'capacityExecutionSchedule resized rest (policyIngressDeferredPrefix resized waiting)', 'policyIngressScheduleDone'),
+        ('turn_zeros_dispatch_fuel', 'policyIngressTurn fuel', 'policyIngressTurn zero'),
+        ('turn_dispatches_scan_fuel', 'policyIngressTurn fuel', 'policyIngressTurn scan'),
+        ('turn_scans_dispatch_fuel', '(boundedResumedPolicyIngressExamined scan waiting arrivals)', '(boundedResumedPolicyIngressExamined fuel waiting arrivals)'),
+        ('turn_reverses_offered', '(boundedResumedPolicyIngressExamined scan waiting arrivals)', '(boundedResumedPolicyIngressExamined scan arrivals waiting)'),
+        ('turn_replays_waiting', '(boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)', 'waiting'),
+        ('turn_uses_scan_as_capacity', '(boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)', '(boundedResumedPolicyIngressDeferred scan scan waiting arrivals)'),
+        ('turn_drops_execution_continuation', '(capacityExecutionSchedule capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))', 'policyIngressScheduleDone'),
+        ('turn_carry_drops_arrivals', '(boundedResumedPolicyIngressDeferred capacity scan waiting arrivals)', '(boundedResumedPolicyIngressDeferred capacity scan waiting policyIngressDone)'),
+    ]
+]
+
+_CAPACITY_EXECUTION_RUN = """def runCapacityScheduledIngress : (PolicyIngressEvent -> Count) -> Count -> Count -> Count ->
+    PolicyIngressCapacityExecution -> PolicyWorkConfig -> PolicyIngressResumeState -> BoundedPolicyIngressHandoff :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count) (capacity : Count)
+      (schedule : PolicyIngressCapacityExecution) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    boundedPolicyIngressHandoff
+      (policyIngressLedgerOverflow (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))
+      (policyIngressResumeState
+        (policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))
+        (runPayloadIngress weight slots payloadLimit
+          (capacityExecutionSchedule capacity schedule (deferredPolicyIngress state)) config (resumedPolicyIngressQueue state)))"""
+MUTATIONS += [
+    (f"policy_capacity_scheduled_{name}", _CAPACITY_EXECUTION_RUN, _CAPACITY_EXECUTION_RUN.replace(before, after))
+    for name, before, after in [
+        ('handoff_drops_overflow', '(policyIngressLedgerOverflow (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))', 'policyIngressDone'),
+        ('handoff_reports_deferred_as_overflow', '(policyIngressLedgerOverflow (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))', '(policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))'),
+        ('handoff_restores_initial_waiting', '(policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))', '(deferredPolicyIngress state)'),
+        ('handoff_drops_deferred', '(policyIngressLedgerDeferred (capacityExecutionLedger capacity schedule (deferredPolicyIngress state)))', 'policyIngressDone'),
+        ('handoff_skips_queue_execution', '(runPayloadIngress weight slots payloadLimit\n          (capacityExecutionSchedule capacity schedule (deferredPolicyIngress state)) config (resumedPolicyIngressQueue state))', '(resumedPolicyIngressQueue state)'),
+        ('handoff_clears_carried_queue', 'config (resumedPolicyIngressQueue state)', 'config (policyIngressQueueState policyIngressDone (queuedPolicyWork (resumedPolicyIngressQueue state)))'),
+        ('handoff_swaps_queue_limits', 'runPayloadIngress weight slots payloadLimit', 'runPayloadIngress weight payloadLimit slots'),
+        ('handoff_drops_initial_waiting', '(capacityExecutionSchedule capacity schedule (deferredPolicyIngress state))', '(capacityExecutionSchedule capacity schedule policyIngressDone)'),
+    ]
+]
+
+_CAPACITY_EXECUTION_EMBED = """def rec capacityExecutionFromVariable : VariablePolicyIngressSchedule -> PolicyIngressCapacityExecution :=
+  fun (schedule : VariablePolicyIngressSchedule) =>
+    case schedule as self in VariablePolicyIngressSchedule return PolicyIngressCapacityExecution with
+    | variablePolicyIngressDone => policyIngressCapacityExecutionDone
+    | variablePolicyIngressTurn scan fuel arrivals rest =>
+        policyIngressCapacityExecutionTurn scan fuel arrivals (capacityExecutionFromVariable rest)"""
+MUTATIONS += [
+    (f"policy_capacity_scheduled_{name}", _CAPACITY_EXECUTION_EMBED, _CAPACITY_EXECUTION_EMBED.replace(before, after))
+    for name, before, after in [
+        ('embedding_swaps_fuels', 'policyIngressCapacityExecutionTurn scan fuel arrivals', 'policyIngressCapacityExecutionTurn fuel scan arrivals'),
+        ('embedding_drops_continuation', '(capacityExecutionFromVariable rest)', 'policyIngressCapacityExecutionDone'),
+        ('embedding_drops_arrivals', 'policyIngressCapacityExecutionTurn scan fuel arrivals', 'policyIngressCapacityExecutionTurn scan fuel policyIngressDone'),
+    ]
+]
+
+
+_CAPACITY_EXECUTION_FUEL = """def rec capacityExecutionFuel : PolicyIngressCapacityExecution -> Count :=
+  fun (schedule : PolicyIngressCapacityExecution) =>
+    case schedule as self in PolicyIngressCapacityExecution return Count with
+    | policyIngressCapacityExecutionDone => zero
+    | policyIngressCapacityExecutionResize resized rest => capacityExecutionFuel rest
+    | policyIngressCapacityExecutionTurn scan fuel arrivals rest => add fuel (capacityExecutionFuel rest)"""
+MUTATIONS += [
+    (f"policy_capacity_scheduled_fuel_{name}", _CAPACITY_EXECUTION_FUEL, _CAPACITY_EXECUTION_FUEL.replace(before, after))
+    for name, before, after in [
+        ('terminal_invents_fuel', 'policyIngressCapacityExecutionDone => zero', 'policyIngressCapacityExecutionDone => next zero'),
+        ('resize_invents_fuel', 'policyIngressCapacityExecutionResize resized rest => capacityExecutionFuel rest', 'policyIngressCapacityExecutionResize resized rest => add (next zero) (capacityExecutionFuel rest)'),
+        ('turn_counts_scan', 'add fuel (capacityExecutionFuel rest)', 'add scan (capacityExecutionFuel rest)'),
+        ('turn_drops_later_fuel', 'add fuel (capacityExecutionFuel rest)', 'fuel'),
+    ]
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

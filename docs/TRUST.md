@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 804 additional semantic mutations must
+The 836 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -68,8 +68,9 @@ preserving exact chronological reconstruction and segment-ordered projections.
 It carries the exact first remainder and requires no initial fit. Module 66
 connects this ledger to complete execution across one deferred-capacity change.
 Module 68 separately proves deferred accounting across finite repeated capacity
-changes. Their execution and costs, concrete resize cost domination, runtime
-ownership and bounded history storage remain open.
+changes, and module 69 adds their admitted queue/resource execution. Their
+costs, concrete resize cost domination, runtime ownership and bounded history
+storage remain open.
 
 Module 66 carries the complete first execution handoff through the resize and
 the second segment. Queue and policy/resource execution equals the concatenated
@@ -99,9 +100,23 @@ interleavings of resize boundaries and polling turns. Its chronological ledger
 reconstructs offered occurrences and its terminal deferred bound uses the final
 capacity. The general bound requires initial fit; a leading resize establishes
 fit. Fixed-capacity and single-resize embeddings agree with the earlier ledgers.
-The model erases dispatch fuel and does not extend admitted queue/resource
-execution or cost bounds across repeated changes. Authority, runtime ownership,
-overflow cleanup, history storage and real service guarantees remain external.
+Module 68 erases dispatch fuel and accounts only for deferred occurrences.
+Authority, runtime ownership, overflow cleanup, history storage and real
+service guarantees remain external.
+
+Module 69 retains independent dispatch fuel and lowers arbitrary finite
+resize/poll schedules to the existing payload-aware admitted execution. An
+inductive equality ties its offered trace to the capacity ledger's examined
+trace. Total dispatch fuel is preserved across arbitrary finite interleavings,
+and another equality preserves the earlier fixed-capacity filtered schedule.
+The runner obtains deferred and overflow fields from ledger projections by
+construction; their equalities do not simulate a separate runtime executor.
+The terminal deferred bound requires initial fit or a leading resize. Admitted
+entry and payload bounds retain their respective initial-fit premises; pending
+occupancy is bounded by the original lease capacity. Admitted limits, weights
+and policy/resource configuration stay fixed. No new shared assumption or
+kernel axiom is introduced. Repeated-change cost composition and the runtime
+ownership, cleanup, delivery and storage obligations remain open.
 
 ## Trusted components
 

@@ -1701,8 +1701,8 @@ composition results in modules 60-62 do not extend across this resize. Module 64
 supplies chronological reconstruction for this boundary and its following
 segment. Module 65 supplies preceding-ledger composition. Module 67 adds
 symbolic resize charges and module 68 adds deferred accounting across arbitrary
-finite capacity schedules. Repeated-change execution and costs and Rust
-refinement still require further proof.
+finite capacity schedules; module 69 adds their admitted execution.
+Repeated-change costs and Rust refinement still require further proof.
 
 ## Occurrence accounting across a deferred-capacity boundary
 
@@ -1750,9 +1750,9 @@ Runtime authority, serialization, exclusive occurrence ownership, cleanup,
 history storage, construction and traversal costs remain open. This result
 covers one resize and its following finite segment. Module 65 extends ledger
 accounting to a preceding segment. Module 67 adds symbolic resize charges and
-module 68 extends this ledger to arbitrary finite capacity schedules.
-Repeated-change execution and costs, other resource-limit changes and wall-clock
-delivery require further work.
+module 68 extends this ledger to arbitrary finite capacity schedules and
+module 69 adds their admitted execution. Repeated-change costs, other
+resource-limit changes and wall-clock delivery require further work.
 
 ## Ledger composition across a deferred-capacity change
 
@@ -1788,9 +1788,10 @@ reject them with type mismatches.
 Module 66 supplies the corresponding full queue and policy/resource execution
 composition across this deferred-capacity change. Module 67 adds symbolic
 administrative and resize cost composition. Module 68 separately proves
-deferred accounting across finite resize schedules. Their execution and costs,
-concrete cost domination, runtime ownership, mandatory-event delivery,
-wall-clock progress and bounded output-history storage remain open.
+deferred accounting across finite resize schedules, and module 69 adds their
+admitted execution. Their costs, concrete cost domination, runtime ownership,
+mandatory-event delivery, wall-clock progress and bounded output-history
+storage remain open.
 
 ## Execution across a deferred-capacity change
 
@@ -1828,9 +1829,11 @@ resource state, and dispatch filtering. Each altered
 definition typechecks by itself; general theorems reject every control without
 the concrete witnesses. The dispatch envelope excludes scanning, admission,
 retention, overflow handling and the resize itself. Module 67 adds a combined
-symbolic administrative, resize and dispatch bound. Repeated capacity changes,
-concrete cost domination, other parameter changes, runtime ownership, cleanup,
-real service delivery and bounded history storage remain open.
+symbolic administrative, resize and dispatch bound. Module 68 adds deferred
+accounting and module 69 adds admitted execution across finite repeated
+capacity changes. Repeated-change costs, concrete cost domination, other
+parameter changes, runtime ownership, cleanup, real service delivery and
+bounded history storage remain open.
 
 ## Costs across a deferred-capacity change
 
@@ -1911,15 +1914,59 @@ keep an old capacity, stop a continuation, or erase scan allowances. Each must
 be rejected with a proof type mismatch. These controls constrain the written
 definitions and proof terms; they do not establish checker soundness.
 
-This closes finite repeated-change deferred accounting only. Repeated-change
-admitted queue/resource execution and costs, authority and serialization,
-cleanup, mandatory event delivery, bounded history storage, runtime refinement,
-service guarantees and wall-clock latency remain open.
+This layer closes finite repeated-change deferred accounting. Module 69 adds
+admitted queue/resource execution. Repeated-change costs, authority and
+serialization, cleanup, mandatory event delivery, bounded history storage,
+runtime refinement, service guarantees and wall-clock latency remain open.
+
+## Execution under finite deferred-capacity schedules
+
+`69-policy-ingress-capacity-schedule-execution.mech` adds an execution schedule
+whose polling turns carry separate scan and dispatch allowances. Its accounting
+projection erases dispatch fuel and retains each resize, scan and offered batch
+for module 68. Its admitted schedule applies each resize to the deferred FIFO,
+continues at the new capacity, and passes each turn's examined prefix to the
+existing payload-aware admission and dispatch model. A resize produces no
+admitted polling turn and never clears the carried admitted queue.
+
+For arbitrary finite schedules, induction proves that the lowered schedule's
+offered trace equals the ledger's examined trace in order and multiplicity.
+The lowered schedule also preserves the total dispatch fuel across every finite
+resize/poll interleaving; resize boundaries contribute no dispatch allowance.
+Embedding any earlier variable-scan schedule preserves the full filtered
+schedule, including independent dispatch fuel. The runner executes this lowered
+schedule and constructs its terminal deferred and ordered overflow fields from
+the ledger projections. The field equalities are by construction; they are not
+refinement proofs for an independently implemented executor.
+
+The final deferred length fits the last configured capacity when the original
+deferred FIFO fits the initial capacity. A leading resize removes that premise.
+The admitted queue's entry and payload bounds each retain their own initial-fit
+premise, and pending occupancy remains bounded by the original lease capacity.
+The admitted limits, payload weights and policy/resource configuration stay
+fixed throughout the execution. Empty execution preserves the entire input;
+a single resize agrees with the earlier resize handoff for arbitrary state.
+
+Three concrete schedules quantify over event values and resource state. One
+shrinks, scans, reaches zero capacity, regrows, retains a zero-scan arrival and
+later examines it, preserving the old admitted head. Another reports successive
+resize and zero-scan overflow in disposition order. The third dispatches one
+carried admitted event after a zero-capacity resize despite zero scan fuel.
+These witnesses permit equal event values and do not establish general service
+or liveness guarantees.
+
+The 32 controls mutate the accounting projection, admitted schedule, fuel total,
+runner and fixed-schedule embedding. They drop or replay input, lose resize or
+turn continuations, swap fuel or queue limits, restore rejected work, clear
+admitted state or corrupt handoff fields. Each must fail with a semantic proof
+mismatch. Runtime authority, exclusive ownership, overflow delivery, cleanup,
+bounded history storage, repeated-change cost composition and wall-clock
+service remain open.
 
 ## Negative controls
 
-The checker rejects 807 invalid variants: three direct checks of equality,
-ordering and termination, plus 804 semantic mutations. Mutations exercise such
+The checker rejects 839 invalid variants: three direct checks of equality,
+ordering and termination, plus 836 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

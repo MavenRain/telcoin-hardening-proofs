@@ -4952,7 +4952,7 @@
       ],
       "open_implementation_obligations": [
         "Use runtime traces with stable occurrence ownership to validate boundary overflow, pause behavior and later examination. These finite witnesses do not establish live schedule delivery or progress.",
-        "Refine runtime event identity and storage without deduplicating equal-valued occurrences; C127 and C128 cover the deferred ledger for arbitrary finite resize schedules; their execution and cost accounting remain open."
+        "Refine runtime event identity and storage without deduplicating equal-valued occurrences; C127 and C128 cover the deferred ledger for arbitrary finite resize schedules and C131-C134 separately cover their finite execution; their cost accounting remains open."
       ]
     },
     {
@@ -4980,7 +4980,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Costs across arbitrary repeated capacity changes (C127 and C128 prove their deferred ledger; C131-C134 separately cover finite admitted-state execution), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5009,7 +5009,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Costs across arbitrary repeated capacity changes (C127 and C128 prove their deferred ledger; C131-C134 separately cover finite admitted-state execution), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5040,7 +5040,7 @@
       ],
       "open_implementation_obligations": [
         "Refine exclusive runtime occurrence ownership and serialized transfer from the first segment through the capacity boundary; ledger composition alone is not a full policy/resource execution composition theorem.",
-        "Admitted-state execution and costs across arbitrary repeated capacity changes (C127 and C128 prove only their deferred ledger), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
+        "Costs across arbitrary repeated capacity changes (C127 and C128 prove their deferred ledger; C131-C134 separately cover finite admitted-state execution), concrete cost domination across changing limits, mandatory-event delivery, real-time progress and bounded output-history storage remain open."
       ]
     },
     {
@@ -5074,7 +5074,7 @@
       ],
       "open_implementation_obligations": [
         "Refine serialized runtime transfer of the complete admitted queue and policy/resource state across an authorized deferred-capacity change.",
-        "Weights, admitted entry and payload limits, resource configuration and policy configuration stay fixed. Repeated capacity changes, other parameter changes, concrete execution costs and real service delivery remain open."
+        "Weights, admitted entry and payload limits, resource configuration and policy configuration stay fixed. C131-C134 separately cover finite repeated-change execution. Other parameter changes, concrete execution costs and real service delivery remain open."
       ]
     },
     {
@@ -5139,7 +5139,7 @@
       ],
       "open_implementation_obligations": [
         "Refine occurrence ownership, overflow notification and mandatory cleanup from these finite ledger and execution equalities to runtime behavior.",
-        "No bounded ledger storage, runtime event identity for equal values, mandatory-event delivery or arbitrary repeated resize execution theorem is established."
+        "No bounded ledger storage, runtime event identity for equal values or mandatory-event delivery is established. C131-C134 separately cover finite repeated-resize execution."
       ]
     },
     {
@@ -5298,7 +5298,7 @@
       ],
       "open_implementation_obligations": [
         "Refine the abstract interleaving to authorized, serialized runtime capacity updates and delivered polls with exclusive deferred ownership.",
-        "Implement overflow delivery, cleanup and chronological history storage; repeated-change admitted-state execution and concrete cost bounds are not proved here."
+        "Implement overflow delivery, cleanup and chronological history storage; C131-C134 separately cover finite admitted-state execution, while repeated-change concrete cost bounds remain open."
       ],
       "parent": "H11",
       "source": {
@@ -5326,7 +5326,7 @@
       ],
       "open_implementation_obligations": [
         "Refine occurrence capacity to runtime storage and preserve ownership during every boundary and poll.",
-        "Establish admitted-resource and payload limits, bounded history storage and cost domination across repeated changes; this terminal bound is not a liveness or latency theorem."
+        "Refine admitted-resource and payload bounds to runtime, and establish bounded history storage and cost domination across repeated changes; this terminal bound is not a liveness or latency theorem."
       ],
       "parent": "H11",
       "source": {
@@ -5353,7 +5353,7 @@
         "singleResizeCapacityScheduleLedger"
       ],
       "open_implementation_obligations": [
-        "Extend this equality of deferred ledgers to admitted queue/resource execution, wakeups and the cost model for repeated changes.",
+        "Extend this equality of deferred ledgers to equality with earlier full execution handoffs, wakeups and the cost model for repeated changes.",
         "Refine the embedding and boundary ordering to actual runtime poll and reconfiguration events; it proves no authority or service delivery guarantee."
       ],
       "parent": "H11",
@@ -5402,6 +5402,139 @@
         "deferred_ingress_capacity_changes",
         "deferred_ingress_capacity_schedules",
         "variable_ingress_scan_schedule"
+      ]
+    },
+    {
+      "id": "C131",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The execution schedule supplies independent scan and dispatch allowances. Lowering preserves the total dispatch fuel across arbitrary finite interleavings of deferred-capacity changes and polling turns, and offers exactly the ordered examined occurrences of the capacity ledger. Embedding any earlier fixed-capacity variable-scan schedule preserves its full filtered schedule, including dispatch fuel.",
+      "theorems": [
+        "capacityExecutionExamined",
+        "capacityExecutionVariableSchedule",
+        "capacityExecutionPreservesFuel"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine delivered runtime turns and authorized serialized capacity changes to the execution schedule, preserving scan and dispatch fuel independently.",
+        "Examination is not admission or service. Fixed admitted limits, payload weights and policy/resource configuration remain assumptions; wakeups, enough delivered service and wall-clock latency are not proved."
+      ]
+    },
+    {
+      "id": "C132",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "The scheduled runner executes the lowered payload-aware admitted queue schedule and constructs its terminal deferred and ordered overflow fields from the capacity ledger. The final deferred length fits the last capacity under initial deferred fit, or without initial fit after a leading resize. An empty schedule preserves the complete input state, and a lone resize agrees with the existing resize handoff and preserves the admitted queue and policy/resource state.",
+      "theorems": [
+        "capacityScheduledIngressExecutesQueue",
+        "capacityScheduledIngressLedgerDeferred",
+        "capacityScheduledIngressLedgerOverflow",
+        "capacityScheduledIngressDeferredBound",
+        "capacityScheduledIngressLeadingResizeBound",
+        "capacityScheduledIngressDone",
+        "capacityScheduledIngressResizeHandoff",
+        "capacityScheduledIngressResizePreservesQueue"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "The runner is defined from the recursive filtered schedule and ledger projections. These field equalities are by construction, not a simulation of a separate runtime state machine.",
+        "Refine complete state ownership, terminal handoff, overflow notification and cleanup. Ledger/history storage, repeated-change cost composition and changing admitted or policy/resource limits remain open."
+      ]
+    },
+    {
+      "id": "C133",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "After any finite interleaving of deferred-capacity changes and fueled polling turns, the admitted queue entry count and payload charge remain within their respective fixed limits under their respective initial-fit premises. Pending occupancy is bounded by the original lease capacity.",
+      "theorems": [
+        "capacityScheduledIngressQueueEntryBound",
+        "capacityScheduledIngressQueuePayloadBound",
+        "capacityScheduledIngressPendingBound"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Establish immutable payload-charge and storage correspondence and refine the inherited payload-aware queue and policy/resource transitions to the implementation.",
+        "These endpoint bounds do not establish concrete allocation, cost, service delivery or elapsed-time bounds. No admitted, payload, policy or lease-capacity update is modeled."
+      ]
+    },
+    {
+      "id": "C134",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Finite witnesses over arbitrary event values check admitted FIFO retention through shrink, zero capacity and regrowth; chronological overflow from successive resizes and zero-scan offers; and dispatch of one carried admitted event after a zero-capacity resize with zero scan fuel. Equal event values are permitted and retain their occurrences.",
+      "theorems": [
+        "capacityScheduledIngressShrinkGrow",
+        "capacityScheduledIngressRepeatedOverflow",
+        "capacityScheduledIngressEmptyScanDispatchesQueue"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "These are concrete schedule witnesses with quantified event and resource-state values, not general liveness or service theorems.",
+        "Runtime occurrence identity, overflow delivery, mandatory cleanup, real service and bounded trace storage remain external obligations."
       ]
     }
   ]

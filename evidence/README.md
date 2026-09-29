@@ -609,5 +609,29 @@ that growth after a zero-capacity boundary does not revive discarded work.
 
 All 30 new controls require semantic proof rejection. The full receipt retains
 empty axiom disclosure and the existing incomplete qualification status.
-Repeated-change execution and cost composition, runtime authority, ownership,
-cleanup, real service delivery and bounded history storage remain open.
+This receipt covers deferred accounting. Module 69 adds repeated-change
+execution; cost composition, runtime authority, ownership, cleanup, real service
+delivery and bounded history storage remain open.
+
+## Capacity schedule execution model check
+
+`policy-ingress-capacity-schedule-execution-model-check.json` records the passing
+checks for `69-policy-ingress-capacity-schedule-execution.mech`, atoms C131-C134,
+and the complete proof bundle. Seventeen new proof declarations connect finite
+resize/poll execution to the examined ledger trace, preserve total dispatch fuel
+across arbitrary finite interleavings, preserve the earlier
+fixed-capacity filtered schedule and establish deferred, admitted entry,
+payload and pending-resource bounds under their stated premises.
+
+The runner constructs deferred and overflow handoff fields from the ledger and
+executes the filtered payload-aware admitted schedule. These field equalities
+are by construction. Empty and lone-resize handoffs are checked generally;
+three concrete schedules check shrink/growth FIFO retention, repeated overflow
+and dispatch from a carried queue with zero scan fuel. They quantify over event
+values and resource state without claiming general liveness.
+
+All 32 new controls require semantic proof rejection. The full receipt retains
+empty axiom disclosure and the existing incomplete qualification status.
+Repeated-change cost composition, runtime simulation, authorized serialized
+updates, ownership, cleanup, real service delivery and bounded history storage
+remain open.

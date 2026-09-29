@@ -161,14 +161,22 @@ The capacity-schedule slice now accounts for arbitrary finite interleavings of
 deferred-capacity changes and polling turns. It reconstructs all offered
 occurrences, bounds terminal deferred work by the final capacity with initial
 fit (or a leading resize), and agrees with the earlier fixed-capacity and
-single-resize ledgers. Repeated-change admitted queue/resource execution and
-cost composition remain next steps, along with runtime authority, ownership,
-cleanup, history storage and service delivery.
+single-resize ledgers. Module 69 now adds admitted queue/resource execution for
+arbitrary finite resize/poll schedules with independent scan and dispatch fuel.
+Its filtered schedule preserves total dispatch fuel and offers exactly the
+ledger-examined occurrences. Its runner constructs the deferred and overflow
+handoff fields from that ledger.
+Deferred fit uses the final capacity with initial fit or a leading resize;
+admitted entry and payload bounds retain their own initial-fit premises, and
+pending occupancy retains the original lease capacity. Repeated-change cost
+composition and equality with earlier full execution handoffs remain next
+steps, along with runtime authority, ownership, cleanup, history storage and
+service delivery.
 
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 166 atomic model obligations
+   explicit dispositions. The current 34 groups and 170 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

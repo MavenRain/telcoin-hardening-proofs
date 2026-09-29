@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[166 atomic model obligations](atomic-claims.json) documenting theorem links,
+[170 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 807 deliberately invalid
+source hashes and coverage freshness, and requires 839 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -63,7 +63,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-924 explicit equality and order proof declarations across 51 modules. This count
+941 explicit equality and order proof declarations across 52 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -119,6 +119,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `66-policy-ingress-capacity-execution.mech` | Complete queue and policy/resource execution composes across one deferred-capacity change, preserving dispatch order and matching ledger outputs. The new deferred bound is unconditional; admitted bounds retain initial-fit premises. The dispatch-cost envelope excludes administrative and resize costs. |
 | `67-policy-ingress-capacity-cost.mech` | Administrative, resize and dispatch costs share an eight-weight envelope across one deferred-capacity change. Resize charges count retained and rejected occurrences plus one fixed boundary charge. The bound retains the actual resize-input cost and uses the original credit premises. |
 | `68-policy-ingress-capacity-schedule.mech` | Finite resize/poll interleavings preserve chronological occurrence accounting and the final deferred-capacity bound. Fixed-capacity and single-resize embeddings match the earlier ledgers; mixed shrink, growth and pause witnesses preserve disposition order. |
+| `69-policy-ingress-capacity-schedule-execution.mech` | Arbitrary finite resize/poll schedules preserve independent scan and dispatch fuel and execute the ledger-examined occurrences through payload-aware admission. Deferred, admitted entry, payload and pending-resource bounds retain their stated premises. Empty, resize-only and mixed shrink/growth/dispatch witnesses preserve carried state. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system
