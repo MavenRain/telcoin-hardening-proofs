@@ -183,9 +183,10 @@ segments across cuts. Concatenation is associative and has a right identity;
 the second segment carries the first segment's final deferred capacity,
 deferred suffix and complete admitted queue state. General equalities preserve
 the ledger, lowered schedule, final queue, deferred suffix and ordered overflow
-without initial-fit premises. Equality with the earlier single-boundary
-execution and segmented cost models remains open, together with runtime
-serialization, authority, ownership, cleanup, storage and delivered service.
+without initial-fit premises. Module 73 establishes compatibility with the
+earlier single-boundary ledger, lowered schedule and final admitted queue.
+Segmented cost compatibility remains open, together with runtime serialization,
+authority, ownership, cleanup, storage and delivered service.
 
 The capacity schedule cost composition slice now equates the concatenated
 execution cost with the sum of segment costs at the actual terminal-capacity
@@ -197,10 +198,21 @@ single-boundary segmented cost models remains open, together with concrete
 runtime refinement, cost domination, ownership, cleanup, storage and service
 delivery.
 
+The capacity schedule compatibility slice now embeds arbitrary fixed-capacity
+variable-scan schedules and two segments separated by one resize into capacity
+execution. Their complete ledgers and lowered dispatch schedules agree with
+the earlier models, preserving examined occurrences, terminal deferred input
+and ordered overflow. The single-boundary runner also preserves the earlier
+segmented executor's complete final admitted queue under fixed admitted limits,
+payload weights and configuration. The equalities need no initial-fit or
+credit-bound premise. Equating the per-turn administrative sum with the earlier
+segmented cost formulas is a next step, alongside concrete runtime refinement,
+authority, ownership, cleanup, history storage and delivered service.
+
 1. Decompose every normative source unit into atomic claims, assumptions and
    completion criteria. Resolve differences between the original drafts,
    modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 180 atomic model obligations
+   explicit dispositions. The current 34 groups and 183 atomic model obligations
    are not the final atomic list.
 2. Extend budgeted policy/source admission with established resources and live
    per-source pending attribution. Establish concrete bounds for budgeted policy

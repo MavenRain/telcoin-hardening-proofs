@@ -2058,9 +2058,10 @@ produce a semantic proof mismatch. These controls constrain the model and its
 proof terms; they are not a runtime executor test.
 
 Runtime serialization, resize authority, occurrence ownership, mandatory
-cleanup, storage dominance and delivery of service remain open. Equality with
-the earlier single-boundary execution and segmented cost models also remains
-open. No shared assumption or kernel axiom is added.
+cleanup, storage dominance and delivery of service remain open. Module 73
+connects the earlier single-boundary ledger, lowered schedule and admitted queue
+to capacity execution. Segmented cost compatibility remains open. No shared
+assumption or kernel axiom is added.
 
 ## Cost composition across capacity execution schedules
 
@@ -2101,10 +2102,52 @@ cleanup, history storage and actual service delivery also remain open. This
 slice adds no shared assumption or kernel axiom.
 
 
+## Compatibility with earlier capacity execution models
+
+Module 73 embeds arbitrary finite `VariablePolicyIngressSchedule` values using
+`capacityExecutionFromVariable`. Structural induction proves equality of the
+complete fixed-capacity occurrence ledger, including retained-prefix counts,
+examined occurrences, terminal deferred input and ordered overflow. The earlier
+`capacityExecutionVariableSchedule` theorem supplies the corresponding lowering
+equality, preserving independent scan and dispatch allowances.
+
+`capacityExecutionSingleBoundary` concatenates the embedded first segment with
+one explicit resize and the embedded second segment. Induction on the first
+segment equates its ledger with `capacityComposedDeferredIngressLedger` and its
+lowered schedule with `capacityComposedIngressSchedule`. The resize uses the
+exact suffix left by the first segment. Projection equalities retain examined
+occurrences, terminal deferred input and overflow order and multiplicity. An
+empty prefix still performs the boundary resize, and a zero-capacity boundary
+rejects every waiting occurrence when both segments are empty.
+
+`capacityScheduledIngressSingleBoundaryQueue` transports the lowering equality
+through payload-aware execution and the earlier segmented execution theorem.
+Its endpoints are the actual runners' complete final admitted queue states,
+including queued payload and policy/resource state. Payload weights, admitted
+entry and payload limits and policy configuration stay fixed. All these
+equalities quantify over arbitrary inputs and schedules without initial-fit
+or credit-bound premises. They do not grant resource bounds to invalid initial
+states, and the queue equality does not separately state equality of the full
+handoff records.
+
+The 15 new controls alter operational definitions. Eleven corrupt the boundary
+embedding by dropping, replaying or reordering segments or resize steps, or
+changing the boundary capacity. Four alter the earlier variable-schedule
+embedding by changing or dropping scan allowance, or dropping or incrementing
+dispatch fuel. The latter can be rejected by earlier module-69 proofs;
+the eleven boundary controls exercise the new general compatibility statements.
+Every control must produce a type mismatch, rather than a parser failure,
+crash or timeout. No shared assumption or kernel axiom is added.
+
+Compatibility of the per-turn administrative sum with the earlier segmented
+cost formulas remains open. Runtime simulation, serialization, resize authority,
+occurrence ownership, mandatory cleanup, bounded history storage and delivery
+of service also remain open.
+
 ## Negative controls
 
-The checker rejects 910 invalid variants: three direct checks of equality,
-ordering and termination, plus 907 semantic mutations. Mutations exercise such
+The checker rejects 925 invalid variants: three direct checks of equality,
+ordering and termination, plus 922 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

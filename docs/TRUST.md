@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 907 additional semantic mutations must
+The 922 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -140,8 +140,9 @@ overflow projections, without an initial-fit premise. Admitted limits,
 weights and policy configuration remain fixed. These are equalities between
 pure model executions, not a proof of runtime serialization, cleanup or
 service delivery. Invalid initial states do not acquire resource bounds from
-these equalities. Earlier single-boundary execution and segmented cost
-equivalence remain open. No shared assumption or kernel axiom is added.
+these equalities. Module 73 proves the earlier single-boundary ledger,
+lowering and final admitted queue equalities. Segmented cost equivalence remains
+open. No shared assumption or kernel axiom is added.
 
 Module 72 equates the concatenated execution cost with the sum of segment
 costs at the actual handoff. The carried boundary includes the final deferred
@@ -169,6 +170,17 @@ The bootstrap builds exact commits and records the resulting executable hash.
 The verification command refuses an executable that differs from that build
 receipt. This is reproducibility within the stated trust base, not a signed
 third-party attestation. File hashes detect drift, not semantic correctness.
+
+Module 73 embeds fixed-capacity and single-boundary schedules into arbitrary
+capacity execution. Structural induction proves equality of the complete
+occurrence ledgers and lowered schedules. Transport through payload-aware
+execution preserves the complete final admitted queue of the earlier segmented
+runner, under fixed admitted limits, immutable payload weights and configuration.
+The statements do not require initial fit or credit bounds. They do not
+establish bounds for invalid states or separately equate the full operational
+handoff records. Fifteen controls corrupt the operational embeddings, including
+segment loss and replay, misplaced boundaries, changed capacity and altered
+scan or dispatch inputs. Cost compatibility and runtime refinement remain open.
 
 ## Open boundaries
 

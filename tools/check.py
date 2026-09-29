@@ -2031,6 +2031,49 @@ MUTATIONS += [
 ]
 
 
+_CAPACITY_COMPATIBILITY_BOUNDARY = """def capacityExecutionSingleBoundary : VariablePolicyIngressSchedule -> Count ->
+    VariablePolicyIngressSchedule -> PolicyIngressCapacityExecution :=
+  fun (first : VariablePolicyIngressSchedule) (resized : Count) (second : VariablePolicyIngressSchedule) =>
+    appendCapacityExecution (capacityExecutionFromVariable first)
+      (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))"""
+MUTATIONS += [
+    (f"policy_capacity_compatibility_{name}", _CAPACITY_COMPATIBILITY_BOUNDARY,
+     _CAPACITY_COMPATIBILITY_BOUNDARY.replace(before, after))
+    for name, before, after in [
+        ("drops_prefix", "(capacityExecutionFromVariable first)", "policyIngressCapacityExecutionDone"),
+        ("drops_suffix", "(capacityExecutionFromVariable second)", "policyIngressCapacityExecutionDone"),
+        ("drops_resize", "(policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))",
+         "(capacityExecutionFromVariable second)"),
+        ("zero_resize", "policyIngressCapacityExecutionResize resized", "policyIngressCapacityExecutionResize zero"),
+        ("increments_resize", "policyIngressCapacityExecutionResize resized", "policyIngressCapacityExecutionResize (next resized)"),
+        ("swaps_segments", "appendCapacityExecution (capacityExecutionFromVariable first)\n      (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))",
+         "appendCapacityExecution (capacityExecutionFromVariable second)\n      (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable first))"),
+        ("early_resize", "appendCapacityExecution (capacityExecutionFromVariable first)\n      (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))",
+         "policyIngressCapacityExecutionResize resized\n      (appendCapacityExecution (capacityExecutionFromVariable first) (capacityExecutionFromVariable second))"),
+        ("late_resize", "(policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))",
+         "(appendCapacityExecution (capacityExecutionFromVariable second)\n        (policyIngressCapacityExecutionResize resized policyIngressCapacityExecutionDone))"),
+        ("replays_prefix", "appendCapacityExecution (capacityExecutionFromVariable first)",
+         "appendCapacityExecution (appendCapacityExecution (capacityExecutionFromVariable first) (capacityExecutionFromVariable first))"),
+        ("replays_suffix", "(capacityExecutionFromVariable second)",
+         "(appendCapacityExecution (capacityExecutionFromVariable second) (capacityExecutionFromVariable second))"),
+        ("replays_boundary", "(policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))",
+         "(policyIngressCapacityExecutionResize resized\n        (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second)))"),
+    ]
+]
+_CAPACITY_COMPATIBILITY_VARIABLE_TURN = """| variablePolicyIngressTurn scan fuel arrivals rest =>
+        policyIngressCapacityExecutionTurn scan fuel arrivals (capacityExecutionFromVariable rest)"""
+MUTATIONS += [
+    (f"policy_capacity_compatibility_{name}", _CAPACITY_COMPATIBILITY_VARIABLE_TURN,
+     _CAPACITY_COMPATIBILITY_VARIABLE_TURN.replace(before, after))
+    for name, before, after in [
+        ("changes_scan", "ExecutionTurn scan fuel", "ExecutionTurn (next scan) fuel"),
+        ("drops_dispatch_fuel", "ExecutionTurn scan fuel", "ExecutionTurn scan zero"),
+        ("drops_scan", "ExecutionTurn scan fuel", "ExecutionTurn zero fuel"),
+        ("increments_fuel", "ExecutionTurn scan fuel", "ExecutionTurn scan (next fuel)"),
+    ]
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

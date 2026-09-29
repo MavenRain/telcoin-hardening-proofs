@@ -1,0 +1,182 @@
+-- Fixed-capacity and single-boundary schedules embed in arbitrary capacity execution.
+-- These equalities need no initial-fit premise. Cost compatibility remains separate.
+
+def rec capacityExecutionVariableLedger : (capacity : Count) -> (schedule : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressLedger
+      (capacityExecutionLedger capacity (capacityExecutionFromVariable schedule) waiting)
+      (variableDeferredIngressLedger capacity schedule waiting) :=
+  fun (capacity : Count) (schedule : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    case schedule as self in VariablePolicyIngressSchedule return Equal PolicyIngressLedger
+      (capacityExecutionLedger capacity (capacityExecutionFromVariable self) waiting)
+      (variableDeferredIngressLedger capacity self waiting) with
+    | variablePolicyIngressDone => same
+    | variablePolicyIngressTurn scan fuel arrivals rest => congruent PolicyIngressLedger PolicyIngressLedger
+        (fun (tail : PolicyIngressLedger) => policyIngressLedgerTurn
+          (boundedResumedPolicyIngressExamined scan waiting arrivals)
+          (policyIngressLength (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+          (boundedResumedPolicyIngressOverflow capacity scan waiting arrivals) tail)
+        (capacityExecutionLedger capacity (capacityExecutionFromVariable rest)
+          (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+        (variableDeferredIngressLedger capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+        (capacityExecutionVariableLedger capacity rest (boundedResumedPolicyIngressDeferred capacity scan waiting arrivals))
+
+def capacityExecutionVariableDeferred : (capacity : Count) -> (schedule : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerDeferred (capacityExecutionLedger capacity (capacityExecutionFromVariable schedule) waiting))
+      (policyIngressLedgerDeferred (variableDeferredIngressLedger capacity schedule waiting)) :=
+  fun (capacity : Count) (schedule : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerDeferred
+      (capacityExecutionLedger capacity (capacityExecutionFromVariable schedule) waiting)
+      (variableDeferredIngressLedger capacity schedule waiting)
+      (capacityExecutionVariableLedger capacity schedule waiting)
+
+def capacityExecutionVariableOverflow : (capacity : Count) -> (schedule : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityExecutionLedger capacity (capacityExecutionFromVariable schedule) waiting))
+      (policyIngressLedgerOverflow (variableDeferredIngressLedger capacity schedule waiting)) :=
+  fun (capacity : Count) (schedule : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerOverflow
+      (capacityExecutionLedger capacity (capacityExecutionFromVariable schedule) waiting)
+      (variableDeferredIngressLedger capacity schedule waiting)
+      (capacityExecutionVariableLedger capacity schedule waiting)
+
+def capacityExecutionSingleBoundary : VariablePolicyIngressSchedule -> Count ->
+    VariablePolicyIngressSchedule -> PolicyIngressCapacityExecution :=
+  fun (first : VariablePolicyIngressSchedule) (resized : Count) (second : VariablePolicyIngressSchedule) =>
+    appendCapacityExecution (capacityExecutionFromVariable first)
+      (policyIngressCapacityExecutionResize resized (capacityExecutionFromVariable second))
+
+def rec capacityExecutionSingleBoundaryLedger : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressLedger
+      (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting)
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    case first as self in VariablePolicyIngressSchedule return Equal PolicyIngressLedger
+      (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary self newCapacity second) waiting)
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity self second waiting) with
+    | variablePolicyIngressDone => congruent PolicyIngressLedger PolicyIngressLedger
+        (fun (tail : PolicyIngressLedger) => policyIngressLedgerTurn policyIngressDone
+          (policyIngressLength (policyIngressDeferredPrefix newCapacity waiting))
+          (policyIngressDeferredOverflow newCapacity waiting) tail)
+        (capacityExecutionLedger newCapacity (capacityExecutionFromVariable second)
+          (policyIngressDeferredPrefix newCapacity waiting))
+        (variableDeferredIngressLedger newCapacity second (policyIngressDeferredPrefix newCapacity waiting))
+        (capacityExecutionVariableLedger newCapacity second (policyIngressDeferredPrefix newCapacity waiting))
+    | variablePolicyIngressTurn scan fuel arrivals rest => congruent PolicyIngressLedger PolicyIngressLedger
+        (fun (tail : PolicyIngressLedger) => policyIngressLedgerTurn
+          (boundedResumedPolicyIngressExamined scan waiting arrivals)
+          (policyIngressLength (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+          (boundedResumedPolicyIngressOverflow oldCapacity scan waiting arrivals) tail)
+        (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary rest newCapacity second)
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+        (capacityComposedDeferredIngressLedger oldCapacity newCapacity rest second
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+        (capacityExecutionSingleBoundaryLedger oldCapacity newCapacity rest second
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+
+def rec capacityExecutionSingleBoundarySchedule : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressSchedule
+      (capacityExecutionSchedule oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting)
+      (capacityComposedIngressSchedule oldCapacity newCapacity first second waiting) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    case first as self in VariablePolicyIngressSchedule return Equal PolicyIngressSchedule
+      (capacityExecutionSchedule oldCapacity (capacityExecutionSingleBoundary self newCapacity second) waiting)
+      (capacityComposedIngressSchedule oldCapacity newCapacity self second waiting) with
+    | variablePolicyIngressDone => capacityExecutionVariableSchedule newCapacity second
+        (policyIngressDeferredPrefix newCapacity waiting)
+    | variablePolicyIngressTurn scan fuel arrivals rest => congruent PolicyIngressSchedule PolicyIngressSchedule
+        (fun (tail : PolicyIngressSchedule) => policyIngressTurn fuel
+          (boundedResumedPolicyIngressExamined scan waiting arrivals) tail)
+        (capacityExecutionSchedule oldCapacity (capacityExecutionSingleBoundary rest newCapacity second)
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+        (capacityComposedIngressSchedule oldCapacity newCapacity rest second
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+        (capacityExecutionSingleBoundarySchedule oldCapacity newCapacity rest second
+          (boundedResumedPolicyIngressDeferred oldCapacity scan waiting arrivals))
+
+def capacityExecutionSingleBoundaryExamined : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerExamined
+        (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting))
+      (policyIngressLedgerExamined (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerExamined
+      (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting)
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)
+      (capacityExecutionSingleBoundaryLedger oldCapacity newCapacity first second waiting)
+
+def capacityExecutionSingleBoundaryDeferred : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerDeferred
+        (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting))
+      (policyIngressLedgerDeferred (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerDeferred
+      (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting)
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)
+      (capacityExecutionSingleBoundaryLedger oldCapacity newCapacity first second waiting)
+
+def capacityExecutionSingleBoundaryOverflow : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow
+        (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting))
+      (policyIngressLedgerOverflow (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    congruent PolicyIngressLedger PolicyIngressTrace policyIngressLedgerOverflow
+      (capacityExecutionLedger oldCapacity (capacityExecutionSingleBoundary first newCapacity second) waiting)
+      (capacityComposedDeferredIngressLedger oldCapacity newCapacity first second waiting)
+      (capacityExecutionSingleBoundaryLedger oldCapacity newCapacity first second waiting)
+
+def capacityScheduledIngressSingleBoundaryQueue : (weight : PolicyIngressEvent -> Count) -> (slots : Count) ->
+    (payloadLimit : Count) -> (oldCapacity : Count) -> (newCapacity : Count) ->
+    (first : VariablePolicyIngressSchedule) -> (second : VariablePolicyIngressSchedule) ->
+    (config : PolicyWorkConfig) -> (state : PolicyIngressResumeState) -> Equal PolicyIngressQueueState
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runCapacityScheduledIngress weight slots payloadLimit oldCapacity
+          (capacityExecutionSingleBoundary first newCapacity second) config state)))
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runCapacityComposedIngress weight slots payloadLimit oldCapacity newCapacity first second config state))) :=
+  fun (weight : PolicyIngressEvent -> Count) (slots : Count) (payloadLimit : Count)
+      (oldCapacity : Count) (newCapacity : Count) (first : VariablePolicyIngressSchedule)
+      (second : VariablePolicyIngressSchedule) (config : PolicyWorkConfig) (state : PolicyIngressResumeState) =>
+    equalTransitivity PolicyIngressQueueState
+      (runPayloadIngress weight slots payloadLimit
+        (capacityExecutionSchedule oldCapacity (capacityExecutionSingleBoundary first newCapacity second)
+          (deferredPolicyIngress state)) config (resumedPolicyIngressQueue state))
+      (runPayloadIngress weight slots payloadLimit
+        (capacityComposedIngressSchedule oldCapacity newCapacity first second (deferredPolicyIngress state))
+        config (resumedPolicyIngressQueue state))
+      (resumedPolicyIngressQueue (policyIngressHandoffState
+        (runCapacityComposedIngress weight slots payloadLimit oldCapacity newCapacity first second config state)))
+      (congruent PolicyIngressSchedule PolicyIngressQueueState
+        (fun (schedule : PolicyIngressSchedule) =>
+          runPayloadIngress weight slots payloadLimit schedule config (resumedPolicyIngressQueue state))
+        (capacityExecutionSchedule oldCapacity (capacityExecutionSingleBoundary first newCapacity second)
+          (deferredPolicyIngress state))
+        (capacityComposedIngressSchedule oldCapacity newCapacity first second (deferredPolicyIngress state))
+        (capacityExecutionSingleBoundarySchedule oldCapacity newCapacity first second (deferredPolicyIngress state)))
+      (capacityComposedIngressExecutesQueue weight slots payloadLimit oldCapacity newCapacity first second config state)
+
+def capacityExecutionSingleBoundaryEmptyPrefix : (oldCapacity : Count) -> (newCapacity : Count) ->
+    (second : VariablePolicyIngressSchedule) -> (waiting : PolicyIngressTrace) -> Equal PolicyIngressLedger
+      (capacityExecutionLedger oldCapacity
+        (capacityExecutionSingleBoundary variablePolicyIngressDone newCapacity second) waiting)
+      (resizedDeferredIngressLedger newCapacity second waiting) :=
+  fun (oldCapacity : Count) (newCapacity : Count) (second : VariablePolicyIngressSchedule) (waiting : PolicyIngressTrace) =>
+    capacityExecutionSingleBoundaryLedger oldCapacity newCapacity variablePolicyIngressDone second waiting
+
+def capacityExecutionSingleBoundaryZeroResize : (oldCapacity : Count) -> (waiting : PolicyIngressTrace) ->
+    Equal PolicyIngressTrace
+      (policyIngressLedgerOverflow (capacityExecutionLedger oldCapacity
+        (capacityExecutionSingleBoundary variablePolicyIngressDone zero variablePolicyIngressDone) waiting)) waiting :=
+  fun (oldCapacity : Count) (waiting : PolicyIngressTrace) => appendPolicyIngressRightIdentity waiting

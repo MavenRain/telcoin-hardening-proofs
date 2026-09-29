@@ -5709,7 +5709,7 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime schedule cuts to ordered concatenation, with authorized serialized capacity changes and the actual active capacity carried across each cut.",
-        "The equality is finite and structural. It does not supply service, resize authority, wall-clock bounds or equality with the earlier single-boundary execution model."
+        "The equality is finite and structural. It does not supply service, resize authority or wall-clock bounds. Ledger, lowered schedule, examined occurrence, deferred suffix, overflow and final admitted queue equality with the earlier single-boundary execution model are now C146-C147. Cost compatibility with that model remains open."
       ]
     },
     {
@@ -5890,6 +5890,105 @@
       "open_implementation_obligations": [
         "Justify all eight weights in one concrete runtime unit, including scanning, admission, resizing, overflow materialization and mandatory cleanup.",
         "Compatibility with the earlier fixed-capacity and single-boundary segmented cost models, changing admitted or policy/resource limits, external allocations, bounded history storage and real service delivery remain open."
+      ]
+    },
+    {
+      "id": "C145",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Embedding an arbitrary finite variable-scan schedule into capacity execution preserves the complete fixed-capacity occurrence ledger, its terminal deferred suffix and ordered overflow. The earlier lowering equality preserves scan and dispatch allowances independently. No initial-fit premise is required.",
+      "theorems": [
+        "capacityExecutionVariableLedger",
+        "capacityExecutionVariableDeferred",
+        "capacityExecutionVariableOverflow",
+        "capacityExecutionVariableSchedule"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
+        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+      ]
+    },
+    {
+      "id": "C146",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Embedding two arbitrary finite variable-scan segments with one resize between them preserves the earlier single-boundary ledger and lowered dispatch schedule. Examined occurrences, terminal deferred suffix and ordered overflow agree, including an empty prefix and a resize to zero. The resize acts on the exact post-prefix suffix, with no initial-fit premise.",
+      "theorems": [
+        "capacityExecutionSingleBoundaryLedger",
+        "capacityExecutionSingleBoundarySchedule",
+        "capacityExecutionSingleBoundaryExamined",
+        "capacityExecutionSingleBoundaryDeferred",
+        "capacityExecutionSingleBoundaryOverflow",
+        "capacityExecutionSingleBoundaryEmptyPrefix",
+        "capacityExecutionSingleBoundaryZeroResize"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
+        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+      ]
+    },
+    {
+      "id": "C147",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Running the embedded single-boundary schedule produces the same complete final admitted queue as the earlier segmented executor, including its queued payload and policy/resource state. Payload weights, admitted limits and configuration are fixed. The equality has no initial-fit or credit-bound premise and does not assert resource bounds for invalid initial states.",
+      "theorems": [
+        "capacityScheduledIngressSingleBoundaryQueue"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
+        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
       ]
     }
   ]

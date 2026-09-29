@@ -718,3 +718,26 @@ and handshake-credit premises, with no initial deferred/admitted fit premise.
 The receipt reports implementation links as not checked in this run. Runtime
 refinement and deployment qualification remain incomplete, as does compatibility
 with the earlier fixed-capacity and single-boundary segmented cost models.
+
+## Capacity schedule compatibility model check
+
+`policy-ingress-capacity-schedule-compatibility-model-check.json` records the
+full gate for module 73 and atoms C145-C147: 981 proof declarations across 56
+modules, 183 atomic obligations, 1,383 source units and 925 rejected negative
+checks. Eleven new proofs connect fixed-capacity and single-boundary occurrence
+ledgers, lowered schedules and the actual runners' complete final admitted
+queue. Empty-prefix and zero-resize statements cover arbitrary waiting input.
+
+All 15 new controls require semantic proof rejection. Eleven corrupt the new
+single-boundary embedding, and four corrupt the earlier variable-schedule
+embedding. The latter can fail at earlier module-69 statements. The new controls
+were also checked separately with the three direct negative checks before the
+full gate. The gate checks all prior controls, empty axiom disclosure, source
+hashes, catalog freshness and the expected qualification-blocked exit 2.
+
+The equalities require fixed admitted limits, payload weights and configuration,
+with no initial-fit or credit-bound premise. They do not establish resource
+bounds for invalid initial states or separately equate full handoff records.
+The receipt reports implementation links as not checked in this run. Runtime
+refinement, deployment qualification and compatibility with the earlier
+segmented administrative cost formulas remain incomplete.
