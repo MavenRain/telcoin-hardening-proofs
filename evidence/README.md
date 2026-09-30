@@ -4,6 +4,15 @@ No runtime or deployment result has been supplied or synthesized. The `.build`
 report records local model checking only. The current complete-qualification
 command rejects all implementation and deployment certification.
 
+`source-disposition-check.json` records the current pinned source-disposition
+links and the exact pending remainder. `t1-t4-source-audit-model-check.json`
+records the full proof/mutation run and blocked-qualification regression after
+the second R01 audit batch. That batch audits the original T01/T04 drafts and
+selected revised requirements, retaining ten model and sixteen external
+obligations. It assigns no theorem witnesses or new proof credit; candidate
+implementation links were not checked in this run. Source rationales still
+require semantic review, and R01 remains active.
+
 `initial-model-check.json` preserves the first model-checking receipt.
 `trace-model-check.json` records the expanded transition proofs, atomic ledger,
 semantic mutation checks and validation of the pinned implementation file hashes.
@@ -764,17 +773,19 @@ refinement, ownership, storage, cleanup and service delivery remain open.
 
 `source-disposition-check.json` is a byte copy of
 `.build/source-disposition-report.json` from `make dispositions`. It validates
-the pinned ledger for all 1,383 source units. 12 units have an audited
-disposition: 4 context, 7 obligation and 1 superseded. 1,371 units remain
-pending. The ledger assigns 7 external obligations, E001-E007, and no model
-obligations. The checker verifies source pins, exhaustive unit coverage,
-obligation links and reconciliation structure. It gives no proof credit.
-Reviewers must still assess each rationale and each closure scope.
+the pinned ledger for all 1,383 source units. 198 units have an audited
+disposition: 103 context, 83 obligation and 12 superseded. 1,185 units remain
+pending. The ledger assigns 10 model obligations, M001-M010, and 16 external
+obligations, E001-E016. The checker verifies source pins, exhaustive unit
+coverage, obligation links and reconciliation structure. It gives no proof
+credit. Reviewers must still assess each rationale and each closure scope.
 
-`source-ledger-model-check.json` is the full `make check` receipt for this
-slice. It records 57 modules, 991 checked proof declarations, 186 atomic model
-obligations, 1,383 source units, no axioms and 937 rejected negative checks.
-Its `source_dispositions` block equals the `dispositions` block of
-`source-disposition-check.json`. The receipt reports implementation links as
+`source-ledger-model-check.json` is the full `make check` receipt for the
+first R01 audit batch. It records 57 modules, 991 checked proof declarations,
+186 atomic model obligations, 1,383 source units, no axioms and 937 rejected
+negative checks. Its `source_dispositions` block records the first-batch
+counts. The `source_dispositions` block of
+`t1-t4-source-audit-model-check.json` equals the `dispositions` block of
+`source-disposition-check.json`. Both receipts report implementation links as
 not checked in this run. Claim decomposition, implementation proof and
 deployment qualification remain incomplete.
