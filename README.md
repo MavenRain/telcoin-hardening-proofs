@@ -26,6 +26,8 @@ The checkout used to create this repository already has the pinned checker built
 in `.cache`. Run:
 
 ```sh
+make dispositions
+make disposition-regression
 make check
 make gate-regression
 make qualify
@@ -36,6 +38,12 @@ source hashes and coverage freshness, and requires 937 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
+
+`dispositions` checks the pinned [source ledger](source-ledger.json), and
+`disposition-regression` rejects weakened source and reconciliation links.
+The [ledger format and current audit scope](docs/SOURCE-LEDGER.md) describe the
+R01 work. Pending dispositions block source closure, and candidate theorem
+links receive no proof credit from this check.
 
 Independent negative cases can use up to eight checker workers. For example,
 `python3 -I tools/check_gate.py --jobs 4` runs the full qualification guard with

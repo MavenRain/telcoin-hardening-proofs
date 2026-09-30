@@ -759,3 +759,22 @@ freshness. The separate gate regression checks the expected qualification
 block, including the require-complete exit 2. No initial-fit or credit-bound
 premise is added to these equalities. Concrete cost domination, runtime
 refinement, ownership, storage, cleanup and service delivery remain open.
+
+## Source disposition ledger
+
+`source-disposition-check.json` is a byte copy of
+`.build/source-disposition-report.json` from `make dispositions`. It validates
+the pinned ledger for all 1,383 source units. 12 units have an audited
+disposition: 4 context, 7 obligation and 1 superseded. 1,371 units remain
+pending. The ledger assigns 7 external obligations, E001-E007, and no model
+obligations. The checker verifies source pins, exhaustive unit coverage,
+obligation links and reconciliation structure. It gives no proof credit.
+Reviewers must still assess each rationale and each closure scope.
+
+`source-ledger-model-check.json` is the full `make check` receipt for this
+slice. It records 57 modules, 991 checked proof declarations, 186 atomic model
+obligations, 1,383 source units, no axioms and 937 rejected negative checks.
+Its `source_dispositions` block equals the `dispositions` block of
+`source-disposition-check.json`. The receipt reports implementation links as
+not checked in this run. Claim decomposition, implementation proof and
+deployment qualification remain incomplete.
