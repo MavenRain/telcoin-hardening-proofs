@@ -100,7 +100,47 @@ rather than leaving it conditional on a later occupancy comparison. These
 changes follow the pinned crosswalk and reviewed replacement clauses; they do
 not establish candidate runtime safety or deployment qualification.
 
-Other source units remain individually pending. `source-inventory.json` and
-generated coverage report the exact remainder. R01 remains active after two of
-its five planned turns, with no exit criterion closed. Later packets remain
-pending until its exit criteria have audited evidence.
+At the end of this batch, 1,185 source units remained pending and R01 was
+active after two of its five planned turns. No exit criterion was closed,
+and later packets remained pending.
+
+## T6 and T7 audit batch
+
+The third R01 execution turn audits all 99 units in the original T06 and T07
+drafts, their revised T6/M1b/T7-T12 tasks, and selected crosswalk and acceptance
+clauses. It adds 128 audited units, bringing the total to 326 of 1,383:
+178 context, 131 obligation, and 17 superseded. 1,057 units remain pending.
+All source bytes, ranges, hashes, and existing obligations are retained.
+
+M008 now explicitly separates returning control to the runtime from serving
+the oldest command and relevant timers. Its command-age and service claims
+need stated queue/load, work-cost, and scheduler premises. M011 retains finite
+active-handshake and waiting-work capacities when an accept or endpoint change
+removes serialization, including whole-process composition. Its closure
+assignment is R03. No theorem witness or candidate atom is credited here.
+
+| ID | Required external evidence | Closure packet |
+|---|---|---|
+| E017 | Focused and integrated command/timer progress, bounded observations, recorded stall reproduction, and honest-path regressions on every incoming outcome. | R08 |
+| E018 | Versioned bottleneck attribution on representative hardware, honest reconnect distributions, whole-process comparisons, and separate T7/T12 decisions. | R08 |
+| E019 | Conditional selected restructuring, explicit runtime concurrency bounds, expanded maintenance scope, routing/loss/restart tests, and affected qualification/interoperability regressions. | R08 |
+
+The original unconditional zero-refusal ten-member reconnect guard is replaced
+by D04 failure/time bounds for the supported honest population and topology.
+Historical container-bridge rate bands cannot select production thresholds.
+Shared M1a/M1b evidence replaces standalone historical-host closure recipes;
+honest-path measurements and below-saturation scope remain required. An
+outer-loop yield does not establish progress on a path that never reaches it,
+and moving accepts to another task does not establish reduced lock contention.
+Removing serialization requires an explicit concurrency bound.
+
+The joint revised T7/T12 task retains conditional socket routing, loss, restart,
+and honest-traffic requirements. The original T12 draft remains pending.
+Investigation, selected implementation, host-only changes, and a no-change
+decision retain separate outcome labels. A failed required qualification result
+still requires remediation and a passing subsequent evaluation.
+
+The ledger contains eleven model and nineteen external obligations. R01 remains
+active after three of its five planned turns; no exit criterion is closed.
+Later packets remain pending, and model checking does not establish runtime
+refinement or deployment qualification.

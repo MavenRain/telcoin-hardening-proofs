@@ -8,7 +8,7 @@
       "id": "R01",
       "title": "Seal the semantic ledger and proof boundary",
       "planned_turns": 5,
-      "turns_spent": 2,
+      "turns_spent": 3,
       "status": "active",
       "depends_on": [],
       "workstreams": [
