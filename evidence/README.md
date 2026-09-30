@@ -739,5 +739,23 @@ The equalities require fixed admitted limits, payload weights and configuration,
 with no initial-fit or credit-bound premise. They do not establish resource
 bounds for invalid initial states or separately equate full handoff records.
 The receipt reports implementation links as not checked in this run. Runtime
-refinement, deployment qualification and compatibility with the earlier
-segmented administrative cost formulas remain incomplete.
+refinement and deployment qualification remain incomplete. Module 74 later
+establishes compatibility with the earlier segmented symbolic cost formulas.
+
+## Capacity schedule cost compatibility
+
+`policy-ingress-capacity-schedule-cost-compatibility-model-check.json` records
+module 74 with ten proof declarations and three atomic model obligations,
+C148-C150. General equalities relate per-turn administrative charges to the
+earlier aggregate formula and relate the single-boundary administrative and
+complete execution costs to the earlier segmented model. Fixed-capacity full
+execution costs agree as well. Boundary statements cover empty schedules,
+paused scans with independent dispatch fuel and empty resize segments.
+
+Twelve new controls mutate operational charge definitions and must produce
+type mismatches. They may be rejected by earlier proofs. The full gate checks
+all 937 negative cases, empty axiom disclosure, source hashes and catalog
+freshness. The separate gate regression checks the expected qualification
+block, including the require-complete exit 2. No initial-fit or credit-bound
+premise is added to these equalities. Concrete cost domination, runtime
+refinement, ownership, storage, cleanup and service delivery remain open.

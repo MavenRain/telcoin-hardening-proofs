@@ -1,0 +1,266 @@
+# Remaining proof and evidence work
+
+The requested final result is complete coverage of the hardening claims against
+the pinned implementation and an explicitly qualified deployment envelope.
+The current repository checks finite transition proofs for generation-tagged
+pending ownership, shared handshake credits, a discrete burst-plus-rate bound,
+weighted resource composition, poll continuations, committee-record deduplication
+and epoch reset, versioned policy publication and receipts, mixed policy/resource
+traces, critical service after enough completed rounds, and bounded source-table
+churn that preserves existing rate debt and bans under registration and eviction
+without increasing slot capacity. Source-system traces now compose keyed lookup,
+churn, bounded charging, simultaneous debt and bans, and independent trusted
+expiry while preserving slot capacity and each resident's debt bound. Atomic
+source admission now couples validated source quota, shared handshake credit and
+selected pending ownership, with indexed completion receipts and bounded mixed
+traces. Accepted starts counted from those receipts now satisfy shared-credit
+conservation and a discrete burst-plus-rate envelope, lifted to per-start cost.
+Enabled admission, exact receipt emission, accepted-start counting, matching
+completion, stale and duplicate callback protection, and held or missing slot
+refusal now hold for arbitrary finite pending prefixes and suffixes. Current
+policy receipts now gate the same source admission transition. Mixed
+policy/source traces retain the indexed admission equations, resource bounds
+and receipt-counted burst-plus-rate and per-start cost envelopes. An independent
+policy-work budget now charges processed attempts and publications, including
+denials, and composes its discrete cost envelope with accepted handshake work.
+Cleanup bypasses work exhaustion. Budgeted ingress now constructs policy receipts
+internally from the current pre-state; its mixed traces retain the work and
+handshake envelopes with query production included in the assumed operation
+weight. Fueled policy-ingress polls now count every dispatched event, preserve
+the exact ordered continuation and state semantics, and compose a conditional
+dispatch-overhead bound with the selected prefix's policy and handshake
+envelopes. Concrete dispatch and query costs, work outside dispatched events
+and executor progress remain open.
+Persistent FIFO service now carries the queue and resource state across turns,
+preserves ordered arrivals and services any original prefix in its own length
+of delivered turns with one unit of fuel each. A combined cost envelope spans
+the actual dispatched trace with each initial burst counted once. Runtime queue
+retention, storage and enqueue costs, runtime fuel delivery and wall-clock
+cleanup latency still require refinement. Finite varying-fuel schedules now
+preserve exact FIFO queue conservation and dispatched-state semantics. An
+original prefix is serviced when total delivered fuel equals its length plus
+natural slack, even with zero-fuel turns and later arrivals. Dispatch count
+is bounded by summed fuel, pending capacity is preserved, and the combined
+cost envelope counts each initial burst once across the schedule.
+Fixed-capacity admission now bounds retained queue entries across finite
+schedules, accepting the earliest arrivals that fit and explicitly rejecting
+the suffix. Existing queued prefixes retain their conditional service guarantee,
+and filtered execution preserves pending capacity and the cost envelope.
+Payload storage, offered-batch and admission/rejection costs, safe delivery of
+mandatory cleanup/control events and real-time progress still need refinement.
+An additional fixed payload budget now bounds the sum of immutable event
+charges before dispatch and across finite schedules, alongside the entry cap.
+Admission preserves exact rejected suffixes, accepts fitting payload heads,
+accounts for existing backlog, and a closed witness shows payload freed by
+polling being reused.
+Conditional prefix service and the execution envelope survive the filter.
+Concrete storage dominance, temporary and rejected allocations, charge
+computation and mandatory-event delivery remain open.
+Their contracts and boundaries are in [MODELS.md](MODELS.md).
+
+A separate fixed admission allowance now bounds the examined FIFO prefix of
+each offered batch before entry and payload filtering. Exact partitioning
+distinguishes accepted arrivals, examined rejections and the caller-owned
+unexamined suffix. Queue bounds and conditional service of existing backlog
+survive scanning. A symbolic charge for every examined arrival composes with
+the per-turn dispatch envelope, even when service fuel is zero. Concrete scan
+cost dominance, backlog measurement, offered-batch construction and external
+suffix retention, resubmission and delivery remain open.
+
+Caller-owned FIFO resumption now carries that suffix across finite turns,
+preserves the exact order of examined and deferred arrivals, and conditionally
+examines an original deferred prefix when enough scan allowance is delivered.
+Admitted queue bounds and service remain intact, and a whole-schedule symbolic
+scan and execution envelope counts each resource burst once. A bounded handoff
+now retains a fixed prefix of the unexamined suffix and reports the remaining
+suffix as explicit overflow, while preserving the admitted queue and resource
+bounds through one filtered turn. Finite schedules now compose that bounded
+handoff, preserve chronological overflow without internal replay, and conserve
+the recursive examined/overflow/final-deferred occurrence count. The deferred
+bound for an arbitrary schedule, including no turns, requires initial fit.
+Concrete storage, atomic ownership, overflow delivery, runtime resubmission,
+concrete costs, sufficient fuel delivery and safe handling of examined
+rejections still need refinement. Overflow output history has no storage bound.
+
+For bounded handoffs, an original prefix that fits deferred capacity now has
+an exact FIFO examination guarantee with one ingress scan per delivered turn,
+or independently paused and one-scan turns. Enough cumulative delivered scans,
+expressed by a natural slack witness, examine the whole prefix despite later
+arrivals and overflow. Occurrence-count bounds cover both fixed scan allowances
+and the paced zero-or-one schedule. Paced schedules now compose with admitted
+queue/resource execution, preserve conditional queue and pending bounds, and
+conserve recursive examined/overflow/final-deferred occurrence counts across
+the whole schedule. The actual dispatched trace inherits the conditional
+dispatch/policy/handshake cost envelope. A weighted examination charge now
+composes with offered-item handoff visits and fixed work for every delivered
+turn, including pauses and empty turns. Handoff visits use actual initial
+deferred length on the first turn and fixed deferred capacity thereafter,
+plus every fresh batch, so repeated retention and oversized overflow are
+charged. This administrative ledger composes with the actual dispatched-work
+envelope under the existing initial credit bounds. Varying natural scan
+allowances now preserve fitting-prefix FIFO service and conditional handoff and
+admitted-state bounds, independent dispatch fuel and the combined symbolic cost
+envelope. The prefix induction handles multiple examinations within one turn, as
+well as pauses and fresh batches. A finite occurrence ledger now projects to
+examined work, final deferred work and actual handoff overflow. Recorded
+retained-prefix lengths place per-turn overflow before later arrivals, so the
+reconstructed trace equals initial deferred work followed by every fresh batch
+in chronological order. This equality includes repeated equal-valued events and
+requires no initial-fit premise. Ledgers now compose across finite schedule
+concatenation by carrying the first segment's exact deferred suffix into the
+second at the same capacity. The composed examined and overflow histories retain
+their order, final deferred work comes from the second ledger, and reconstruction
+preserves both fresh-arrival histories. Deferred and overflow projections match
+the concatenated schedule's model handoff fields. Complete execution now also
+composes across that boundary: deferred work, admitted queue, policy/resource
+state, ordered overflow and dispatched histories match sequential execution
+carrying the exact first handoff state. Parameters stay fixed, and no
+initial-fit premise is needed. The existing six-weight administrative and
+execution costs now add across that exact handoff state. Their sum inherits the
+single whole-schedule envelope under the original credit bounds, without a new
+resource burst or credit premise at the split. Weights and parameters stay
+fixed. Relating carried state, ledger ownership, construction and storage to
+the runtime remains open.
+An explicit deferred-capacity boundary now retains the earliest bounded FIFO
+prefix and reports the removed suffix while carrying the complete admitted
+queue and policy/resource state unchanged. Partition conservation and
+same-capacity idempotence hold for arbitrary finite inputs. Subsequent
+variable-scan execution reports boundary overflow before later overflow and
+satisfies the new deferred bound, even from an oversized input or an empty
+schedule. Admitted entry and payload bounds keep their initial-fit premises.
+Runtime authority, cleanup, concrete resize cost domination and storage remain open.
+A boundary ledger now reconstructs the exact pre-resize deferred input followed
+by every arrival in the subsequent variable-scan segment. It records the actual
+retained-prefix length, preserving boundary overflow before later arrivals and
+overflow. Examined work and the final deferred and overflow traces match the
+resized execution, including empty schedules, zero capacity and repeated event
+values. A preceding segment ledger now composes with that boundary and following
+segment at independently chosen old and new capacities. Exact chronological
+reconstruction and occurrence counts survive without initial fit; examined and
+overflow histories concatenate in segment order and final deferred ownership
+comes from the resized segment. Complete queue and policy/resource execution now
+composes across the same deferred-capacity boundary using the exact first
+handoff state. The combined filtered schedule executes the final state, dispatch
+histories concatenate in order, and ledger deferred/overflow fields match the
+actual handoff. The new deferred bound needs no initial fit; admitted entry and
+payload bounds retain their respective premises, and pending occupancy remains
+within the original lease capacity. The symbolic dispatch-cost envelope uses
+the original credit bounds. Administrative and resize charges now join that
+dispatch envelope across one boundary. The logical resize count includes both
+retained and rejected occurrences, and an empty input still incurs one fixed
+boundary charge. The limit keeps the actual resize-input charge and requires
+no initial deferred fit. Concrete domination by all eight weights, cost bounds for arbitrary
+sequences of capacity changes, other parameter changes, runtime ownership,
+cleanup, real service delivery and bounded history storage remain open.
+Concrete domination of all scan, admission, concatenation, retention, overflow
+and per-turn costs still requires runtime refinement. Offered-batch
+construction, output-history storage, scan delivery, admission and dispatch
+after examination, other capacity changes and real-time latency remain open.
+
+The capacity-schedule slice now accounts for arbitrary finite interleavings of
+deferred-capacity changes and polling turns. It reconstructs all offered
+occurrences, bounds terminal deferred work by the final capacity with initial
+fit (or a leading resize), and agrees with the earlier fixed-capacity and
+single-resize ledgers. Module 69 now adds admitted queue/resource execution for
+arbitrary finite resize/poll schedules with independent scan and dispatch fuel.
+Its filtered schedule preserves total dispatch fuel and offers exactly the
+ledger-examined occurrences. Its runner constructs the deferred and overflow
+handoff fields from that ledger.
+Deferred fit uses the final capacity with initial fit or a leading resize;
+admitted entry and payload bounds retain their own initial-fit premises, and
+pending occupancy retains the original lease capacity. Module 70 adds an
+eight-weight administrative and dispatch cost envelope for arbitrary finite
+resize/poll schedules. Its scalar administrative limit charges the actual
+initial suffix, then propagates the active capacity after every resize or poll.
+The envelope uses the original work and handshake credit bounds without an
+initial deferred or admitted fit premise. Equality with earlier full execution
+handoffs and segmented cost models remains a next step, along with runtime
+authority, cost domination, ownership, cleanup, history storage and service
+delivery.
+
+The capacity schedule composition model now connects arbitrary execution
+segments across cuts. Concatenation is associative and has a right identity;
+the second segment carries the first segment's final deferred capacity,
+deferred suffix and complete admitted queue state. General equalities preserve
+the ledger, lowered schedule, final queue, deferred suffix and ordered overflow
+without initial-fit premises. Module 73 establishes compatibility with the
+earlier single-boundary ledger, lowered schedule and final admitted queue.
+Module 74 establishes segmented symbolic cost compatibility. Runtime serialization,
+authority, ownership, cleanup, storage and delivered service remain open.
+
+The capacity schedule cost composition slice now equates the concatenated
+execution cost with the sum of segment costs at the actual terminal-capacity
+handoff. The second segment carries the deferred suffix, admitted queue and
+post-prefix resource state. Its combined envelope uses the original credit
+bounds and one schedule limit, without a second initial burst or initial
+deferred/admitted fit. Module 74 establishes compatibility with the earlier fixed-capacity and
+single-boundary segmented symbolic cost models. Concrete runtime refinement,
+cost domination, ownership, cleanup, storage and service delivery remain open.
+
+The capacity schedule compatibility slice now embeds arbitrary fixed-capacity
+variable-scan schedules and two segments separated by one resize into capacity
+execution. Their complete ledgers and lowered dispatch schedules agree with
+the earlier models, preserving examined occurrences, terminal deferred input
+and ordered overflow. The single-boundary runner also preserves the earlier
+segmented executor's complete final admitted queue under fixed admitted limits,
+payload weights and configuration. The equalities need no initial-fit or
+credit-bound premise. Module 74 now equates the per-turn administrative sum
+with the earlier aggregate and segmented formulas, and equates complete
+symbolic execution costs. Pauses retain handoff and turn charges; empty
+segments retain boundary charges. Concrete runtime refinement, authority,
+ownership, cleanup, history storage and delivered service remain open.
+The next model step is to preserve progress guarantees for original deferred
+prefixes across capacity schedules, with explicit conditions for resize loss
+and cumulative delivered scans.
+
+1. Decompose every normative source unit into atomic claims, assumptions and
+   completion criteria. Resolve differences between the original drafts,
+   modified packet and current source. Context and superseded requirements need
+   explicit dispositions. The current 34 groups and 186 atomic model obligations
+   are not the final atomic list.
+2. Extend budgeted policy/source admission with established resources and live
+   per-source pending attribution. Establish concrete bounds for budgeted policy
+   queries and receipt production, justify the per-dispatch guard and maintenance
+   weights, and bound queue construction, pre-dispatch work and executor overhead
+   outside the dispatch envelope. Refine persistent FIFO retention and real
+   wakeups to the runtime; establish delivery of enough cumulative service fuel
+   for queued prefixes under varying-fuel schedules. Refine bounded queue
+   admission and explicit overflow rejection against runtime behavior, including
+   immutable payload charges and storage dominance, temporary and rejected
+   allocations, charge computation, concrete admission/rejection costs, mandatory cleanup and control
+   delivery, and wall-clock latency under sustained arrivals.
+   Refine canonical source extraction, key uniqueness, indexed internal receipts,
+   runtime receipt provenance from authenticated internal policy queries and atomic
+   policy/source/global/pending enforcement against one pre-state.
+   Verify expiry authority, current restriction generations, clock correspondence,
+   bounded retention time and restart persistence. Extend the
+   transition systems to admitted and policy/resource-cap changes, authoritative policy ordering,
+   reconnect/bootstrap, timestamp freshness and full rotation/reload behavior.
+   Refine the committee threshold, any cache-preserving policy updates and the
+   queue scheduler. Cover the Hub, Rotation and Later tiers as well as Launch,
+   with counterexamples for weakened invariants.
+3. Define a refinement relation from the exact Rust implementation and resolved
+   transport dependencies to those systems. Prove simulation and invariant
+   preservation for relevant callbacks, polls, timers, errors and cancellations.
+   Source hashes and matching names are insufficient. First address the
+   aggregate connection-limit gap recorded as B01.
+4. Formalize parser/authentication boundaries and optimization equivalence:
+   certificate and token checks, payload signatures, early refusal, repeated
+   verification removal, gossip ordering and proof-of-possession prerequisites.
+   Model cryptographic assumptions explicitly and disclose them.
+5. Resolve D01-D12 before calling affected results passing: attack envelope,
+   honest population, per-process budget, liveness and latency thresholds,
+   admission semantics, quota scope, compatibility, test lanes, maintenance,
+   cryptographic policy, provider topology and key/rollback ownership.
+6. Collect M1a-M6 evidence with configuration and dependency hashes. Include
+   representative NICs, firewall-disabled spoofed and real-address traffic,
+   both swarms, Retry-only progress, shared NAT, committee reconnects, bulk sync
+   with votes, storage persistence, hub loss, cold startup and URL migration.
+7. Add verified evidence readers and complete release-gate evaluation. Treat a
+   threshold change as a new qualification. Only replace the currently blocked
+   full-qualification result when semantic coverage, implementation refinements
+   and all applicable empirical/operator gates have evidence.
+
+The input documents already require these distinctions. Numeric candidates such
+as 1,024 incoming attempts, 16 KiB buffers, 5-second inbound and 8-second dial
+timeouts are not accepted production settings in this repository.

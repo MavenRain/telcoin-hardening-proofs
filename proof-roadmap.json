@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "scope": "proof_repository",
+  "turn_budget": 50,
+  "reserve_turns": 10,
+  "packets": [
+    {
+      "id": "R01",
+      "title": "Seal the semantic ledger and proof boundary",
+      "planned_turns": 5,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": [],
+      "workstreams": ["W0", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9"],
+      "exit_criteria": [
+        "Every pinned source unit has an audited disposition: model obligation, external implementation/deployment obligation, context, or superseded requirement with a reconciliation reference.",
+        "Every in-scope normative clause maps to a fixed atomic obligation and a closure packet. Splits and merged duplicates preserve source traceability and the original requirement.",
+        "A machine-checked disposition ledger establishes semantic completeness. Replace hard-coded incomplete flags in catalog/check only after that check exists, while preserving the full-qualification guard."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R02",
+      "title": "Audit and reuse the existing proof corpus",
+      "planned_turns": 3,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R01"],
+      "workstreams": ["W0", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9"],
+      "exit_criteria": [
+        "Every frozen model obligation records its existing theorem witnesses or its exact missing proof, with no credit from theorem names alone.",
+        "Existing finite examples, arbitrary trace theorems, conditional liveness results and assumptions have distinct audited scopes.",
+        "Each remaining proof gap belongs to R03-R08. Redundant examples and helper additions are omitted unless they discharge a frozen obligation or expose a counterexample."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R03",
+      "title": "Close admission, ownership and rate accounting",
+      "planned_turns": 5,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R02"],
+      "workstreams": ["W1"],
+      "exit_criteria": [
+        "All frozen Retry, aggregate pending/established limits, source attribution, handshake-credit and generation-owned callback obligations have witnesses at the required model scope.",
+        "Per-source and shared rate/cost envelopes compose across both swarms and cover denial, overflow, cancellation, stale completion and cleanup paths.",
+        "Negative controls reject weakened ownership, credit, source attribution and resource-bound invariants. Runtime charge and storage dominance assumptions stay explicit."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R04",
+      "title": "Close policy, source churn and recovery models",
+      "planned_turns": 5,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R03"],
+      "workstreams": ["W1", "W2"],
+      "exit_criteria": [
+        "The fixed ledger's authoritative policy, receipt provenance, one-pre-state enforcement and live source/pending attribution obligations have model witnesses.",
+        "Expiry, bans/debt, capacity changes, policy generations, bootstrap/reconnect, record freshness, rotation/reload and Launch/Hub/Rotation/Later model obligations are closed.",
+        "Policy/source/resource composition retains each invariant under mixed traces, with negative controls and explicit clock, authority, persistence and runtime-query premises."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R05",
+      "title": "Close queue, capacity and schedule composition",
+      "planned_turns": 5,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R04"],
+      "workstreams": ["W1", "W3"],
+      "exit_criteria": [
+        "Frozen obligations for bounded construction, immutable payload charges, rejection, deferred suffix retention, resizing and capacity handoff have general model witnesses.",
+        "Whole, segmented, concatenated and lowered schedules agree on state, receipts, cost and conditional service at the ledger's required scope.",
+        "Admission limits, temporary/rejected work, guard/maintenance/executor overhead and storage/cleanup premises have explicit proof boundaries and weakening controls."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R06",
+      "title": "Close event-loop progress and conditional service",
+      "planned_turns": 4,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R05"],
+      "workstreams": ["W1", "W3"],
+      "exit_criteria": [
+        "Accept/Retry/Refuse/Ignore, polls, timers, errors and cancellation have exact modeled continuation and cleanup obligations discharged.",
+        "FIFO prefix service and vote/certificate/epoch priority follow from explicit cumulative fuel, scheduling and delivery premises under the allowed varying-fuel traces.",
+        "Task creation, permits, deadlines, wakeups and hold-time obligations are either modeled with witnesses or retained as sourced external obligations. No unconditional wall-clock liveness claim is inferred."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R07",
+      "title": "Close authentication and optimization boundaries",
+      "planned_turns": 4,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R02"],
+      "workstreams": ["W1", "W2", "W3", "W4"],
+      "exit_criteria": [
+        "Frozen model obligations for certificate/token/payload checks, unverified identities, closed admission and early refusal have witnesses.",
+        "Repeated verification removal, gossip ordering and aggregate verification preserve the stated model behavior, including proof-of-possession prerequisites.",
+        "Cryptographic, parser and transport assumptions are named premises with counterexamples for invalid privilege or bypass conditions; actual implementation security remains external."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R08",
+      "title": "Close the remaining workstream abstractions",
+      "planned_turns": 4,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R02", "R07"],
+      "workstreams": ["W0", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9"],
+      "exit_criteria": [
+        "Every frozen W0-W9 model obligation outside R03-R07 is discharged, including submission/admission semantics, retries, URL migration, bounded metrics/logging and topology/qualification rules.",
+        "Storage latency, hardware, provider networking, carried-patch upkeep, numerical policy and operator decisions have explicit sourced external obligations rather than invented model evidence.",
+        "The closure matrix has no unmapped normative unit, unassigned proof gap or unresolved model-side disposition; original and modified source conflicts are reconciled."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R09",
+      "title": "Audit assumptions, mutations and completeness",
+      "planned_turns": 3,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R03", "R04", "R05", "R06", "R07", "R08"],
+      "workstreams": ["W0", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9"],
+      "exit_criteria": [
+        "An adversarial audit maps every closed model obligation to its exact theorem statement, source clause, assumptions and relevant weakening controls.",
+        "The full pinned checker accepts the final proof bundle, reports an empty axiom set and rejects all required semantic mutations. Complete source and model coverage are derived from checked data.",
+        "Independent implementation/deployment qualification remains blocked when its evidence is missing, including regression of the existing incomplete-qualification guard."
+      ],
+      "evidence": []
+    },
+    {
+      "id": "R10",
+      "title": "Seal and reproduce the proof package",
+      "planned_turns": 2,
+      "turns_spent": 0,
+      "status": "pending",
+      "depends_on": ["R09"],
+      "workstreams": ["W0", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9"],
+      "exit_criteria": [
+        "A clean reproducible run validates the frozen source ledger, model witnesses, provenance, axiom disclosure and semantic mutation suite, with reports pinned to the relevant proof inputs.",
+        "A separate proof-repository completion command requires R01-R09 and the checked semantic/model coverage certificates. The full qualification command retains all Rust, D01-D12 and M1-M6 requirements.",
+        "Generated coverage, trust documentation, reusable artifacts and the sourced external-obligation backlog agree with the final proof-package scope; all ten closure packets have audited evidence."
+      ],
+      "evidence": []
+    }
+  ]
+}

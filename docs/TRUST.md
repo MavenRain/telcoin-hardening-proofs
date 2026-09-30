@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 922 additional semantic mutations must
+The 934 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -152,8 +152,8 @@ The combined envelope retains the original work and handshake credit premises
 and counts a single initial burst across the concatenated schedule. Admitted
 limits, payload weights, configuration and all eight symbolic weights remain
 fixed. Runtime handoff serialization, concrete cost domination, ownership,
-cleanup, storage and delivered service remain external. Compatibility with
-earlier fixed-capacity and single-boundary segmented cost models is still open.
+cleanup, storage and delivered service remain external. Module 74 establishes
+compatibility with earlier fixed-capacity and single-boundary symbolic costs.
 No shared assumption or kernel axiom is added.
 
 
@@ -180,7 +180,17 @@ The statements do not require initial fit or credit bounds. They do not
 establish bounds for invalid states or separately equate the full operational
 handoff records. Fifteen controls corrupt the operational embeddings, including
 segment loss and replay, misplaced boundaries, changed capacity and altered
-scan or dispatch inputs. Cost compatibility and runtime refinement remain open.
+scan or dispatch inputs. Module 74 establishes symbolic cost compatibility;
+runtime refinement remains open.
+
+Module 74 uses constructive arithmetic distribution and structural induction
+to equate per-turn charges with the earlier aggregate formula. Administrative
+composition charges the actual post-prefix resize input; schedule equalities
+transport complete symbolic costs through payload-aware dispatch. All eight
+weights stay fixed. Empty schedules, pauses and empty resize segments retain
+their specified charges. Twelve operational mutations require type mismatches.
+The equalities need no initial fit or credit bound. They neither validate a
+concrete cost weight nor prove runtime refinement or deployment qualification.
 
 ## Open boundaries
 

@@ -2019,7 +2019,7 @@ Runtime domination of all eight weights, physical traversal counts, authority,
 ownership, cleanup, allocation, bounded history storage and service delivery
 remain open. The bound depends on the finite schedule and offered batch sizes;
 it does not bound how many resizes or arrivals the environment supplies.
-Equality with earlier segmented cost models also remains open.
+Module 74 establishes equality with earlier segmented symbolic cost models.
 
 ## Composition across capacity execution schedules
 
@@ -2060,8 +2060,8 @@ proof terms; they are not a runtime executor test.
 Runtime serialization, resize authority, occurrence ownership, mandatory
 cleanup, storage dominance and delivery of service remain open. Module 73
 connects the earlier single-boundary ledger, lowered schedule and admitted queue
-to capacity execution. Segmented cost compatibility remains open. No shared
-assumption or kernel axiom is added.
+to capacity execution. Module 74 establishes segmented symbolic cost
+compatibility. No shared assumption or kernel axiom is added.
 
 ## Cost composition across capacity execution schedules
 
@@ -2096,8 +2096,8 @@ handshake, resize or boundary charges, discard a segment, or restart the
 boundary's deferred input or work state. Each must produce a semantic proof
 mismatch. They constrain the abstract model and proof terms.
 
-Compatibility with the earlier fixed-capacity and single-boundary segmented
-cost models remains open. Runtime serialization, cost domination, ownership,
+Module 74 establishes compatibility with earlier fixed-capacity and
+single-boundary symbolic costs. Runtime serialization, cost domination, ownership,
 cleanup, history storage and actual service delivery also remain open. This
 slice adds no shared assumption or kernel axiom.
 
@@ -2139,15 +2139,51 @@ the eleven boundary controls exercise the new general compatibility statements.
 Every control must produce a type mismatch, rather than a parser failure,
 crash or timeout. No shared assumption or kernel axiom is added.
 
-Compatibility of the per-turn administrative sum with the earlier segmented
-cost formulas remains open. Runtime simulation, serialization, resize authority,
+Module 74 establishes compatibility of the per-turn administrative sum with
+the earlier segmented symbolic cost formulas. Runtime simulation, serialization,
+resize authority,
 occurrence ownership, mandatory cleanup, bounded history storage and delivery
 of service also remain open.
 
+## Capacity schedule cost compatibility
+
+Module 74 equates `capacityScheduledIngressAdminCost` on an embedded arbitrary
+variable-scan schedule with `variableDeferredIngressAdminCost`. The proof first
+distributes the aggregate scan, handoff and turn charges over one turn, then
+uses structural induction over the schedule. Scan cost counts examined
+occurrences; handoff cost counts all waiting and arriving occurrences, including
+retained visits during pauses; fixed turn cost is independent of dispatch fuel.
+Empty schedules cost zero even when initial deferred input is oversized.
+
+`capacityScheduledIngressSingleBoundaryAdminCost` combines the exact prefix
+charge, resize charge on the actual post-prefix suffix and suffix charge on its
+resized retained prefix. It uses the earlier administrative append equality and
+the ledger's exact remainder projection. Empty segments still pay the resize
+cost, including its fixed boundary overhead. No initial-fit premise is used.
+
+`capacityScheduledIngressVariableCost` and
+`capacityScheduledIngressSingleBoundaryCost` transport the lowered schedule
+equalities through payload-aware dispatch costs. They equate the complete
+earlier cost expressions, including event, policy and handshake charges, under
+fixed admitted limits, immutable payload weights, configuration and eight
+symbolic weights. These are equalities, without credit-bound premises, and do
+not establish resource bounds for invalid initial states. C148-C150 record the
+contracts. No shared assumption or kernel axiom is added.
+
+Three boundary statements cover arbitrary empty schedules, paused scans with
+independent dispatch fuel and empty segments around an arbitrary resize.
+Twelve controls mutate operational costs: omitted scan, handoff, resize or
+dispatch charges; replayed scan, turn or resize charges; changed turn weight;
+omitted waiting or arrival visits; trimmed prefix cost input; and charging
+only retained occurrences instead of the complete resize input. Existing proofs can reject
+these controls before module 74. Rejection must be a semantic type mismatch.
+Concrete runtime cost domination, serialization, resize authority, occurrence
+ownership, cleanup, bounded history storage and delivered service remain open.
+
 ## Negative controls
 
-The checker rejects 925 invalid variants: three direct checks of equality,
-ordering and termination, plus 922 semantic mutations. Mutations exercise such
+The checker rejects 937 invalid variants: three direct checks of equality,
+ordering and termination, plus 934 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

@@ -2074,6 +2074,41 @@ MUTATIONS += [
 ]
 
 
+# Cost compatibility controls mutate operational charges, not proof statements.
+MUTATIONS += [
+    (f"policy_capacity_cost_compatibility_{name}", target, target.replace(before, after))
+    for name, target, before, after in [
+        ("drops_scan_charge", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "arrivals)) scanCost", "arrivals)) zero"),
+        ("drops_handoff_charge", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "arrivals)) handoffCost", "arrivals)) zero"),
+        ("changes_turn_weight", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "handoffCost) turnCost", "handoffCost) scanCost"),
+        ("replays_turn_charge", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "handoffCost) turnCost", "handoffCost) (add turnCost turnCost)"),
+        ("replays_scan_charge", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "arrivals)) scanCost", "arrivals)) (add scanCost scanCost)"),
+        ("omits_retained_visits", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "add (policyIngressLength waiting) (policyIngressLength arrivals)", "policyIngressLength arrivals"),
+        ("omits_arrival_visits", _CAPACITY_SCHEDULE_COST_POLL_COST,
+         "add (policyIngressLength waiting) (policyIngressLength arrivals)", "policyIngressLength waiting"),
+        ("drops_resize_charge", _CAPACITY_SCHEDULE_COST_ADMIN_COST,
+         "deferredIngressResizeCost resized waiting resizeCost boundaryCost", "zero"),
+        ("replays_resize_charge", _CAPACITY_SCHEDULE_COST_ADMIN_COST,
+         "deferredIngressResizeCost resized waiting resizeCost boundaryCost",
+         "add (deferredIngressResizeCost resized waiting resizeCost boundaryCost)\n            (deferredIngressResizeCost resized waiting resizeCost boundaryCost)"),
+        ("trims_prefix_cost_input", _CAPACITY_COST_ADMIN,
+         "variableDeferredIngressAdminCost oldCapacity first waiting",
+         "variableDeferredIngressAdminCost oldCapacity first (policyIngressDeferredPrefix newCapacity waiting)"),
+        ("charges_only_retained_resize_input", _CAPACITY_COST_ADMIN,
+         "deferredIngressResizeCost newCapacity (variableDeferredIngressRemainder oldCapacity first waiting)",
+         "deferredIngressResizeCost newCapacity (policyIngressDeferredPrefix newCapacity\n          (variableDeferredIngressRemainder oldCapacity first waiting))"),
+        ("drops_dispatch_charge", _CAPACITY_SCHEDULE_COST_TOTAL_COST,
+         "events config current eventCost policyCost handshakeCost", "events config current zero zero zero"),
+    ]
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

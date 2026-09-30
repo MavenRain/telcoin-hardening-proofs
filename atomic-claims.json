@@ -5709,7 +5709,7 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime schedule cuts to ordered concatenation, with authorized serialized capacity changes and the actual active capacity carried across each cut.",
-        "The equality is finite and structural. It does not supply service, resize authority or wall-clock bounds. Ledger, lowered schedule, examined occurrence, deferred suffix, overflow and final admitted queue equality with the earlier single-boundary execution model are now C146-C147. Cost compatibility with that model remains open."
+        "The equality is finite and structural. It does not supply service, resize authority or wall-clock bounds. Ledger, lowered schedule, examined occurrence, deferred suffix, overflow and final admitted queue equality with the earlier single-boundary execution model are now C146-C147. Symbolic cost compatibility with that model is now C149-C150. Concrete runtime cost domination remains open."
       ]
     },
     {
@@ -5922,7 +5922,7 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
-        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+        "Module 74 establishes symbolic cost compatibility with the earlier segmented models. Runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
       ]
     },
     {
@@ -5958,7 +5958,7 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
-        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+        "Module 74 establishes symbolic cost compatibility with the earlier segmented models. Runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
       ]
     },
     {
@@ -5988,7 +5988,104 @@
       ],
       "open_implementation_obligations": [
         "Refine runtime poll and resize sequencing, occurrence retention and overflow order to the modeled execution under fixed admitted limits, immutable payload weights and policy/resource configuration.",
-        "Cost compatibility with the earlier segmented models, runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+        "Module 74 establishes symbolic cost compatibility with the earlier segmented models. Runtime authority, ownership, mandatory cleanup, history storage and delivery of service remain open."
+      ]
+    },
+    {
+      "id": "C148",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "At fixed deferred capacity, per-turn administrative charges equal the earlier aggregate scan, handoff and turn formula for every finite variable-scan schedule. Empty schedules cost zero; paused turns still charge every waiting and arriving occurrence plus turn overhead, independently of dispatch fuel. No initial-fit premise is required.",
+      "theorems": [
+        "capacityPollRetainedCost",
+        "variableIngressAdminCostTurn",
+        "capacityScheduledIngressVariableAdminCost",
+        "capacityScheduledIngressVariableEmptyCost",
+        "capacityScheduledIngressPausedCost"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine concrete scan, handoff, turn, resize and dispatch costs to the fixed symbolic weights, including pauses, repeated retained occurrences and oversized initial suffixes.",
+        "Runtime refinement, resize authority, occurrence ownership, mandatory cleanup, history storage and delivery of service remain open. These equalities do not establish resource bounds for invalid initial states."
+      ]
+    },
+    {
+      "id": "C149",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "A single resize between arbitrary finite variable-scan segments has exactly the earlier segmented administrative cost. The resize charges the actual post-prefix deferred suffix, and the following segment uses its resized prefix. Empty segments still charge the boundary. No initial-fit or credit-bound premise is required.",
+      "theorems": [
+        "capacityExecutionVariableRemainder",
+        "capacityScheduledIngressSingleBoundaryAdminCost",
+        "capacityScheduledIngressEmptyBoundaryCost"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine concrete scan, handoff, turn, resize and dispatch costs to the fixed symbolic weights, including pauses, repeated retained occurrences and oversized initial suffixes.",
+        "Runtime refinement, resize authority, occurrence ownership, mandatory cleanup, history storage and delivery of service remain open. These equalities do not establish resource bounds for invalid initial states."
+      ]
+    },
+    {
+      "id": "C150",
+      "parent": "H11",
+      "source": {
+        "path": "sources/w1-modified/01-MODIFIED-PLAN.md",
+        "lines": [
+          79,
+          79
+        ]
+      },
+      "property": "Fixed-capacity embeddings and two segments separated by one resize preserve the complete earlier symbolic execution cost, including administrative charges and actual payload-filtered dispatch, policy and handshake work. One fixed cost vector, payload weight, admitted limits and configuration cover each equality. No initial-fit or credit-bound premise is required.",
+      "theorems": [
+        "capacityScheduledIngressVariableCost",
+        "capacityScheduledIngressSingleBoundaryCost"
+      ],
+      "assumptions": [
+        "atomic_transitions",
+        "complete_event_refinement",
+        "finite_ingress_polls",
+        "stable_resource_configuration",
+        "persistent_ingress_queue",
+        "deferred_ingress_capacity_changes",
+        "variable_ingress_scan_schedule",
+        "weighted_ingress_payload",
+        "deferred_ingress_capacity_schedules"
+      ],
+      "open_implementation_obligations": [
+        "Refine concrete scan, handoff, turn, resize and dispatch costs to the fixed symbolic weights, including pauses, repeated retained occurrences and oversized initial suffixes.",
+        "Runtime refinement, resize authority, occurrence ownership, mandatory cleanup, history storage and delivery of service remain open. These equalities do not establish resource bounds for invalid initial states."
       ]
     }
   ]

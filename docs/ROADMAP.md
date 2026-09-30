@@ -1,262 +1,87 @@
-# Remaining proof and evidence work
+# Proof repository completion roadmap
 
-The requested final result is complete coverage of the hardening claims against
-the pinned implementation and an explicitly qualified deployment envelope.
-The current repository checks finite transition proofs for generation-tagged
-pending ownership, shared handshake credits, a discrete burst-plus-rate bound,
-weighted resource composition, poll continuations, committee-record deduplication
-and epoch reset, versioned policy publication and receipts, mixed policy/resource
-traces, critical service after enough completed rounds, and bounded source-table
-churn that preserves existing rate debt and bans under registration and eviction
-without increasing slot capacity. Source-system traces now compose keyed lookup,
-churn, bounded charging, simultaneous debt and bans, and independent trusted
-expiry while preserving slot capacity and each resident's debt bound. Atomic
-source admission now couples validated source quota, shared handshake credit and
-selected pending ownership, with indexed completion receipts and bounded mixed
-traces. Accepted starts counted from those receipts now satisfy shared-credit
-conservation and a discrete burst-plus-rate envelope, lifted to per-start cost.
-Enabled admission, exact receipt emission, accepted-start counting, matching
-completion, stale and duplicate callback protection, and held or missing slot
-refusal now hold for arbitrary finite pending prefixes and suffixes. Current
-policy receipts now gate the same source admission transition. Mixed
-policy/source traces retain the indexed admission equations, resource bounds
-and receipt-counted burst-plus-rate and per-start cost envelopes. An independent
-policy-work budget now charges processed attempts and publications, including
-denials, and composes its discrete cost envelope with accepted handshake work.
-Cleanup bypasses work exhaustion. Budgeted ingress now constructs policy receipts
-internally from the current pre-state; its mixed traces retain the work and
-handshake envelopes with query production included in the assumed operation
-weight. Fueled policy-ingress polls now count every dispatched event, preserve
-the exact ordered continuation and state semantics, and compose a conditional
-dispatch-overhead bound with the selected prefix's policy and handshake
-envelopes. Concrete dispatch and query costs, work outside dispatched events
-and executor progress remain open.
-Persistent FIFO service now carries the queue and resource state across turns,
-preserves ordered arrivals and services any original prefix in its own length
-of delivered turns with one unit of fuel each. A combined cost envelope spans
-the actual dispatched trace with each initial burst counted once. Runtime queue
-retention, storage and enqueue costs, runtime fuel delivery and wall-clock
-cleanup latency still require refinement. Finite varying-fuel schedules now
-preserve exact FIFO queue conservation and dispatched-state semantics. An
-original prefix is serviced when total delivered fuel equals its length plus
-natural slack, even with zero-fuel turns and later arrivals. Dispatch count
-is bounded by summed fuel, pending capacity is preserved, and the combined
-cost envelope counts each initial burst once across the schedule.
-Fixed-capacity admission now bounds retained queue entries across finite
-schedules, accepting the earliest arrivals that fit and explicitly rejecting
-the suffix. Existing queued prefixes retain their conditional service guarantee,
-and filtered execution preserves pending capacity and the cost envelope.
-Payload storage, offered-batch and admission/rejection costs, safe delivery of
-mandatory cleanup/control events and real-time progress still need refinement.
-An additional fixed payload budget now bounds the sum of immutable event
-charges before dispatch and across finite schedules, alongside the entry cap.
-Admission preserves exact rejected suffixes, accepts fitting payload heads,
-accounts for existing backlog, and a closed witness shows payload freed by
-polling being reused.
-Conditional prefix service and the execution envelope survive the filter.
-Concrete storage dominance, temporary and rejected allocations, charge
-computation and mandatory-event delivery remain open.
-Their contracts and boundaries are in [MODELS.md](MODELS.md).
+The target is completion of this proof repository within **50 execution turns**:
+40 planned turns and 10 reserve turns. An execution turn is one user-requested
+proof-work iteration, including its implementation, validation and repair. The
+budget starts with R01 after this planning refactor. It is a target that must be
+checked after scope sealing, rather than a guarantee about unknown proof gaps.
 
-A separate fixed admission allowance now bounds the examined FIFO prefix of
-each offered batch before entry and payload filtering. Exact partitioning
-distinguishes accepted arrivals, examined rejections and the caller-owned
-unexamined suffix. Queue bounds and conditional service of existing backlog
-survive scanning. A symbolic charge for every examined arrival composes with
-the per-turn dispatch envelope, even when service fuel is zero. Concrete scan
-cost dominance, backlog measurement, offered-batch construction and external
-suffix retention, resubmission and delivery remain open.
+The authoritative closure checklist is [proof-roadmap.json](../proof-roadmap.json).
+[Coverage](COVERAGE.md) reports closed packets, turn use and the current proof
+corpus. Existing theorems receive credit through the obligation audit in R02;
+the slice number is not a completion metric.
 
-Caller-owned FIFO resumption now carries that suffix across finite turns,
-preserves the exact order of examined and deferred arrivals, and conditionally
-examines an original deferred prefix when enough scan allowance is delivered.
-Admitted queue bounds and service remain intact, and a whole-schedule symbolic
-scan and execution envelope counts each resource burst once. A bounded handoff
-now retains a fixed prefix of the unexamined suffix and reports the remaining
-suffix as explicit overflow, while preserving the admitted queue and resource
-bounds through one filtered turn. Finite schedules now compose that bounded
-handoff, preserve chronological overflow without internal replay, and conserve
-the recursive examined/overflow/final-deferred occurrence count. The deferred
-bound for an arbitrary schedule, including no turns, requires initial fit.
-Concrete storage, atomic ownership, overflow delivery, runtime resubmission,
-concrete costs, sufficient fuel delivery and safe handling of examined
-rejections still need refinement. Overflow output history has no storage bound.
+## Definition of proof repository completion
 
-For bounded handoffs, an original prefix that fits deferred capacity now has
-an exact FIFO examination guarantee with one ingress scan per delivered turn,
-or independently paused and one-scan turns. Enough cumulative delivered scans,
-expressed by a natural slack witness, examine the whole prefix despite later
-arrivals and overflow. Occurrence-count bounds cover both fixed scan allowances
-and the paced zero-or-one schedule. Paced schedules now compose with admitted
-queue/resource execution, preserve conditional queue and pending bounds, and
-conserve recursive examined/overflow/final-deferred occurrence counts across
-the whole schedule. The actual dispatched trace inherits the conditional
-dispatch/policy/handshake cost envelope. A weighted examination charge now
-composes with offered-item handoff visits and fixed work for every delivered
-turn, including pauses and empty turns. Handoff visits use actual initial
-deferred length on the first turn and fixed deferred capacity thereafter,
-plus every fresh batch, so repeated retention and oversized overflow are
-charged. This administrative ledger composes with the actual dispatched-work
-envelope under the existing initial credit bounds. Varying natural scan
-allowances now preserve fitting-prefix FIFO service and conditional handoff and
-admitted-state bounds, independent dispatch fuel and the combined symbolic cost
-envelope. The prefix induction handles multiple examinations within one turn, as
-well as pauses and fresh batches. A finite occurrence ledger now projects to
-examined work, final deferred work and actual handoff overflow. Recorded
-retained-prefix lengths place per-turn overflow before later arrivals, so the
-reconstructed trace equals initial deferred work followed by every fresh batch
-in chronological order. This equality includes repeated equal-valued events and
-requires no initial-fit premise. Ledgers now compose across finite schedule
-concatenation by carrying the first segment's exact deferred suffix into the
-second at the same capacity. The composed examined and overflow histories retain
-their order, final deferred work comes from the second ledger, and reconstruction
-preserves both fresh-arrival histories. Deferred and overflow projections match
-the concatenated schedule's model handoff fields. Complete execution now also
-composes across that boundary: deferred work, admitted queue, policy/resource
-state, ordered overflow and dispatched histories match sequential execution
-carrying the exact first handoff state. Parameters stay fixed, and no
-initial-fit premise is needed. The existing six-weight administrative and
-execution costs now add across that exact handoff state. Their sum inherits the
-single whole-schedule envelope under the original credit bounds, without a new
-resource burst or credit premise at the split. Weights and parameters stay
-fixed. Relating carried state, ledger ownership, construction and storage to
-the runtime remains open.
-An explicit deferred-capacity boundary now retains the earliest bounded FIFO
-prefix and reports the removed suffix while carrying the complete admitted
-queue and policy/resource state unchanged. Partition conservation and
-same-capacity idempotence hold for arbitrary finite inputs. Subsequent
-variable-scan execution reports boundary overflow before later overflow and
-satisfies the new deferred bound, even from an oversized input or an empty
-schedule. Admitted entry and payload bounds keep their initial-fit premises.
-Runtime authority, cleanup, concrete resize cost domination and storage remain open.
-A boundary ledger now reconstructs the exact pre-resize deferred input followed
-by every arrival in the subsequent variable-scan segment. It records the actual
-retained-prefix length, preserving boundary overflow before later arrivals and
-overflow. Examined work and the final deferred and overflow traces match the
-resized execution, including empty schedules, zero capacity and repeated event
-values. A preceding segment ledger now composes with that boundary and following
-segment at independently chosen old and new capacities. Exact chronological
-reconstruction and occurrence counts survive without initial fit; examined and
-overflow histories concatenate in segment order and final deferred ownership
-comes from the resized segment. Complete queue and policy/resource execution now
-composes across the same deferred-capacity boundary using the exact first
-handoff state. The combined filtered schedule executes the final state, dispatch
-histories concatenate in order, and ledger deferred/overflow fields match the
-actual handoff. The new deferred bound needs no initial fit; admitted entry and
-payload bounds retain their respective premises, and pending occupancy remains
-within the original lease capacity. The symbolic dispatch-cost envelope uses
-the original credit bounds. Administrative and resize charges now join that
-dispatch envelope across one boundary. The logical resize count includes both
-retained and rejected occurrences, and an empty input still incurs one fixed
-boundary charge. The limit keeps the actual resize-input charge and requires
-no initial deferred fit. Concrete domination by all eight weights, cost bounds for arbitrary
-sequences of capacity changes, other parameter changes, runtime ownership,
-cleanup, real service delivery and bounded history storage remain open.
-Concrete domination of all scan, admission, concatenation, retention, overflow
-and per-turn costs still requires runtime refinement. Offered-batch
-construction, output-history storage, scan delivery, admission and dispatch
-after examination, other capacity changes and real-time latency remain open.
+Completion requires all ten packets below to close with audited evidence:
 
-The capacity-schedule slice now accounts for arbitrary finite interleavings of
-deferred-capacity changes and polling turns. It reconstructs all offered
-occurrences, bounds terminal deferred work by the final capacity with initial
-fit (or a leading resize), and agrees with the earlier fixed-capacity and
-single-resize ledgers. Module 69 now adds admitted queue/resource execution for
-arbitrary finite resize/poll schedules with independent scan and dispatch fuel.
-Its filtered schedule preserves total dispatch fuel and offers exactly the
-ledger-examined occurrences. Its runner constructs the deferred and overflow
-handoff fields from that ledger.
-Deferred fit uses the final capacity with initial fit or a leading resize;
-admitted entry and payload bounds retain their own initial-fit premises, and
-pending occupancy retains the original lease capacity. Module 70 adds an
-eight-weight administrative and dispatch cost envelope for arbitrary finite
-resize/poll schedules. Its scalar administrative limit charges the actual
-initial suffix, then propagates the active capacity after every resize or poll.
-The envelope uses the original work and handshake credit bounds without an
-initial deferred or admitted fit premise. Equality with earlier full execution
-handoffs and segmented cost models remains a next step, along with runtime
-authority, cost domination, ownership, cleanup, history storage and service
-delivery.
+- Every pinned normative source clause has a reconciled disposition: a model
+  obligation, a sourced external implementation/deployment obligation, or a
+  justified context/superseded entry. Every in-scope clause has a fixed atomic
+  obligation and theorem witnesses at the required scope.
+- The pinned mechanism-lang checker accepts all required model proofs, discloses
+  no axioms and rejects the required semantic mutations. Assumptions and
+  conditional liveness premises remain explicit.
+- A reproducible proof-package gate checks semantic and model coverage, source
+  provenance, proof evidence and the completed closure checklist.
+- The external-obligation ledger retains the source references, required
+  evidence and acceptance criteria for Rust refinement, deployment measurements
+  and operator decisions. Proof-package completion leaves those obligations open.
 
-The capacity schedule composition model now connects arbitrary execution
-segments across cuts. Concatenation is associative and has a right identity;
-the second segment carries the first segment's final deferred capacity,
-deferred suffix and complete admitted queue state. General equalities preserve
-the ledger, lowered schedule, final queue, deferred suffix and ordered overflow
-without initial-fit premises. Module 73 establishes compatibility with the
-earlier single-boundary ledger, lowered schedule and final admitted queue.
-Segmented cost compatibility remains open, together with runtime serialization,
-authority, ownership, cleanup, storage and delivered service.
+The broader [full qualification roadmap](FULL-QUALIFICATION-ROADMAP.md) preserves
+the existing model-progress record and deployment backlog. `make qualify` still
+requires full implementation and deployment qualification. Its blocked status is
+independent of this proof-only plan.
 
-The capacity schedule cost composition slice now equates the concatenated
-execution cost with the sum of segment costs at the actual terminal-capacity
-handoff. The second segment carries the deferred suffix, admitted queue and
-post-prefix resource state. Its combined envelope uses the original credit
-bounds and one schedule limit, without a second initial burst or initial
-deferred/admitted fit. Compatibility with earlier fixed-capacity and
-single-boundary segmented cost models remains open, together with concrete
-runtime refinement, cost domination, ownership, cleanup, storage and service
-delivery.
+## Fixed closure packets
 
-The capacity schedule compatibility slice now embeds arbitrary fixed-capacity
-variable-scan schedules and two segments separated by one resize into capacity
-execution. Their complete ledgers and lowered dispatch schedules agree with
-the earlier models, preserving examined occurrences, terminal deferred input
-and ordered overflow. The single-boundary runner also preserves the earlier
-segmented executor's complete final admitted queue under fixed admitted limits,
-payload weights and configuration. The equalities need no initial-fit or
-credit-bound premise. Equating the per-turn administrative sum with the earlier
-segmented cost formulas is a next step, alongside concrete runtime refinement,
-authority, ownership, cleanup, history storage and delivered service.
+| Packet | Planned turns | Turn window | Result required before closure |
+|---|---:|---|---|
+| R01 | 5 | 1-5 | Reconciled semantic ledger, fixed model scope and checked source dispositions. |
+| R02 | 3 | 6-8 | Existing proof census, theorem-to-obligation audit and exact remaining gaps. |
+| R03 | 5 | 9-13 | Admission, callback ownership, source attribution, shared limits and rate/cost accounting. |
+| R04 | 5 | 14-18 | Policy receipts, churn/expiry, resource transitions, recovery and all required tiers. |
+| R05 | 5 | 19-23 | Queue/capacity/schedule composition and general state, cost and service witnesses. |
+| R06 | 4 | 24-27 | Poll/cancellation continuations, cleanup, priority and conditional cumulative service. |
+| R07 | 4 | 28-31 | Authentication boundaries and modeled optimization equivalence with explicit crypto premises. |
+| R08 | 4 | 32-35 | Remaining W0-W9 abstractions, external dispositions and an empty model-gap list. |
+| R09 | 3 | 36-38 | Assumption/completeness audit, full mutation run and qualification-guard regression. |
+| R10 | 2 | 39-40 | Reproducible proof-package gate, final documentation and evidence handoff. |
+| Reserve | 10 | 41-50 | Named proof or validation repairs inside the sealed scope. |
 
-1. Decompose every normative source unit into atomic claims, assumptions and
-   completion criteria. Resolve differences between the original drafts,
-   modified packet and current source. Context and superseded requirements need
-   explicit dispositions. The current 34 groups and 183 atomic model obligations
-   are not the final atomic list.
-2. Extend budgeted policy/source admission with established resources and live
-   per-source pending attribution. Establish concrete bounds for budgeted policy
-   queries and receipt production, justify the per-dispatch guard and maintenance
-   weights, and bound queue construction, pre-dispatch work and executor overhead
-   outside the dispatch envelope. Refine persistent FIFO retention and real
-   wakeups to the runtime; establish delivery of enough cumulative service fuel
-   for queued prefixes under varying-fuel schedules. Refine bounded queue
-   admission and explicit overflow rejection against runtime behavior, including
-   immutable payload charges and storage dominance, temporary and rejected
-   allocations, charge computation, concrete admission/rejection costs, mandatory cleanup and control
-   delivery, and wall-clock latency under sustained arrivals.
-   Refine canonical source extraction, key uniqueness, indexed internal receipts,
-   runtime receipt provenance from authenticated internal policy queries and atomic
-   policy/source/global/pending enforcement against one pre-state.
-   Verify expiry authority, current restriction generations, clock correspondence,
-   bounded retention time and restart persistence. Extend the
-   transition systems to admitted and policy/resource-cap changes, authoritative policy ordering,
-   reconnect/bootstrap, timestamp freshness and full rotation/reload behavior.
-   Refine the committee threshold, any cache-preserving policy updates and the
-   queue scheduler. Cover the Hub, Rotation and Later tiers as well as Launch,
-   with counterexamples for weakened invariants.
-3. Define a refinement relation from the exact Rust implementation and resolved
-   transport dependencies to those systems. Prove simulation and invariant
-   preservation for relevant callbacks, polls, timers, errors and cancellations.
-   Source hashes and matching names are insufficient. First address the
-   aggregate connection-limit gap recorded as B01.
-4. Formalize parser/authentication boundaries and optimization equivalence:
-   certificate and token checks, payload signatures, early refusal, repeated
-   verification removal, gossip ordering and proof-of-possession prerequisites.
-   Model cryptographic assumptions explicitly and disclose them.
-5. Resolve D01-D12 before calling affected results passing: attack envelope,
-   honest population, per-process budget, liveness and latency thresholds,
-   admission semantics, quota scope, compatibility, test lanes, maintenance,
-   cryptographic policy, provider topology and key/rollback ownership.
-6. Collect M1a-M6 evidence with configuration and dependency hashes. Include
-   representative NICs, firewall-disabled spoofed and real-address traffic,
-   both swarms, Retry-only progress, shared NAT, committee reconnects, bulk sync
-   with votes, storage persistence, hub loss, cold startup and URL migration.
-7. Add verified evidence readers and complete release-gate evaluation. Treat a
-   threshold change as a new qualification. Only replace the currently blocked
-   full-qualification result when semantic coverage, implementation refinements
-   and all applicable empirical/operator gates have evidence.
+Detailed exit criteria and dependencies are in `proof-roadmap.json`. A packet's
+`planned_turns` is its allocation; `turns_spent` records actual execution turns,
+including failed attempts and repair. The sum of actual turns includes reserve
+use. Keep packet identifiers and the ten-packet denominator fixed. Within-packet
+subtasks can change without creating a new milestone or dropping an obligation.
 
-The input documents already require these distinctions. Numeric candidates such
-as 1,024 incoming attempts, 16 KiB buffers, 5-second inbound and 8-second dial
-timeouts are not accepted production settings in this repository.
+## Execution rules
+
+1. Finish R01 before adding new model domains. Classify the complete pinned
+   source set, reconcile original/modified requirements and freeze the atomic
+   obligation list. External dispositions must follow the proof-only boundary;
+   difficulty is not a reason to reclassify a model obligation.
+2. Reuse the existing proof corpus in R02. Close all obligations covered by each
+   general theorem. Add a helper, finite example or compatibility lemma only
+   when it is required by a frozen obligation or a weakening counterexample.
+3. Work against one packet's exit criteria each turn. Batch related proof gaps
+   and validate the resulting model composition. End with the closed obligation
+   IDs, remaining gaps, exact validation evidence and actual turn count.
+4. Set `status` to `closed` only after every exit criterion has been audited.
+   Each evidence entry records the zero-based `criterion`, a repository-relative
+   `path` and its `sha256`. The coverage generator checks these references and
+   prerequisite closure. Hashes establish freshness; reviewers still assess
+   whether the evidence satisfies the criterion.
+5. Keep semantic completeness false until an exhaustive disposition checker
+   establishes it. Current catalog/check hard-coded incomplete flags are a
+   specific R01 task, not permission to flip a status field. R10 adds the
+   proof-only terminal gate; the full qualification guard keeps its meaning.
+6. Inspect the remaining gap list at turns 5, 8, 23, 35 and 40. Charge overruns
+   against the ten-turn reserve and revise later allocations within 50 turns.
+   A change to the sealed scope requires an explicit new baseline. If the
+   remaining obligations exceed the reserve, report the named blocker and missed
+   target instead of declaring completion or silently weakening the scope.
+
+Regenerate coverage with `python3 -I tools/catalog.py` after updating the closure
+checklist. The reported percentage is closed packets divided by ten. It measures
+this fixed proof-package checklist, not total effort or deployed Telcoin safety.

@@ -14,7 +14,7 @@ The 20 supplied documents are preserved byte-for-byte under [sources](sources/),
 with a [hash manifest](sources/manifest.json). The modified plan is the target;
 the original drafts retain provenance and unresolved details. The
 [claim ledger](claims.json) contains 34 groups across W0 through W9, with
-[183 atomic model obligations](atomic-claims.json) documenting theorem links,
+[186 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Textual coverage is complete; atomic semantic
@@ -32,7 +32,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 925 deliberately invalid
+source hashes and coverage freshness, and requires 937 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -69,7 +69,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-981 explicit equality and order proof declarations across 56 modules. This count
+991 explicit equality and order proof declarations across 57 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -130,6 +130,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `71-policy-ingress-capacity-schedule-composition.mech` | Arbitrary capacity execution segments concatenate associatively and carry their final deferred capacity across cuts. Ledger and lowered schedule composition preserve the final admitted queue, deferred suffix and ordered overflow under fixed admitted limits, payload weights and policy configuration. |
 | `72-policy-ingress-capacity-schedule-cost-composition.mech` | Administrative and dispatch costs add across arbitrary capacity execution cuts at the actual handoff. The segment sum inherits one concatenated-schedule envelope under the original credit bounds, with no second initial burst or initial deferred/admitted fit premise. |
 | `73-policy-ingress-capacity-schedule-compatibility.mech` | Fixed-capacity variable-scan schedules and two segments separated by one resize embed into arbitrary capacity execution with equal ledgers and lowered schedules. The embedded single-boundary runner preserves the earlier executor's complete final admitted queue without initial-fit or credit-bound premises. |
+| `74-policy-ingress-capacity-schedule-cost-compatibility.mech` | Per-turn and aggregate administrative charges agree at fixed capacity and across one resize. Complete symbolic costs agree with the earlier executors without fit or credit premises; pauses retain handoff and turn charges, and empty segments retain resize charges. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system
