@@ -66,75 +66,185 @@
     {
       "id": "M001",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Retry outcome and authentication predicates are separate abstractions. The frozen required scope remains a model obligation in R03.",
+      "witnesses": [
+        {
+          "path": "proofs/10-transport.mech",
+          "name": "retryBeforeAccept",
+          "statement": "(budget : Flag) ->\n    Equal Outcome (preAccept unvalidated budget) retry",
+          "scope_kind": "general_transition",
+          "establishes": "For every budget flag, an unvalidated preAccept input returns retry.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Retry outcome and authentication predicates are separate abstractions. These local statements do not establish: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "authenticationAlwaysRequired",
+          "statement": "(validPolicy : Flag) -> (requested : Profile) -> (member : Flag) ->\n    Equal Flag (admission off validPolicy requested member) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every profile, membership flag and policy-health flag denies admission when authentication is off.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Retry outcome and authentication predicates are separate abstractions. These local statements do not establish: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "unverifiedIdentityNoPrivilege",
+          "statement": "(listed : Flag) -> Equal Flag (privileged off listed) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified identity receives no listed-identity privilege for either listing flag.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Retry outcome and authentication predicates are separate abstractions. These local statements do not establish: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/10-transport.mech#retryBeforeAccept"
+          ],
+          "rationale": "The general retryBeforeAccept statement quantifies over every budget flag and returns retry on the unvalidated branch.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired",
+            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+          ],
+          "rationale": "Retry outcome and authentication predicates are separate abstractions. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
         }
       ]
     },
     {
       "id": "M002",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The frozen required scope remains a model obligation in R03.",
+      "witnesses": [
+        {
+          "path": "proofs/10-transport.mech",
+          "name": "everyOutcomeConsumesFuel",
+          "statement": "(outcome : Outcome) -> (rest : Events) -> (fuel : Count) ->\n    Equal Count (pollWork (next fuel) (event outcome rest)) (next (pollWork fuel rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Every outcome constructor consumes one unit of abstract poll fuel before the remaining events.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. These local statements do not establish: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events. Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
+        },
+        {
+          "path": "proofs/10-transport.mech",
+          "name": "noFuelNoWork",
+          "statement": "(events : Events) -> Equal Count (pollWork zero events) zero",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary Events value performs zero abstract poll work at zero fuel.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. These local statements do not establish: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events. Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/10-transport.mech#everyOutcomeConsumesFuel",
+            "proofs/10-transport.mech#noFuelNoWork"
+          ],
+          "rationale": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/10-transport.mech#everyOutcomeConsumesFuel",
+            "proofs/10-transport.mech#noFuelNoWork"
+          ],
+          "rationale": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
         }
       ]
     },
     {
       "id": "M003",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The frozen required scope remains a model obligation in R03.",
+      "witnesses": [
+        {
+          "path": "proofs/27-source-table.mech",
+          "name": "unvalidatedSourceRegistrationIsRefused",
+          "statement": "(key : Count) -> (table : SourceTable) ->\n    Equal Flag (sourceRegistrationAllowed unvalidated key table) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every key and source table refuse registration classified as unvalidated.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. These local statements do not establish: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority. Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
+        },
+        {
+          "path": "proofs/29-source-system.mech",
+          "name": "unvalidatedSourceTableChargeIsNoOp",
+          "statement": "(capacity : Count) -> (key : Count) -> (table : SourceTable) ->\n    Equal SourceTable (restrictSource capacity key (sourceChargeEvent unvalidated) table) table",
+          "scope_kind": "general_transition",
+          "establishes": "An unvalidated source charge preserves every initial source table at any selected key and capacity.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. These local statements do not establish: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority. Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "unverifiedIdentityNoPrivilege",
+          "statement": "(listed : Flag) -> Equal Flag (privileged off listed) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified identity receives no listed-identity privilege for either listing flag.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. These local statements do not establish: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority. Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/27-source-table.mech#unvalidatedSourceRegistrationIsRefused",
+            "proofs/29-source-system.mech#unvalidatedSourceTableChargeIsNoOp",
+            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+          ],
+          "rationale": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/27-source-table.mech#unvalidatedSourceRegistrationIsRefused",
+            "proofs/29-source-system.mech#unvalidatedSourceTableChargeIsNoOp",
+            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+          ],
+          "rationale": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
         }
       ]
     },
@@ -557,50 +667,173 @@
     {
       "id": "M006",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "fallbackAllowsAuthenticated",
+          "statement": "(requested : Profile) -> (member : Flag) ->\n    Equal Flag (admission on off requested member) on",
+          "scope_kind": "general_transition",
+          "establishes": "Invalid-policy fallback allows an authenticated input for every requested profile and membership flag.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "faultyConfigUsesGrace",
+          "statement": "(fault : PolicyFault) -> (config : PolicyConfig) -> (records : Slots) ->\n    Equal Profile (configProfile (faultyConfig fault config) records) graceProfile",
+          "scope_kind": "general_transition",
+          "establishes": "Every modeled PolicyFault places the configuration profile in Grace for every record set.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "policyQueryRequiresAuthentication",
+          "statement": "(core : PolicyCore) -> (identity : Count) ->\n    Equal Flag (policyQuery core off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every PolicyCore and selected identity reject policyQuery when authentication is off.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/36-governed-resources.mech",
+          "name": "policyChangePreservesCredits",
+          "statement": "(capacity : Count) -> (observed : Count) -> (action : PolicyAction) -> (current : GovernedState) ->\n    Equal Count (governedCredits (governedStep capacity (governedPolicyChange observed action) current)) (governedCredits current)",
+          "scope_kind": "general_transition",
+          "establishes": "A modeled policy-change event preserves the credit balance for any action and observed generation.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/36-governed-resources.mech",
+          "name": "policyChangePreservesPending",
+          "statement": "(capacity : Count) -> (observed : Count) -> (action : PolicyAction) -> (current : GovernedState) ->\n    Equal LeasePool (governedPool (governedStep capacity (governedPolicyChange observed action) current)) (governedPool current)",
+          "scope_kind": "general_transition",
+          "establishes": "A modeled policy-change event preserves the entire pending lease pool.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/36-governed-resources.mech",
+          "name": "governedCreditCapacityBound",
+          "statement": "(trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->\n    AtMost (governedCredits current) capacity -> AtMost (governedCredits (runGoverned trace capacity current)) capacity",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every GovernedTrace preserves the supplied scalar credit-capacity invariant.",
+          "premises": [
+            "The initial governed credit balance is at most the supplied capacity."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        },
+        {
+          "path": "proofs/36-governed-resources.mech",
+          "name": "governedPendingOccupancyBound",
+          "statement": "(trace : GovernedTrace) -> (capacity : Count) -> (current : GovernedState) ->\n    AtMost (leaseOccupancy (governedPool (runGoverned trace capacity current))) (leaseCapacity (governedPool current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every GovernedTrace preserves the pending-occupancy bound of the initial lease pool.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. These local statements do not establish: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions. Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#fallbackAllowsAuthenticated",
+            "proofs/34-policy-traces.mech#faultyConfigUsesGrace",
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication",
+            "proofs/36-governed-resources.mech#policyChangePreservesCredits",
+            "proofs/36-governed-resources.mech#policyChangePreservesPending",
+            "proofs/36-governed-resources.mech#governedCreditCapacityBound",
+            "proofs/36-governed-resources.mech#governedPendingOccupancyBound"
+          ],
+          "rationale": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose Open/Grace policy faults with explicit protocol-validity and message-class predicates, proving only the affected authorization changes and unverified inputs cannot acquire exemptions."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#fallbackAllowsAuthenticated",
+            "proofs/34-policy-traces.mech#faultyConfigUsesGrace",
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication",
+            "proofs/36-governed-resources.mech#policyChangePreservesCredits",
+            "proofs/36-governed-resources.mech#policyChangePreservesPending",
+            "proofs/36-governed-resources.mech#governedCreditCapacityBound",
+            "proofs/36-governed-resources.mech#governedPendingOccupancyBound"
+          ],
+          "rationale": "Fallback preserves abstract authentication and scalar/pending resources; protocol validity and message-class isolation lack a composed transition witness. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove the composed fallback transitions preserve authentication, protocol validity, every finite resource dimension and class isolation together."
         }
       ]
     },
     {
       "id": "M007",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The frozen required scope remains a model obligation in R03.",
+      "witnesses": [
+        {
+          "path": "proofs/20-accounting.mech",
+          "name": "twoSwarmBound",
+          "statement": "(primary : Count) -> (worker : Count) ->\n    (primaryDemand : Count) -> (workerDemand : Count) ->\n    AtMost (add (boundedWork primary primaryDemand) (boundedWork worker workerDemand))\n      (add primary worker)",
+          "scope_kind": "general_transition",
+          "establishes": "The sum of the two independently capped swarm demands is bounded by the sum of their allocations.",
+          "premises": [
+            "Primary and worker allocations are supplied separately; their sum must fit a host allocation."
+          ],
+          "limits": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. These local statements do not establish: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters. Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
+        },
+        {
+          "path": "proofs/22-weighted-resources.mech",
+          "name": "bothSwarmsRetainedCostTraceBound",
+          "statement": "(primaryTrace : PoolTrace) -> (workerTrace : PoolTrace) ->\n    (primaryPool : LeasePool) -> (workerPool : LeasePool) -> (primaryCost : Count) -> (workerCost : Count) ->\n    AtMost (add (multiply (leaseOccupancy (runPool primaryTrace primaryPool)) primaryCost)\n      (multiply (leaseOccupancy (runPool workerTrace workerPool)) workerCost))\n      (add (multiply (leaseCapacity primaryPool) primaryCost) (multiply (leaseCapacity workerPool) workerCost))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Arbitrary primary and worker lease-pool traces have weighted pending occupancy bounded by the sum of their capacity-cost products.",
+          "premises": [
+            "The two pool capacities and per-entry costs are supplied model parameters; runtime cost domination is not established."
+          ],
+          "limits": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. These local statements do not establish: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters. Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#twoSwarmBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+          ],
+          "rationale": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#twoSwarmBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+          ],
+          "rationale": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
         }
       ]
     },
@@ -641,7 +874,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Audited fixed source-table width under arbitrary SourceSystemTrace and protected-cell eviction. Multiple-prefix attribution, restart/epoch lifetime rules and the full shared T4b/T8 security-state bridge remain unaudited.",
+      "scope_review": "Turn 3 completes the audit of source-table width and protected eviction. The corpus has no normalized multi-prefix identity bridge or restart/epoch lifecycle for retained T4b/T8 debt/ban state. Those remain model gaps in R03.",
       "witnesses": [
         {
           "path": "proofs/29-source-system.mech",
@@ -664,6 +897,17 @@
             "Protected debt and ban constructors are preserved; only clear entries can be evicted."
           ],
           "limits": "Single-cell eviction is not a general restart, re-registration or multi-prefix lifetime theorem."
+        },
+        {
+          "path": "proofs/27-source-table.mech",
+          "name": "sourceChurnPreservesProtection",
+          "statement": "(events : SourceTableTrace) -> (table : SourceTable) ->\n    Equal SourceTable (protectedSources (runSourceTable events table)) (protectedSources table)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite SourceTableTrace of validated or unvalidated registrations and evictions leaves the protected projection of the source table unchanged.",
+          "premises": [
+            "Transitions are the modeled registration and eviction events over Count keys."
+          ],
+          "limits": "The trace has no enforcement or expiry events. Count keys do not establish IPv4/IPv6 prefix attribution, restart/epoch retention or shared T4b/T8 peer security state."
         }
       ],
       "controls": [
@@ -692,12 +936,13 @@
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [
-            "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection"
+            "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection",
+            "proofs/27-source-table.mech#sourceChurnPreservesProtection"
           ],
-          "rationale": "Eviction preserves local protected state; the larger lifecycle requirement has not been audited.",
-          "remaining": "Audit protected debt/ban persistence across arbitrary re-registration, shared source/prefix accounting and restart/epoch transitions."
+          "rationale": "Arbitrary registration and eviction churn preserves the protected source-table projection, and local eviction preserves protection. These statements use Count keys. They do not model normalized prefix attribution, restart/epoch lifetime or shared T4b/T8 peer security state.",
+          "remaining": "R03: Model normalized source/prefix attribution and restart/epoch lifetimes, and prove protected shared T4b/T8 debt/ban persistence when re-registration and eviction churn composes with those transitions."
         }
       ]
     },
@@ -729,64 +974,124 @@
     {
       "id": "M011",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. The frozen required scope remains a model obligation in R03.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R03: Add bounded active-executor and retained-waiting ownership transitions for arbitrary dispatch, completion, failure and cancellation schedules after moving work off the swarm task."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R03: Compose every endpoint/swarm allocation and work cost into a host envelope without relying on accept/endpoint mutex serialization."
         }
       ]
     },
     {
       "id": "M012",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The frozen required scope remains a model obligation in R03.",
+      "witnesses": [
+        {
+          "path": "proofs/20-accounting.mech",
+          "name": "stageCompositionBound",
+          "statement": "(queueCap : Count) -> (pendingCap : Count) -> (establishedCap : Count) ->\n    (queued : Count) -> (pending : Count) -> (established : Count) ->\n    AtMost (add (boundedWork queueCap queued)\n      (add (boundedWork pendingCap pending) (boundedWork establishedCap established)))\n      (add queueCap (add pendingCap establishedCap))",
+          "scope_kind": "general_transition",
+          "establishes": "Three capped scalar stage demands sum to at most the sum of their queue, pending and established allocations.",
+          "premises": [
+            "The three stage allocations are supplied parameters; the theorem does not derive a resource vector or whole-process allocation."
+          ],
+          "limits": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. These local statements do not establish: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms. Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work. Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises. Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+        },
+        {
+          "path": "proofs/22-weighted-resources.mech",
+          "name": "bothSwarmsRetainedCostTraceBound",
+          "statement": "(primaryTrace : PoolTrace) -> (workerTrace : PoolTrace) ->\n    (primaryPool : LeasePool) -> (workerPool : LeasePool) -> (primaryCost : Count) -> (workerCost : Count) ->\n    AtMost (add (multiply (leaseOccupancy (runPool primaryTrace primaryPool)) primaryCost)\n      (multiply (leaseOccupancy (runPool workerTrace workerPool)) workerCost))\n      (add (multiply (leaseCapacity primaryPool) primaryCost) (multiply (leaseCapacity workerPool) workerCost))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Arbitrary primary and worker lease-pool traces have weighted pending occupancy bounded by the sum of their capacity-cost products.",
+          "premises": [
+            "The two pool capacities and per-entry costs are supplied model parameters; runtime cost domination is not established."
+          ],
+          "limits": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. These local statements do not establish: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms. Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work. Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises. Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "everyProfileBudget",
+          "statement": "(profile : Profile) -> (trusted : Flag) -> (cap : Count) -> (demand : Count) ->\n    AtMost (admittedWork profile trusted cap demand) cap",
+          "scope_kind": "general_transition",
+          "establishes": "All modeled profiles and trust flags retain the scalar admitted-work capacity.",
+          "premises": [
+            "Capacity and demand are supplied scalar model parameters."
+          ],
+          "limits": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. These local statements do not establish: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms. Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work. Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises. Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "bulkCannotConsumeCriticalBudget",
+          "statement": "(cap : Count) -> (critical : Count) ->\n    (bulkA : Count) -> (bulkB : Count) ->\n    Equal Count (criticalService cap critical bulkA) (criticalService cap critical bulkB)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing the bulk-demand parameter cannot change the modeled critical-service result.",
+          "premises": [
+            "Critical service is a separate capped scalar function, without a modeled scheduler."
+          ],
+          "limits": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. These local statements do not establish: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms. Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work. Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises. Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#stageCompositionBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R03: Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work."
         },
         {
           "index": 2,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#stageCompositionBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises."
         },
         {
           "index": 3,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#stageCompositionBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R03: Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
         }
       ]
     },
@@ -795,7 +1100,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Audited the general aggregate burst-plus-trusted-ticks envelope and a closed two-swarm example. Distinct source/prefix time envelopes, IPv4/IPv6 attribution, fresh identities and trusted traffic remain unaudited; the example does not establish those general scopes.",
+      "scope_review": "Turn 3 completes the aggregate rate audit. The general envelope counts starts against one aggregate balance and trusted ticks; the two-swarm witness remains a finite example. No distinct timed source/prefix bucket or IPv4/IPv6/fresh-identity attribution composition is present. Those remain R03 model gaps.",
       "witnesses": [
         {
           "path": "proofs/38-source-admission-rate.mech",
@@ -830,22 +1135,22 @@
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [
             "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope",
             "proofs/38-source-admission-rate.mech#admissionRateCountsBothSwarms"
           ],
-          "rationale": "The aggregate envelope is general; the two-swarm reuse result is only a finite example.",
-          "remaining": "Audit distinct source/prefix and aggregate burst-plus-rate envelopes across all swarms, trusted traffic and fresh identities."
+          "rationale": "The general aggregate envelope and its initial-credit/trusted-tick premises are retained. The corpus lacks a distinct per-source/prefix timed envelope and its validated normalized-attribution composition; a closed two-swarm example cannot supply that scope.",
+          "remaining": "R03: Compose distinct source/prefix and aggregate timed burst-plus-rate buckets for arbitrary admitted starts, all swarms, trusted traffic and fresh identities."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [
             "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope"
           ],
-          "rationale": "The exact initial-credit premise and trusted-tick aggregate scope are retained without crediting the closed example as general.",
-          "remaining": "Audit IPv4/IPv6 prefix attribution, unvalidated victim-address rejection and the relevant conditional/failure branches for the complete rate requirement."
+          "rationale": "The general aggregate envelope and its initial-credit/trusted-tick premises are retained. The corpus lacks a distinct per-source/prefix timed envelope and its validated normalized-attribution composition; a closed two-swarm example cannot supply that scope.",
+          "remaining": "R03: Prove the timed-bucket composition uses validated IPv4/IPv6/shared-prefix keys, rejects unvalidated victim-address charging, and preserves every conditional/failure branch."
         }
       ]
     },
@@ -1027,200 +1332,368 @@
     {
       "id": "M021",
       "closure_packet": "R03",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. Generation-tagged pending ownership does not model socket migration or connection routing ownership. The frozen required scope remains a model obligation in R03.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generation-tagged pending ownership does not model socket migration or connection routing ownership. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R03: Add listener/dial endpoint, connection identifier and migration ownership transitions and prove unique routing/ownership under all terminal outcomes."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generation-tagged pending ownership does not model socket migration or connection routing ownership. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R03: Quantify the endpoint/swarm schedules and finite discarded-state bounds without treating attacker steering as fair scheduling."
         }
       ]
     },
     {
       "id": "M022",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "closedPolicyRefusesUnlisted",
+          "statement": "(core : PolicyCore) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (coreProfile core) closedProfile ->\n    Equal Flag (policyMemberAt identity (policyMembers (coreConfig core))) off ->\n    Equal Flag (policyQuery core authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A closed policy core refuses an identity absent from its flat membership Slots.",
+          "premises": [
+            "The core profile equals closedProfile and the selected membership entry is off."
+          ],
+          "limits": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. These local statements do not establish: Model the previous/current/next committee, trusted and bootstrap union and prove Closed admission uses exactly that verified union while Open remains the default. Quantify all primary/worker roles and updates, and prove provisional identity cannot enter any privileged union component."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "policyQueryRequiresAuthentication",
+          "statement": "(core : PolicyCore) -> (identity : Count) ->\n    Equal Flag (policyQuery core off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every PolicyCore and selected identity reject policyQuery when authentication is off.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. These local statements do not establish: Model the previous/current/next committee, trusted and bootstrap union and prove Closed admission uses exactly that verified union while Open remains the default. Quantify all primary/worker roles and updates, and prove provisional identity cannot enter any privileged union component."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#closedPolicyRefusesUnlisted",
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication"
+          ],
+          "rationale": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model the previous/current/next committee, trusted and bootstrap union and prove Closed admission uses exactly that verified union while Open remains the default."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#closedPolicyRefusesUnlisted",
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication"
+          ],
+          "rationale": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Quantify all primary/worker roles and updates, and prove provisional identity cannot enter any privileged union component."
         }
       ]
     },
     {
       "id": "M023",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "capturedPolicyReadersAgree",
+          "statement": "(first : PolicyConsumer) -> (second : PolicyConsumer) ->\n    (current : VersionedPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (policyConsumerQuery first current authenticated identity)\n      (policyConsumerQuery second current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Any two modeled consumer categories queried on the same VersionedPolicy return the same decision.",
+          "premises": [
+            "Both consumers receive the same current VersionedPolicy value and input identity/authentication flag."
+          ],
+          "limits": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. These local statements do not establish: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates. Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "freshPolicyReceiptPreservesDecision",
+          "statement": "(consumer : PolicyConsumer) -> (current : VersionedPolicy) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (policyReceiptAllowed current identity (readPolicy consumer current authenticated identity))\n      (policyConsumerQuery consumer current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt read for the current identity and policy preserves that consumer decision when checked immediately.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. These local statements do not establish: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates. Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "everyPolicyChangeInvalidatesReceipt",
+          "statement": "(generation : Count) -> (oldCore : PolicyCore) ->\n    (replacement : PolicyCore) -> (capturedEpoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->\n    Equal Flag (policyReceiptAllowed (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))\n      identity (policyReceipt generation capturedEpoch capturedIdentity allowed)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing a policy core invalidates any receipt captured at the old generation.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. These local statements do not establish: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates. Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "oldEpochPolicyReceiptDenied",
+          "statement": "(generation : Count) -> (capturedEpoch : Count) -> (later : Count) -> (allowed : Flag) ->\n    Equal Flag (receiptDecision generation (next (add capturedEpoch later)) generation capturedEpoch allowed) off",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt captured at an older epoch is denied at every strictly later modeled epoch.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. These local statements do not establish: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates. Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#capturedPolicyReadersAgree",
+            "proofs/33-policy-readers.mech#freshPolicyReceiptPreservesDecision",
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+          ],
+          "rationale": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#capturedPolicyReadersAgree",
+            "proofs/33-policy-readers.mech#freshPolicyReceiptPreservesDecision",
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+          ],
+          "rationale": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
         }
       ]
     },
     {
       "id": "M024",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "everyProfileBudget",
+          "statement": "(profile : Profile) -> (trusted : Flag) -> (cap : Count) -> (demand : Count) ->\n    AtMost (admittedWork profile trusted cap demand) cap",
+          "scope_kind": "general_transition",
+          "establishes": "All modeled profiles and trust flags retain the scalar admitted-work capacity.",
+          "premises": [
+            "Capacity and demand are supplied scalar model parameters."
+          ],
+          "limits": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. These local statements do not establish: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege. Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "trustedViolationStillBanned",
+          "statement": "(loadExempt : Flag) ->\n    Equal Flag (ban protocolViolation loadExempt) on",
+          "scope_kind": "general_transition",
+          "establishes": "For every loadExempt flag, ban protocolViolation returns on.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. These local statements do not establish: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege. Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "authenticationAlwaysRequired",
+          "statement": "(validPolicy : Flag) -> (requested : Profile) -> (member : Flag) ->\n    Equal Flag (admission off validPolicy requested member) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every profile, membership flag and policy-health flag denies admission when authentication is off.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. These local statements do not establish: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege. Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#trustedViolationStillBanned",
+            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
+          ],
+          "rationale": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#trustedViolationStillBanned",
+            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
+          ],
+          "rationale": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
         }
       ]
     },
     {
       "id": "M025",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No configured-peer startup/lifetime redial and retry/backoff state machine is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No configured-peer startup/lifetime redial and retry/backoff state machine is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model configured primary/worker membership independently from connection presence and prove startup dialing and post-disconnection redial eligibility."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No configured-peer startup/lifetime redial and retry/backoff state machine is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove conditional eventual redial with finite retry/backoff budgets and explicit fair timer/transport premises."
         }
       ]
     },
     {
       "id": "M026",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model primary/worker seed addresses and keys plus the bootstrap union, and prove every configured committee identity is supplied without hub discovery."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove direct committee eligibility persists at cold start with every configured hub unavailable."
         }
       ]
     },
     {
       "id": "M027",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No role-specific public discovery, Kad publication or peer-exchange/dial transition system is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No role-specific public discovery, Kad publication or peer-exchange/dial transition system is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model and prove Closed suppression of random public discovery, Kad publication and stranger peer exchange/outbound dialing."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No role-specific public discovery, Kad publication or peer-exchange/dial transition system is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove Open/Closed/Grace transitions retain verified committee refresh and trusted/bootstrap operations separately for every swarm."
         }
       ]
     },
     {
       "id": "M028",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "unverifiedRecordIgnored",
+          "statement": "(currentEpoch : Count) -> (recordEpoch : Count) -> (index : Count) -> (records : Slots) ->\n    Equal Slots (committeeRecord currentEpoch recordEpoch off index records) records",
+          "scope_kind": "general_transition",
+          "establishes": "Unverified committee records preserve the resolution Slots for every epoch, index and initial Slots value.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. These local statements do not establish: Add finite role-gated Kad storage and explicit replication enable/disable transitions, with identity confirmation independent of discovery claims. Prove all record acceptance/rejection branches preserve capacity and verification, and that disabled replication cannot silently restart."
+        },
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "staleCommitteeRecordIgnored",
+          "statement": "(oldEpoch : Count) -> (gap : Count) -> (index : Count) -> (records : Slots) ->\n    Equal Slots (committeeRecord (next (add oldEpoch gap)) oldEpoch on index records) records",
+          "scope_kind": "general_transition",
+          "establishes": "A verified record from any strictly older epoch preserves the current resolution Slots.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. These local statements do not establish: Add finite role-gated Kad storage and explicit replication enable/disable transitions, with identity confirmation independent of discovery claims. Prove all record acceptance/rejection branches preserve capacity and verification, and that disabled replication cannot silently restart."
+        },
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "distinctCommitteeResolutionBound",
+          "statement": "(currentEpoch : Count) -> (recordEpoch : Count) -> (verified : Flag) ->\n    (index : Count) -> (records : Slots) ->\n    AtMost (occupancy (committeeRecord currentEpoch recordEpoch verified index records)) (width records)",
+          "scope_kind": "general_transition",
+          "establishes": "A committee-record operation leaves resolution occupancy at most the fixed Slots width.",
+          "premises": [
+            "The fixed Slots width supplies the finite modeled roster capacity."
+          ],
+          "limits": "Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. These local statements do not establish: Add finite role-gated Kad storage and explicit replication enable/disable transitions, with identity confirmation independent of discovery claims. Prove all record acceptance/rejection branches preserve capacity and verification, and that disabled replication cannot silently restart."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/31-committee-records.mech#unverifiedRecordIgnored",
+            "proofs/31-committee-records.mech#staleCommitteeRecordIgnored",
+            "proofs/31-committee-records.mech#distinctCommitteeResolutionBound"
+          ],
+          "rationale": "Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Add finite role-gated Kad storage and explicit replication enable/disable transitions, with identity confirmation independent of discovery claims."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/31-committee-records.mech#unverifiedRecordIgnored",
+            "proofs/31-committee-records.mech#staleCommitteeRecordIgnored",
+            "proofs/31-committee-records.mech#distinctCommitteeResolutionBound"
+          ],
+          "rationale": "Committee resolution Slots reject unverified records, but they are not Kad storage or replication state. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove all record acceptance/rejection branches preserve capacity and verification, and that disabled replication cannot silently restart."
         }
       ]
     },
@@ -1252,400 +1725,686 @@
     {
       "id": "M030",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. Policy epochs are modeled, but no record timestamp clamp or poisoned-future repair operation is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Policy epochs are modeled, but no record timestamp clamp or poisoned-future repair operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model timestamp clamping and repair under the selected time assumptions and prove a poisoned future timestamp cannot block a valid record update."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Policy epochs are modeled, but no record timestamp clamp or poisoned-future repair operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove accepted and rejected versions and the repair path preserve verification authority."
         }
       ]
     },
     {
       "id": "M031",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. A delivered verified current-epoch record can update an unresolved slot; refresh scheduling and eventual availability are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "currentEpochUnresolvedRecordProducesUpdate",
+          "statement": "(config : PolicyConfig) -> (records : Slots) -> (index : Count) ->\n    Equal Flag (newPolicyResolution index records) on ->\n    Equal PolicyUpdate (recordPolicyUpdate (policyEpoch config) on index (policyCore config records))\n      (replacePolicyCore (policyCore config (markCommitteeRecord index records)))",
+          "scope_kind": "general_transition",
+          "establishes": "An eligible unresolved slot in the current epoch produces a replacement policy core with that slot marked.",
+          "premises": [
+            "newPolicyResolution index records equals on; verification is on and the event uses the configuration epoch."
+          ],
+          "limits": "A delivered verified current-epoch record can update an unresolved slot; refresh scheduling and eventual availability are absent. These local statements do not establish: Model periodic and dial-failure-driven refresh of every primary/worker and next-committee mapping, including replacement of stale cached data. Prove conditional eventual repair under explicit availability and fair retry premises, so cached data cannot permanently suppress a valid replacement."
+        },
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "policyRecordEpochMismatchIgnored",
+          "statement": "(recordEpoch : Count) -> (verified : Flag) -> (index : Count) -> (core : PolicyCore) ->\n    Equal Flag (sameCount recordEpoch (policyEpoch (coreConfig core))) off ->\n    Equal PolicyUpdate (recordPolicyUpdate recordEpoch verified index core) retainPolicy",
+          "scope_kind": "general_transition",
+          "establishes": "A policy record whose epoch comparison is off produces retainPolicy.",
+          "premises": [
+            "The record epoch differs from the configuration epoch."
+          ],
+          "limits": "A delivered verified current-epoch record can update an unresolved slot; refresh scheduling and eventual availability are absent. These local statements do not establish: Model periodic and dial-failure-driven refresh of every primary/worker and next-committee mapping, including replacement of stale cached data. Prove conditional eventual repair under explicit availability and fair retry premises, so cached data cannot permanently suppress a valid replacement."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#currentEpochUnresolvedRecordProducesUpdate",
+            "proofs/34-policy-traces.mech#policyRecordEpochMismatchIgnored"
+          ],
+          "rationale": "A delivered verified current-epoch record can update an unresolved slot; refresh scheduling and eventual availability are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model periodic and dial-failure-driven refresh of every primary/worker and next-committee mapping, including replacement of stale cached data."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#currentEpochUnresolvedRecordProducesUpdate",
+            "proofs/34-policy-traces.mech#policyRecordEpochMismatchIgnored"
+          ],
+          "rationale": "A delivered verified current-epoch record can update an unresolved slot; refresh scheduling and eventual availability are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove conditional eventual repair under explicit availability and fair retry premises, so cached data cannot permanently suppress a valid replacement."
         }
       ]
     },
     {
       "id": "M032",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Fresh closed policy starts in Grace; worker bootstrap reseeding and retry/readiness states are not modeled. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/32-policy-snapshots.mech",
+          "name": "freshClosedPolicyNeedsRecords",
+          "statement": "(epoch : Count) -> (health : PolicyHealth) -> (requiredRest : Count) ->\n    (members : Slots) -> (roster : Slots) ->\n    Equal Profile (coreProfile (freshPolicyCore (policyConfig epoch health closedProfile requiredRest members roster)))\n      graceProfile",
+          "scope_kind": "general_transition",
+          "establishes": "A newly initialized closed configuration remains Grace before its cleared resolution Slots meet the configured positive threshold.",
+          "premises": [
+            "The configured threshold is next requiredRest; committee-size-minus-f correspondence is not derived here."
+          ],
+          "limits": "Fresh closed policy starts in Grace; worker bootstrap reseeding and retry/readiness states are not modeled. These local statements do not establish: Model bounded bootstrap reseeding and retry/not-ready startup for every primary and worker across empty data, epochs and hub loss. Separate verified resolution, live connections and consensus readiness and prove the startup failure/retry branches do not assume connectivity."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/32-policy-snapshots.mech#freshClosedPolicyNeedsRecords"
+          ],
+          "rationale": "Fresh closed policy starts in Grace; worker bootstrap reseeding and retry/readiness states are not modeled. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model bounded bootstrap reseeding and retry/not-ready startup for every primary and worker across empty data, epochs and hub loss."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/32-policy-snapshots.mech#freshClosedPolicyNeedsRecords"
+          ],
+          "rationale": "Fresh closed policy starts in Grace; worker bootstrap reseeding and retry/readiness states are not modeled. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Separate verified resolution, live connections and consensus readiness and prove the startup failure/retry branches do not assume connectivity."
         }
       ]
     },
     {
       "id": "M033",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. The closed load-exempt ban example has no shared-address identity or source-provenance state. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "noTrustedCollateralLoadBan",
+          "statement": "Equal Flag (ban loadPressure on) off",
+          "scope_kind": "finite_example",
+          "establishes": "The closed loadPressure/on example produces no ban.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "The closed load-exempt ban example has no shared-address identity or source-provenance state. These local statements do not establish: Model multiple validated identities sharing an IP and prove unrelated load cannot collateral-ban an admitted protected peer. Compose protection with committee/trust provenance, genuine protocol violations and source/aggregate caps without granting unbounded work."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#noTrustedCollateralLoadBan"
+          ],
+          "rationale": "The closed load-exempt ban example has no shared-address identity or source-provenance state. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model multiple validated identities sharing an IP and prove unrelated load cannot collateral-ban an admitted protected peer."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#noTrustedCollateralLoadBan"
+          ],
+          "rationale": "The closed load-exempt ban example has no shared-address identity or source-provenance state. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose protection with committee/trust provenance, genuine protocol violations and source/aggregate caps without granting unbounded work."
         }
       ]
     },
     {
       "id": "M034",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. Generic finite lease pools have no DAO observer reservation/configuration model. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic finite lease pools have no DAO observer reservation/configuration model. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model configured DAO observer reserved slots and prove their ownership/admission/eviction preserves trusted connectivity within finite connection allocations."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic finite lease pools have no DAO observer reservation/configuration model. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Quantify all observer identities and hub populations and prove reserved allocations remain inside the process aggregate capacity."
         }
       ]
     },
     {
       "id": "M035",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Source-system table width and selected debt are bounded, but peer population and normalized prefix attribution are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/29-source-system.mech",
+          "name": "sourceSystemTraceSlotBound",
+          "statement": "(events : SourceSystemTrace) -> (capacity : Count) -> (table : SourceTable) ->\n    AtMost (sourceTableSize (runSourceSystem events capacity table)) (sourceTableWidth table)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Resident source-table size never exceeds its initial fixed width under every finite SourceSystemTrace.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Source-system table width and selected debt are bounded, but peer population and normalized prefix attribution are absent. These local statements do not establish: Model validated peer registration/release against IPv4/IPv6 normalized source/prefix keys and prove fresh identities cannot bypass retained-population limits. Compose shared-source and role-profile allocations with aggregate peer bounds and prove consistent attribution across transitions."
+        },
+        {
+          "path": "proofs/29-source-system.mech",
+          "name": "sourceSystemTraceSelectedQuota",
+          "statement": "(events : SourceSystemTrace) -> (capacity : Count) ->\n    (key : Count) -> (table : SourceTable) -> SourceQuotaBound capacity table ->\n    AtMost (sourceCellDebt (lookupSource key (runSourceSystem events capacity table))) capacity",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every source-system trace bounds the debt at any selected key by the supplied source capacity.",
+          "premises": [
+            "SourceQuotaBound capacity table holds initially."
+          ],
+          "limits": "Source-system table width and selected debt are bounded, but peer population and normalized prefix attribution are absent. These local statements do not establish: Model validated peer registration/release against IPv4/IPv6 normalized source/prefix keys and prove fresh identities cannot bypass retained-population limits. Compose shared-source and role-profile allocations with aggregate peer bounds and prove consistent attribution across transitions."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/29-source-system.mech#sourceSystemTraceSlotBound",
+            "proofs/29-source-system.mech#sourceSystemTraceSelectedQuota"
+          ],
+          "rationale": "Source-system table width and selected debt are bounded, but peer population and normalized prefix attribution are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model validated peer registration/release against IPv4/IPv6 normalized source/prefix keys and prove fresh identities cannot bypass retained-population limits."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/29-source-system.mech#sourceSystemTraceSlotBound",
+            "proofs/29-source-system.mech#sourceSystemTraceSelectedQuota"
+          ],
+          "rationale": "Source-system table width and selected debt are bounded, but peer population and normalized prefix attribution are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose shared-source and role-profile allocations with aggregate peer bounds and prove consistent attribution across transitions."
         }
       ]
     },
     {
       "id": "M036",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Local source eviction and trusted expiry preserve protected fields, but counted peer-owner transitions are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/27-source-table.mech",
+          "name": "sourceCellEvictionPreservesProtection",
+          "statement": "(cell : SourceCell) ->\n    Equal SourceCell (protectedSourceCell (evictSourceCell cell)) (protectedSourceCell cell)",
+          "scope_kind": "general_transition",
+          "establishes": "Eviction preserves the protected projection of every source cell.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Local source eviction and trusted expiry preserve protected fields, but counted peer-owner transitions are absent. These local statements do not establish: Compose ban, eviction, Unbanned and re-admission with counted peer ownership, proving each owner is removed once and protected security state is retained. Prove arbitrary repeated attacker re-admission cannot reset debt/ban state under the selected retention/lifetime policy."
+        },
+        {
+          "path": "proofs/28-source-enforcement.mech",
+          "name": "banExpiryPreservesAllDebt",
+          "statement": "(restriction : SourceRestriction) ->\n    Equal Count (sourceDebt (expireSourceRestriction trustedBanExpiry restriction)) (sourceDebt restriction)",
+          "scope_kind": "general_transition",
+          "establishes": "Trusted ban expiry preserves every restriction debt count.",
+          "premises": [
+            "The event is classified as trustedBanExpiry."
+          ],
+          "limits": "Local source eviction and trusted expiry preserve protected fields, but counted peer-owner transitions are absent. These local statements do not establish: Compose ban, eviction, Unbanned and re-admission with counted peer ownership, proving each owner is removed once and protected security state is retained. Prove arbitrary repeated attacker re-admission cannot reset debt/ban state under the selected retention/lifetime policy."
+        },
+        {
+          "path": "proofs/28-source-enforcement.mech",
+          "name": "debtExpiryPreservesBanStatus",
+          "statement": "(restriction : SourceRestriction) ->\n    Equal Flag (sourceBanActive (expireSourceRestriction trustedDebtExpiry restriction)) (sourceBanActive restriction)",
+          "scope_kind": "general_transition",
+          "establishes": "Trusted debt expiry preserves every restriction ban flag.",
+          "premises": [
+            "The event is classified as trustedDebtExpiry."
+          ],
+          "limits": "Local source eviction and trusted expiry preserve protected fields, but counted peer-owner transitions are absent. These local statements do not establish: Compose ban, eviction, Unbanned and re-admission with counted peer ownership, proving each owner is removed once and protected security state is retained. Prove arbitrary repeated attacker re-admission cannot reset debt/ban state under the selected retention/lifetime policy."
+        },
+        {
+          "path": "proofs/27-source-table.mech",
+          "name": "sourceChurnPreservesProtection",
+          "statement": "(events : SourceTableTrace) -> (table : SourceTable) ->\n    Equal SourceTable (protectedSources (runSourceTable events table)) (protectedSources table)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite SourceTableTrace of registrations and evictions leaves the protected source-table projection unchanged.",
+          "premises": [
+            "Transitions are the modeled registration and eviction events over Count keys."
+          ],
+          "limits": "Source-table churn has no peer owners, Unbanned transitions, peer re-admission counting or restart/epoch retention policy."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection",
+            "proofs/28-source-enforcement.mech#banExpiryPreservesAllDebt",
+            "proofs/28-source-enforcement.mech#debtExpiryPreservesBanStatus",
+            "proofs/27-source-table.mech#sourceChurnPreservesProtection"
+          ],
+          "rationale": "Source-table churn, local source eviction and trusted expiry preserve protected source fields, but counted peer-owner transitions are absent. The cited statements supply only their recorded source-level results; a full criterion witness is missing.",
+          "remaining": "R04: Compose ban, eviction, Unbanned and re-admission with counted peer ownership, proving each owner is removed once and protected security state is retained."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection",
+            "proofs/28-source-enforcement.mech#banExpiryPreservesAllDebt",
+            "proofs/28-source-enforcement.mech#debtExpiryPreservesBanStatus",
+            "proofs/27-source-table.mech#sourceChurnPreservesProtection"
+          ],
+          "rationale": "Source-table churn, local source eviction and trusted expiry preserve protected source fields, but counted peer-owner transitions are absent. The cited statements supply only their recorded source-level results; a full criterion witness is missing.",
+          "remaining": "R04: Prove arbitrary repeated attacker re-admission cannot reset debt/ban state under the selected retention/lifetime policy."
         }
       ]
     },
     {
       "id": "M037",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No per-peer connection-map entry lifecycle or final-connection removal operation is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No per-peer connection-map entry lifecycle or final-connection removal operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model peer entries with multiple owned connections and prove releasing the last connection removes the entry."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No per-peer connection-map entry lifecycle or final-connection removal operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove bounded lifetime across repeated creation, all terminal failures and arbitrary release traces so attackers cannot retain zero-connection entries indefinitely."
         }
       ]
     },
     {
       "id": "M038",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No advertised-peer failure/backoff lifecycle is present; abstract poll fuel alone cannot bound permanent retry state. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No advertised-peer failure/backoff lifecycle is present; abstract poll fuel alone cannot bound permanent retry state. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model bounded peer-exchange and failed-dial work with finite retained retry state and backoff."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No advertised-peer failure/backoff lifecycle is present; abstract poll fuel alone cannot bound permanent retry state. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove repeated advertised-peer failures and configuration/role changes cannot grow permanent state or trigger unbounded immediate redial work."
         }
       ]
     },
     {
       "id": "M039",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "invalidPolicyCannotClose",
+          "statement": "(required : Count) -> (resolved : Count) ->\n    Equal Profile (closeIfReady off required resolved) graceProfile",
+          "scope_kind": "general_transition",
+          "establishes": "Invalid-policy closeIfReady remains Grace for every required and resolved count.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. These local statements do not establish: Prove for arbitrary policy/record states that automatic Grace-to-Closed requires valid inputs and at least committee-size-minus-f distinct verified current records, with explicit size/f-to-threshold correspondence. Compose launch/rotation recovery and stale predicates, proving connection count and consensus readiness cannot substitute for verified resolution."
+        },
+        {
+          "path": "proofs/32-policy-snapshots.mech",
+          "name": "freshClosedPolicyNeedsRecords",
+          "statement": "(epoch : Count) -> (health : PolicyHealth) -> (requiredRest : Count) ->\n    (members : Slots) -> (roster : Slots) ->\n    Equal Profile (coreProfile (freshPolicyCore (policyConfig epoch health closedProfile requiredRest members roster)))\n      graceProfile",
+          "scope_kind": "general_transition",
+          "establishes": "A newly initialized closed configuration remains Grace before its cleared resolution Slots meet the configured positive threshold.",
+          "premises": [
+            "The configured threshold is next requiredRest; committee-size-minus-f correspondence is not derived here."
+          ],
+          "limits": "Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. These local statements do not establish: Prove for arbitrary policy/record states that automatic Grace-to-Closed requires valid inputs and at least committee-size-minus-f distinct verified current records, with explicit size/f-to-threshold correspondence. Compose launch/rotation recovery and stale predicates, proving connection count and consensus readiness cannot substitute for verified resolution."
+        },
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "duplicateCommitteeRecordIdempotent",
+          "statement": "(currentEpoch : Count) -> (recordEpoch : Count) -> (verified : Flag) ->\n    (index : Count) -> (records : Slots) ->\n    Equal Slots\n      (committeeRecord currentEpoch recordEpoch verified index (committeeRecord currentEpoch recordEpoch verified index records))\n      (committeeRecord currentEpoch recordEpoch verified index records)",
+          "scope_kind": "general_transition",
+          "establishes": "Repeating the same committee-record operation preserves the result after its first application.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. These local statements do not establish: Prove for arbitrary policy/record states that automatic Grace-to-Closed requires valid inputs and at least committee-size-minus-f distinct verified current records, with explicit size/f-to-threshold correspondence. Compose launch/rotation recovery and stale predicates, proving connection count and consensus readiness cannot substitute for verified resolution."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#invalidPolicyCannotClose",
+            "proofs/32-policy-snapshots.mech#freshClosedPolicyNeedsRecords",
+            "proofs/31-committee-records.mech#duplicateCommitteeRecordIdempotent"
+          ],
+          "rationale": "Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove for arbitrary policy/record states that automatic Grace-to-Closed requires valid inputs and at least committee-size-minus-f distinct verified current records, with explicit size/f-to-threshold correspondence."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#invalidPolicyCannotClose",
+            "proofs/32-policy-snapshots.mech#freshClosedPolicyNeedsRecords",
+            "proofs/31-committee-records.mech#duplicateCommitteeRecordIdempotent"
+          ],
+          "rationale": "Invalid policy cannot close and fresh closed configurations lack resolution; the general closure threshold implication is missing. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose launch/rotation recovery and stale predicates, proving connection count and consensus readiness cannot substitute for verified resolution."
         }
       ]
     },
     {
       "id": "M040",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "everyPolicyChangeInvalidatesReceipt",
+          "statement": "(generation : Count) -> (oldCore : PolicyCore) ->\n    (replacement : PolicyCore) -> (capturedEpoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->\n    Equal Flag (policyReceiptAllowed (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))\n      identity (policyReceipt generation capturedEpoch capturedIdentity allowed)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing a policy core invalidates any receipt captured at the old generation.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. These local statements do not establish: Model the selected D05 live-connection treatment during R19/A19 committee rotation and prove every live connection is rechecked/retained/removed according to current policy. Compose all swarm sweeps and stale-input fallback with authentication and hard resource protection."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "oldEpochPolicyReceiptDenied",
+          "statement": "(generation : Count) -> (capturedEpoch : Count) -> (later : Count) -> (allowed : Flag) ->\n    Equal Flag (receiptDecision generation (next (add capturedEpoch later)) generation capturedEpoch allowed) off",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt captured at an older epoch is denied at every strictly later modeled epoch.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. These local statements do not establish: Model the selected D05 live-connection treatment during R19/A19 committee rotation and prove every live connection is rechecked/retained/removed according to current policy. Compose all swarm sweeps and stale-input fallback with authentication and hard resource protection."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+          ],
+          "rationale": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model the selected D05 live-connection treatment during R19/A19 committee rotation and prove every live connection is rechecked/retained/removed according to current policy."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+          ],
+          "rationale": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Compose all swarm sweeps and stale-input fallback with authentication and hard resource protection."
         }
       ]
     },
     {
       "id": "M041",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. A supplied verified record can resolve a slot, but push-LRU suppression and explicit request/response recovery are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "currentEpochUnresolvedRecordProducesUpdate",
+          "statement": "(config : PolicyConfig) -> (records : Slots) -> (index : Count) ->\n    Equal Flag (newPolicyResolution index records) on ->\n    Equal PolicyUpdate (recordPolicyUpdate (policyEpoch config) on index (policyCore config records))\n      (replacePolicyCore (policyCore config (markCommitteeRecord index records)))",
+          "scope_kind": "general_transition",
+          "establishes": "An eligible unresolved slot in the current epoch produces a replacement policy core with that slot marked.",
+          "premises": [
+            "newPolicyResolution index records equals on; verification is on and the event uses the configuration epoch."
+          ],
+          "limits": "A supplied verified record can resolve a slot, but push-LRU suppression and explicit request/response recovery are absent. These local statements do not establish: Model push-LRU eviction/suppression and explicit record request/response transitions, proving a relevant missed mapping remains recoverable. Prove conditional eventual recovery under verified-response availability and fair repeated requests, so an LRU miss cannot permanently suppress the record."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#currentEpochUnresolvedRecordProducesUpdate"
+          ],
+          "rationale": "A supplied verified record can resolve a slot, but push-LRU suppression and explicit request/response recovery are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model push-LRU eviction/suppression and explicit record request/response transitions, proving a relevant missed mapping remains recoverable."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#currentEpochUnresolvedRecordProducesUpdate"
+          ],
+          "rationale": "A supplied verified record can resolve a slot, but push-LRU suppression and explicit request/response recovery are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove conditional eventual recovery under verified-response availability and fair repeated requests, so an LRU miss cannot permanently suppress the record."
         }
       ]
     },
     {
       "id": "M042",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. Generic replacement resets a roster and invalidates old receipts. The three modeled policy consumers agree on one supplied view. Trusted/bootstrap additions/removals and separate decision-point projections are absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "policyReplacementUsesNewRoster",
+          "statement": "(generation : Count) -> (config : PolicyConfig) -> (core : PolicyCore) ->\n    Equal Count (width (policyRecords (policyView\n      (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))))) (width (policyRoster config))",
+          "scope_kind": "general_transition",
+          "establishes": "A current-generation policy replacement resets the resolution width to the replacement configuration roster width.",
+          "premises": [
+            "The observed generation matches the current generation."
+          ],
+          "limits": "Generic replacement resets a roster and invalidates old receipts; trusted/bootstrap reload projections are absent. These local statements do not establish: Model trusted/bootstrap additions/removals across every peer-policy projection and prove consistent reload of all worker identities. Prove reload success/failure and the selected rollback/fallback preserve verified privileges and bounded allocations across configuration revisions."
+        },
+        {
+          "path": "proofs/34-policy-traces.mech",
+          "name": "policyReplacementClearsResolution",
+          "statement": "(generation : Count) -> (config : PolicyConfig) -> (core : PolicyCore) ->\n    Equal Count (occupancy (policyRecords (policyView\n      (commitPolicyAction generation (policyReplacement config) (versionedPolicy generation core))))) zero",
+          "scope_kind": "general_transition",
+          "establishes": "A current-generation policy replacement clears resolution occupancy.",
+          "premises": [
+            "The observed generation matches the current generation."
+          ],
+          "limits": "Generic replacement resets a roster and invalidates old receipts; trusted/bootstrap reload projections are absent. These local statements do not establish: Model trusted/bootstrap additions/removals across every peer-policy projection and prove consistent reload of all worker identities. Prove reload success/failure and the selected rollback/fallback preserve verified privileges and bounded allocations across configuration revisions."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "everyPolicyChangeInvalidatesReceipt",
+          "statement": "(generation : Count) -> (oldCore : PolicyCore) ->\n    (replacement : PolicyCore) -> (capturedEpoch : Count) -> (capturedIdentity : Count) -> (identity : Count) -> (allowed : Flag) ->\n    Equal Flag (policyReceiptAllowed (installPolicyUpdate (replacePolicyCore replacement) (versionedPolicy generation oldCore))\n      identity (policyReceipt generation capturedEpoch capturedIdentity allowed)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing a policy core invalidates any receipt captured at the old generation.",
+          "premises": [
+            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+          ],
+          "limits": "Generic replacement resets a roster and invalidates old receipts; trusted/bootstrap reload projections are absent. These local statements do not establish: Model trusted/bootstrap additions/removals across every peer-policy projection and prove consistent reload of all worker identities. Prove reload success/failure and the selected rollback/fallback preserve verified privileges and bounded allocations across configuration revisions."
+        },
+        {
+          "path": "proofs/33-policy-readers.mech",
+          "name": "capturedPolicyReadersAgree",
+          "statement": "(first : PolicyConsumer) -> (second : PolicyConsumer) ->\n    (current : VersionedPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (policyConsumerQuery first current authenticated identity)\n      (policyConsumerQuery second current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Any two of the three modeled consumer categories (admission, peer manager, TLS prefilter) return the same decision on one supplied VersionedPolicy, authentication flag and identity.",
+          "premises": [
+            "Both consumers receive the same current VersionedPolicy value and input identity/authentication flag."
+          ],
+          "limits": "The three PolicyConsumer constructors read one supplied snapshot. They do not model separate inbound, outbound-dial and outbound-established projections, trusted/bootstrap additions or removals, reload failure or rollback."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#policyReplacementUsesNewRoster",
+            "proofs/34-policy-traces.mech#policyReplacementClearsResolution",
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/33-policy-readers.mech#capturedPolicyReadersAgree"
+          ],
+          "rationale": "Generic replacement resets a roster and invalidates old receipts. The three modeled policy consumers agree on one supplied view. Trusted/bootstrap additions/removals and separate decision-point projections are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model trusted/bootstrap additions/removals in the installed policy view, show that every peer-policy projection, including separate inbound, outbound-dial and outbound-established decision points, reads that view after each reload, and prove consistent reload of all worker identities."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/34-policy-traces.mech#policyReplacementUsesNewRoster",
+            "proofs/34-policy-traces.mech#policyReplacementClearsResolution",
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt"
+          ],
+          "rationale": "Generic replacement resets a roster and invalidates old receipts; trusted/bootstrap reload projections are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove reload success/failure and the selected rollback/fallback preserve verified privileges and bounded allocations across configuration revisions."
         }
       ]
     },
     {
       "id": "M043",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No explicit-peer configuration removal, live/dialing connection or retry-timer lifecycle is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No explicit-peer configuration removal, live/dialing connection or retry-timer lifecycle is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model explicit-peer addition/removal and prove removal revokes configured privilege and accounts for active and dialing connections."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No explicit-peer configuration removal, live/dialing connection or retry-timer lifecycle is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove every terminal/removal path cleans or finitely bounds retry timers and entries without permanent privileged or unaccounted state."
         }
       ]
     },
     {
       "id": "M044",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. No role/profile-scoped peer-score configuration state or update operation is present. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No role/profile-scoped peer-score configuration state or update operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model later A26 score configuration per role/profile and prove a scoped change preserves every other scope configuration."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No role/profile-scoped peer-score configuration state or update operation is present. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove concurrent updates cannot change another role authorization or accounting through shared mutable score state."
         }
       ]
     },
     {
       "id": "M045",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 3 batched R03/R04 review. Endpoint retirement examples do not model distinct advertised/listening address projections. The frozen required scope remains a model obligation in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Endpoint retirement examples do not model distinct advertised/listening address projections. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Model the selected A27 advertised/listening split, including multi-address/DNS inputs and the current single-address constraint."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Endpoint retirement examples do not model distinct advertised/listening address projections. No existing statement witnesses this criterion at the frozen scope.",
+          "remaining": "R04: Prove verified advertised-endpoint updates cannot change listen/admission authority through an unintended shared projection."
         }
       ]
     },
@@ -2502,25 +3261,41 @@
     {
       "id": "M080",
       "closure_packet": "R04",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 3 batched R03/R04 review. A single matching owned lease releases for every terminal reason, but multi-endpoint race ownership is absent. The frozen required scope remains a model obligation in R04.",
+      "witnesses": [
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "everyTerminalReasonReleases",
+          "statement": "(generation : Count) -> (reason : PendingEnd) ->\n    Equal Lease (pendingCompletion (ownedGeneration generation) reason (heldLease generation))\n      (freeLease (next generation))",
+          "scope_kind": "general_transition",
+          "establishes": "Every PendingEnd reason releases the matching owned held lease and advances its generation.",
+          "premises": [
+            "The completion owns the same generation as the held lease."
+          ],
+          "limits": "A single matching owned lease releases for every terminal reason, but multi-endpoint race ownership is absent. These local statements do not establish: Model the selected X4 verified endpoint set, finite concurrent race attempts and winner/loser ownership; prove losing and cancelled attempts release their own reservation once. Prove successful and failed races preserve the cohort aggregate capacity without leaking retained losing attempts or refunding another live owner."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases"
+          ],
+          "rationale": "A single matching owned lease releases for every terminal reason, but multi-endpoint race ownership is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Model the selected X4 verified endpoint set, finite concurrent race attempts and winner/loser ownership; prove losing and cancelled attempts release their own reservation once."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases"
+          ],
+          "rationale": "A single matching owned lease releases for every terminal reason, but multi-endpoint race ownership is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
+          "remaining": "R04: Prove successful and failed races preserve the cohort aggregate capacity without leaking retained losing attempts or refunding another live owner."
         }
       ]
     },

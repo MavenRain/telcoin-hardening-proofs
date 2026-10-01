@@ -819,6 +819,32 @@ R01 was active after four execution turns. The fifth turn closed claim
 decomposition. Implementation proof and deployment qualification remain
 incomplete.
 
+## R02 admission and policy audit, turn 3
+
+`r02-admission-policy-audit-check.json` records the batched R03/R04 witness
+review. All 36 obligations assigned to those packets are now reviewed: M005
+remains covered, 35 are partial, and no R03/R04 criterion remains unreviewed.
+This adds 32 obligation reviews and finishes the M009/M013 gap classifications.
+The remaining census is 47 obligations and 95 criteria. See the
+[five-turn plan](../docs/R02-BATCHES.md): R05/R06/R07 form turn 4 (25 obligations),
+and R08 plus R02 closure form turn 5 (22 obligations).
+
+The corpus remains 57 modules and 991 explicit proof declarations. No new
+mechanism-lang declaration or semantic mutation is introduced. Exact existing
+statements retain their general or finite scopes. Retry-policy credit does not
+establish reachability-evidence composition; capped scalar/pending costs do not
+establish established-resource vectors; snapshot agreement does not model both
+outbound decision points. Missing peer/discovery/recovery and endpoint lifecycle
+models remain exact R03/R04 gaps, not external reclassifications. All 43 external
+obligations remain open.
+
+The receipt records fresh audit/provenance regressions and the proof/qualification
+checks actually run. Historical compiler evidence can be reused only with
+matching relevant input hashes and an explicit reuse label. R02 is active at
+three total execution turns; the original three-turn allocation and overall
+50-turn target stay fixed, with at most two reserve turns allocated to finish
+the census. The earlier receipts below retain their historical counts.
+
 ## R02 witness audit, first pass
 
 `r02-witness-audit-check.json` records the first R02 witness-audit pass and the

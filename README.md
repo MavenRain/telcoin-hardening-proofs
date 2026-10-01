@@ -21,9 +21,10 @@ retain all 1,383 source units. Source dispositions and the atomic source-obligat
 scope are sealed in [proof-scope.json](proof-scope.json): 83 model and 43 external
 obligations, all 102 original tracking IDs, and D01-D12. Proof-witness coverage
 remains incomplete. See the [R01 closure audit](docs/R01-CLOSURE.md) and
-[R02 witness audit](docs/R02-AUDIT.md). After two R02 passes, the audit reviews
-four model obligations. It covers M005 at the sealed model scope. M004, M009 and
-M013 keep their outstanding audit work, and M004 records one proof gap.
+[R02 witness audit](docs/R02-AUDIT.md). After three R02 turns, 36 model
+obligations are audited: M005 is covered and 35 retain exact R03/R04 model gaps.
+The remaining 47 obligations are assigned to two batches in the
+[five-turn R02 plan](docs/R02-BATCHES.md).
 
 ## Run locally
 

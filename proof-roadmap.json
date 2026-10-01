@@ -50,7 +50,7 @@
       "id": "R02",
       "title": "Audit and reuse the existing proof corpus",
       "planned_turns": 3,
-      "turns_spent": 2,
+      "turns_spent": 3,
       "status": "active",
       "depends_on": [
         "R01"

@@ -40,7 +40,7 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 4, 1, 3, 79))
+                          result["unreviewed_obligations"]), (83, 36, 1, 35, 47))
         self.assertFalse(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
@@ -211,7 +211,7 @@ class AuditChecks(unittest.TestCase):
         self.row()["reviewed"] = False
         self.reject("unreviewed obligation receives credit")
         self.data = copy.deepcopy(self.source)
-        self.row("M001")["criteria"][0]["status"] = "gap"
+        self.row("M046")["criteria"][0]["status"] = "gap"
         self.reject("unreviewed criterion receives credit")
 
     def test_complete_audit_requires_every_criterion_reviewed(self):
