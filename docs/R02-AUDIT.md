@@ -1,5 +1,10 @@
 # R02 existing proof audit, complete witness census
 
+This document records the R02 closure baseline. [R03 turn 1](R03-ADMISSION.md)
+subsequently closes M004; the current witness ledger covers two
+obligations and retains 81 gaps. The R02 receipt keeps its original corpus and
+82-gap scope.
+
 R02 closes after five execution turns, within the user's five-turn cap.
 The [batch plan](R02-BATCHES.md) records the reviews against the frozen R03-R08
 assignments. Turns 1-2 established the census and indexed admission witnesses;

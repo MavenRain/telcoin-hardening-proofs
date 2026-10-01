@@ -2182,8 +2182,8 @@ ownership, cleanup, bounded history storage and delivered service remain open.
 
 ## Negative controls
 
-The checker rejects 937 invalid variants: three direct checks of equality,
-ordering and termination, plus 934 semantic mutations. Mutations exercise such
+The checker rejects 949 invalid variants: three direct checks of equality,
+ordering and termination, plus 946 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

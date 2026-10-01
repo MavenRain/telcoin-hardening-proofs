@@ -2110,6 +2110,61 @@ MUTATIONS += [
 ]
 
 
+MUTATIONS += [
+    ("saturated_pool_omits_exhaustion",
+     "def rec exhaustedPoolHasNoToken : (pool : LeasePool) -> (index : Count) ->\n"
+     "    Equal Count (leaseAvailability pool) zero ->",
+     "def rec exhaustedPoolHasNoToken : (pool : LeasePool) -> (index : Count) ->"),
+    ("saturated_pool_one_available_still_refused",
+     "def rec exhaustedPoolHasNoToken : (pool : LeasePool) -> (index : Count) ->\n"
+     "    Equal Count (leaseAvailability pool) zero ->",
+     "def rec exhaustedPoolHasNoToken : (pool : LeasePool) -> (index : Count) ->\n"
+     "    Equal Count (leaseAvailability pool) (next zero) ->"),
+    ("saturated_admission_one_available_is_noop",
+     "    (index : Count) -> (current : SourceAdmission) ->\n"
+     "    Equal Count (leaseAvailability (admissionPool current)) zero ->\n"
+     "    Equal SourceAdmission",
+     "    (index : Count) -> (current : SourceAdmission) ->\n"
+     "    Equal Count (leaseAvailability (admissionPool current)) (next zero) ->\n"
+     "    Equal SourceAdmission"),
+    ("saturated_admission_one_available_has_no_receipt",
+     "    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->\n"
+     "    Equal Count (leaseAvailability (admissionPool current)) zero ->\n"
+     "    Equal AdmissionReceipt",
+     "    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->\n"
+     "    Equal Count (leaseAvailability (admissionPool current)) (next zero) ->\n"
+     "    Equal AdmissionReceipt"),
+]
+
+
+_INVALID_EVIDENCE_BRANCH = (
+    "    | invalidReachabilityEvidence => current\n"
+    "    | validReachabilityEvidence => admissionAuthority validated (authorityIdentity current) (authorityPrivilege current)"
+)
+_VALID_EVIDENCE_BRANCH = (
+    "    | validReachabilityEvidence => admissionAuthority validated (authorityIdentity current) (authorityPrivilege current)"
+)
+MUTATIONS += [
+    ("reachability_invalid_grants_validation", _INVALID_EVIDENCE_BRANCH,
+     _INVALID_EVIDENCE_BRANCH.replace("=> current\n", "=> admissionAuthority validated (authorityIdentity current) (authorityPrivilege current)\n")),
+    ("reachability_invalid_grants_identity", _INVALID_EVIDENCE_BRANCH,
+     _INVALID_EVIDENCE_BRANCH.replace("=> current\n", "=> admissionAuthority (authorityReachability current) on (authorityPrivilege current)\n")),
+    ("reachability_invalid_grants_privilege", _INVALID_EVIDENCE_BRANCH,
+     _INVALID_EVIDENCE_BRANCH.replace("=> current\n", "=> admissionAuthority (authorityReachability current) (authorityIdentity current) on\n")),
+    ("reachability_valid_grants_identity", _VALID_EVIDENCE_BRANCH,
+     _VALID_EVIDENCE_BRANCH.replace("(authorityIdentity current)", "on")),
+    ("reachability_valid_grants_privilege", _VALID_EVIDENCE_BRANCH,
+     _VALID_EVIDENCE_BRANCH.replace("(authorityPrivilege current)", "on")),
+    ("reachability_valid_fails_to_validate", _VALID_EVIDENCE_BRANCH,
+     _VALID_EVIDENCE_BRANCH.replace("validated", "unvalidated")),
+    ("reachability_trace_discards_authority",
+     "    | reachabilityEvidenceDone => current\n"
+     "    | reachabilityEvidenceThen evidence rest => runReachabilityEvidence rest (applyReachabilityEvidence evidence current)",
+     "    | reachabilityEvidenceDone => admissionAuthority (authorityReachability current) off off\n"
+     "    | reachabilityEvidenceThen evidence rest => runReachabilityEvidence rest (applyReachabilityEvidence evidence current)"),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 
@@ -2184,7 +2239,7 @@ def implementation_links(path: Path | None, catalog: dict) -> dict:
 
 def input_hashes() -> dict[str, str]:
     paths = ["claims.json", "atomic-claims.json", "source-inventory.json", "source-ledger.json",
-             "proof-roadmap.json", "proof-scope.json", "proof-audit.json", "docs/R01-CLOSURE.md", "docs/R02-AUDIT.md",
+             "proof-roadmap.json", "proof-scope.json", "proof-audit.json", "docs/R01-CLOSURE.md", "docs/R02-AUDIT.md", "docs/R03-ADMISSION.md",
              "docs/FULL-QUALIFICATION-ROADMAP.md", "docs/SOURCE-LEDGER.md",
              "sources/manifest.json", "implementation-map.json", "toolchain.lock.json",
              "README.md", "docs/COVERAGE.md", "docs/MODELS.md", "docs/TRUST.md",

@@ -1,0 +1,59 @@
+-- Total lease exhaustion refuses every indexed attempt without a receipt.
+-- The pool and index are arbitrary, including empty pools and missing slots.
+
+def rec exhaustedPoolHasNoToken : (pool : LeasePool) -> (index : Count) ->
+    Equal Count (leaseAvailability pool) zero ->
+    Equal CompletionToken (availableLeaseToken index pool) noOwnedLease :=
+  fun (pool : LeasePool) =>
+    case pool as self in LeasePool return (index : Count) ->
+        Equal Count (leaseAvailability self) zero ->
+        Equal CompletionToken (availableLeaseToken index self) noOwnedLease with
+    | emptyLeasePool =>
+      fun (index : Count) (exhausted : Equal Count (leaseAvailability emptyLeasePool) zero) =>
+        (case index as position in Count return
+            Equal CompletionToken (availableLeaseToken position emptyLeasePool) noOwnedLease with
+        | zero => same
+        | next previous => same)
+    | leaseCell lease rest =>
+      case lease as state in Lease return (index : Count) ->
+          Equal Count (leaseAvailability (leaseCell state rest)) zero ->
+          Equal CompletionToken (availableLeaseToken index (leaseCell state rest)) noOwnedLease with
+      | freeLease generation =>
+        fun (index : Count)
+            (exhausted : Equal Count (next (leaseAvailability rest)) zero) =>
+          (case exhausted as witness in Equal available return
+              (case available as amount in Count return Prop with
+              | zero => Equal CompletionToken
+                  (availableLeaseToken index (leaseCell (freeLease generation) rest)) noOwnedLease
+              | next previous => TrueProof) with
+          | same => trueProof)
+      | heldLease generation =>
+        fun (index : Count) (exhausted : Equal Count (leaseAvailability rest) zero) =>
+          case index as position in Count return
+              Equal CompletionToken (availableLeaseToken position (leaseCell (heldLease generation) rest))
+                noOwnedLease with
+          | zero => heldReservationDenied generation
+          | next previous => exhaustedPoolHasNoToken rest previous exhausted
+
+def exhaustedSourceAdmissionIsNoOp : (quota : Count) -> (capacity : Count) ->
+    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) ->
+    (index : Count) -> (current : SourceAdmission) ->
+    Equal Count (leaseAvailability (admissionPool current)) zero ->
+    Equal SourceAdmission
+      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key index) current) current :=
+  fun (quota : Count) (capacity : Count) (source : Reachability) (swarm : SwarmClass)
+      (key : Count) (index : Count) (current : SourceAdmission)
+      (exhausted : Equal Count (leaseAvailability (admissionPool current)) zero) =>
+    noLeaseAdmissionIsNoOp quota capacity source swarm key index current
+      (exhaustedPoolHasNoToken (admissionPool current) index exhausted)
+
+def exhaustedSourceAdmissionHasNoReceipt : (quota : Count) -> (source : Reachability) ->
+    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->
+    Equal Count (leaseAvailability (admissionPool current)) zero ->
+    Equal AdmissionReceipt
+      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key index) current) noAdmissionReceipt :=
+  fun (quota : Count) (source : Reachability) (swarm : SwarmClass) (key : Count)
+      (index : Count) (current : SourceAdmission)
+      (exhausted : Equal Count (leaseAvailability (admissionPool current)) zero) =>
+    unavailableSourceAdmissionHasNoReceipt quota source swarm key index current
+      (exhaustedPoolHasNoToken (admissionPool current) index exhausted)

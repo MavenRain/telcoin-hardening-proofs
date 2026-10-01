@@ -40,13 +40,13 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 83, 1, 82, 0))
+                          result["unreviewed_obligations"]), (83, 83, 2, 81, 0))
         self.assertEqual(result["unaudited_criteria"], 0)
         self.assertTrue(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
-        self.assertEqual(len(result["remaining"]), 82)
+        self.assertEqual(len(result["remaining"]), 81)
         self.assertEqual(set(result["witness_scope_counts"]),
                          {"arbitrary_trace", "general_transition", "conditional_liveness", "finite_example"})
 
@@ -159,7 +159,8 @@ class AuditChecks(unittest.TestCase):
         self.reject("unknown criterion witness")
 
     def test_witness_cannot_be_unassigned(self):
-        self.row()["criteria"][0]["witnesses"] = []
+        self.row()["criteria"][0].update(status="gap", witnesses=[],
+                                           remaining="Missing complete saturation evidence.")
         self.reject("not assigned to a criterion")
 
     def test_gap_requires_exact_remaining_work(self):
@@ -167,10 +168,11 @@ class AuditChecks(unittest.TestCase):
         self.reject("remaining criterion work")
 
     def test_complete_flag_cannot_hide_unresolved_criteria(self):
-        self.row()["scope_complete"] = True
+        self.row("M009")["scope_complete"] = True
         self.reject("unresolved criteria")
 
     def test_general_local_witnesses_do_not_imply_full_scope_credit(self):
+        self.row()["scope_complete"] = False
         covered = self.validate()["covered_obligations"]
         self.row()["criteria"][0].update(status="witnessed", remaining="")
         result = self.validate()

@@ -1,0 +1,98 @@
+-- Reachability evidence updates address validation without authenticating identity.
+-- Correct classification of runtime evidence remains an external premise.
+
+mu ReachabilityEvidence : Type 0 with
+| invalidReachabilityEvidence : ReachabilityEvidence
+| validReachabilityEvidence : ReachabilityEvidence
+
+mu AdmissionAuthority : Type 0 with
+| admissionAuthority : Reachability -> Flag -> Flag -> AdmissionAuthority
+
+def authorityReachability : AdmissionAuthority -> Reachability :=
+  fun (current : AdmissionAuthority) =>
+    case current as self in AdmissionAuthority return Reachability with
+    | admissionAuthority source identity privilege => source
+
+def authorityIdentity : AdmissionAuthority -> Flag :=
+  fun (current : AdmissionAuthority) =>
+    case current as self in AdmissionAuthority return Flag with
+    | admissionAuthority source identity privilege => identity
+
+def authorityPrivilege : AdmissionAuthority -> Flag :=
+  fun (current : AdmissionAuthority) =>
+    case current as self in AdmissionAuthority return Flag with
+    | admissionAuthority source identity privilege => privilege
+
+def applyReachabilityEvidence : ReachabilityEvidence -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (evidence : ReachabilityEvidence) (current : AdmissionAuthority) =>
+    case evidence as proof in ReachabilityEvidence return AdmissionAuthority with
+    | invalidReachabilityEvidence => current
+    | validReachabilityEvidence => admissionAuthority validated (authorityIdentity current) (authorityPrivilege current)
+
+def invalidReachabilityEvidenceIsNoOp : (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (applyReachabilityEvidence invalidReachabilityEvidence current) current :=
+  fun (current : AdmissionAuthority) => same
+
+def invalidEvidenceKeepsUnvalidated : (identity : Flag) -> (privilege : Flag) ->
+    Equal Reachability
+      (authorityReachability (applyReachabilityEvidence invalidReachabilityEvidence
+        (admissionAuthority unvalidated identity privilege))) unvalidated :=
+  fun (identity : Flag) (privilege : Flag) => same
+
+def validEvidenceSetsValidated : (current : AdmissionAuthority) ->
+    Equal Reachability (authorityReachability (applyReachabilityEvidence validReachabilityEvidence current)) validated :=
+  fun (current : AdmissionAuthority) => same
+
+def reachabilityEvidencePreservesIdentity : (evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (applyReachabilityEvidence evidence current)) (authorityIdentity current) :=
+  fun (evidence : ReachabilityEvidence) (current : AdmissionAuthority) =>
+    case evidence as proof in ReachabilityEvidence return
+        Equal Flag (authorityIdentity (applyReachabilityEvidence proof current)) (authorityIdentity current) with
+    | invalidReachabilityEvidence => same
+    | validReachabilityEvidence => same
+
+def reachabilityEvidencePreservesPrivilege : (evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (applyReachabilityEvidence evidence current)) (authorityPrivilege current) :=
+  fun (evidence : ReachabilityEvidence) (current : AdmissionAuthority) =>
+    case evidence as proof in ReachabilityEvidence return
+        Equal Flag (authorityPrivilege (applyReachabilityEvidence proof current)) (authorityPrivilege current) with
+    | invalidReachabilityEvidence => same
+    | validReachabilityEvidence => same
+
+mu ReachabilityEvidenceTrace : Type 0 with
+| reachabilityEvidenceDone : ReachabilityEvidenceTrace
+| reachabilityEvidenceThen : ReachabilityEvidence -> ReachabilityEvidenceTrace -> ReachabilityEvidenceTrace
+
+def rec runReachabilityEvidence : ReachabilityEvidenceTrace -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (trace : ReachabilityEvidenceTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in ReachabilityEvidenceTrace return AdmissionAuthority with
+    | reachabilityEvidenceDone => current
+    | reachabilityEvidenceThen evidence rest => runReachabilityEvidence rest (applyReachabilityEvidence evidence current)
+
+def rec reachabilityEvidenceTracePreservesIdentity : (trace : ReachabilityEvidenceTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (runReachabilityEvidence trace current)) (authorityIdentity current) :=
+  fun (trace : ReachabilityEvidenceTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in ReachabilityEvidenceTrace return
+        Equal Flag (authorityIdentity (runReachabilityEvidence schedule current)) (authorityIdentity current) with
+    | reachabilityEvidenceDone => same
+    | reachabilityEvidenceThen evidence rest =>
+      equalTransitivity Flag
+        (authorityIdentity (runReachabilityEvidence rest (applyReachabilityEvidence evidence current)))
+        (authorityIdentity (applyReachabilityEvidence evidence current)) (authorityIdentity current)
+        (reachabilityEvidenceTracePreservesIdentity rest (applyReachabilityEvidence evidence current))
+        (reachabilityEvidencePreservesIdentity evidence current)
+
+def rec reachabilityEvidenceTracePreservesPrivilege : (trace : ReachabilityEvidenceTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (runReachabilityEvidence trace current)) (authorityPrivilege current) :=
+  fun (trace : ReachabilityEvidenceTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in ReachabilityEvidenceTrace return
+        Equal Flag (authorityPrivilege (runReachabilityEvidence schedule current)) (authorityPrivilege current) with
+    | reachabilityEvidenceDone => same
+    | reachabilityEvidenceThen evidence rest =>
+      equalTransitivity Flag
+        (authorityPrivilege (runReachabilityEvidence rest (applyReachabilityEvidence evidence current)))
+        (authorityPrivilege (applyReachabilityEvidence evidence current)) (authorityPrivilege current)
+        (reachabilityEvidenceTracePreservesPrivilege rest (applyReachabilityEvidence evidence current))
+        (reachabilityEvidencePreservesPrivilege evidence current)

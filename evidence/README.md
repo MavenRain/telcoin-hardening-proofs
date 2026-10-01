@@ -947,3 +947,14 @@ matched before editing. Changed metadata is listed separately. No fresh full
 model or qualification-guard run is claimed. Complete model coverage still
 returns blocked exit 2, and all 43 external obligations remain open. See
 [the audited exit evidence](../docs/R02-AUDIT.md).
+
+## R03 admission boundary, turn 1
+
+[r03-admission-check.json](r03-admission-check.json) records the complete model
+and mutation run for modules 75 and 76 with the unchanged prior corpus. The
+[R03 audit](../docs/R03-ADMISSION.md) records exact statements, controls and
+remaining scope. M004 closes at model scope; M005 was already covered. M001 keeps its identity and privilege composition gap.
+Runtime evidence classification, authentication, callback authority, stable
+indices, storage dominance and implementation refinement remain external.
+Earlier receipts, including R02 closure, retain their original hashes and
+claim scopes.

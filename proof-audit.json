@@ -60,7 +60,9 @@
     "proofs/71-policy-ingress-capacity-schedule-composition.mech": "10d74f9355de8dda2268c1acc325aecd7ccdc9d73db1832d8248710aad5b8a7f",
     "proofs/72-policy-ingress-capacity-schedule-cost-composition.mech": "68d8f3ff978d27c5f2b94cca7e3b7515efd6b77194548f59cb30392a461aeeb5",
     "proofs/73-policy-ingress-capacity-schedule-compatibility.mech": "27fb0055e193e81fa8198034415dc2f10f2436d14a50747be9a0797655d5b93a",
-    "proofs/74-policy-ingress-capacity-schedule-cost-compatibility.mech": "f2520312a58165d8d038a3f8090a5ad6e702cdb999cde7cc6a3098e1fada0dd3"
+    "proofs/74-policy-ingress-capacity-schedule-cost-compatibility.mech": "f2520312a58165d8d038a3f8090a5ad6e702cdb999cde7cc6a3098e1fada0dd3",
+    "proofs/75-saturated-source-admission.mech": "7079d0c3f628df0199cbdd68b559d66a011fab6cdccff02974b781c97931a49a",
+    "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0"
   },
   "obligations": [
     {
@@ -68,7 +70,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Retry outcome and authentication predicates are separate abstractions. The frozen required scope remains a model obligation in R03.",
+      "scope_review": "R03 adds explicit valid/invalid reachability-evidence transitions over address reachability and two identity and privilege flags. Invalid evidence preserves the whole state and cannot validate an unvalidated address. No modeled transition writes identity or privilege, so their preservation is vacuous for the second criterion. The existing general unvalidated Retry branch supplies the first criterion. The required scope grants explicit token-validation and cryptographic premises, including evidence classification, cookies and signatures. External obligations E008 and E020 own runtime token semantics and evidence classification. Model obligations M014 to M017 own the authentication transitions. External obligation E029 owns runtime privilege enforcement and the runtime refinement of the admission and identity contracts.",
       "witnesses": [
         {
           "path": "proofs/10-transport.mech",
@@ -102,9 +104,115 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "Retry outcome and authentication predicates are separate abstractions. These local statements do not establish: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "invalidReachabilityEvidenceIsNoOp",
+          "statement": "(current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (applyReachabilityEvidence invalidReachabilityEvidence current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Invalid evidence preserves the complete AdmissionAuthority state for every initial state.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "invalidEvidenceKeepsUnvalidated",
+          "statement": "(identity : Flag) -> (privilege : Flag) ->\n    Equal Reachability\n      (authorityReachability (applyReachabilityEvidence invalidReachabilityEvidence\n        (admissionAuthority unvalidated identity privilege))) unvalidated",
+          "scope_kind": "general_transition",
+          "establishes": "Invalid evidence leaves an unvalidated address unvalidated for all identity and privilege flags.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "validEvidenceSetsValidated",
+          "statement": "(current : AdmissionAuthority) ->\n    Equal Reachability (authorityReachability (applyReachabilityEvidence validReachabilityEvidence current)) validated",
+          "scope_kind": "general_transition",
+          "establishes": "Correctly classified valid evidence sets address reachability to validated for every initial state.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "reachabilityEvidencePreservesIdentity",
+          "statement": "(evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (applyReachabilityEvidence evidence current)) (authorityIdentity current)",
+          "scope_kind": "general_transition",
+          "establishes": "Neither valid nor invalid reachability evidence changes the authenticated identity flag.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "reachabilityEvidencePreservesPrivilege",
+          "statement": "(evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (applyReachabilityEvidence evidence current)) (authorityPrivilege current)",
+          "scope_kind": "general_transition",
+          "establishes": "Neither valid nor invalid reachability evidence changes the authenticated privilege flag.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "reachabilityEvidenceTracePreservesIdentity",
+          "statement": "(trace : ReachabilityEvidenceTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (runReachabilityEvidence trace current)) (authorityIdentity current)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite sequence of valid and invalid evidence preserves the initial authenticated identity flag.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/76-reachability-authority.mech",
+          "name": "reachabilityEvidenceTracePreservesPrivilege",
+          "statement": "(trace : ReachabilityEvidenceTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (runReachabilityEvidence trace current)) (authorityPrivilege current)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite sequence of valid and invalid evidence preserves the initial authenticated privilege flag.",
+          "premises": [
+            "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
+          ],
+          "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "reachability_invalid_grants_validation",
+          "sha256": "2f41616b8684ea633f5832bd1b1545f7da7af0efc0bc4577b3b9af9fc1c9c360"
+        },
+        {
+          "name": "reachability_invalid_grants_identity",
+          "sha256": "5125f31c9a247ab6e17f6219c0f8e9ac5237a1a82a58e8614cdfd446c8210ee3"
+        },
+        {
+          "name": "reachability_invalid_grants_privilege",
+          "sha256": "4fba51ed4b4792eee98d3ce99a2b61a76dc02a56d603519fd71f41d23a17dc8a"
+        },
+        {
+          "name": "reachability_valid_grants_identity",
+          "sha256": "bfded74e11ec0b497f2648e78908bbf2f28a9ae5fe0ebcd1f30263ce976e2980"
+        },
+        {
+          "name": "reachability_valid_grants_privilege",
+          "sha256": "e18487d1a37713f772894c35b95abc92d28b81f7af69bbbad46adc83b6927a87"
+        },
+        {
+          "name": "reachability_valid_fails_to_validate",
+          "sha256": "72bb0ef946c0d8085f8a30b730868b9770106a1be9ff2ccbcad3dc9029e19177"
+        },
+        {
+          "name": "reachability_trace_discards_authority",
+          "sha256": "f20f5949b6c977bb980d0bcc7a3351b0b20e212ddd0a50f1fa20e319549b3117"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
@@ -120,10 +228,17 @@
           "status": "gap",
           "witnesses": [
             "proofs/30-admission-and-service.mech#authenticationAlwaysRequired",
-            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege",
+            "proofs/76-reachability-authority.mech#invalidReachabilityEvidenceIsNoOp",
+            "proofs/76-reachability-authority.mech#invalidEvidenceKeepsUnvalidated",
+            "proofs/76-reachability-authority.mech#validEvidenceSetsValidated",
+            "proofs/76-reachability-authority.mech#reachabilityEvidencePreservesIdentity",
+            "proofs/76-reachability-authority.mech#reachabilityEvidencePreservesPrivilege",
+            "proofs/76-reachability-authority.mech#reachabilityEvidenceTracePreservesIdentity",
+            "proofs/76-reachability-authority.mech#reachabilityEvidenceTracePreservesPrivilege"
           ],
-          "rationale": "Retry outcome and authentication predicates are separate abstractions. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Model valid/invalid reachability-evidence transitions and compose them with authenticated identity and privilege, so invalid evidence cannot set either authority flag."
+          "rationale": "The general invalid-evidence no-op and unvalidated-address statements prevent invalid reachability validation. No modeled transition writes identity or privilege, so the identity and privilege preservation statements are vacuous and earn no credit for the authenticated-privilege half.",
+          "remaining": "R03: Compose reachability-evidence transitions with an authentication transition that can set identity and privilege, and prove that reachability evidence alone cannot set either flag. Module 76 has no transition that writes identity or privilege, so its preservation statements are vacuous for this criterion."
         }
       ]
     },
@@ -252,8 +367,8 @@
       "id": "M004",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Reviewed the LeasePool and SourceAdmission trace bounds, arbitrary-prefix held-slot and out-of-range refusal, and receipt absence. These quantify over arbitrary finite pools or prefixes. The corpus has no audited general bridge from total lease availability zero to absence of a selected token; slot-local refusal is not total-capacity refusal. This exact proof gap belongs to R03.",
+      "scope_complete": true,
+      "scope_review": "R03 closes the R02 gap with a general structural induction from zero total lease availability to token absence at every Count index, including empty pools and out-of-range indices. The bridge composes with whole-state admission refusal and receipt absence. Existing arbitrary PoolTrace and SourceAdmissionTrace bounds and exact capacity preservation witness the second criterion. Runtime callback authority, index stability, atomicity, nonwrapping generations and storage dominance remain external premises. External obligation E013 owns the runtime refinement of these premises, including callback authority.",
       "witnesses": [
         {
           "path": "proofs/21-pending-lifecycle.mech",
@@ -365,6 +480,39 @@
             "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
           ],
           "limits": "This is out-of-range receipt absence rather than a total-pool saturation implication. The prefix and suffix are arbitrary finite LeasePools, including other held leases. Runtime receipt authority, index stability and serialization remain external obligations."
+        },
+        {
+          "path": "proofs/75-saturated-source-admission.mech",
+          "name": "exhaustedPoolHasNoToken",
+          "statement": "(pool : LeasePool) -> (index : Count) ->\n    Equal Count (leaseAvailability pool) zero ->\n    Equal CompletionToken (availableLeaseToken index pool) noOwnedLease",
+          "scope_kind": "general_transition",
+          "establishes": "For every finite LeasePool and Count index, zero total lease availability implies the selected available token is noOwnedLease.",
+          "premises": [
+            "Zero total leaseAvailability; inductive finite LeasePool and Count index."
+          ],
+          "limits": "This is structural pending-lease exhaustion. Earlier pre-validation queues, established-resource limits, runtime receipt authority, stable indices, storage dominance and serialization are separate obligations."
+        },
+        {
+          "path": "proofs/75-saturated-source-admission.mech",
+          "name": "exhaustedSourceAdmissionIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (source : Reachability) -> (swarm : SwarmClass) -> (key : Count) ->\n    (index : Count) -> (current : SourceAdmission) ->\n    Equal Count (leaseAvailability (admissionPool current)) zero ->\n    Equal SourceAdmission\n      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "For every SourceAdmission state, source, swarm, key and index, zero total lease availability makes admission preserve the complete state.",
+          "premises": [
+            "Atomic modeled transitions; zero total leaseAvailability of the current admission pool."
+          ],
+          "limits": "This is structural pending-lease exhaustion. Earlier pre-validation queues, established-resource limits, runtime receipt authority, stable indices, storage dominance and serialization are separate obligations."
+        },
+        {
+          "path": "proofs/75-saturated-source-admission.mech",
+          "name": "exhaustedSourceAdmissionHasNoReceipt",
+          "statement": "(quota : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->\n    Equal Count (leaseAvailability (admissionPool current)) zero ->\n    Equal AdmissionReceipt\n      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key index) current) noAdmissionReceipt",
+          "scope_kind": "general_transition",
+          "establishes": "For every SourceAdmission state, source, swarm, key and index, zero total lease availability makes the admission attempt produce no receipt.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; zero total leaseAvailability of the current admission pool."
+          ],
+          "limits": "This is structural pending-lease exhaustion. Earlier pre-validation queues, established-resource limits, runtime receipt authority, stable indices, storage dominance and serialization are separate obligations."
         }
       ],
       "controls": [
@@ -391,22 +539,41 @@
         {
           "name": "indexed_distant_missing_slot_granted",
           "sha256": "8e0b984e1efd218a8060b84694426b4cf12413e7df0f6b450cc4b7930d738567"
+        },
+        {
+          "name": "saturated_pool_omits_exhaustion",
+          "sha256": "a1208442e0dc5e3affa51d69e4354afd49aec974cf601e39ce23253c4e744e5b"
+        },
+        {
+          "name": "saturated_pool_one_available_still_refused",
+          "sha256": "a5fa5cef94274bdb587a4d17564b4b7ac66b9fb9a494cb1da1bd38090545e31a"
+        },
+        {
+          "name": "saturated_admission_one_available_is_noop",
+          "sha256": "1643483b4f313d46d7246454288bdef7c9bf92158b183acde53956f35e3878b9"
+        },
+        {
+          "name": "saturated_admission_one_available_has_no_receipt",
+          "sha256": "cbf1bbbf9f1635df34efda04f5a56929383b4135ee83f62434a605f01f69f047"
         }
       ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/21-pending-lifecycle.mech#heldReservationDenied",
             "proofs/37-source-admission.mech#noLeaseAdmissionIsNoOp",
             "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionHeldRefused",
             "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMissingRefused",
             "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionHeldHasNoReceipt",
-            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMissingHasNoReceipt"
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMissingHasNoReceipt",
+            "proofs/75-saturated-source-admission.mech#exhaustedPoolHasNoToken",
+            "proofs/75-saturated-source-admission.mech#exhaustedSourceAdmissionIsNoOp",
+            "proofs/75-saturated-source-admission.mech#exhaustedSourceAdmissionHasNoReceipt"
           ],
-          "rationale": "The general indexed held/missing-slot statements and token-absence implication establish complete-state refusal and no receipt. No audited statement derives token absence for every index from exhausted total pool availability.",
-          "remaining": "R03: prove for every finite LeasePool and Count index that zero leaseAvailability implies availableLeaseToken is noOwnedLease, then compose with the general admission no-op and receipt-absence witnesses."
+          "rationale": "The arbitrary-pool exhaustion bridge derives selected-token absence at every index; the two composed general statements establish complete-state refusal and receipt absence. No selected-slot or closed-example premise is used.",
+          "remaining": ""
         },
         {
           "index": 1,
