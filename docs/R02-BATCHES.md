@@ -12,13 +12,13 @@ every R02 exit criterion is satisfied.
 |---|---|---:|---|
 | 1-2 | Initial census and indexed admission | 4 initially reviewed | Historical receipts retain their original scope. |
 | 3 | R03 admission/ownership/rate and R04 policy/churn/recovery | 36, including the original 4 | Complete: 32 new reviews; M009/M013's remaining criteria classified; no unreviewed R03/R04 criterion. |
-| 4 | R05 composition, R06 service/cleanup and R07 authentication/optimization | 25 | Review every criterion, reuse exact general witnesses and assign each missing statement to its frozen packet. |
+| 4 | R05 composition, R06 service/cleanup and R07 authentication/optimization | 25 | Complete: 51 criteria classified; bounded outcome-independent poll work witnessed; exact composition, service and authentication gaps retained. |
 | 5 | R08 remaining abstractions and R02 closure | 22 | Finish the census, audit all R02 exit evidence, validate and close R02. |
 
 The three remaining-turn groups are disjoint and cover all 83 frozen model
-obligations. After turn 3, 36 are reviewed and 47 remain: exactly the 25 and 22
-obligations allocated above. The original R02 planned allocation stays three
-turns in `proof-roadmap.json`; turns 4 and 5 use at most two of the ten reserve
+obligations. After turn 4, 61 are reviewed and 22 remain, all in R08. There are
+44 unreviewed criteria in that final batch. The original R02 planned allocation
+stays three turns in `proof-roadmap.json`; turns 4 and 5 use at most two of the ten reserve
 turns. The overall 50-turn target and the ten closure-packet denominator stay
 fixed. Actual `turns_spent` is incremented once per execution turn.
 

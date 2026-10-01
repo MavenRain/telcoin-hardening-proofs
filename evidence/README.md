@@ -819,6 +819,35 @@ R01 was active after four execution turns. The fifth turn closed claim
 decomposition. Implementation proof and deployment qualification remain
 incomplete.
 
+## R02 composition and authentication audit, turn 4
+
+`r02-composition-auth-audit-check.json` records all 25 R05/R06/R07 witness
+reviews and their 51 criterion dispositions. There are now 61 reviewed model
+obligations: M005 remains covered, 60 remain partial, and only the 22 R08
+obligations and their 44 criteria await review. The last batch includes the
+R02 exit-evidence audit and closure, under the existing five-turn cap.
+
+M008's bounded examination criterion has a general theorem over every finite
+Accept/Retry/Refuse/Ignore trace. Wake flags and counted critical-service
+rounds retain their stated premises; they do not prove command-age or timer
+service bounds. Weighted scalar/pool bounds do not model class reserves or
+spawned/waiting tasks. Ingress chronological reconstruction does not establish
+task completion or class-stage retry/drop accounting. A sleeping-constructor
+equality receives finite-example scope. Certificate/transcript verification,
+verifier-result lifetime, cryptographic group negotiation and aggregate-key
+proof of possession remain explicit R07 gaps, with crypto premises still to
+be modeled. All gaps retain their sealed R05/R06/R07 assignments.
+
+Audit, scope and source-disposition validation and their regressions are fresh.
+The 57 modules, 991 proof declarations, compiler identity, axiom result and
+semantic-mutation controls are reused from the pinned turn-3 receipt. The new
+receipt records the historical receipt hash, relevant input comparisons,
+current metadata hashes and commands actually run. Full model and qualification
+checks were not rerun for this audit-only batch. The semantic model source hash
+retains its historical meaning; current input hashes and the audit summary are
+recorded separately. R02 is active after four turns, using one reserve turn;
+all 43 external obligations remain open.
+
 ## R02 admission and policy audit, turn 3
 
 `r02-admission-policy-audit-check.json` records the batched R03/R04 witness

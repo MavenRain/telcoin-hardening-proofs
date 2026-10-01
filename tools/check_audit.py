@@ -40,14 +40,15 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 36, 1, 35, 47))
+                          result["unreviewed_obligations"]), (83, 61, 1, 60, 22))
+        self.assertEqual(result["unaudited_criteria"], 44)
         self.assertFalse(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
         self.assertEqual(len(result["remaining"]), 82)
         self.assertEqual(set(result["witness_scope_counts"]),
-                         {"arbitrary_trace", "general_transition", "finite_example"})
+                         {"arbitrary_trace", "general_transition", "conditional_liveness", "finite_example"})
 
     def test_census_uses_the_existing_explicit_proof_classifier(self):
         source = "\n".join(path.read_text() for path in sorted((ROOT / "proofs").glob("*.mech")))
@@ -211,7 +212,11 @@ class AuditChecks(unittest.TestCase):
         self.row()["reviewed"] = False
         self.reject("unreviewed obligation receives credit")
         self.data = copy.deepcopy(self.source)
-        self.row("M046")["criteria"][0]["status"] = "gap"
+        row = self.row()
+        row.update(reviewed=False, scope_complete=False, scope_review="", witnesses=[], controls=[])
+        for item in row["criteria"]:
+            item.update(status="unreviewed", witnesses=[], remaining="Audit this criterion against its sealed scope.")
+        row["criteria"][0]["status"] = "gap"
         self.reject("unreviewed criterion receives credit")
 
     def test_complete_audit_requires_every_criterion_reviewed(self):

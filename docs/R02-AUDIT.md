@@ -1,17 +1,20 @@
-# R02 existing proof audit, batched admission and policy review
+# R02 existing proof audit, through composition and authentication
 
-R02 is active after three execution turns. The user capped R02 at five total
+R02 is active after four execution turns. The user capped R02 at five total
 turns, including the first two. The [remaining batch plan](R02-BATCHES.md) groups
 all obligations by their frozen R03-R08 assignments. Turn 3 completes the
 R03/R04 witness reviews, including admission, attribution, resource composition,
 policy revisions, source/peer lifetimes and recovery. It adds 32 obligation
 reviews and completes the outstanding M009/M013 criterion classifications.
+Turn 4 audits all 25 R05/R06/R07 obligations and classifies their 51 criteria.
+The outcome-independent poll-work bound witnesses M008's first criterion;
+the remaining requirements retain explicit composition and lifecycle gaps.
 
-[proof-audit.json](../proof-audit.json) records 35 partially covered audited
-obligations, one fully covered obligation (M005) and 47 unreviewed obligations.
-There are 95 unaudited criteria, all in the remaining two batches: R05/R06/R07
-(25 obligations) and R08 (22 obligations). The sealed source requirements and
-all 83 model assignments stay fixed; the proof corpus is reused unchanged.
+[proof-audit.json](../proof-audit.json) records 60 partially covered audited
+obligations, one fully covered obligation (M005) and 22 unreviewed obligations.
+There are 44 unaudited criteria, all in the final R08 batch. The sealed source
+requirements and all 83 model assignments stay fixed; the proof corpus is
+reused unchanged.
 Every acceptance criterion has an explicit disposition. A `gap` identifies a
 missing general proof statement in the audited path; `unreviewed` identifies
 outstanding audit work that may already have a witness elsewhere.
@@ -61,6 +64,31 @@ states, including arbitrary unrelated held leases. M005 therefore receives
 full model coverage. Held-slot and out-of-range refusals still do not state the
 M004 implication from total pending saturation.
 
+## Composition, service and authentication review
+
+| Obligations | Existing statements and premises | Exact remaining model work |
+|---|---|---|
+| M008 | Every finite Accept/Retry/Refuse/Ignore trace examines at most its supplied fuel. Exhausted polls preserve backlog and request a wake; resuming the policy-ingress suffix preserves execution. Critical service needs at least one more completed service round than the initial waiting rank; the trace supplies those rounds. | Derive cumulative command/timer service and age bounds from readiness, work costs, wake delivery, cooperative budgets and fair scheduling. |
+| M010 | A source with strictly available quota advances its debt by one. | Protect honest opportunity under shared NAT, hostile populations, reconnect bursts, aggregate load and policy transitions. |
+| M046-M047 | `noSleepUnderPermit` is a closed sleeping-constructor equality; there is no vote-to-task transition. | Add owned serve-permit grant/release/sleep/retry and pre-spawn vote admission, including failures and cancellations. |
+| M048-M049, M053 | Generic critical service requires at least one more completed service round than the initial waiting rank. New arrivals cannot worsen that rank; a scalar critical cap ignores bulk demand. | Derive rounds from protocol eligibility, availability, scheduling and costs; compose epoch-pack hold/progress bounds, hub priority, critical classes and catch-up service. |
+| M050-M051 | Weighted stage costs assume supplied occupancy bounds; two-swarm lease traces retain fixed capacities; bounded ingress schedules preserve an initially bounded queue. | Add per-peer/class reserve ownership, resizing and aggregate spawned/waiting task work across all swarms. |
+| M052 | General arrival partition and chronological resize-ledger reconstruction preserve the policy-ingress event trace; exact suffix resumption preserves execution. | Model completed task outcomes and class-stage retry/drop ownership in the proper unit. Examined events do not establish completed work. |
+| M054, M081 | No probe fanout, constrained peer/range selection or committed range-result machine is present. | Add bounded parallel probe/request work, owned results, valid coverage and cancellation/failure handling. |
+| M014-M018, M020, M055 | No certificate-content, signed extension, transcript, verifier-result store, group-negotiation or aggregate-key proof-of-possession machine is present. | Add the sealed authentication and optimization transitions with explicit signature/hash/verification assumptions and general failure cases. |
+| M019 | Supplied authentication is required and stale policy selects the grace profile. | Compose full/resumed sessions, skipped callbacks and old tickets with the current established gate under revision and revocation. |
+| M029 | An unverified record flag preserves the roster; a current verified flag invokes the selected record-marking operation. | Derive independent BLS verification and bind actual NodeRecord identities/endpoints through retrieval, origin gossip, hub forwarding and later joins. |
+| M059-M060 | The ban abstraction preserves genuine violations; load exemption is a closed example. No gossip replay/cache-validity machine is present. | Model role-aware hub scoring/topology and message freshness after duplicate-cache eviction. Policy/record freshness is a separate abstraction. |
+| M082-M083 | Scalar caps and critical-count isolation retain local scope. Matching pending callbacks release their own lease; unowned callbacks cannot refund it; the deadline minimum respects the supplied outer bound. | Compose authenticated QoS weights and runtime queue/execution priority/timeouts, finite class reserves, fair progress and waiter/executor ownership. |
+
+The completed-service-round premise is explicit. No theorem in this audit
+derives it from a real scheduler, a wall clock or command/timer readiness.
+`holdsPermit sleeping = off` describes one constructor, with no preceding
+grant or release transition, and receives finite-example credit only.
+Supplied authentication and record-verification flags do not prove certificate,
+transcript or BLS checks. These missing abstractions remain in their sealed
+R05/R06/R07 packets. The audit adds no new proof domain or semantic mutation.
+
 ## Scope and weakening controls
 
 The pinned census still contains 991 explicit proof declarations across 57
@@ -95,13 +123,18 @@ classification and sufficient premises still require source review. The full
 model run checks the proof corpus, axiom disclosure and weakening controls.
 
 The current batch receipt is
-[r02-admission-policy-audit-check.json](../evidence/r02-admission-policy-audit-check.json).
-The indexed and first-pass receipts remain historical snapshots. This batch
-runs the audit, scope and disposition checks plus the full model and
-qualification-guard regression afresh, without adding a proof declaration or
-semantic mutation.
+[r02-composition-auth-audit-check.json](../evidence/r02-composition-auth-audit-check.json).
+The admission/policy, indexed and first-pass receipts remain historical
+snapshots. This batch runs audit, scope and disposition checks and their
+regressions afresh. Compiler, axiom and semantic-mutation evidence is reused
+from turn 3, with unchanged proof modules, compiler identity and proof-check
+tooling. Regression fixtures now expect the current census and construct their
+unreviewed negative case explicitly. The receipt identifies the reused inputs
+and the changed audit, regression, roadmap and documentation inputs separately.
+It does not claim a fresh full
+model or qualification-guard run.
 The audit complete command
 and full qualification command retain blocked exit 2 while coverage is
 incomplete. All 43 external obligations remain open. The remaining R02 work is
-to execute the two remaining batches and classify their exact R03-R08 gaps;
+to review the final 22 R08 obligations and audit the packet's closure evidence;
 neither partial witness coverage nor turn-budget use closes R02.

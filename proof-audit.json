@@ -840,32 +840,138 @@
     {
       "id": "M008",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Audited outcome-independent poll bounds, exact retained backlog and wake flags, policy-ingress continuation equivalence and conditional critical service. Bounded examination has a general witness; cumulative command/timer service still requires a scheduling and cost bridge.",
+      "witnesses": [
+        {
+          "path": "proofs/10-transport.mech",
+          "name": "allOutcomesPollBound",
+          "statement": "(fuel : Count) -> (events : Events) ->\n    AtMost (pollWork fuel events) fuel",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "For every finite outcome trace and initial fuel, pollWork is at most that fuel.",
+          "premises": [
+            "Finite Events traces; Count fuel bounds examined events independently of their Accept, Retry, Refuse or Ignore outcome.",
+            "This abstract fuel is supplied by the caller; runtime work cost, wake delivery and cooperative scheduling need refinement."
+          ],
+          "limits": "Counts abstract examination steps; it does not bound execution time or establish command/timer service."
+        },
+        {
+          "path": "proofs/15-poll-continuation.mech",
+          "name": "exhaustedPollPreservesBacklog",
+          "statement": "(events : Events) -> Equal Events (pollRemainder zero events) events",
+          "scope_kind": "general_transition",
+          "establishes": "Zero fuel preserves every remaining Events trace.",
+          "premises": [
+            "Finite Events traces; Count fuel bounds examined events independently of their Accept, Retry, Refuse or Ignore outcome.",
+            "This abstract fuel is supplied by the caller; runtime work cost, wake delivery and cooperative scheduling need refinement."
+          ],
+          "limits": "Preserves abstract data, with no cancellation cleanup or wake-delivery guarantee."
+        },
+        {
+          "path": "proofs/15-poll-continuation.mech",
+          "name": "everyOutcomeBacklogRequestsWake",
+          "statement": "(outcome : Outcome) -> (rest : Events) ->\n    Equal Flag (backlogWake (pollRemainder zero (event outcome rest))) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every nonempty backlog requests a wake at zero fuel, regardless of its head outcome.",
+          "premises": [
+            "Finite Events traces; Count fuel bounds examined events independently of their Accept, Retry, Refuse or Ignore outcome.",
+            "This abstract fuel is supplied by the caller; runtime work cost, wake delivery and cooperative scheduling need refinement."
+          ],
+          "limits": "The result is an on flag, not a guarantee that a runtime schedules another poll."
+        },
+        {
+          "path": "proofs/15-poll-continuation.mech",
+          "name": "retryOnlyBacklogRequestsWake",
+          "statement": "(rest : Events) ->\n    Equal Flag (backlogWake (pollRemainder (next zero) (event retry (event retry rest)))) on",
+          "scope_kind": "general_transition",
+          "establishes": "After one Retry examination, the stated Retry-headed backlog requests a wake for every suffix.",
+          "premises": [
+            "Finite Events traces; Count fuel bounds examined events independently of their Accept, Retry, Refuse or Ignore outcome.",
+            "This abstract fuel is supplied by the caller; runtime work cost, wake delivery and cooperative scheduling need refinement."
+          ],
+          "limits": "The first two outcomes are fixed to Retry; this is a general suffix statement, not cumulative timer service."
+        },
+        {
+          "path": "proofs/44-policy-ingress-poll.mech",
+          "name": "policyIngressPollResumePreservesExecution",
+          "statement": "(fuel : Count) -> (trace : PolicyIngressTrace) ->\n    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->\n    Equal PolicyWorkState (runPolicyIngress (policyIngressPollRemainder fuel trace) config (runPolicyIngressPoll fuel trace config current))\n      (runPolicyIngress trace config current)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Running the retained suffix after a fuel-limited policy-ingress prefix equals uninterrupted execution for every trace and starting state.",
+          "premises": [
+            "Atomic PolicyWork transitions; supplied config and current state; the same trace is resumed exactly once."
+          ],
+          "limits": "No cancellation ownership, timer readiness or real cooperative scheduler is modeled."
+        },
+        {
+          "path": "proofs/35-critical-service.mech",
+          "name": "criticalRequestServedWithinRounds",
+          "statement": "(trace : ServiceTrace) -> (ahead : Count) ->\n    AtMost (next ahead) (serviceRounds trace) ->\n    Equal CriticalState (runService trace (waitingBehind ahead)) criticalServed",
+          "scope_kind": "conditional_liveness",
+          "establishes": "Any finite service trace containing at least one more completed service round than the initial rank serves the selected request.",
+          "premises": [
+            "The selected critical request starts at waitingBehind ahead.",
+            "Every completedServiceRound advances the oldest request by one rank; new critical arrivals append behind it and bulk arrivals cannot change its rank.",
+            "At least next ahead completed service rounds occur in the finite trace. No clock or real scheduler establishes that premise here."
+          ],
+          "limits": "No wall-clock, command-age, per-class eligibility, epoch-pack availability or fairness-to-rounds bridge is stated. The input service trace already supplies the required completed rounds."
+        }
+      ],
+      "controls": [
+        {
+          "name": "poll_over_budget",
+          "sha256": "e772837ed19f6237f9ca61386a5579ffae67faa9aa64a42cb3d5001e08222746"
+        },
+        {
+          "name": "poll_discards_backlog",
+          "sha256": "e8e8dfd3441551ab3ac8416377573a8710872f844958581fdf207638426fc4f7"
+        },
+        {
+          "name": "poll_loses_wakeup",
+          "sha256": "8e03b771111cada33ca99bb30d54b7b00296109aac9d85cd7c531e19bdc5f5fc"
+        },
+        {
+          "name": "critical_service_skipped",
+          "sha256": "14412eef3c1ffc6f3adc55005b8003cf74c297db60254effa9b6cb302be41bf2"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/10-transport.mech#allOutcomesPollBound"
+          ],
+          "rationale": "Every outcome constructor is examined under the same finite fuel bound, including arbitrary Retry-only traces.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/10-transport.mech#allOutcomesPollBound",
+            "proofs/15-poll-continuation.mech#exhaustedPollPreservesBacklog",
+            "proofs/15-poll-continuation.mech#everyOutcomeBacklogRequestsWake",
+            "proofs/15-poll-continuation.mech#retryOnlyBacklogRequestsWake",
+            "proofs/44-policy-ingress-poll.mech#policyIngressPollResumePreservesExecution",
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds"
+          ],
+          "rationale": "Audited outcome-independent poll bounds, exact retained backlog and wake flags, policy-ingress continuation equivalence and conditional critical service. Bounded examination has a general witness; cumulative command/timer service still requires a scheduling and cost bridge. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Compose eligible commands, refresh, heartbeat and stream-sweep timers with poll/cancellation continuations and prove their cumulative service under explicit arrival, cost, wake-delivery and fairness premises."
         },
         {
           "index": 2,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/10-transport.mech#allOutcomesPollBound",
+            "proofs/15-poll-continuation.mech#exhaustedPollPreservesBacklog",
+            "proofs/15-poll-continuation.mech#everyOutcomeBacklogRequestsWake",
+            "proofs/15-poll-continuation.mech#retryOnlyBacklogRequestsWake",
+            "proofs/44-policy-ingress-poll.mech#policyIngressPollResumePreservesExecution",
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds"
+          ],
+          "rationale": "Audited outcome-independent poll bounds, exact retained backlog and wake flags, policy-ingress continuation equivalence and conditional critical service. Bounded examination has a general witness; cumulative command/timer service still requires a scheduling and cost bridge. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Derive command-age and timer-service bounds from queue/load envelopes, per-event work costs and exhausted cooperative-budget schedules; counted service rounds alone do not establish time bounds."
         }
       ]
     },
@@ -949,25 +1055,46 @@
     {
       "id": "M010",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. The available-source charge theorem assumes remaining local quota. It does not protect an honest connection opportunity against shared-source exhaustion, aggregate load or policy churn.",
+      "witnesses": [
+        {
+          "path": "proofs/28-source-enforcement.mech",
+          "name": "sourceWithRoomIsCharged",
+          "statement": "(debt : Count) -> (spare : Count) ->\n    Equal SourceRestriction (chargeSourceRestriction (add (next debt) spare) (sourceRateDebt debt))\n      (sourceRateDebt (next debt))",
+          "scope_kind": "general_transition",
+          "establishes": "A source with quota add (next debt) spare advances its debt by one.",
+          "premises": [
+            "A sourceRateDebt restriction, with no ban; the quota is strictly greater than debt."
+          ],
+          "limits": "There is no honest/hostile classification, global pending/credit availability, policy lifecycle or service schedule."
+        }
+      ],
+      "controls": [
+        {
+          "name": "available_source_quota_refused",
+          "sha256": "806719192ea2e3a0b26fd48cf57947b3e36c1c5ffadede2f2f7c3347d577b5c4"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/28-source-enforcement.mech#sourceWithRoomIsCharged"
+          ],
+          "rationale": "The available-source charge theorem assumes remaining local quota. It does not protect an honest connection opportunity against shared-source exhaustion, aggregate load or policy churn. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Model honest and hostile populations sharing addresses/prefixes and prove an honest admission/service opportunity under explicit quota, eligibility, aggregate-load and scheduler conditions."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/28-source-enforcement.mech#sourceWithRoomIsCharged"
+          ],
+          "rationale": "The available-source charge theorem assumes remaining local quota. It does not protect an honest connection opportunity against shared-source exhaustion, aggregate load or policy churn. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Compose shared NAT, multiple honest swarms, hostile sources and reconnect bursts with policy transitions while preserving the stated honest opportunity."
         }
       ]
     },
@@ -1157,175 +1284,204 @@
     {
       "id": "M014",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. No certificate-content or self-signature verification datatype or transition exists in the corpus; a supplied authenticated flag does not verify a certificate.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No certificate-content or self-signature verification datatype or transition exists in the corpus; a supplied authenticated flag does not verify a certificate. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model actual certificate contents, supported signature schemes and self-signature verification, so invalid signatures cannot establish authentication."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No certificate-content or self-signature verification datatype or transition exists in the corpus; a supplied authenticated flag does not verify a certificate. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove arbitrary presented-certificate transitions, including malformed/adversarial and failure cases, under explicit cryptographic verification assumptions."
         }
       ]
     },
     {
       "id": "M015",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. The corpus has no parsed extension, signed host-key contents or PeerId derivation/binding relation.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has no parsed extension, signed host-key contents or PeerId derivation/binding relation. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model extension signature verification against the actual host key and derive only the authenticated PeerId bound to those contents."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has no parsed extension, signed host-key contents or PeerId derivation/binding relation. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Cover arbitrary inbound/outbound extension and host-key combinations, with explicit signature/hash assumptions and unchecked-metadata rejection."
         }
       ]
     },
     {
       "id": "M016",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. There is no current-handshake transcript or CertificateVerify proof-of-possession state machine.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no current-handshake transcript or CertificateVerify proof-of-possession state machine. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Require a valid certificate-key possession proof bound to the current transcript before authentication."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no current-handshake transcript or CertificateVerify proof-of-possession state machine. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove full inbound/outbound, copied-certificate and corrupted-CertificateVerify cases, including cached-verification paths that still require a fresh transcript proof."
         }
       ]
     },
     {
       "id": "M017",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. There is no verified identity extraction, parse optimization or named outbound peer-match relation.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no verified identity extraction, parse optimization or named outbound peer-match relation. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model verified extraction and prove that every successful path preserves the authenticated PeerId and rejects a mismatched named outbound peer."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no verified identity extraction, parse optimization or named outbound peer-match relation. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove named/unnamed dial and selected parse-optimization equivalence over arbitrary inputs while retaining certificate, extension and transcript verification premises."
         }
       ]
     },
     {
       "id": "M018",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. No certificate/session-keyed verifier-result store, cache allocation or terminal-cleanup transition exists.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No certificate/session-keyed verifier-result store, cache allocation or terminal-cleanup transition exists. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Define bounded verification-result storage keyed to certificate and handshake lifetime; prove session isolation and terminal reclamation."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No certificate/session-keyed verifier-result store, cache allocation or terminal-cleanup transition exists. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Cover concurrent sessions, stale results, arbitrary attacker-created keys and every failure/cancellation branch without consuming another session proof."
         }
       ]
     },
     {
       "id": "M019",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Current policy fallback and authenticated-flag gating are general local functions. Full versus resumed sessions, session tickets and skipped certificate callbacks are not represented.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "stalePolicyFallsBack",
+          "statement": "(requested : Profile) ->\n    Equal Profile (effectiveProfile off requested) graceProfile",
+          "scope_kind": "general_transition",
+          "establishes": "Every requested profile falls back to graceProfile when policy validity is off.",
+          "premises": [
+            "Policy validity and requested profile are supplied judgments."
+          ],
+          "limits": "No session ticket, current policy reader or resumed handshake transition is present."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "authenticationAlwaysRequired",
+          "statement": "(validPolicy : Flag) -> (requested : Profile) -> (member : Flag) ->\n    Equal Flag (admission off validPolicy requested member) off",
+          "scope_kind": "general_transition",
+          "establishes": "For every policy/profile/member input, supplied authentication off denies admission.",
+          "premises": [
+            "The authentication flag is supplied, rather than derived from certificate or transcript verification."
+          ],
+          "limits": "Does not show how a resumed session supplies or retains authenticated identity or applies the current established gate."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#stalePolicyFallsBack",
+            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
+          ],
+          "rationale": "Current policy fallback and authenticated-flag gating are general local functions. Full versus resumed sessions, session tickets and skipped certificate callbacks are not represented. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Compose full and resumed session establishment with the authoritative current-policy gate, so skipped callbacks and old tickets cannot bypass it."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#stalePolicyFallsBack",
+            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
+          ],
+          "rationale": "Current policy fallback and authenticated-flag gating are general local functions. Full versus resumed sessions, session tickets and skipped certificate callbacks are not represented. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove arbitrary policy revisions, membership revocation/change and stale-input fallback across both session paths with explicit authentication premises."
         }
       ]
     },
     {
       "id": "M020",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. No supported-group, client-offer/key-share or negotiation policy state is modeled.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No supported-group, client-offer/key-share or negotiation policy state is modeled. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model the selected accepted group policy and prove every negotiated group belongs to it while required authentication checks remain active."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No supported-group, client-offer/key-share or negotiation policy state is modeled. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Cover arbitrary client offer/order/key-share and no-common-group paths, retained default or selected D10 policy and stale dynamic support without assuming server order overrides client selection."
         }
       ]
     },
@@ -1700,25 +1856,63 @@
     {
       "id": "M029",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Committee-record transitions refuse an unverified flag and accept a current verified epoch. They do not derive BLS verification or bind record payloads to chain identities and advertised endpoints.",
+      "witnesses": [
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "unverifiedRecordIgnored",
+          "statement": "(currentEpoch : Count) -> (recordEpoch : Count) -> (index : Count) -> (records : Slots) ->\n    Equal Slots (committeeRecord currentEpoch recordEpoch off index records) records",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary epochs, index and roster, a supplied verified off leaves the complete roster unchanged.",
+          "premises": [
+            "The supplied verified flag is authoritative; a fixed roster and internal index are used."
+          ],
+          "limits": "No BLS signature, record payload, endpoint data, gossip origin or forwarding authority is modeled."
+        },
+        {
+          "path": "proofs/31-committee-records.mech",
+          "name": "currentVerifiedRecordRecorded",
+          "statement": "(epoch : Count) -> (index : Count) -> (records : Slots) ->\n    Equal Slots (committeeRecord epoch epoch on index records) (markCommitteeRecord index records)",
+          "scope_kind": "general_transition",
+          "establishes": "At equal current/record epochs, a supplied verified on invokes markCommitteeRecord at the supplied index.",
+          "premises": [
+            "Authoritative supplied verification result, equal epochs and fixed internal roster indexing."
+          ],
+          "limits": "Does not establish cryptographic verification or bind the updated roster entry to actual identity/endpoint contents."
+        }
+      ],
+      "controls": [
+        {
+          "name": "record_authentication_bypassed",
+          "sha256": "b5905f82687f229090ab6402e076c2846aaea8d7784ac155b0a7a500f67215e6"
+        },
+        {
+          "name": "record_epoch_bypassed",
+          "sha256": "b055239cca4dcc66dacd8cfa0637e618566cbbafa34398ff4fdf58a85e9afc24"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/31-committee-records.mech#unverifiedRecordIgnored",
+            "proofs/31-committee-records.mech#currentVerifiedRecordRecorded"
+          ],
+          "rationale": "Committee-record transitions refuse an unverified flag and accept a current verified epoch. They do not derive BLS verification or bind record payloads to chain identities and advertised endpoints. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model independently verified BLS-bound NodeRecord payloads and permit authoritative identity/endpoint updates only after that verification."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/31-committee-records.mech#unverifiedRecordIgnored",
+            "proofs/31-committee-records.mech#currentVerifiedRecordRecorded"
+          ],
+          "rationale": "Committee-record transitions refuse an unverified flag and accept a current verified epoch. They do not derive BLS verification or bind record payloads to chain identities and advertised endpoints. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Cover retrieval, origin gossip, hub forwarding, submit URLs and later joins; prove that ordinary hub keys cannot authorize validator payloads or replace chain-bound identity."
         }
       ]
     },
@@ -2411,250 +2605,468 @@
     {
       "id": "M046",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. noSleepUnderPermit is a closed equality about the sleeping constructor. The task phase datatype has no owned permit or grant/release/sleep/retry lifecycle.",
+      "witnesses": [
+        {
+          "path": "proofs/20-accounting.mech",
+          "name": "noSleepUnderPermit",
+          "statement": "Equal Flag (holdsPermit sleeping) off",
+          "scope_kind": "finite_example",
+          "establishes": "The sleeping constructor maps to holdsPermit off.",
+          "premises": [
+            "holdsPermit defines sleeping as off and executing as on."
+          ],
+          "limits": "A closed constructor equality; no relation to a preceding grant, owned permit, release, retry, failure or cancellation transition."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#noSleepUnderPermit"
+          ],
+          "rationale": "noSleepUnderPermit is a closed equality about the sleeping constructor. The task phase datatype has no owned permit or grant/release/sleep/retry lifecycle. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Add owned S1 serve-permit lifecycle transitions and prove every sleep/backoff/retry step releases ownership first, including failure and cancellation."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/20-accounting.mech#noSleepUnderPermit"
+          ],
+          "rationale": "noSleepUnderPermit is a closed equality about the sleeping constructor. The task phase datatype has no owned permit or grant/release/sleep/retry lifecycle. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary serve-task schedules and waiting populations cannot retain or monopolize permits across every terminal branch."
         }
       ]
     },
     {
       "id": "M047",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. No vote admission or spawn/retain serve-task transition exists; generic connection admission is a different event domain.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No vote admission or spawn/retain serve-task transition exists; generic connection admission is a different event domain. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Model S2 vote admission before serve-task spawning; rejected votes must create no resource-consuming task."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No vote admission or spawn/retain serve-task transition exists; generic connection admission is a different event domain. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove all sender classes and capacity states, with bounded spawned/waiting populations and explicit failure/cancellation behavior."
         }
       ]
     },
     {
       "id": "M048",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Critical-request rank service and handshake deadline minima do not model S3 epoch-pack progress, availability or permit hold time.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Critical-request rank service and handshake deadline minima do not model S3 epoch-pack progress, availability or permit hold time. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Model epoch-pack service and prove its declared progress floor within the selected permit hold-time bound under explicit clock/work/fairness and availability premises."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Critical-request rank service and handshake deadline minima do not model S3 epoch-pack progress, availability or permit hold time. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Prove arbitrary finite epoch-pack traces, failures and cancellations; release or terminate within the bound when progress/availability premises fail."
         }
       ]
     },
     {
       "id": "M049",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Conditional rank service and scalar critical-budget isolation are reusable local results. The service-round premise is supplied; vote/certificate/epoch eligibility and coexistence with catch-up are not composed.",
+      "witnesses": [
+        {
+          "path": "proofs/35-critical-service.mech",
+          "name": "criticalRequestServedWithinRounds",
+          "statement": "(trace : ServiceTrace) -> (ahead : Count) ->\n    AtMost (next ahead) (serviceRounds trace) ->\n    Equal CriticalState (runService trace (waitingBehind ahead)) criticalServed",
+          "scope_kind": "conditional_liveness",
+          "establishes": "Any finite service trace containing at least one more completed service round than the initial rank serves the selected request.",
+          "premises": [
+            "The selected critical request starts at waitingBehind ahead.",
+            "Every completedServiceRound advances the oldest request by one rank; new critical arrivals append behind it and bulk arrivals cannot change its rank.",
+            "At least next ahead completed service rounds occur in the finite trace. No clock or real scheduler establishes that premise here."
+          ],
+          "limits": "No wall-clock, command-age, per-class eligibility, epoch-pack availability or fairness-to-rounds bridge is stated. The input service trace already supplies the required completed rounds."
+        },
+        {
+          "path": "proofs/35-critical-service.mech",
+          "name": "bulkArrivalPreservesWaitingRank",
+          "statement": "(amount : Count) -> (ahead : Count) ->\n    Equal CriticalState (serviceStep (bulkArrival amount) (waitingBehind ahead)) (waitingBehind ahead)",
+          "scope_kind": "general_transition",
+          "establishes": "Any bulk arrival preserves the selected critical request rank.",
+          "premises": [
+            "The selected critical request starts at waitingBehind ahead.",
+            "Every completedServiceRound advances the oldest request by one rank; new critical arrivals append behind it and bulk arrivals cannot change its rank.",
+            "At least next ahead completed service rounds occur in the finite trace. No clock or real scheduler establishes that premise here."
+          ],
+          "limits": "No wall-clock, command-age, per-class eligibility, epoch-pack availability or fairness-to-rounds bridge is stated. The input service trace already supplies the required completed rounds."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "bulkCannotConsumeCriticalBudget",
+          "statement": "(cap : Count) -> (critical : Count) ->\n    (bulkA : Count) -> (bulkB : Count) ->\n    Equal Count (criticalService cap critical bulkA) (criticalService cap critical bulkB)",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary bulk amounts, the computed critical service count is unchanged.",
+          "premises": [
+            "The criticalService function uses a supplied finite critical cap and critical demand; it does not run a scheduler."
+          ],
+          "limits": "Count independence does not establish actual service rounds, critical/bulk queue eligibility or preservation of catch-up service."
+        }
+      ],
+      "controls": [
+        {
+          "name": "critical_service_skipped",
+          "sha256": "14412eef3c1ffc6f3adc55005b8003cf74c297db60254effa9b6cb302be41bf2"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds",
+            "proofs/35-critical-service.mech#bulkArrivalPreservesWaitingRank",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Conditional rank service and scalar critical-budget isolation are reusable local results. The service-round premise is supplied; vote/certificate/epoch eligibility and coexistence with catch-up are not composed. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Compose admitted/trusted bulk and eligible vote/certificate/epoch class queues, finite budgets and service costs to derive the completed-round premise."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds",
+            "proofs/35-critical-service.mech#bulkArrivalPreservesWaitingRank",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Conditional rank service and scalar critical-budget isolation are reusable local results. The service-round premise is supplied; vote/certificate/epoch eligibility and coexistence with catch-up are not composed. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Prove arbitrary fair schedules supply critical service while preserving declared catch-up service, including readiness, admission and failure branches."
         }
       ]
     },
     {
       "id": "M050",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. General weighted stage and two-swarm pool bounds assume finite caps and scalar costs. They do not represent per-peer/class grants or ownership of committee reserves.",
+      "witnesses": [
+        {
+          "path": "proofs/22-weighted-resources.mech",
+          "name": "retainedCostBound",
+          "statement": "(queued : Count) -> (pending : Count) -> (established : Count) ->\n    (queueCap : Count) -> (pendingCap : Count) -> (establishedCap : Count) ->\n    (queueCost : Count) -> (pendingCost : Count) -> (establishedCost : Count) ->\n    AtMost queued queueCap -> AtMost pending pendingCap -> AtMost established establishedCap ->\n    AtMost (retainedCost queued pending established queueCost pendingCost establishedCost)\n      (retainedCost queueCap pendingCap establishedCap queueCost pendingCost establishedCost)",
+          "scope_kind": "general_transition",
+          "establishes": "Given individual queue/pending/established bounds, their arbitrary weighted retained cost is bounded by the weighted caps.",
+          "premises": [
+            "AtMost queued queueCap, pending pendingCap and established establishedCap; fixed nonnegative Count costs."
+          ],
+          "limits": "The three bound premises are supplied; no class/peer reserve or allocation lifecycle is defined."
+        },
+        {
+          "path": "proofs/22-weighted-resources.mech",
+          "name": "bothSwarmsRetainedCostTraceBound",
+          "statement": "(primaryTrace : PoolTrace) -> (workerTrace : PoolTrace) ->\n    (primaryPool : LeasePool) -> (workerPool : LeasePool) -> (primaryCost : Count) -> (workerCost : Count) ->\n    AtMost (add (multiply (leaseOccupancy (runPool primaryTrace primaryPool)) primaryCost)\n      (multiply (leaseOccupancy (runPool workerTrace workerPool)) workerCost))\n      (add (multiply (leaseCapacity primaryPool) primaryCost) (multiply (leaseCapacity workerPool) workerCost))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Arbitrary primary and worker PoolTrace executions have weighted held-lease occupancy bounded by their fixed capacities.",
+          "premises": [
+            "Atomic lease-pool transitions; fixed primary/worker pools and nonnegative costs."
+          ],
+          "limits": "Lease occupancy excludes spawned and waiting task work, established-resource vectors and class-reserve resizing."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/22-weighted-resources.mech#retainedCostBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+          ],
+          "rationale": "General weighted stage and two-swarm pool bounds assume finite caps and scalar costs. They do not represent per-peer/class grants or ownership of committee reserves. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Compose S4 per-peer and per-class grants/releases, finite totals and committee reserves; prove no class spends another class reserve."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/22-weighted-resources.mech#retainedCostBound",
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+          ],
+          "rationale": "General weighted stage and two-swarm pool bounds assume finite caps and scalar costs. They do not represent per-peer/class grants or ownership of committee reserves. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary mixed critical/bulk traces, overload, resizing and trusted traffic, with explicit initial allocation invariants and retained-work costs."
         }
       ]
     },
     {
       "id": "M051",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. The bounded policy-ingress queue is a general retained-event bound. It does not model gossip task spawning, retained executor work or arbitrary-population host composition.",
+      "witnesses": [
+        {
+          "path": "proofs/47-policy-ingress-overload.mech",
+          "name": "boundedPolicyIngressQueueBound",
+          "statement": "(schedule : PolicyIngressSchedule) -> (limit : Count) ->\n    (events : PolicyIngressTrace) -> (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->\n    AtMost (policyIngressLength events) limit ->\n    AtMost (policyIngressLength (queuedPolicyIngress\n      (runBoundedPolicyIngress limit schedule config (policyIngressQueueState events current)))) limit",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A queue initially bounded by limit remains bounded through every bounded policy-ingress schedule.",
+          "premises": [
+            "AtMost policyIngressLength events limit; bounded enqueue retains an arrival prefix and rejects overflow; atomic queue polling."
+          ],
+          "limits": "Ingress-event count is not spawned/waiting task count or work cost, and fixed ingress limit is not a host/task allocation."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressQueueBound"
+          ],
+          "rationale": "The bounded policy-ingress queue is a general retained-event bound. It does not model gossip task spawning, retained executor work or arbitrary-population host composition. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Add S5 gossip event-to-task ownership and count both spawned and retained waiting work against a finite aggregate allocation across all swarms."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressQueueBound"
+          ],
+          "rationale": "The bounded policy-ingress queue is a general retained-event bound. It does not model gossip task spawning, retained executor work or arbitrary-population host composition. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary incoming, dispatch, completion, failure and cancellation schedules; active-executor bounds alone cannot justify retained-work bounds."
         }
       ]
     },
     {
       "id": "M052",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Exact arrival partition, retained backlog, continuation execution and chronological resize-ledger statements cover the policy-ingress event abstraction. Examined events are not completed tasks, and class/stage retry outcomes are not represented.",
+      "witnesses": [
+        {
+          "path": "proofs/47-policy-ingress-overload.mech",
+          "name": "boundedPolicyIngressPartitionsArrivals",
+          "statement": "(limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->\n    Equal PolicyIngressTrace\n      (appendPolicyIngress (admittedPolicyIngress limit events arrivals) (rejectedPolicyIngress limit events arrivals)) arrivals",
+          "scope_kind": "general_transition",
+          "establishes": "Concatenating admitted and rejected arrival prefixes reconstructs every arrival trace.",
+          "premises": [
+            "Finite PolicyIngressTrace; supplied limit/current backlog and deterministic prefix/suffix partition."
+          ],
+          "limits": "Arrival partition is local to the ingress queue; no subsequent class stage or completed task outcome is stated."
+        },
+        {
+          "path": "proofs/47-policy-ingress-overload.mech",
+          "name": "boundedPolicyIngressBacklogEquation",
+          "statement": "(limit : Count) -> (events : PolicyIngressTrace) -> (arrivals : PolicyIngressTrace) ->\n    Equal PolicyIngressTrace (boundedPolicyIngressReady limit events arrivals)\n      (appendPolicyIngress events (admittedPolicyIngress limit events arrivals))",
+          "scope_kind": "general_transition",
+          "establishes": "The ready backlog is the old trace followed by its admitted arrivals.",
+          "premises": [
+            "Finite trace terms and the same bounded prefix partition."
+          ],
+          "limits": "No retry transfer, class-stage drop unit or completion classification is represented."
+        },
+        {
+          "path": "proofs/68-policy-ingress-capacity-schedule.mech",
+          "name": "capacityDeferredIngressChronological",
+          "statement": "(capacity : Count) -> (schedule : PolicyIngressCapacitySchedule) ->\n    (waiting : PolicyIngressTrace) -> Equal PolicyIngressTrace\n      (policyIngressLedgerChronological (capacityDeferredIngressLedger capacity schedule waiting))\n      (appendPolicyIngress waiting (capacityScheduleArrivals schedule))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite scan/resize schedule reconstructs its original waiting trace followed by all offered arrivals from the chronological examined/retained/overflow ledger.",
+          "premises": [
+            "Atomic queue operations, internal finite capacity schedule and exact chronological ledger reconstruction."
+          ],
+          "limits": "The ledger records examination and overflow, not admission-to-completed task ownership at each S6/O6 class stage."
+        },
+        {
+          "path": "proofs/44-policy-ingress-poll.mech",
+          "name": "policyIngressPollResumePreservesExecution",
+          "statement": "(fuel : Count) -> (trace : PolicyIngressTrace) ->\n    (config : PolicyWorkConfig) -> (current : PolicyWorkState) ->\n    Equal PolicyWorkState (runPolicyIngress (policyIngressPollRemainder fuel trace) config (runPolicyIngressPoll fuel trace config current))\n      (runPolicyIngress trace config current)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Resuming every retained suffix once preserves full policy-work execution for arbitrary fuel, trace, config and initial state.",
+          "premises": [
+            "Atomic PolicyWork transitions and exact once-only resumption of the same suffix."
+          ],
+          "limits": "No task completion or class-stage retry/drop transition is modeled."
+        }
+      ],
+      "controls": [
+        {
+          "name": "policy_poll_remainder_replays_event",
+          "sha256": "2be0cf4261b422329d157d2b8f6a1a80add86dc3f91268f103a1e1e99ce6eaf0"
+        },
+        {
+          "name": "policy_capacity_schedule_turn_drops_overflow",
+          "sha256": "ec646f112c0a56e70f86eb96659838b0d16bce6118101b0c22085122bb2beec0"
+        },
+        {
+          "name": "policy_capacity_schedule_resize_drops_overflow",
+          "sha256": "70313a67627a8141642ee115747805a9675498af054723acd8b9addea6a22abd"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressPartitionsArrivals",
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressBacklogEquation",
+            "proofs/68-policy-ingress-capacity-schedule.mech#capacityDeferredIngressChronological",
+            "proofs/44-policy-ingress-poll.mech#policyIngressPollResumePreservesExecution"
+          ],
+          "rationale": "Exact arrival partition, retained backlog, continuation execution and chronological resize-ledger statements cover the policy-ingress event abstraction. Examined events are not completed tasks, and class/stage retry outcomes are not represented. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Extend the event ledger to S6/O6 class stages and retry ownership, conserving offered work as admitted, completed, retained or dropped at the correct stage and unit."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressPartitionsArrivals",
+            "proofs/47-policy-ingress-overload.mech#boundedPolicyIngressBacklogEquation",
+            "proofs/68-policy-ingress-capacity-schedule.mech#capacityDeferredIngressChronological",
+            "proofs/44-policy-ingress-poll.mech#policyIngressPollResumePreservesExecution"
+          ],
+          "rationale": "Exact arrival partition, retained backlog, continuation execution and chronological resize-ledger statements cover the policy-ingress event abstraction. Examined events are not completed tasks, and class/stage retry outcomes are not represented. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary finite overflow/retry/completion traces with stage composition and exactly-once drop accounting; chronological reconstruction alone does not identify task completion."
         }
       ]
     },
     {
       "id": "M053",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Generic FIFO critical-rank results use completed rounds and append-behind arrivals. They do not derive hub priority-lane service from arrival/fairness envelopes or preserve other service obligations.",
+      "witnesses": [
+        {
+          "path": "proofs/35-critical-service.mech",
+          "name": "criticalRequestServedWithinRounds",
+          "statement": "(trace : ServiceTrace) -> (ahead : Count) ->\n    AtMost (next ahead) (serviceRounds trace) ->\n    Equal CriticalState (runService trace (waitingBehind ahead)) criticalServed",
+          "scope_kind": "conditional_liveness",
+          "establishes": "Any finite service trace containing at least one more completed service round than the initial rank serves the selected request.",
+          "premises": [
+            "The selected critical request starts at waitingBehind ahead.",
+            "Every completedServiceRound advances the oldest request by one rank; new critical arrivals append behind it and bulk arrivals cannot change its rank.",
+            "At least next ahead completed service rounds occur in the finite trace. No clock or real scheduler establishes that premise here."
+          ],
+          "limits": "No wall-clock, command-age, per-class eligibility, epoch-pack availability or fairness-to-rounds bridge is stated. The input service trace already supplies the required completed rounds."
+        },
+        {
+          "path": "proofs/35-critical-service.mech",
+          "name": "criticalArrivalPreservesWaitingRank",
+          "statement": "(amount : Count) -> (ahead : Count) ->\n    Equal CriticalState (serviceStep (criticalArrivalBehind amount) (waitingBehind ahead)) (waitingBehind ahead)",
+          "scope_kind": "general_transition",
+          "establishes": "Any new critical arrival behind the selected request preserves its rank.",
+          "premises": [
+            "The selected critical request starts at waitingBehind ahead.",
+            "Every completedServiceRound advances the oldest request by one rank; new critical arrivals append behind it and bulk arrivals cannot change its rank.",
+            "At least next ahead completed service rounds occur in the finite trace. No clock or real scheduler establishes that premise here."
+          ],
+          "limits": "No wall-clock, command-age, per-class eligibility, epoch-pack availability or fairness-to-rounds bridge is stated. The input service trace already supplies the required completed rounds."
+        }
+      ],
+      "controls": [
+        {
+          "name": "critical_service_skipped",
+          "sha256": "14412eef3c1ffc6f3adc55005b8003cf74c297db60254effa9b6cb302be41bf2"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds",
+            "proofs/35-critical-service.mech#criticalArrivalPreservesWaitingRank"
+          ],
+          "rationale": "Generic FIFO critical-rank results use completed rounds and append-behind arrivals. They do not derive hub priority-lane service from arrival/fairness envelopes or preserve other service obligations. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Model hub S7 priority/class queues and derive bounded conditional committee-event service from explicit arrival, cost and fair scheduling envelopes."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/35-critical-service.mech#criticalRequestServedWithinRounds",
+            "proofs/35-critical-service.mech#criticalArrivalPreservesWaitingRank"
+          ],
+          "rationale": "Generic FIFO critical-rank results use completed rounds and append-behind arrivals. They do not derive hub priority-lane service from arrival/fairness envelopes or preserve other service obligations. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Compose finite class budgets, genuine violation handling and bulk/catch-up service without invalidating their declared service obligations."
         }
       ]
     },
     {
       "id": "M054",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Lease ownership bounds do not model sync-probe fanout, peer results or committed range coverage; no probe/range state machine exists.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Lease ownership bounds do not model sync-probe fanout, peer results or committed range coverage; no probe/range state machine exists. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Model S8 bounded parallel probes with per-request owned result/range accounting and reject duplicate committed results."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Lease ownership bounds do not model sync-probe fanout, peer results or committed range coverage; no probe/range state machine exists. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary fanout, cancellation and failed-peer schedules preserve finite retained work and the selected range coverage."
         }
       ]
     },
     {
       "id": "M055",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. The corpus has no aggregate verification, participating key-set or verified proof-of-possession predicate.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has no aggregate verification, participating key-set or verified proof-of-possession predicate. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Gate fast aggregate verification on verified proof of possession for every participating key under explicit cryptographic assumptions."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The corpus has no aggregate verification, participating key-set or verified proof-of-possession predicate. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove arbitrary aggregate/key-set cases and failure branches, including rejection of any unproven participating key and equivalence with the required verification boundary."
         }
       ]
     },
@@ -2736,50 +3148,84 @@
     {
       "id": "M059",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Generic supplied load-exemption and violation flags are local ban rules, not role-aware hub scoring or topology service.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "noTrustedCollateralLoadBan",
+          "statement": "Equal Flag (ban loadPressure on) off",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed loadPressure/on input produces ban off.",
+          "premises": [
+            "The loadExempt flag is supplied as on."
+          ],
+          "limits": "A closed ban-function example; no hub role, topology, score or freshness state is represented."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "trustedViolationStillBanned",
+          "statement": "(loadExempt : Flag) ->\n    Equal Flag (ban protocolViolation loadExempt) on",
+          "scope_kind": "general_transition",
+          "establishes": "For either load-exemption flag, a protocolViolation produces ban on.",
+          "premises": [
+            "The protocolViolation classification is supplied and authoritative."
+          ],
+          "limits": "Does not derive genuine violations from scored traffic or preserve topology service under role changes."
+        }
+      ],
+      "controls": [
+        {
+          "name": "trusted_violation_exempt",
+          "sha256": "92f01e8cd42dabe032bca2d3bcbc154d786e78dad23e71f08143c2cf9870e634"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#noTrustedCollateralLoadBan",
+            "proofs/30-admission-and-service.mech#trustedViolationStillBanned"
+          ],
+          "rationale": "Generic supplied load-exemption and violation flags are local ban rules, not role-aware hub scoring or topology service. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model G5 honest-hub role profiles, topology requirements and scoring/freshness transitions; prevent load-only bans while retaining genuine violation handling."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#noTrustedCollateralLoadBan",
+            "proofs/30-admission-and-service.mech#trustedViolationStillBanned"
+          ],
+          "rationale": "Generic supplied load-exemption and violation flags are local ban rules, not role-aware hub scoring or topology service. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Compose role-aware preference with finite admission/work budgets and failure branches, so required hubs receive no bulk-work exemption."
         }
       ]
     },
     {
       "id": "M060",
       "closure_packet": "R07",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Policy-generation and committee-epoch freshness are distinct from gossip message replay validity; no gossip payload/duplicate-cache validity machine exists.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Policy-generation and committee-epoch freshness are distinct from gossip message replay validity; no gossip payload/duplicate-cache validity machine exists. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Model gossip message epoch/time/protocol validity independently of duplicate-cache retention and reject invalid replay after cache eviction."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Policy-generation and committee-epoch freshness are distinct from gossip message replay validity; no gossip payload/duplicate-cache validity machine exists. The sealed criterion still needs the following statement.",
+          "remaining": "R07: Prove arbitrary messages, cache eviction, epoch/time changes and failure paths under explicit clock/protocol premises; forgetting a duplicate cannot validate an expired payload."
         }
       ]
     },
@@ -3302,75 +3748,146 @@
     {
       "id": "M081",
       "closure_packet": "R05",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. There is no admitted-peer/range selection, coverage commit or range-request ownership machine in the corpus.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no admitted-peer/range selection, coverage commit or range-request ownership machine in the corpus. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Model selected X5 range requests with constrained admitted peer/range selection and bounded parallel work; untrusted ranges cannot expand the allocation."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "There is no admitted-peer/range selection, coverage commit or range-request ownership machine in the corpus. The sealed criterion still needs the following statement.",
+          "remaining": "R05: Prove arbitrary parallel, cancellation, invalid-range and failed-peer schedules cannot commit duplicate or invalid coverage."
         }
       ]
     },
     {
       "id": "M082",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. Profile/trusted scalar work caps and critical-count isolation have no authenticated identity weights or weighted class allocator.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "everyProfileBudget",
+          "statement": "(profile : Profile) -> (trusted : Flag) -> (cap : Count) -> (demand : Count) ->\n    AtMost (admittedWork profile trusted cap demand) cap",
+          "scope_kind": "general_transition",
+          "establishes": "Every supplied profile and trusted classification produces admittedWork at most the supplied cap.",
+          "premises": [
+            "Scalar cap and demand; the profile and trusted flags are supplied model classifications."
+          ],
+          "limits": "No authenticated identity weight, per-peer allocation or class-reserve state is represented."
+        },
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "bulkCannotConsumeCriticalBudget",
+          "statement": "(cap : Count) -> (critical : Count) ->\n    (bulkA : Count) -> (bulkB : Count) ->\n    Equal Count (criticalService cap critical bulkA) (criticalService cap critical bulkB)",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary bulk amounts, the computed critical service count is unchanged.",
+          "premises": [
+            "The criticalService function uses a supplied finite critical cap and critical demand; it does not run a scheduler."
+          ],
+          "limits": "Count independence does not establish actual service rounds, critical/bulk queue eligibility or preservation of catch-up service."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Profile/trusted scalar work caps and critical-count isolation have no authenticated identity weights or weighted class allocator. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Model selected X6 authenticated QoS weights and prove identity preference preserves prior critical/bulk class reserves and finite aggregate resources."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#everyProfileBudget",
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+          ],
+          "rationale": "Profile/trusted scalar work caps and critical-count isolation have no authenticated identity weights or weighted class allocator. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Prove arbitrary weighted grant/release and fair-service schedules cannot override class isolation or grant unbounded work."
         }
       ]
     },
     {
       "id": "M083",
       "closure_packet": "R06",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 4 R05/R06/R07 witness audit. General pending-lease callbacks enforce local owned release, and deadline minima bound a supplied outer limit. There is no X7 waiting/executing timeout state or runtime-priority service composition.",
+      "witnesses": [
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "unownedCompletionNoRefund",
+          "statement": "(reason : PendingEnd) -> (lease : Lease) ->\n    Equal Lease (pendingCompletion noOwnedLease reason lease) lease",
+          "scope_kind": "general_transition",
+          "establishes": "For every pending terminal reason and lease, an unowned completion leaves that lease unchanged.",
+          "premises": [
+            "Atomic lease transitions; internal owned-generation tokens; nonwrapping Count generations."
+          ],
+          "limits": "A single pending lease is not a queued waiter or active executor, and no runtime priority or timeout deadline is represented."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "everyTerminalReasonReleases",
+          "statement": "(generation : Count) -> (reason : PendingEnd) ->\n    Equal Lease (pendingCompletion (ownedGeneration generation) reason (heldLease generation))\n      (freeLease (next generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A matching owned generation frees its held lease at the next generation for every PendingEnd, including timeout and cancellation.",
+          "premises": [
+            "Atomic lease transitions; internal callback authority; matching held generation and nonwrapping generations."
+          ],
+          "limits": "Does not map waiter/executor timeout ownership to a pending lease or account for work that continues after a caller timeout."
+        },
+        {
+          "path": "proofs/10-transport.mech",
+          "name": "outerDeadlineDominates",
+          "statement": "(outer : Count) -> (handshake : Count) -> (idle : Count) ->\n    AtMost (effectiveDeadline outer handshake idle) outer",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary handshake and idle bounds, effectiveDeadline is at most the supplied outer bound.",
+          "premises": [
+            "All limits are finite Count values supplied to a minimum function."
+          ],
+          "limits": "No authoritative clock, queued/executing lifecycle, timeout event or progress theorem follows from this arithmetic bound."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#unownedCompletionNoRefund",
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases",
+            "proofs/10-transport.mech#outerDeadlineDominates"
+          ],
+          "rationale": "General pending-lease callbacks enforce local owned release, and deadline minima bound a supplied outer limit. There is no X7 waiting/executing timeout state or runtime-priority service composition. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Model selected runtime priority, queue/execution deadlines and ownership together; prove bounded conditional progress and correct timeout release under explicit time/fairness premises."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#unownedCompletionNoRefund",
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases",
+            "proofs/10-transport.mech#outerDeadlineDominates"
+          ],
+          "rationale": "General pending-lease callbacks enforce local owned release, and deadline minima bound a supplied outer limit. There is no X7 waiting/executing timeout state or runtime-priority service composition. The sealed criterion still needs the following statement.",
+          "remaining": "R06: Prove arbitrary waiter/executor, failure, cancellation and timeout schedules cannot refund another owner or omit retained executing work."
         }
       ]
     }
