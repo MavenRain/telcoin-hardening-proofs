@@ -227,9 +227,9 @@ def proof_plan(data: dict) -> dict:
     planned = sum(row["planned_turns"] for row in packets)
     if planned + reserve != budget:
         raise ValueError("proof-roadmap allocations and reserve differ from the turn budget")
-    if packets[0]["status"] == "closed" and (data["semantically_complete"] is not True
-            or load(ROOT / "atomic-claims.json")["coverage_complete"] is not True):
-        raise ValueError("R01 cannot close before checked semantic decomposition is complete")
+    if packets[0]["status"] == "closed":
+        scope = runpy.run_path(str(ROOT / "tools/scope.py"))["validate"]
+        scope(ROOT, data, load(ROOT / "source-ledger.json"), load(ROOT / "proof-scope.json"))
     return plan | {"planned_turns": planned,
                    "turns_used": sum(row["turns_spent"] for row in packets),
                    "closed_packets": sum(row["status"] == "closed" for row in packets)}

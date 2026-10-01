@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "scope": "r01_source_obligation_closure",
+  "date": "2026-09-30",
+  "note": "Source rationales and the fixed atomic obligation decomposition were reviewed against the pinned original and modified sources. The checks below establish link integrity and freshness, not theorem correctness or runtime qualification.",
+  "source_dispositions": {
+    "complete": true,
+    "source_units": 1383,
+    "audited_units": 1383,
+    "pending_units": 0,
+    "context_units": 672,
+    "obligation_units": 681,
+    "superseded_units": 30,
+    "model_obligations": 83,
+    "external_obligations": 43,
+    "pending_by_source": {}
+  },
+  "sealed_scope": {
+    "source_scope_sealed": true,
+    "source_units": 1383,
+    "model_obligations": 83,
+    "external_obligations": 43,
+    "original_tracking_ids": 102,
+    "decisions": 12,
+    "proof_witnesses_audited": false,
+    "external_obligations_closed": false
+  },
+  "controls": {
+    "source_dispositions": {
+      "command": "python3 -I tools/check_dispositions.py",
+      "tests": 40,
+      "exit_code": 0,
+      "local_capture": ".kanon-exec/run-j2D85j"
+    },
+    "sealed_scope": {
+      "command": "python3 -I tools/check_scope.py",
+      "tests": 15,
+      "exit_code": 0,
+      "local_capture": ".kanon-exec/run-CIYYtf"
+    }
+  },
+  "coverage_credit": {
+    "source_decomposition_complete": true,
+    "model_coverage_complete": false,
+    "implementation_proved": false,
+    "deployment_qualified": false
+  },
+  "inputs_sha256": {
+    "source-ledger.json": "3b8f64e46ef01ece5e04cdcb9d80e6a47d18b46e4e1987dfa50958d74f0a8695",
+    "proof-scope.json": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
+    "sources/manifest.json": "e97fa32b44ed587da5afa10f6d6273612c81e50175658cbaf39491ac2d38a303",
+    "tools/catalog.py": "04a1b4fd7cdb158f7604c69cca00bf821bc8721a0e9e4712fe74e7c2aa7e3dcd",
+    "tools/dispositions.py": "69c6bddeec4a84192ba8143ed63809401167540ab37f7cf6f9008a670328345b",
+    "tools/scope.py": "24b4a057875da00c1b6800e9623f7a558fc939fb7ba38f814fb751e951fcd680",
+    "tools/check_scope.py": "d332f6b02710d6dc79c0527e0133e435118d85177e4628c97b49a7c844037846",
+    "tools/check_dispositions.py": "d83e7a4d638b034497ba608bc2f43078c3af9333cc85f6a95a686f64e23dd1ea",
+    "tools/check.py": "16cfe567452a6cde5ad7f8d8e559b570c3745ba1aee9e82fcc767fbfbbf7d9c4",
+    "Makefile": "9d8ec54314e320b8f5b30556b63c0f66ed42846059f170e85413f6759a77aa5a",
+    ".github/workflows/model-checks.yml": "a6a5d97b503353df4b072b1b24f451cf70a55d79fba21ca44b802697102f25a0",
+    "docs/R01-CLOSURE.md": "64ef80da64f20d96f77fda55de8aaa7cd00f9596327f4bed9f21ea95564752d6"
+  }
+}

@@ -1,0 +1,1202 @@
+{
+  "version": 1,
+  "scope": "proof_repository",
+  "boundary": "Seal abstract decision, ownership, authentication, authorization, accounting, record, resource, scheduling and conditional workstream contracts over arbitrary finite states and traces. Cryptographic, clock, cost, availability and fairness premises remain explicit. Launch, Hub, Rotation and Later retain their source tiers and conditions. Link saturation and adversarial validators are outside the primary external-attacker envelope; admitted-hub load remains bounded. Rust/dependency refinement, numeric decisions, production measurements, provider/operator and deployment qualification remain external obligations. This seal grants no theorem, runtime or external closure credit.",
+  "workstreams": [
+    "W0",
+    "W1",
+    "W2",
+    "W3",
+    "W4",
+    "W5",
+    "W6",
+    "W7",
+    "W8",
+    "W9"
+  ],
+  "source_manifest_sha256": "e97fa32b44ed587da5afa10f6d6273612c81e50175658cbaf39491ac2d38a303",
+  "source_ledger_sha256": "3b8f64e46ef01ece5e04cdcb9d80e6a47d18b46e4e1987dfa50958d74f0a8695",
+  "obligations_sha256": "1540d34b4a6f58e8c55bbb0ae1789fcd0570876145946d86589d801b7d7d8989",
+  "obligation_ids": [
+    "E001",
+    "E002",
+    "E003",
+    "E004",
+    "E005",
+    "E006",
+    "E007",
+    "M001",
+    "M002",
+    "M003",
+    "M004",
+    "M005",
+    "M006",
+    "M007",
+    "M008",
+    "M009",
+    "M010",
+    "E008",
+    "E009",
+    "E010",
+    "E011",
+    "E012",
+    "E013",
+    "E014",
+    "E015",
+    "E016",
+    "M011",
+    "E017",
+    "E018",
+    "E019",
+    "M012",
+    "E020",
+    "E021",
+    "E022",
+    "M013",
+    "M014",
+    "M015",
+    "M016",
+    "M017",
+    "M018",
+    "M019",
+    "M020",
+    "M021",
+    "M022",
+    "M023",
+    "M024",
+    "M025",
+    "M026",
+    "M027",
+    "M028",
+    "M029",
+    "M030",
+    "M031",
+    "M032",
+    "M033",
+    "M034",
+    "M035",
+    "M036",
+    "M037",
+    "M038",
+    "M039",
+    "M040",
+    "M041",
+    "M042",
+    "M043",
+    "M044",
+    "M045",
+    "M046",
+    "M047",
+    "M048",
+    "M049",
+    "M050",
+    "M051",
+    "M052",
+    "M053",
+    "M054",
+    "M055",
+    "M056",
+    "M057",
+    "M058",
+    "M059",
+    "M060",
+    "M061",
+    "M062",
+    "M063",
+    "M064",
+    "M065",
+    "M066",
+    "M067",
+    "M068",
+    "M069",
+    "M070",
+    "M071",
+    "M072",
+    "M073",
+    "M074",
+    "M075",
+    "M076",
+    "M077",
+    "M078",
+    "M079",
+    "M080",
+    "M081",
+    "M082",
+    "M083",
+    "E023",
+    "E024",
+    "E025",
+    "E026",
+    "E027",
+    "E028",
+    "E029",
+    "E030",
+    "E031",
+    "E032",
+    "E033",
+    "E034",
+    "E035",
+    "E036",
+    "E037",
+    "E038",
+    "E039",
+    "E040",
+    "E041",
+    "E042",
+    "E043"
+  ],
+  "tracking": [
+    {
+      "id": "T1",
+      "unit": "U1141",
+      "obligations": [
+        "M001",
+        "M002",
+        "M003",
+        "M007",
+        "E008",
+        "E012",
+        "E010"
+      ]
+    },
+    {
+      "id": "T2",
+      "unit": "U1142",
+      "obligations": [
+        "E011",
+        "E020",
+        "E010"
+      ]
+    },
+    {
+      "id": "T3",
+      "unit": "U1143",
+      "obligations": [
+        "E001",
+        "E002",
+        "E003",
+        "E004",
+        "E005",
+        "E006",
+        "E007",
+        "E023"
+      ]
+    },
+    {
+      "id": "T4",
+      "unit": "U1144",
+      "obligations": [
+        "M004",
+        "M005",
+        "M003",
+        "M006",
+        "M009",
+        "M010",
+        "E012",
+        "E013",
+        "E014",
+        "E010"
+      ]
+    },
+    {
+      "id": "T5",
+      "unit": "U1145",
+      "obligations": [
+        "E021",
+        "E022",
+        "M012",
+        "M050",
+        "M049"
+      ]
+    },
+    {
+      "id": "T6",
+      "unit": "U1146",
+      "obligations": [
+        "M008",
+        "E017"
+      ]
+    },
+    {
+      "id": "T7",
+      "unit": "U1147",
+      "obligations": [
+        "E018",
+        "E019",
+        "M011"
+      ]
+    },
+    {
+      "id": "T8",
+      "unit": "U1148",
+      "obligations": [
+        "M013",
+        "M003",
+        "M007",
+        "M009",
+        "M010",
+        "M006",
+        "M074",
+        "E014",
+        "E010",
+        "E039"
+      ]
+    },
+    {
+      "id": "T9",
+      "unit": "U1149",
+      "obligations": [
+        "M014",
+        "M015",
+        "M016",
+        "M017",
+        "M018",
+        "E027",
+        "E028"
+      ]
+    },
+    {
+      "id": "T10",
+      "unit": "U1150",
+      "obligations": [
+        "M023",
+        "M019",
+        "M006",
+        "M014",
+        "M015",
+        "M016",
+        "E027",
+        "E028"
+      ]
+    },
+    {
+      "id": "T11",
+      "unit": "U1151",
+      "obligations": [
+        "M020",
+        "E027",
+        "E028"
+      ]
+    },
+    {
+      "id": "T12",
+      "unit": "U1152",
+      "obligations": [
+        "E018",
+        "E019",
+        "M021",
+        "M011",
+        "E015",
+        "E037"
+      ]
+    },
+    {
+      "id": "N1",
+      "unit": "U1159",
+      "obligations": [
+        "E024"
+      ]
+    },
+    {
+      "id": "N2",
+      "unit": "U1160",
+      "obligations": [
+        "E025",
+        "E024",
+        "E026",
+        "E001",
+        "E002",
+        "E003",
+        "E004",
+        "E005",
+        "E007"
+      ]
+    },
+    {
+      "id": "A1",
+      "unit": "U1164",
+      "obligations": [
+        "M005",
+        "E029",
+        "E013"
+      ]
+    },
+    {
+      "id": "A2",
+      "unit": "U1165",
+      "obligations": [
+        "M025",
+        "E029"
+      ]
+    },
+    {
+      "id": "A3",
+      "unit": "U1166",
+      "obligations": [
+        "M024",
+        "M012",
+        "E029"
+      ]
+    },
+    {
+      "id": "A4",
+      "unit": "U1167",
+      "obligations": [
+        "M026",
+        "E029"
+      ]
+    },
+    {
+      "id": "A5",
+      "unit": "U1168",
+      "obligations": [
+        "M022",
+        "M023",
+        "M006",
+        "M039",
+        "M019",
+        "E029",
+        "E016"
+      ]
+    },
+    {
+      "id": "A6",
+      "unit": "U1169",
+      "obligations": [
+        "M027",
+        "E029"
+      ]
+    },
+    {
+      "id": "A7",
+      "unit": "U1170",
+      "obligations": [
+        "M028",
+        "M029",
+        "E029"
+      ]
+    },
+    {
+      "id": "A8",
+      "unit": "U1171",
+      "obligations": [
+        "M031",
+        "M029",
+        "E029"
+      ]
+    },
+    {
+      "id": "A9",
+      "unit": "U1172",
+      "obligations": [
+        "M026",
+        "E029",
+        "E024"
+      ]
+    },
+    {
+      "id": "A10",
+      "unit": "U1173",
+      "obligations": [
+        "M032",
+        "E029"
+      ]
+    },
+    {
+      "id": "A11",
+      "unit": "U1174",
+      "obligations": [
+        "M033",
+        "M024",
+        "E029"
+      ]
+    },
+    {
+      "id": "A12",
+      "unit": "U1175",
+      "obligations": [
+        "M034",
+        "E029",
+        "E038"
+      ]
+    },
+    {
+      "id": "A13",
+      "unit": "U1176",
+      "obligations": [
+        "M035",
+        "M009",
+        "E029"
+      ]
+    },
+    {
+      "id": "A14",
+      "unit": "U1177",
+      "obligations": [
+        "M036",
+        "E029"
+      ]
+    },
+    {
+      "id": "A15",
+      "unit": "U1178",
+      "obligations": [
+        "M037",
+        "E029"
+      ]
+    },
+    {
+      "id": "A16",
+      "unit": "U1179",
+      "obligations": [
+        "M038",
+        "M075",
+        "E029"
+      ]
+    },
+    {
+      "id": "A17",
+      "unit": "U1180",
+      "obligations": [
+        "M007",
+        "E039",
+        "E029"
+      ]
+    },
+    {
+      "id": "A18",
+      "unit": "U1181",
+      "obligations": [
+        "M039",
+        "M006",
+        "E029",
+        "E031"
+      ]
+    },
+    {
+      "id": "A19",
+      "unit": "U1182",
+      "obligations": [
+        "M040",
+        "M023",
+        "M019",
+        "E029"
+      ]
+    },
+    {
+      "id": "A20",
+      "unit": "U1183",
+      "obligations": [
+        "M030",
+        "M029",
+        "E029"
+      ]
+    },
+    {
+      "id": "A21",
+      "unit": "U1184",
+      "obligations": [
+        "M031",
+        "E029"
+      ]
+    },
+    {
+      "id": "A22",
+      "unit": "U1185",
+      "obligations": [
+        "M041",
+        "E029"
+      ]
+    },
+    {
+      "id": "A23",
+      "unit": "U1186",
+      "obligations": [
+        "M029",
+        "M031",
+        "E030",
+        "E031"
+      ]
+    },
+    {
+      "id": "A24",
+      "unit": "U1187",
+      "obligations": [
+        "M042",
+        "E029",
+        "E031"
+      ]
+    },
+    {
+      "id": "A25",
+      "unit": "U1188",
+      "obligations": [
+        "M043",
+        "E029"
+      ]
+    },
+    {
+      "id": "A26",
+      "unit": "U1189",
+      "obligations": [
+        "M044",
+        "E029"
+      ]
+    },
+    {
+      "id": "A27",
+      "unit": "U1190",
+      "obligations": [
+        "M045",
+        "E029",
+        "E031"
+      ]
+    },
+    {
+      "id": "S1",
+      "unit": "U1194",
+      "obligations": [
+        "M046",
+        "E032"
+      ]
+    },
+    {
+      "id": "S2",
+      "unit": "U1195",
+      "obligations": [
+        "M047",
+        "E032"
+      ]
+    },
+    {
+      "id": "S3",
+      "unit": "U1196",
+      "obligations": [
+        "M048",
+        "E032"
+      ]
+    },
+    {
+      "id": "S4",
+      "unit": "U1197",
+      "obligations": [
+        "M050",
+        "M049",
+        "E032",
+        "E021"
+      ]
+    },
+    {
+      "id": "S5",
+      "unit": "U1198",
+      "obligations": [
+        "M051",
+        "E032"
+      ]
+    },
+    {
+      "id": "S6",
+      "unit": "U1199",
+      "obligations": [
+        "M052",
+        "E032",
+        "E036"
+      ]
+    },
+    {
+      "id": "S7",
+      "unit": "U1200",
+      "obligations": [
+        "M053",
+        "E032"
+      ]
+    },
+    {
+      "id": "S8",
+      "unit": "U1201",
+      "obligations": [
+        "M054",
+        "E032"
+      ]
+    },
+    {
+      "id": "S9",
+      "unit": "U1202",
+      "obligations": [
+        "M055",
+        "E032",
+        "E040"
+      ]
+    },
+    {
+      "id": "G1",
+      "unit": "U1206",
+      "obligations": [
+        "M056",
+        "E033"
+      ]
+    },
+    {
+      "id": "G2",
+      "unit": "U1207",
+      "obligations": [
+        "M057",
+        "E033"
+      ]
+    },
+    {
+      "id": "G3",
+      "unit": "U1208",
+      "obligations": [
+        "E033",
+        "E039"
+      ]
+    },
+    {
+      "id": "G4",
+      "unit": "U1209",
+      "obligations": [
+        "M058",
+        "E033"
+      ]
+    },
+    {
+      "id": "G5",
+      "unit": "U1210",
+      "obligations": [
+        "M059",
+        "M024",
+        "E033"
+      ]
+    },
+    {
+      "id": "G6",
+      "unit": "U1211",
+      "obligations": [
+        "M060",
+        "E033"
+      ]
+    },
+    {
+      "id": "G7",
+      "unit": "U1212",
+      "obligations": [
+        "M075",
+        "E033",
+        "E036"
+      ]
+    },
+    {
+      "id": "D1",
+      "unit": "U1216",
+      "obligations": [
+        "E034"
+      ]
+    },
+    {
+      "id": "D2",
+      "unit": "U1217",
+      "obligations": [
+        "M061",
+        "E034"
+      ]
+    },
+    {
+      "id": "D3",
+      "unit": "U1218",
+      "obligations": [
+        "M062",
+        "E034"
+      ]
+    },
+    {
+      "id": "D4",
+      "unit": "U1219",
+      "obligations": [
+        "M063",
+        "E034"
+      ]
+    },
+    {
+      "id": "R1",
+      "unit": "U1223",
+      "obligations": [
+        "M064",
+        "E035"
+      ]
+    },
+    {
+      "id": "R2",
+      "unit": "U1224",
+      "obligations": [
+        "M065",
+        "E035"
+      ]
+    },
+    {
+      "id": "R3",
+      "unit": "U1225",
+      "obligations": [
+        "M066",
+        "E035"
+      ]
+    },
+    {
+      "id": "R4",
+      "unit": "U1226",
+      "obligations": [
+        "M066",
+        "E035",
+        "E037"
+      ]
+    },
+    {
+      "id": "R5",
+      "unit": "U1227",
+      "obligations": [
+        "M067",
+        "E035"
+      ]
+    },
+    {
+      "id": "R6",
+      "unit": "U1228",
+      "obligations": [
+        "M068",
+        "M077",
+        "E035"
+      ]
+    },
+    {
+      "id": "R7",
+      "unit": "U1229",
+      "obligations": [
+        "E035"
+      ]
+    },
+    {
+      "id": "R8",
+      "unit": "U1230",
+      "obligations": [
+        "E035",
+        "E036",
+        "E037"
+      ]
+    },
+    {
+      "id": "R9",
+      "unit": "U1231",
+      "obligations": [
+        "M069",
+        "M066",
+        "E035"
+      ]
+    },
+    {
+      "id": "R10",
+      "unit": "U1232",
+      "obligations": [
+        "M070",
+        "E035"
+      ]
+    },
+    {
+      "id": "R11",
+      "unit": "U1233",
+      "obligations": [
+        "M071",
+        "E035"
+      ]
+    },
+    {
+      "id": "R12",
+      "unit": "U1234",
+      "obligations": [
+        "M072",
+        "E035"
+      ]
+    },
+    {
+      "id": "R13",
+      "unit": "U1235",
+      "obligations": [
+        "M073",
+        "E035"
+      ]
+    },
+    {
+      "id": "O1",
+      "unit": "U1239",
+      "obligations": [
+        "M074",
+        "E009",
+        "E036"
+      ]
+    },
+    {
+      "id": "O2",
+      "unit": "U1240",
+      "obligations": [
+        "M052",
+        "M074",
+        "E009",
+        "E036"
+      ]
+    },
+    {
+      "id": "O3",
+      "unit": "U1241",
+      "obligations": [
+        "M075",
+        "E036"
+      ]
+    },
+    {
+      "id": "O4",
+      "unit": "U1242",
+      "obligations": [
+        "M076",
+        "E036"
+      ]
+    },
+    {
+      "id": "O5",
+      "unit": "U1243",
+      "obligations": [
+        "M077",
+        "E036"
+      ]
+    },
+    {
+      "id": "O6",
+      "unit": "U1244",
+      "obligations": [
+        "M052",
+        "E036"
+      ]
+    },
+    {
+      "id": "O7",
+      "unit": "U1245",
+      "obligations": [
+        "M074",
+        "E036"
+      ]
+    },
+    {
+      "id": "O8",
+      "unit": "U1246",
+      "obligations": [
+        "M074",
+        "E036"
+      ]
+    },
+    {
+      "id": "O9",
+      "unit": "U1247",
+      "obligations": [
+        "E036",
+        "E037"
+      ]
+    },
+    {
+      "id": "P1",
+      "unit": "U1251",
+      "obligations": [
+        "E031",
+        "E037",
+        "E038"
+      ]
+    },
+    {
+      "id": "P2",
+      "unit": "U1252",
+      "obligations": [
+        "M078",
+        "E037"
+      ]
+    },
+    {
+      "id": "P3",
+      "unit": "U1253",
+      "obligations": [
+        "E037",
+        "E040"
+      ]
+    },
+    {
+      "id": "P4",
+      "unit": "U1254",
+      "obligations": [
+        "E038",
+        "M026",
+        "E030"
+      ]
+    },
+    {
+      "id": "P5",
+      "unit": "U1255",
+      "obligations": [
+        "E031",
+        "M029",
+        "M031"
+      ]
+    },
+    {
+      "id": "P6",
+      "unit": "U1256",
+      "obligations": [
+        "E038",
+        "E037"
+      ]
+    },
+    {
+      "id": "M1",
+      "unit": "U1260",
+      "obligations": [
+        "M007",
+        "M008",
+        "E010",
+        "E018",
+        "E041"
+      ]
+    },
+    {
+      "id": "M2",
+      "unit": "U1261",
+      "obligations": [
+        "E030",
+        "E041"
+      ]
+    },
+    {
+      "id": "M3",
+      "unit": "U1262",
+      "obligations": [
+        "E021",
+        "E022",
+        "E032",
+        "E041"
+      ]
+    },
+    {
+      "id": "M4",
+      "unit": "U1263",
+      "obligations": [
+        "E010",
+        "E012",
+        "E041"
+      ]
+    },
+    {
+      "id": "M5",
+      "unit": "U1264",
+      "obligations": [
+        "E039",
+        "E041"
+      ]
+    },
+    {
+      "id": "X1",
+      "unit": "U1269",
+      "obligations": [
+        "E042",
+        "M014",
+        "M015",
+        "M016"
+      ]
+    },
+    {
+      "id": "X2",
+      "unit": "U1270",
+      "obligations": [
+        "M006",
+        "M003",
+        "E042"
+      ]
+    },
+    {
+      "id": "X3",
+      "unit": "U1271",
+      "obligations": [
+        "M050",
+        "M049",
+        "M029",
+        "E042"
+      ]
+    },
+    {
+      "id": "X4",
+      "unit": "U1272",
+      "obligations": [
+        "M045",
+        "M080",
+        "E042"
+      ]
+    },
+    {
+      "id": "X5",
+      "unit": "U1273",
+      "obligations": [
+        "M081",
+        "E042"
+      ]
+    },
+    {
+      "id": "X6",
+      "unit": "U1274",
+      "obligations": [
+        "M082",
+        "M024",
+        "E042"
+      ]
+    },
+    {
+      "id": "X7",
+      "unit": "U1275",
+      "obligations": [
+        "M083",
+        "E042"
+      ]
+    },
+    {
+      "id": "X8",
+      "unit": "U1276",
+      "obligations": [
+        "M007",
+        "E042"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D01",
+      "unit": "U1286",
+      "obligations": [
+        "E010",
+        "E040"
+      ]
+    },
+    {
+      "id": "D02",
+      "unit": "U1287",
+      "obligations": [
+        "E010",
+        "E021",
+        "E022",
+        "E040"
+      ]
+    },
+    {
+      "id": "D03",
+      "unit": "U1288",
+      "obligations": [
+        "E010",
+        "E022",
+        "M007",
+        "E040"
+      ]
+    },
+    {
+      "id": "D04",
+      "unit": "U1289",
+      "obligations": [
+        "E010",
+        "E021",
+        "E022",
+        "E040"
+      ]
+    },
+    {
+      "id": "D05",
+      "unit": "U1290",
+      "obligations": [
+        "M022",
+        "M023",
+        "M006",
+        "M039",
+        "M019",
+        "M040",
+        "E040",
+        "E029"
+      ]
+    },
+    {
+      "id": "D06",
+      "unit": "U1291",
+      "obligations": [
+        "M003",
+        "M009",
+        "M010",
+        "E014",
+        "M013",
+        "M024",
+        "M035",
+        "E040"
+      ]
+    },
+    {
+      "id": "D07",
+      "unit": "U1292",
+      "obligations": [
+        "E011",
+        "E020",
+        "E040"
+      ]
+    },
+    {
+      "id": "D08",
+      "unit": "U1293",
+      "obligations": [
+        "E010",
+        "E011",
+        "E020",
+        "E040",
+        "E041"
+      ]
+    },
+    {
+      "id": "D09",
+      "unit": "U1294",
+      "obligations": [
+        "E001",
+        "E002",
+        "E003",
+        "E004",
+        "E005",
+        "E007",
+        "E025",
+        "E026",
+        "E040"
+      ]
+    },
+    {
+      "id": "D10",
+      "unit": "U1295",
+      "obligations": [
+        "M020",
+        "E027",
+        "E028",
+        "E040"
+      ]
+    },
+    {
+      "id": "D11",
+      "unit": "U1296",
+      "obligations": [
+        "E037",
+        "E031",
+        "E040"
+      ]
+    },
+    {
+      "id": "D12",
+      "unit": "U1297",
+      "obligations": [
+        "E038",
+        "E031",
+        "E040"
+      ]
+    }
+  ]
+}

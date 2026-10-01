@@ -17,8 +17,10 @@ the original drafts retain provenance and unresolved details. The
 [186 atomic model obligations](atomic-claims.json) documenting theorem links,
 assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
-retain all 1,383 source units. Textual coverage is complete; atomic semantic
-decomposition is not.
+retain all 1,383 source units. Source dispositions and the atomic source-obligation
+scope are sealed in [proof-scope.json](proof-scope.json): 83 model and 43 external
+obligations, all 102 original tracking IDs, and D01-D12. Proof-witness coverage
+remains incomplete. See the [R01 closure audit](docs/R01-CLOSURE.md).
 
 ## Run locally
 

@@ -1,17 +1,26 @@
 # Evidence still required
+R01 now seals all 1,383 source dispositions and the 83 model/43 external
+obligations in [proof-scope.json](../proof-scope.json). See the
+[closure audit](../docs/R01-CLOSURE.md) and
+[checked receipt](../evidence/r01-closure-check.json). Earlier batch receipts
+record their historical snapshots. R02 must still audit exact theorem witnesses;
+implementation and deployment evidence remains outstanding.
+
+
 
 No runtime or deployment result has been supplied or synthesized. The `.build`
 report records local model checking only. The current complete-qualification
 command rejects all implementation and deployment certification.
 
 `source-disposition-check.json` records the current pinned source-disposition
-links and the exact pending remainder. `t2-t5-source-audit-model-check.json`
-records the full proof/mutation run and blocked-qualification regression after
-the fourth R01 audit batch. That batch audits the original T02/T05 drafts and
-selected revised requirements, retaining twelve model and twenty-two external
-obligations. It assigns no theorem witnesses or new proof credit; candidate
-implementation links were not checked in this run. Source rationales still
-require semantic review, and R01 remains active.
+links and the exact pending remainder, which is now zero.
+`t2-t5-source-audit-model-check.json` records the full proof/mutation run and
+blocked-qualification regression after the fourth R01 audit batch. That batch
+audited the original T02/T05 drafts and selected revised requirements, and
+retained twelve model and twenty-two external obligations. It assigned no
+theorem witnesses or new proof credit. Candidate implementation links were not
+checked in that run. The fifth turn reviewed the remaining source units and
+closed R01. See `r01-closure-check.json`.
 
 `initial-model-check.json` preserves the first model-checking receipt.
 `trace-model-check.json` records the expanded transition proofs, atomic ledger,
@@ -773,10 +782,10 @@ refinement, ownership, storage, cleanup and service delivery remain open.
 
 `source-disposition-check.json` is a byte copy of
 `.build/source-disposition-report.json` from `make dispositions`. It validates
-the pinned ledger for all 1,383 source units. 457 units have an audited
-disposition: 255 context, 176 obligation and 26 superseded. 926 units remain
-pending. The ledger assigns 12 model obligations, M001-M012, and 22 external
-obligations, E001-E022. The checker verifies source pins, exhaustive unit
+the pinned ledger for all 1,383 source units. All 1,383 units have an audited
+disposition: 672 context, 681 obligation and 30 superseded. No unit remains
+pending. The ledger assigns 83 model obligations, M001-M083, and 43 external
+obligations, E001-E043. The checker verifies source pins, exhaustive unit
 coverage, obligation links and reconciliation structure. It gives no proof
 credit. Reviewers must still assess each rationale and each closure scope.
 
@@ -785,8 +794,9 @@ credit. Reviewers must still assess each rationale and each closure scope.
 with their historical counts. `t2-t5-source-audit-model-check.json` records the
 fourth batch: 57 modules, 991 checked proof declarations, 186 atomic model
 obligations, 1,383 source units, no axioms and 937 rejected negative checks.
-Its `source_dispositions` block equals the `dispositions` block of the current
-`source-disposition-check.json`. Implementation links were not checked in this
+Its `source_dispositions` block equaled the `dispositions` block of
+`source-disposition-check.json` after the fourth batch. `r01-closure-check.json`
+records the current counts. Implementation links were not checked in this
 run. The full qualification command still returns the expected blocked exit 2.
 
 The fourth batch audits every original T02/T05 unit and selected revised
@@ -805,5 +815,6 @@ for hostile ceiling attempts alongside catch-up and critical traffic. Credit is
 not resident memory, cumulative connection counts are not concurrent occupancy,
 and lowering constants alone does not close the measured whole-process budget.
 No theorem witnesses or candidate atoms are credited to the new obligations.
-Claim decomposition, implementation proof and deployment qualification remain
-incomplete, and R01 remains active after four execution turns.
+R01 was active after four execution turns. The fifth turn closed claim
+decomposition. Implementation proof and deployment qualification remain
+incomplete.

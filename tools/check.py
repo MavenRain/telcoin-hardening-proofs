@@ -2183,7 +2183,8 @@ def implementation_links(path: Path | None, catalog: dict) -> dict:
 
 def input_hashes() -> dict[str, str]:
     paths = ["claims.json", "atomic-claims.json", "source-inventory.json", "source-ledger.json",
-             "proof-roadmap.json", "docs/FULL-QUALIFICATION-ROADMAP.md", "docs/SOURCE-LEDGER.md",
+             "proof-roadmap.json", "proof-scope.json", "docs/R01-CLOSURE.md",
+             "docs/FULL-QUALIFICATION-ROADMAP.md", "docs/SOURCE-LEDGER.md",
              "sources/manifest.json", "implementation-map.json", "toolchain.lock.json",
              "README.md", "docs/COVERAGE.md", "docs/MODELS.md", "docs/TRUST.md",
              "docs/ROADMAP.md", "Makefile", ".github/workflows/model-checks.yml"]
@@ -2243,11 +2244,13 @@ def main() -> int:
               "claim_groups": len(claims), "source_units": len(inventory["units"]),
               "atomic_model_obligations": len(atoms),
               "source_dispositions": inventory["dispositions"],
-              "claim_decomposition_complete": False,
+              "claim_decomposition_complete": inventory["semantically_complete"],
+              "model_coverage_complete": catalog["load"](ROOT / "atomic-claims.json")["coverage_complete"],
               "source_sha256": hashlib.sha256(source.encode()).hexdigest(),
               "compiler": provenance, "implementation_links": linked,
               "implementation_proved": False, "deployment_qualified": False,
-              "blockers": ["Complete atomic claim decomposition and model coverage",
+              "blockers": ["Complete model proof coverage of the sealed source obligations" if inventory["semantically_complete"]
+                           else "Complete atomic claim decomposition and model coverage",
                            "Machine-checked refinement from pinned Rust and transport dependencies",
                            "Resolve D01-D12 and record the accepted numerical envelope",
                            "Supply required M1-M6, topology, storage and operator evidence"]}

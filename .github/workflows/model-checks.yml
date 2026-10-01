@@ -17,6 +17,8 @@ jobs:
           persist-credentials: false
       - name: Check source disposition weakening controls
         run: python3 -I tools/check_dispositions.py
+      - name: Check sealed source scope weakening controls
+        run: python3 -I tools/check_scope.py
       - uses: ocaml/setup-ocaml@93303b622b2522e4411e295f9e77411a24912ac7
         with:
           ocaml-compiler: "5.2.1"

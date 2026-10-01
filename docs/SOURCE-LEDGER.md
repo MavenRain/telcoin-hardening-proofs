@@ -1,4 +1,12 @@
 # Source disposition ledger
+R01 now seals all 1,383 source dispositions and the 83 model/43 external
+obligations in [proof-scope.json](../proof-scope.json). See the
+[closure audit](../docs/R01-CLOSURE.md) and
+[checked receipt](../evidence/r01-closure-check.json). Earlier batch receipts
+record their historical snapshots. R02 must still audit exact theorem witnesses;
+implementation and deployment evidence remains outstanding.
+
+
 
 `source-ledger.json` is the R01 audit record for the pinned Markdown source
 units. Run `make dispositions` to validate its links and `make
@@ -85,9 +93,10 @@ E008-E016 separately retain transport implementation and token tests, bounded
 observations, hardware/configuration qualification, stock-release fixtures,
 effective directional deadlines, pending-accounting refinement, the source
 quota contract, a conditional receive-buffer knob and runtime fallback tests.
-The ledger now contains ten model and sixteen external obligations. No theorem
-has been credited or model obligation closed: exact witness/assumption auditing
-remains R02 work, and external evidence remains outstanding.
+At the end of this batch, the ledger contained ten model and sixteen external
+obligations. No theorem has been credited or model obligation closed: exact
+witness/assumption auditing remains R02 work, and external evidence remains
+outstanding.
 
 Reconciliations preserve the original model requirements while recording the
 modified plan's changes to experimental acceptance. Historical collapse rates
@@ -178,8 +187,9 @@ observable shedding and selected catch-up, vote/epoch-record and persistence bou
 The original unconditional absence of a capacity warning is reconciled to these
 observable, selected service guarantees. Lower constants alone do not close T5.
 
-The ledger now contains twelve model and twenty-two external obligations. M012
-is assigned to R03; E020-E022 require external evidence in R08. No theorem witness
-or candidate atom is assigned here. R01 remains active after four of its five
-planned turns; source closure, claim decomposition and full qualification remain
-incomplete. Later packets remain pending.
+At the end of this batch, the ledger contained twelve model and twenty-two
+external obligations. M012 is assigned to R03; E020-E022 require external
+evidence in R08. No theorem witness or candidate atom is assigned here. R01 was
+active after four of its five planned turns. The fifth turn closed source
+disposition and claim decomposition. See [R01 source scope closure](R01-CLOSURE.md).
+Full qualification remains incomplete, and later packets remain pending.

@@ -8,8 +8,8 @@
       "id": "R01",
       "title": "Seal the semantic ledger and proof boundary",
       "planned_turns": 5,
-      "turns_spent": 4,
-      "status": "active",
+      "turns_spent": 5,
+      "status": "closed",
       "depends_on": [],
       "workstreams": [
         "W0",
@@ -28,7 +28,23 @@
         "Every in-scope normative clause maps to a fixed atomic obligation and a closure packet. Splits and merged duplicates preserve source traceability and the original requirement.",
         "A machine-checked disposition ledger establishes semantic completeness. Replace hard-coded incomplete flags in catalog/check only after that check exists, while preserving the full-qualification guard."
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "criterion": 0,
+          "path": "source-ledger.json",
+          "sha256": "3b8f64e46ef01ece5e04cdcb9d80e6a47d18b46e4e1987dfa50958d74f0a8695"
+        },
+        {
+          "criterion": 1,
+          "path": "proof-scope.json",
+          "sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74"
+        },
+        {
+          "criterion": 2,
+          "path": "evidence/r01-closure-check.json",
+          "sha256": "1491fa04a5299bc8a7c92eaa372185edfe541c616d7456ee0f08f560fb83b969"
+        }
+      ]
     },
     {
       "id": "R02",

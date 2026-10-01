@@ -3,38 +3,24 @@
   "scope": "source_disposition_links",
   "note": "Disposition rationales require semantic review; candidate atoms receive no proof credit.",
   "dispositions": {
-    "complete": false,
+    "complete": true,
     "source_units": 1383,
-    "audited_units": 457,
-    "pending_units": 926,
-    "context_units": 255,
-    "obligation_units": 176,
-    "superseded_units": 26,
-    "model_obligations": 12,
-    "external_obligations": 22,
-    "pending_by_source": {
-      "sources/w1-modified/00-INDEX.md": 21,
-      "sources/w1-modified/01-MODIFIED-PLAN.md": 104,
-      "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md": 43,
-      "sources/w1-modified/03-RATIONALE-AND-CROSSWALK.md": 163,
-      "sources/w1-modified/04-DECISIONS-AND-ACCEPTANCE.md": 58,
-      "sources/w1-modified/06-DOCUMENT-CHECKS.md": 11,
-      "sources/w1/00-INDEX.md": 203,
-      "sources/w1/T03-patched-transport-crate-upkeep.md": 50,
-      "sources/w1/T08-validated-address-handshake-rate.md": 55,
-      "sources/w1/T09-redundant-cert-verification.md": 55,
-      "sources/w1/T10-late-refusal-of-strangers.md": 50,
-      "sources/w1/T11-dialer-chosen-kx-group.md": 57,
-      "sources/w1/T12-single-inbound-socket.md": 56
-    }
+    "audited_units": 1383,
+    "pending_units": 0,
+    "context_units": 672,
+    "obligation_units": 681,
+    "superseded_units": 30,
+    "model_obligations": 83,
+    "external_obligations": 43,
+    "pending_by_source": {}
   },
   "inputs_sha256": {
-    "source-ledger.json": "886b92cbb2fd31a26ef6766d94c53ce140a9013cc727dd6dcd0021f65b79537f",
+    "source-ledger.json": "3b8f64e46ef01ece5e04cdcb9d80e6a47d18b46e4e1987dfa50958d74f0a8695",
     "sources/manifest.json": "e97fa32b44ed587da5afa10f6d6273612c81e50175658cbaf39491ac2d38a303",
     "claims.json": "b81035c436510a6407647045e007579f25999894f9980c89e2b7f8a8bbe05964",
     "atomic-claims.json": "fbd54c1b0b99b0053aaa5a17cf4754ba7790cb01425ca10932fabb39bcf0800c",
-    "proof-roadmap.json": "d761f127972ce6066d3ba5bc9231ae974875c6956d38bb4206dc1db873dd6a42",
-    "tools/catalog.py": "de44fae262fa44138c960daab5022fea4256a4b7ca2f955db913214f6a480c56",
+    "proof-roadmap.json": "0e7579776d3b0934b03479f39b09291d0250eda8111fb42c9019f293f29bc590",
+    "tools/catalog.py": "04a1b4fd7cdb158f7604c69cca00bf821bc8721a0e9e4712fe74e7c2aa7e3dcd",
     "tools/dispositions.py": "69c6bddeec4a84192ba8143ed63809401167540ab37f7cf6f9008a670328345b"
   }
 }

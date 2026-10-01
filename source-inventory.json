@@ -1,32 +1,18 @@
 {
   "version": 1,
-  "semantically_complete": false,
+  "semantically_complete": true,
   "note": "Disposition links are checked; semantic rationales and theorem scope require review.",
   "dispositions": {
-    "complete": false,
+    "complete": true,
     "source_units": 1383,
-    "audited_units": 457,
-    "pending_units": 926,
-    "context_units": 255,
-    "obligation_units": 176,
-    "superseded_units": 26,
-    "model_obligations": 12,
-    "external_obligations": 22,
-    "pending_by_source": {
-      "sources/w1-modified/00-INDEX.md": 21,
-      "sources/w1-modified/01-MODIFIED-PLAN.md": 104,
-      "sources/w1-modified/02-W1-DELIVERY-BACKLOG.md": 43,
-      "sources/w1-modified/03-RATIONALE-AND-CROSSWALK.md": 163,
-      "sources/w1-modified/04-DECISIONS-AND-ACCEPTANCE.md": 58,
-      "sources/w1-modified/06-DOCUMENT-CHECKS.md": 11,
-      "sources/w1/00-INDEX.md": 203,
-      "sources/w1/T03-patched-transport-crate-upkeep.md": 50,
-      "sources/w1/T08-validated-address-handshake-rate.md": 55,
-      "sources/w1/T09-redundant-cert-verification.md": 55,
-      "sources/w1/T10-late-refusal-of-strangers.md": 50,
-      "sources/w1/T11-dialer-chosen-kx-group.md": 57,
-      "sources/w1/T12-single-inbound-socket.md": 56
-    }
+    "audited_units": 1383,
+    "pending_units": 0,
+    "context_units": 672,
+    "obligation_units": 681,
+    "superseded_units": 30,
+    "model_obligations": 83,
+    "external_obligations": 43,
+    "pending_by_source": {}
   },
   "units": [
     {
