@@ -19,12 +19,12 @@ assumptions, source ranges and open implementation obligations. The
 [coverage table](docs/COVERAGE.md) and [source inventory](source-inventory.json)
 retain all 1,383 source units. Source dispositions and the atomic source-obligation
 scope are sealed in [proof-scope.json](proof-scope.json): 83 model and 43 external
-obligations, all 102 original tracking IDs, and D01-D12. Proof-witness coverage
-remains incomplete. See the [R01 closure audit](docs/R01-CLOSURE.md) and
-[R02 witness audit](docs/R02-AUDIT.md). After four R02 turns, 61 model
-obligations are audited: M005 is covered and 60 retain exact R03-R07 model gaps.
-The remaining 22 R08 obligations and R02 closure form the final batch in the
-[five-turn R02 plan](docs/R02-BATCHES.md).
+obligations, all 102 original tracking IDs, and D01-D12. The proof-witness census
+is complete; model coverage remains incomplete. See the
+[R01 closure audit](docs/R01-CLOSURE.md) and [R02 witness audit](docs/R02-AUDIT.md).
+R02 closes after five turns with all 83 model obligations reviewed and zero
+unaudited criteria. M005 is covered; 82 obligations retain exact R03-R08 model
+gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records the completed batches.
 
 ## Run locally
 
@@ -44,7 +44,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 937 deliberately invalid
+source hashes and coverage freshness, and requires 938 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.

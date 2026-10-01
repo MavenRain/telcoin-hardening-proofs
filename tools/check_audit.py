@@ -40,9 +40,9 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 61, 1, 60, 22))
-        self.assertEqual(result["unaudited_criteria"], 44)
-        self.assertFalse(result["witness_audit_complete"])
+                          result["unreviewed_obligations"]), (83, 83, 1, 82, 0))
+        self.assertEqual(result["unaudited_criteria"], 0)
+        self.assertTrue(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
@@ -222,8 +222,10 @@ class AuditChecks(unittest.TestCase):
     def test_complete_audit_requires_every_criterion_reviewed(self):
         for row in self.data["obligations"]:
             row.update(reviewed=True, scope_review="Required scope still needs audit.")
+        self.row("M056")["criteria"][0]["status"] = "unreviewed"
         result = self.validate()
         self.assertEqual(result["unreviewed_obligations"], 0)
+        self.assertEqual(result["unaudited_criteria"], 1)
         self.assertFalse(result["witness_audit_complete"])
 
     def test_unknown_fields_cannot_force_complete_status(self):
@@ -231,6 +233,8 @@ class AuditChecks(unittest.TestCase):
         self.reject("audit fields")
 
     def test_R02_cannot_close_with_unaudited_criteria(self):
+        self.row("M056")["criteria"][0]["status"] = "unreviewed"
+        inventory = self.inventory | {"witness_audit": self.validate()}
         original_load = catalog["load"]
         plan = original_load(ROOT / "proof-roadmap.json")
         packet = plan["packets"][1]
@@ -242,7 +246,21 @@ class AuditChecks(unittest.TestCase):
             return plan if path.name == "proof-roadmap.json" else original_load(path)
         with patch.dict(catalog["proof_plan"].__globals__, {"load": load}):
             with self.assertRaisesRegex(ValueError, "R02 witness audit is incomplete"):
-                catalog["proof_plan"](self.inventory)
+                catalog["proof_plan"](inventory)
+
+    def test_complete_witness_audit_can_close_R02_with_remaining_model_gaps(self):
+        original_load = catalog["load"]
+        plan = original_load(ROOT / "proof-roadmap.json")
+        packet = plan["packets"][1]
+        packet["status"] = "closed"
+        pin = hashlib.sha256((ROOT / "proof-audit.json").read_bytes()).hexdigest()
+        packet["evidence"] = [{"criterion": index, "path": "proof-audit.json", "sha256": pin}
+                              for index in range(len(packet["exit_criteria"]))]
+        def load(path):
+            return plan if path.name == "proof-roadmap.json" else original_load(path)
+        with patch.dict(catalog["proof_plan"].__globals__, {"load": load}):
+            self.assertEqual(catalog["proof_plan"](self.inventory)["packets"][1]["status"], "closed")
+        self.assertFalse(self.inventory["witness_audit"]["model_coverage_complete"])
 
     def test_unknown_scope_or_status_value_is_rejected(self):
         self.row()["witnesses"][0]["scope_kind"] = "fully_proved"

@@ -3073,75 +3073,91 @@
     {
       "id": "M056",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. No incoming gossip frame, RPC envelope, parser or verification-stage machine exists. Generic ingress counts do not bound work performed before those counts are charged.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No incoming gossip frame, RPC envelope, parser or verification-stage machine exists. Generic ingress counts do not bound work performed before those counts are charged. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model G1 frame/RPC admission with finite byte, member and verification-work budgets before the corresponding processing stages."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No incoming gossip frame, RPC envelope, parser or verification-stage machine exists. Generic ingress counts do not bound work performed before those counts are charged. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove those bounds for arbitrary hostile collections and malformed/refused inputs, preserving the order of each charge and costly stage."
         }
       ]
     },
     {
       "id": "M057",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 5 R08 witness audit. fullPublishRefuses is a closed transport-admission equality. It has no gossip publish queue, remote receiver, drain loop or scheduling transition.",
+      "witnesses": [
+        {
+          "path": "proofs/30-admission-and-service.mech",
+          "name": "fullPublishRefuses",
+          "statement": "Equal Outcome (preAccept validated off) refuse",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed validated/off input returns refuse.",
+          "premises": [
+            "The preAccept source is validated and the capacity flag is supplied as off."
+          ],
+          "limits": "fullPublishRefuses is a closed transport-admission equality. It has no gossip publish queue, remote receiver, drain loop or scheduling transition."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#fullPublishRefuses"
+          ],
+          "rationale": "fullPublishRefuses is a closed transport-admission equality. It has no gossip publish queue, remote receiver, drain loop or scheduling transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model G2 finite publish enqueue/drop/refusal transitions that return control without awaiting remote delivery or draining an unbounded queue."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/30-admission-and-service.mech#fullPublishRefuses"
+          ],
+          "rationale": "fullPublishRefuses is a closed transport-admission equality. It has no gossip publish queue, remote receiver, drain loop or scheduling transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove return and conditional node service for arbitrary receiver and queue states with explicit finite scheduling and backpressure premises."
         }
       ]
     },
     {
       "id": "M058",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. The source-admission models charge supplied connection keys, but no gossip author/propagation-source distinction or message-class accounting bridge exists.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The source-admission models charge supplied connection keys, but no gossip author/propagation-source distinction or message-class accounting bridge exists. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model G4 finite propagation-connection and message-class work charges, independent of attacker-claimed authors."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The source-admission models charge supplied connection keys, but no gossip author/propagation-source distinction or message-class accounting bridge exists. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Preserve charge attribution and budgets for arbitrary duplicate/replay traffic and unrelated peers, including refusal and failed verification."
         }
       ]
     },
@@ -3232,475 +3248,759 @@
     {
       "id": "M061",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Generic queue bounds and service rounds are not bound to live-pack database reads, persistence writes or owned permits. The D1 remediation decision remains external.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic queue bounds and service rounds are not bound to live-pack database reads, persistence writes or owned permits. The D1 remediation decision remains external. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Under selected D2 remediation, model finite live-pack read queues and permit ownership with isolation from persistence work."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic queue bounds and service rounds are not bound to live-pack database reads, persistence writes or owned permits. The D1 remediation decision remains external. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove conditional persistence service for arbitrary admitted hub reads, cancellations and queue states with explicit cost and scheduling premises."
         }
       ]
     },
     {
       "id": "M062",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Finite slot occupancy and retained scalar costs contain no recent-pack task, thread or file-handle creation/release machine.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Finite slot occupancy and retained scalar costs contain no recent-pack task, thread or file-handle creation/release machine. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model D3 recent-pack request/task and handle ownership so retained requests bound both thread and file-descriptor churn."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Finite slot occupancy and retained scalar costs contain no recent-pack task, thread or file-handle creation/release machine. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove concurrent and cumulative retained-work bounds over arbitrary requests, completion, cancellation and failure, including waiting handles."
         }
       ]
     },
     {
       "id": "M063",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. No EpochRecordDb state or read/write transitions exist. Generic ingress and live-pack candidate abstractions cannot establish this database-specific property.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No EpochRecordDb state or read/write transitions exist. Generic ingress and live-pack candidate abstractions cannot establish this database-specific property. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Under selected D4 remediation, model finite EpochRecordDb read/write queues and owned read permits with persistence protection."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No EpochRecordDb state or read/write transitions exist. Generic ingress and live-pack candidate abstractions cannot establish this database-specific property. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove queue bounds and conditional persistence service over arbitrary database-specific traces, cancellation and failure with explicit service premises."
         }
       ]
     },
     {
       "id": "M064",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 5 R08 witness audit. onlySubmitMethod universally refuses otherMethod; overloadIsDistinct is a closed no-capacity example. RpcMethod has only two constructors and RpcVerdict has no HTTP status, parsing or profile state.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "onlySubmitMethod",
+          "statement": "(capacity : Flag) ->\n    Equal RpcVerdict (submitFront off otherMethod capacity) methodRefused",
+          "scope_kind": "general_transition",
+          "establishes": "Either capacity flag refuses the abstract otherMethod when isBatch is off.",
+          "premises": [
+            "The parsed method is represented by otherMethod and isBatch is supplied as off."
+          ],
+          "limits": "onlySubmitMethod universally refuses otherMethod; overloadIsDistinct is a closed no-capacity example. RpcMethod has only two constructors and RpcVerdict has no HTTP status, parsing or profile state."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "overloadIsDistinct",
+          "statement": "Equal RpcVerdict (submitFront off sendRawTransaction off) overloaded",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed nonbatch sendRawTransaction/off input returns overloaded.",
+          "premises": [
+            "The batch flag is supplied as off, the method is sendRawTransaction and the capacity flag is supplied as off."
+          ],
+          "limits": "onlySubmitMethod universally refuses otherMethod; overloadIsDistinct is a closed no-capacity example. RpcMethod has only two constructors and RpcVerdict has no HTTP status, parsing or profile state."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#onlySubmitMethod",
+            "proofs/40-ingress-and-operations.mech#overloadIsDistinct"
+          ],
+          "rationale": "onlySubmitMethod universally refuses otherMethod; overloadIsDistinct is a closed no-capacity example. RpcMethod has only two constructors and RpcVerdict has no HTTP status, parsing or profile state. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Bind parsed method names and the selected validator submit-only profile to eth_sendRawTransaction-only dispatch and specified non-2xx refusals."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#onlySubmitMethod",
+            "proofs/40-ingress-and-operations.mech#overloadIsDistinct"
+          ],
+          "rationale": "onlySubmitMethod universally refuses otherMethod; overloadIsDistinct is a closed no-capacity example. RpcMethod has only two constructors and RpcVerdict has no HTTP status, parsing or profile state. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove method/refusal behavior for arbitrary parsed requests and profile states, keeping overload, malformed input and transaction verdicts distinct."
         }
       ]
     },
     {
       "id": "M065",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 5 R08 witness audit. batchesRejected quantifies over method and capacity but assumes the batch flag is on. No batch members, empty/malformed collections or alternative enabled profile are modeled.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "batchesRejected",
+          "statement": "(method : RpcMethod) -> (capacity : Flag) ->\n    Equal RpcVerdict (submitFront on method capacity) batchRefused",
+          "scope_kind": "general_transition",
+          "establishes": "Every abstract method and capacity flag returns batchRefused when isBatch is on.",
+          "premises": [
+            "The parsed batch classification is supplied as on."
+          ],
+          "limits": "batchesRejected quantifies over method and capacity but assumes the batch flag is on. No batch members, empty/malformed collections or alternative enabled profile are modeled."
+        }
+      ],
+      "controls": [
+        {
+          "name": "batch_admitted",
+          "sha256": "93e003da1f861a15e860ab793d5f1c02b67ad8ad2caa8107e039bba477664939"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#batchesRejected"
+          ],
+          "rationale": "batchesRejected quantifies over method and capacity but assumes the batch flag is on. No batch members, empty/malformed collections or alternative enabled profile are modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Bind submit-only batch rejection and per-member screening in other enabled profiles to parsed empty, mixed and malformed batches."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#batchesRejected"
+          ],
+          "rationale": "batchesRejected quantifies over method and capacity but assumes the batch flag is on. No batch members, empty/malformed collections or alternative enabled profile are modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove screening for arbitrary batches and profile switches, so wrapping or aliasing a forbidden method cannot bypass dispatch checks."
         }
       ]
     },
     {
       "id": "M066",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 5 R08 witness audit. forgedForwardingHeaderIgnored handles either header flag when authenticatedProxy is off. Both flags are supplied; no configured proxy identity, address or victim allowance is represented.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "forgedForwardingHeaderIgnored",
+          "statement": "(header : Flag) -> Equal Flag (attributedSource off header) off",
+          "scope_kind": "general_transition",
+          "establishes": "Either forwardedHeader flag gives attribution off when authenticatedProxy is off.",
+          "premises": [
+            "The approved authenticated-proxy classification is supplied as off."
+          ],
+          "limits": "forgedForwardingHeaderIgnored handles either header flag when authenticatedProxy is off. Both flags are supplied; no configured proxy identity, address or victim allowance is represented."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#forgedForwardingHeaderIgnored"
+          ],
+          "rationale": "forgedForwardingHeaderIgnored handles either header flag when authenticatedProxy is off. Both flags are supplied; no configured proxy identity, address or victim allowance is represented. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model verified configured-proxy authority and source matching, ignoring forwarding metadata from direct or untrusted clients."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#forgedForwardingHeaderIgnored"
+          ],
+          "rationale": "forgedForwardingHeaderIgnored handles either header flag when authenticatedProxy is off. Both flags are supplied; no configured proxy identity, address or victim allowance is represented. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary forged headers and mismatched sources cannot select privileged tiers or charge another source allowance, including proxy-policy changes."
         }
       ]
     },
     {
       "id": "M067",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 5 R08 witness audit. General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "overload429NoDemotion",
+          "statement": "(n : Count) -> Equal Count (demotionCount http429 n) n",
+          "scope_kind": "general_transition",
+          "establishes": "For every failure count, http429 leaves that counter unchanged.",
+          "premises": [
+            "The ForwardResult constructor is supplied and the Count failure counter does not wrap."
+          ],
+          "limits": "General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "overload503NoDemotion",
+          "statement": "(n : Count) -> Equal Count (demotionCount http503 n) n",
+          "scope_kind": "general_transition",
+          "establishes": "For every failure count, http503 leaves that counter unchanged.",
+          "premises": [
+            "The ForwardResult constructor is supplied and the Count failure counter does not wrap."
+          ],
+          "limits": "General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "transactionVerdictNoDemotion",
+          "statement": "(n : Count) -> Equal Count (demotionCount transactionRejected n) n",
+          "scope_kind": "general_transition",
+          "establishes": "For every failure count, transactionRejected leaves that counter unchanged.",
+          "premises": [
+            "The ForwardResult constructor is supplied and the Count failure counter does not wrap."
+          ],
+          "limits": "General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions."
+        }
+      ],
+      "controls": [
+        {
+          "name": "overload_demotes",
+          "sha256": "1c4c3c95a72247680700e676f34557a3ca4166ca73dba49764c92c4584a2973a"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#overload429NoDemotion",
+            "proofs/40-ingress-and-operations.mech#overload503NoDemotion",
+            "proofs/40-ingress-and-operations.mech#transactionVerdictNoDemotion"
+          ],
+          "rationale": "General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R5 endpoint-local overload/backoff with 429/503 and Retry-After propagation distinct from transaction verdicts."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#overload429NoDemotion",
+            "proofs/40-ingress-and-operations.mech#overload503NoDemotion",
+            "proofs/40-ingress-and-operations.mech#transactionVerdictNoDemotion"
+          ],
+          "rationale": "General Count equalities keep one failure counter unchanged for fixed 429, 503 and transaction-rejection constructors. There are no endpoint populations, Retry-After values or retry/status propagation transitions. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary multiple-front retries and refusal results preserve unrelated usable endpoint state without cascading demotion."
         }
       ]
     },
     {
       "id": "M068",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 5 R08 witness audit. noEarlyRetirement handles either newPathPassed flag when convergence is off; failedNewPathKeepsOld is a closed example. No advertised URLs, readiness evidence, migration or rollback machine derives the supplied flags.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "noEarlyRetirement",
+          "statement": "(newPathPassed : Flag) -> Equal Flag (retireOldEndpoint off newPathPassed) off",
+          "scope_kind": "general_transition",
+          "establishes": "Either newPathPassed flag keeps retirement off when convergence is off.",
+          "premises": [
+            "The convergence classification is supplied as off."
+          ],
+          "limits": "noEarlyRetirement handles either newPathPassed flag when convergence is off; failedNewPathKeepsOld is a closed example. No advertised URLs, readiness evidence, migration or rollback machine derives the supplied flags."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "failedNewPathKeepsOld",
+          "statement": "Equal Flag (retireOldEndpoint on off) off",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed converged/on and newPathPassed/off inputs give retirement off.",
+          "premises": [
+            "The convergence and qualification flags are supplied as on and off."
+          ],
+          "limits": "noEarlyRetirement handles either newPathPassed flag when convergence is off; failedNewPathKeepsOld is a closed example. No advertised URLs, readiness evidence, migration or rollback machine derives the supplied flags."
+        }
+      ],
+      "controls": [
+        {
+          "name": "early_endpoint_retirement",
+          "sha256": "dfff59dd4ccca7754ba75dd85347c2e18f60efd5e8947e919e7a64781a5cfe60"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#noEarlyRetirement",
+            "proofs/40-ingress-and-operations.mech#failedNewPathKeepsOld"
+          ],
+          "rationale": "noEarlyRetirement handles either newPathPassed flag when convergence is off; failedNewPathKeepsOld is a closed example. No advertised URLs, readiness evidence, migration or rollback machine derives the supplied flags. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R6 old/new endpoint rollout so worker-RPC isolation follows verified submit-URL convergence and successful new-path qualification."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#noEarlyRetirement",
+            "proofs/40-ingress-and-operations.mech#failedNewPathKeepsOld"
+          ],
+          "rationale": "noEarlyRetirement handles either newPathPassed flag when convergence is off; failedNewPathKeepsOld is a closed example. No advertised URLs, readiness evidence, migration or rollback machine derives the supplied flags. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove old-path retention and rollback for arbitrary partial/stale convergence and failed or unknown O5/new-path evidence."
         }
       ]
     },
     {
       "id": "M069",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Generic burst/tick and source debt theorems do not model trusted-forwarder RPC roles, verified forwarding addresses or aggregate method-work charging.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic burst/tick and source debt theorems do not model trusted-forwarder RPC roles, verified forwarding addresses or aggregate method-work charging. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R9 finite selected forwarder tiers with verified source attribution and shared aggregate RPC request-work limits."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Generic burst/tick and source debt theorems do not model trusted-forwarder RPC roles, verified forwarding addresses or aggregate method-work charging. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove bounds under arbitrary trusted/untrusted callers, shared addresses and overload without an unbounded proxy or claimed-address exemption."
         }
       ]
     },
     {
       "id": "M070",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Weighted resource arithmetic assumes supplied occupancy and per-entry cost bounds. There is no observer read-pool allocation, method-cost or stale-data readiness machine.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Weighted resource arithmetic assumes supplied occupancy and per-entry cost bounds. There is no observer read-pool allocation, method-cost or stale-data readiness machine. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R10 finite observer read-pool ownership and heterogeneous request costs with declared freshness/readiness predicates."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Weighted resource arithmetic assumes supplied occupancy and per-entry cost bounds. There is no observer read-pool allocation, method-cost or stale-data readiness machine. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove cost/occupancy bounds and usable-service observations for arbitrary requests, stale data, refusal and cancellation."
         }
       ]
     },
     {
       "id": "M071",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Front-side booleans and generic network rate envelopes have no node-side RPC method-cost, source-provenance or profile transition.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Front-side booleans and generic network rate envelopes have no node-side RPC method-cost, source-provenance or profile transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: When R11 is selected, model finite node-side per-source and aggregate request-work budgets with verified provenance."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Front-side booleans and generic network rate envelopes have no node-side RPC method-cost, source-provenance or profile transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove bounds over arbitrary method costs, callers, profile changes and refused requests independently of front-side limits."
         }
       ]
     },
     {
       "id": "M072",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. The two-constructor RpcMethod abstraction has no tn_* namespace configuration, method aliases or batch dispatch.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The two-constructor RpcMethod abstraction has no tn_* namespace configuration, method aliases or batch dispatch. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R12 enabled tn_* method sets and namespace-controlled parsed request/batch dispatch."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "The two-constructor RpcMethod abstraction has no tn_* namespace configuration, method aliases or batch dispatch. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary disabled methods, aliases and batch members cannot bypass the selected namespace configuration."
         }
       ]
     },
     {
       "id": "M073",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. No fee-cap value/default, upstream URL, HTTPS scheme or forwarded-protocol trust state is modeled.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No fee-cap value/default, upstream URL, HTTPS scheme or forwarded-protocol trust state is modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model R13 selected fee-cap defaults and validated forwarded-protocol/HTTPS upstream configuration."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No fee-cap value/default, upstream URL, HTTPS scheme or forwarded-protocol trust state is modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary configuration and trusted/untrusted header states preserve the upstream/origin contract, including malformed inputs and failure."
         }
       ]
     },
     {
       "id": "M074",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
+      "scope_review": "Turn 5 R08 witness audit. metricDomainBound quantifies over the three MetricStage constructors and bounds their indexes by two. It contains no source-keyed diagnostic store, retention, eviction, committee lifecycle or export transition.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "metricDomainBound",
+          "statement": "(stage : MetricStage) ->\n    AtMost (metricIndex stage) (next (next zero))",
+          "scope_kind": "general_transition",
+          "establishes": "Every MetricStage constructor has an index at most two.",
+          "premises": [
+            "The production label domain is restricted to the three MetricStage constructors."
+          ],
+          "limits": "metricDomainBound quantifies over the three MetricStage constructors and bounds their indexes by two. It contains no source-keyed diagnostic store, retention, eviction, committee lifecycle or export transition."
+        }
+      ],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#metricDomainBound"
+          ],
+          "rationale": "metricDomainBound quantifies over the three MetricStage constructors and bounds their indexes by two. It contains no source-keyed diagnostic store, retention, eviction, committee lifecycle or export transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model bounded O1/O2/O7/O8 label cardinality and diagnostic retention/eviction distinct from production metric labels."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#metricDomainBound"
+          ],
+          "rationale": "metricDomainBound quantifies over the three MetricStage constructors and bounds their indexes by two. It contains no source-keyed diagnostic store, retention, eviction, committee lifecycle or export transition. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove bounds for arbitrary addresses/PeerIds and committee/trusted lifecycle and export traces, including retained diagnostic state."
         }
       ]
     },
     {
       "id": "M075",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. No remotely driven log-site, keyed limiter, emission cost or volume transition is present. Scalar network budgets do not cover logging side effects.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No remotely driven log-site, keyed limiter, emission cost or volume transition is present. Scalar network budgets do not cover logging side effects. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model O3/G7 constant-size log-limiter state with finite work and volume at every remotely triggerable site."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No remotely driven log-site, keyed limiter, emission cost or volume transition is present. Scalar network budgets do not cover logging side effects. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove state/work/volume bounds over arbitrary attacker keys and repeated errors, including the limiter and error-reporting paths."
         }
       ]
     },
     {
       "id": "M076",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. No connected-quorum count, record-resolution snapshot, consensus commit observation or elapsed-time predicate is modeled.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No connected-quorum count, record-resolution snapshot, consensus commit observation or elapsed-time predicate is modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model O4 distinct quorum-shortfall and commit-gap observations from the corresponding snapshot/count/time state."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "No connected-quorum count, record-resolution snapshot, consensus commit observation or elapsed-time predicate is modeled. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove observations faithfully track their distinct predicates under arbitrary snapshots and time transitions without conflating record resolution, connectivity and consensus progress."
         }
       ]
     },
     {
       "id": "M077",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
+      "scope_review": "Turn 5 R08 witness audit. Endpoint retirement consumes a supplied convergence flag; committee record freshness does not derive unresolved-key or submit-URL convergence observations.",
       "witnesses": [],
       "controls": [],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Endpoint retirement consumes a supplied convergence flag; committee record freshness does not derive unresolved-key or submit-URL convergence observations. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model O5 observations from verified unresolved-key and advertised submit-URL state, including changing records and configurations."
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "rationale": "Endpoint retirement consumes a supplied convergence flag; committee record freshness does not derive unresolved-key or submit-URL convergence observations. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary stale caches and partial updates cannot report migration readiness before verified convergence."
         }
       ]
     },
     {
       "id": "M078",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 5 R08 witness audit. protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented.",
+      "witnesses": [
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "protocolPeersPermitted",
+          "statement": "(future : Flag) -> Equal Flag (firewallPermits on future) on",
+          "scope_kind": "general_transition",
+          "establishes": "Either future flag permits a supplied current protocol member.",
+          "premises": [
+            "The current-membership classification is supplied as on."
+          ],
+          "limits": "protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "futureCanBePrePermitted",
+          "statement": "Equal Flag (firewallPermits off on) on",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed current/off and future/on inputs are firewall-permitted.",
+          "premises": [
+            "The supplied current membership flag is off and the future membership flag is on."
+          ],
+          "limits": "protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented."
+        },
+        {
+          "path": "proofs/40-ingress-and-operations.mech",
+          "name": "futureStillNotProtocolMember",
+          "statement": "Equal Flag (admission on on closedProfile off) off",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed authenticated closed-profile nonmember is refused protocol admission.",
+          "premises": [
+            "Authentication and policy validity are on, the profile is closedProfile, and current membership is off."
+          ],
+          "limits": "protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented."
+        }
+      ],
+      "controls": [
+        {
+          "name": "firewall_omits_current",
+          "sha256": "713939d7860aec1e6021bb26797c1becaf1e5f4f0b8497e51e92a3e4ea51de65"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#protocolPeersPermitted",
+            "proofs/40-ingress-and-operations.mech#futureCanBePrePermitted",
+            "proofs/40-ingress-and-operations.mech#futureStillNotProtocolMember"
+          ],
+          "rationale": "protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model P2 protocol/firewall projections from one source, covering every primary/worker address while allowing the deliberate future-validator superset."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/40-ingress-and-operations.mech#protocolPeersPermitted",
+            "proofs/40-ingress-and-operations.mech#futureCanBePrePermitted",
+            "proofs/40-ingress-and-operations.mech#futureStillNotProtocolMember"
+          ],
+          "rationale": "protocolPeersPermitted handles either future flag for a supplied current member; two closed examples allow future pre-permission without protocol admission. No address collection, shared projection source or revision is represented. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove containment and completeness across arbitrary peer/address sets and rotation revisions without asserting unconditional set equality."
         }
       ]
     },
     {
       "id": "M079",
       "closure_packet": "R08",
-      "reviewed": false,
+      "reviewed": true,
       "scope_complete": false,
-      "scope_review": "",
-      "witnesses": [],
-      "controls": [],
+      "scope_review": "Turn 5 R08 witness audit. anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived.",
+      "witnesses": [
+        {
+          "path": "proofs/50-qualification.mech",
+          "name": "anyMissingGateBlocks",
+          "statement": "(prefix : Checks) -> (suffix : Checks) ->\n    Equal Flag (allChecks (appendChecks prefix (checkItem off suffix))) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every finite gate-list prefix and suffix surrounding an off gate evaluates to off.",
+          "premises": [
+            "All applicable required gates have already been included in Checks.",
+            "A failed or unknown required gate is supplied as off."
+          ],
+          "limits": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived."
+        },
+        {
+          "path": "proofs/50-qualification.mech",
+          "name": "modelAloneInsufficient",
+          "statement": "(envelope : Flag) -> (firewallRun : Flag) ->\n    (hardware : Flag) -> (gates : Checks) ->\n    Equal Flag (resilienceQualified off envelope firewallRun hardware gates) off",
+          "scope_kind": "general_transition",
+          "establishes": "Missing implementation linkage blocks qualification for every other supplied flag and release-gate list.",
+          "premises": [
+            "implementationLinked is supplied as off."
+          ],
+          "limits": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived."
+        },
+        {
+          "path": "proofs/50-qualification.mech",
+          "name": "unknownEnvelopeBlocks",
+          "statement": "(firewallRun : Flag) -> (hardware : Flag) -> (gates : Checks) ->\n    Equal Flag (resilienceQualified on off firewallRun hardware gates) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unspecified numeric envelope blocks qualification for every remaining flag and gate list.",
+          "premises": [
+            "implementationLinked is on and numericEnvelopeSpecified is off."
+          ],
+          "limits": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived."
+        },
+        {
+          "path": "proofs/50-qualification.mech",
+          "name": "firewallRequiredBlocksQualification",
+          "statement": "(hardware : Flag) -> (gates : Checks) ->\n    Equal Flag (resilienceQualified on on off hardware gates) off",
+          "scope_kind": "general_transition",
+          "establishes": "A missing firewall-disabled run blocks qualification for every hardware flag and gate list.",
+          "premises": [
+            "Implementation linkage and the envelope are on; firewallDisabledRun is off."
+          ],
+          "limits": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived."
+        },
+        {
+          "path": "proofs/50-qualification.mech",
+          "name": "emulationAloneInsufficient",
+          "statement": "(gates : Checks) ->\n    Equal Flag (resilienceQualified on on on off gates) off",
+          "scope_kind": "general_transition",
+          "establishes": "Missing representative hardware blocks qualification for every release-gate list.",
+          "premises": [
+            "Implementation, envelope and firewall-run flags are on; representativeHardware is off."
+          ],
+          "limits": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived."
+        }
+      ],
+      "controls": [
+        {
+          "name": "model_claims_implementation",
+          "sha256": "3dbb813a927487019f40b5be6044b1a68dad103b6e0028affeb53e827566b02f"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/50-qualification.mech#anyMissingGateBlocks",
+            "proofs/50-qualification.mech#modelAloneInsufficient",
+            "proofs/50-qualification.mech#unknownEnvelopeBlocks",
+            "proofs/50-qualification.mech#firewallRequiredBlocksQualification",
+            "proofs/50-qualification.mech#emulationAloneInsufficient"
+          ],
+          "rationale": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Model applicable feature-release and deployment gate selection with failed/unknown evidence blocking the affected declaration."
         },
         {
           "index": 1,
-          "status": "unreviewed",
-          "witnesses": [],
-          "rationale": "No witness audit yet.",
-          "remaining": "Audit this criterion against the sealed required scope."
+          "status": "gap",
+          "witnesses": [
+            "proofs/50-qualification.mech#anyMissingGateBlocks",
+            "proofs/50-qualification.mech#modelAloneInsufficient",
+            "proofs/50-qualification.mech#unknownEnvelopeBlocks",
+            "proofs/50-qualification.mech#firewallRequiredBlocksQualification",
+            "proofs/50-qualification.mech#emulationAloneInsufficient"
+          ],
+          "rationale": "anyMissingGateBlocks handles arbitrary finite gate-list prefixes and suffixes. General qualification blockers consume supplied flags; neither applicability nor failed/unknown evidence classification, release/deployment separation or rollout checkpoints is derived. The sealed criterion requires the following additional model statement.",
+          "remaining": "R08: Prove arbitrary conditional remediation, threshold changes, investigations and rollout checkpoints cannot waive a required failed/unknown gate."
         }
       ]
     },

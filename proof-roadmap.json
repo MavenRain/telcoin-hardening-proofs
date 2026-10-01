@@ -50,8 +50,8 @@
       "id": "R02",
       "title": "Audit and reuse the existing proof corpus",
       "planned_turns": 3,
-      "turns_spent": 4,
-      "status": "active",
+      "turns_spent": 5,
+      "status": "closed",
       "depends_on": [
         "R01"
       ],
@@ -72,7 +72,23 @@
         "Existing finite examples, arbitrary trace theorems, conditional liveness results and assumptions have distinct audited scopes.",
         "Each remaining proof gap belongs to R03-R08. Redundant examples and helper additions are omitted unless they discharge a frozen obligation or expose a counterexample."
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "criterion": 0,
+          "path": "proof-audit.json",
+          "sha256": "e5304191613e6e77e5563b893746015a2c4b036246983e1859ee0fc2581b5ec1"
+        },
+        {
+          "criterion": 1,
+          "path": "docs/R02-AUDIT.md",
+          "sha256": "e70502ca1e1bad288542792be46c83a6d386f00d52b2414450bc8adaa687ea3f"
+        },
+        {
+          "criterion": 2,
+          "path": "proof-audit.json",
+          "sha256": "e5304191613e6e77e5563b893746015a2c4b036246983e1859ee0fc2581b5ec1"
+        }
+      ]
     },
     {
       "id": "R03",

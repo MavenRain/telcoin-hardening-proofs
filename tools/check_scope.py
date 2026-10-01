@@ -115,6 +115,8 @@ class ScopeChecks(unittest.TestCase):
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copyfile(ROOT / relative, target)
             plan = catalog["load"](ROOT / "proof-roadmap.json")
+            # This fixture exercises R01 without inheriting later packet evidence.
+            plan["packets"][1].update(status="pending", evidence=[])
             first = plan["packets"][0]
             first["status"] = "closed"
             first["evidence"] = [{"criterion": index, "path": relative,

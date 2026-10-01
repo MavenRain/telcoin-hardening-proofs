@@ -3,8 +3,9 @@ R01 now seals all 1,383 source dispositions and the 83 model/43 external
 obligations in [proof-scope.json](../proof-scope.json). See the
 [closure audit](../docs/R01-CLOSURE.md) and
 [checked receipt](../evidence/r01-closure-check.json). Earlier batch receipts
-record their historical snapshots. R02 must still audit exact theorem witnesses;
-implementation and deployment evidence remains outstanding.
+record their historical snapshots. R02 now closes the exact theorem-witness
+census for all 83 model obligations. Model coverage, implementation and
+deployment evidence remain outstanding.
 
 
 
@@ -929,3 +930,20 @@ Audit complete coverage and full qualification still return blocked exit 2.
 Implementation links were not checked in this run. R02 remains active after
 two of its three planned turns; seven of the overall 50 turns are used. All
 43 external obligations remain open. See [the current audit](../docs/R02-AUDIT.md).
+
+## R02 closure, fifth pass
+
+`r02-closure-check.json` supersedes the earlier R02 batch snapshots for the
+current witness census. All 83 obligations and every acceptance criterion are
+reviewed: M005 is covered, 82 obligations retain exact R03-R08 gaps, and zero
+criteria are unaudited. R02 closes after five turns; overall use is 10/50 turns
+and two of ten proof packets are closed.
+
+The receipt records fresh audit, scope, source-disposition and inventory checks,
+30 audit regressions, 15 scope regressions and 40 disposition regressions.
+Compiler, axiom and 938 mutation-rejection evidence is reused from the unchanged
+turn-3 proof corpus through the turn-4 receipt; all 88 turn-4 input hashes
+matched before editing. Changed metadata is listed separately. No fresh full
+model or qualification-guard run is claimed. Complete model coverage still
+returns blocked exit 2, and all 43 external obligations remain open. See
+[the audited exit evidence](../docs/R02-AUDIT.md).
