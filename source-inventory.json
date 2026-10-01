@@ -14,6 +14,28 @@
     "external_obligations": 43,
     "pending_by_source": {}
   },
+  "witness_audit": {
+    "audit_valid": true,
+    "proof_scope_sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
+    "audit_sha256": "5903a224dc53d990524b72ed400af6ec644e4535b21e3532cb442e8f6d0242ae",
+    "modules": 57,
+    "proof_declarations": 991,
+    "model_obligations": 83,
+    "reviewed_obligations": 4,
+    "covered_obligations": 0,
+    "partial_obligations": 4,
+    "unreviewed_obligations": 79,
+    "witness_scope_counts": {
+      "arbitrary_trace": 4,
+      "finite_example": 1,
+      "general_transition": 6
+    },
+    "unaudited_criteria": 167,
+    "witness_audit_complete": false,
+    "model_coverage_complete": false,
+    "external_obligations_closed": false,
+    "note": "Pins and audit structure are checked. Semantic entailment, scope classifications and premises require review; compiler checks are separate."
+  },
   "units": [
     {
       "source": "sources/w1/00-INDEX.md",

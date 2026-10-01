@@ -1,0 +1,2341 @@
+{
+  "version": 1,
+  "scope": "proof_repository",
+  "proof_scope_sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
+  "source_ledger_sha256": "3b8f64e46ef01ece5e04cdcb9d80e6a47d18b46e4e1987dfa50958d74f0a8695",
+  "corpus_sha256": {
+    "proofs/00-foundation.mech": "9fab456e373ba97f8abbc9ad09d00928f3f52f53eb74386742bd57e81237df67",
+    "proofs/05-arithmetic.mech": "94621ee6d66714802f69e2767d94c86047e3ece005e1060be8346c3f0bf7d51f",
+    "proofs/10-transport.mech": "4d3b91343b201965dfad1d3013ade088d6ef3e3854534727ce3441d9ba6e587c",
+    "proofs/15-poll-continuation.mech": "3e1b9cbb876be15b3080ca64129035ed00ec68bb56fc048af17beb96289ebc87",
+    "proofs/20-accounting.mech": "773cc9d92b41648d5cfcb62816becc7b9a33f9e3a632246fcedaf3b703207587",
+    "proofs/21-pending-lifecycle.mech": "db9546e88d9b81efce559aaacf0b9cb84bd52dad34d6e6a345a989fde6e51226",
+    "proofs/22-weighted-resources.mech": "34cea679f6b34a899f93952ff0eef9149899f76ebed2cdfa3402267589f6ea15",
+    "proofs/25-handshake-budget.mech": "6d5ec1e1040b666e1cec482fe1a5c82718b019be9d1b8718bc3655c47e21b603",
+    "proofs/26-discrete-rate-envelope.mech": "cefb15cd85c4f6734a02a5d566ba2b00e99c338407eea16f7e9f90a35c5d6ae5",
+    "proofs/27-source-table.mech": "1b84f4b5be1db65ead54499c27cae8addc13f94b1793324d8bf45d252943714e",
+    "proofs/28-source-enforcement.mech": "c198f0e13946074f67fb7bff273bb321d7d3336095d1c89d01406d7509cf2b53",
+    "proofs/29-source-system.mech": "3cbf0058a91b64c168a4a85dfa616406921b8623a864d46728b192e27ad45caa",
+    "proofs/30-admission-and-service.mech": "88cc3a7e94edd5de04e4ab92416d779dceb6444c7274b75ed5ca45ca4c98f0cb",
+    "proofs/31-committee-records.mech": "12d614e7cf4da3b011c8f67cda921098bfb87fcfb4ec11ad85db8f1617026ede",
+    "proofs/32-policy-snapshots.mech": "986e1faa7ca31c5bdcd2c1603129ae438b1f8d1d7bdc180a2cf10c40e326a933",
+    "proofs/33-policy-readers.mech": "4d0824a20f1297407d70d9c8c653538cf87c5a9868506e68e8fb65ab78fe2289",
+    "proofs/34-policy-traces.mech": "b7d732229ac6c1cf0c2af8234b53f430f2d24f571ad4ef8ace3e3108d4cc8309",
+    "proofs/35-critical-service.mech": "a0ebcc0801174202d88e4e5cf09c6dce9973f82b721dd2f7cc9899f5d1a5b632",
+    "proofs/36-governed-resources.mech": "0a91f4d4a5c6b947e29aae399e2d630b3e9db172bc041f716362faf18ae1279e",
+    "proofs/37-source-admission.mech": "680650a9a81610ab4ae89b733ff898f70ea5247334446c83d8d3a7f1c0ab4a07",
+    "proofs/38-source-admission-rate.mech": "2f01f979a02e4ac28924b3dec9221edb17b197f4213a26b382f18a601863b4dc",
+    "proofs/39-indexed-source-admission.mech": "dc4cae2cd7b5dc2f4b398c43bc6ca7b35dda51fdac3f4274fc2cb5d2a3ad9f7f",
+    "proofs/40-ingress-and-operations.mech": "86ad783560d747e47b8116666959076949ba4f8577c1cc203f9608e670392d6f",
+    "proofs/41-policy-source-admission.mech": "897c2aae3d368c0062864329bc292e8dd507a327e3b5f61d74011b0627b8fd99",
+    "proofs/42-policy-work.mech": "7ac12854a311d82fcb7c5c98d873393cf31c0a025f0daae125d8e08540653986",
+    "proofs/43-policy-ingress.mech": "e9e49d6677177ec7351479624c93fde383196bd5d01d68ba7e4ce8b7e5289972",
+    "proofs/44-policy-ingress-poll.mech": "c321ebafdf512db0a2e4102fbd52255a58da991a929cfd739f95f1f40ad8e0bb",
+    "proofs/45-policy-ingress-queue.mech": "5a19203864d0e3394ca1872cb1429ad6cd353bdf8266562a2faab8e9e1680b9a",
+    "proofs/46-policy-ingress-schedule.mech": "caab95c308e7b323f9e85584ffd4550f945461f2f7298f3cd1238c7c98c013dc",
+    "proofs/47-policy-ingress-overload.mech": "032701276bafde3e31615e1d9bf1c433efa070eeb8a22355aa292903c305d6a4",
+    "proofs/48-policy-ingress-payload.mech": "6c1e7fd49f38c670f9deca5bd9986b7072ce0761accc66e3966c246ac2b08c1a",
+    "proofs/49-policy-ingress-scan.mech": "be0f2e9b00de6832b76d23ed2127437190a5f28293f66cab9e4470df50c5e78d",
+    "proofs/50-qualification.mech": "180d424fbe434eb766f77fcc31db6bd59b4bbf86b98f267a03cda69dbf9ff4ea",
+    "proofs/51-policy-ingress-resumption.mech": "104945ff2d2c92f20b9053a0abf84004d45059a1387b5922439cba94ce125c1e",
+    "proofs/52-policy-ingress-deferred.mech": "f3c17a565e0eacf0d7b9bb57dc55340e93a6c7021478b4822ee5424aca394aa0",
+    "proofs/53-policy-ingress-handoff-schedule.mech": "a3d70770580170265dfce8e961890b3396a4b5ba781a1976c47381b2b3e97f43",
+    "proofs/54-policy-ingress-handoff-service.mech": "0502ecedc0e46618bc962da5726c9cc05313b2d29d3f793d1ebaeb43e4c29a53",
+    "proofs/55-policy-ingress-handoff-pauses.mech": "0ecfad34c82da757c22cbca0a0ec215f339a1a7aa3a98457b641658aa2326707",
+    "proofs/56-policy-ingress-paced-execution.mech": "830a7cc8ba3fe47c2b3326a65d3d825dae17fbd3a9a19c61116e1b0e3c012bc7",
+    "proofs/57-policy-ingress-paced-cost.mech": "a420487481536555c5a1834c7f3c575042dc98e6bb40088e98221626a625cc8f",
+    "proofs/58-policy-ingress-variable-scans.mech": "6f6751251ced35959b7e7bc0f3e0de199a72d2e5a55f5e7cb99b30730ee36180",
+    "proofs/59-policy-ingress-accounting.mech": "028307e6f2078527ef58bd4c634a95327589568afcb1e6600f88498d112aab66",
+    "proofs/60-policy-ingress-composition.mech": "2a8f0456786e955e64dcf07be69b2f5055c85327e593306ae1751aff2c8ad61d",
+    "proofs/61-policy-ingress-execution-composition.mech": "e8260927d8cff12a5a31e569a709c622f5ce4c86bca17ae127412fd3530a16c6",
+    "proofs/62-policy-ingress-cost-composition.mech": "bb0c4d60455d369ee01fddb30735458d7df3db31063b92daf5069a58039e3734",
+    "proofs/63-policy-ingress-capacity-handoff.mech": "823e2f91dffc9ec18a2f730bfc444dc43362e639eda2d48778e3d831c682bf61",
+    "proofs/64-policy-ingress-capacity-accounting.mech": "45f46319dd92c5e8e394f8568b6ed4174380eb0f582584c590f6949f366fe731",
+    "proofs/65-policy-ingress-capacity-composition.mech": "e52e4083d8e7d896d7b2bb127caf3b54bd06e808e3e75f906fb237047a746015",
+    "proofs/66-policy-ingress-capacity-execution.mech": "6e5ecc2056976555a8f33769c6e92bfa2bf79ed20408b9f2b2efb4666cb3fa92",
+    "proofs/67-policy-ingress-capacity-cost.mech": "28697d339a5df622ffae65e0cf4a883dd97517d504373c67bc11ff8d4a37817b",
+    "proofs/68-policy-ingress-capacity-schedule.mech": "f5028a7a88d2b826cb42784454a82d3a30eed6c79b18981e9c0b2662490fc866",
+    "proofs/69-policy-ingress-capacity-schedule-execution.mech": "5f5a9c7b4d9cf753cf5784a35e18b4b1a5a9e80d1955fbcc0f062a886fa24236",
+    "proofs/70-policy-ingress-capacity-schedule-cost.mech": "98439411cf3e9eff6c50c828907c5e18c283c0dfaace2bd7d54e43f104e75468",
+    "proofs/71-policy-ingress-capacity-schedule-composition.mech": "10d74f9355de8dda2268c1acc325aecd7ccdc9d73db1832d8248710aad5b8a7f",
+    "proofs/72-policy-ingress-capacity-schedule-cost-composition.mech": "68d8f3ff978d27c5f2b94cca7e3b7515efd6b77194548f59cb30392a461aeeb5",
+    "proofs/73-policy-ingress-capacity-schedule-compatibility.mech": "27fb0055e193e81fa8198034415dc2f10f2436d14a50747be9a0797655d5b93a",
+    "proofs/74-policy-ingress-capacity-schedule-cost-compatibility.mech": "f2520312a58165d8d038a3f8090a5ad6e702cdb999cde7cc6a3098e1fada0dd3"
+  },
+  "obligations": [
+    {
+      "id": "M001",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M002",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M003",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M004",
+      "closure_packet": "R03",
+      "reviewed": true,
+      "scope_complete": false,
+      "scope_review": "The fixed LeasePool capacity and arbitrary PoolTrace bound are audited. A held lease refuses a reservation. Total-pool saturation and indexed admission branches in modules 37 and 39 still need a source-to-witness audit.",
+      "witnesses": [
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "heldReservationDenied",
+          "statement": "(generation : Count) ->\n    Equal CompletionToken (reservationToken (tryReserve (heldLease generation))) noOwnedLease",
+          "scope_kind": "general_transition",
+          "establishes": "A held lease produces no owned reservation token for every generation.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "Local denial alone does not state that zero total availability implies every indexed admission is refused."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "pendingOccupancyTraceBound",
+          "statement": "(trace : PoolTrace) -> (pool : LeasePool) ->\n    AtMost (leaseOccupancy (runPool trace pool)) (leaseCapacity pool)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite PoolTrace preserves occupancy at most the initial LeasePool capacity.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "PoolTrace contains reserveAt and completeAt; pre-validation queues and established resources are separate."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "pendingConservationTrace",
+          "statement": "(trace : PoolTrace) -> (pool : LeasePool) ->\n    Equal Count (add (leaseOccupancy (runPool trace pool)) (leaseAvailability (runPool trace pool)))\n      (leaseCapacity pool)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Occupancy plus availability equals initial capacity after every finite PoolTrace.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "Conservation does not state the saturated indexed admission decision."
+        }
+      ],
+      "controls": [
+        {
+          "name": "pending_pool_grows",
+          "sha256": "b92c67c2beffb6c319b6d38a6c3634e68906d115c1f2fd40115e5378f33f0979"
+        }
+      ],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#heldReservationDenied"
+          ],
+          "rationale": "The local held-slot refusal is general over generations; the required total-capacity refusal bridge is not audited.",
+          "remaining": "Audit a general implication from exhausted total pending capacity to refusal for every indexed admission branch in modules 37 and 39."
+        },
+        {
+          "index": 1,
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#pendingOccupancyTraceBound",
+            "proofs/21-pending-lifecycle.mech#pendingConservationTrace"
+          ],
+          "rationale": "The bound and conservation statements quantify over every finite modeled PoolTrace and initial LeasePool.",
+          "remaining": ""
+        }
+      ]
+    },
+    {
+      "id": "M005",
+      "closure_packet": "R03",
+      "reviewed": true,
+      "scope_complete": false,
+      "scope_review": "Audited local terminal reasons, unowned no-op, duplicate release and arbitrarily old generations. Indexed receipt ownership and whole-pool baseline restoration across every terminal branch remain unaudited.",
+      "witnesses": [
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "unownedCompletionNoRefund",
+          "statement": "(reason : PendingEnd) -> (lease : Lease) ->\n    Equal Lease (pendingCompletion noOwnedLease reason lease) lease",
+          "scope_kind": "general_transition",
+          "establishes": "An unowned completion is a no-op for every terminal reason and lease.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "Single lease terms; no theorem here relates arbitrary indexed receipts to whole-pool baseline restoration."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "repeatedTerminalReasonsIdempotent",
+          "statement": "(token : CompletionToken) ->\n    (first : PendingEnd) -> (second : PendingEnd) -> (lease : Lease) ->\n    Equal Lease (pendingCompletion token second (pendingCompletion token first lease))\n      (pendingCompletion token first lease)",
+          "scope_kind": "general_transition",
+          "establishes": "A second terminal reason with the same token does not release again, for every token and lease.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "Single lease terms; no theorem here relates arbitrary indexed receipts to whole-pool baseline restoration."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "arbitrarilyOldGenerationPreserved",
+          "statement": "(generation : Count) -> (gap : Count) ->\n    Equal Lease (releaseOwned generation (heldLease (next (add generation gap))))\n      (heldLease (next (add generation gap)))",
+          "scope_kind": "general_transition",
+          "establishes": "An old generation cannot release a held successor generation separated by any finite gap.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "The generation has the stated successor-plus-gap form; arbitrary slot-index and generation receipt validity still needs review."
+        },
+        {
+          "path": "proofs/21-pending-lifecycle.mech",
+          "name": "everyTerminalReasonReleases",
+          "statement": "(generation : Count) -> (reason : PendingEnd) ->\n    Equal Lease (pendingCompletion (ownedGeneration generation) reason (heldLease generation))\n      (freeLease (next generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A matching owned generation releases for failure, establishment, hook refusal, timeout and cancellation.",
+          "premises": [
+            "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
+          ],
+          "limits": "Single lease terms; no theorem here relates arbitrary indexed receipts to whole-pool baseline restoration."
+        }
+      ],
+      "controls": [
+        {
+          "name": "stale_generation_releases",
+          "sha256": "a448490e2a72e20aa3f23b32d039853ca763f0713cf46d4ea36c22ba4a5bc9af"
+        },
+        {
+          "name": "unowned_completion_refunds",
+          "sha256": "afc063919726b0eb60ae771b270add1874373239072bea94f90eff7ac47243fc"
+        }
+      ],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#unownedCompletionNoRefund",
+            "proofs/21-pending-lifecycle.mech#repeatedTerminalReasonsIdempotent",
+            "proofs/21-pending-lifecycle.mech#arbitrarilyOldGenerationPreserved"
+          ],
+          "rationale": "The local no-op, idempotence and old-generation statements are general, but receipt-to-pool ownership has not been audited.",
+          "remaining": "Audit unowned, repeated and arbitrary stale indexed callbacks through full-pool transitions, including unrelated live slots."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases"
+          ],
+          "rationale": "All five modeled owned terminal reasons release the matching local lease.",
+          "remaining": "Audit every owned terminal outcome from its indexed receipt to correct-slot removal and whole-pool baseline occupancy."
+        }
+      ]
+    },
+    {
+      "id": "M006",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M007",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M008",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 2,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M009",
+      "closure_packet": "R03",
+      "reviewed": true,
+      "scope_complete": false,
+      "scope_review": "Audited fixed source-table width under arbitrary SourceSystemTrace and protected-cell eviction. Multiple-prefix attribution, restart/epoch lifetime rules and the full shared T4b/T8 security-state bridge remain unaudited.",
+      "witnesses": [
+        {
+          "path": "proofs/29-source-system.mech",
+          "name": "sourceSystemTraceSlotBound",
+          "statement": "(events : SourceSystemTrace) -> (capacity : Count) -> (table : SourceTable) ->\n    AtMost (sourceTableSize (runSourceSystem events capacity table)) (sourceTableWidth table)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Resident source-table size never exceeds its initial fixed width under every finite SourceSystemTrace.",
+          "premises": [
+            "SourceTable has a fixed finite slot width; transitions are the modeled registration, eviction and enforcement events."
+          ],
+          "limits": "Count keys do not themselves establish IPv4/IPv6 prefix attribution or restart retention."
+        },
+        {
+          "path": "proofs/27-source-table.mech",
+          "name": "sourceCellEvictionPreservesProtection",
+          "statement": "(cell : SourceCell) ->\n    Equal SourceCell (protectedSourceCell (evictSourceCell cell)) (protectedSourceCell cell)",
+          "scope_kind": "general_transition",
+          "establishes": "The protected projection of every SourceCell is unchanged by evictSourceCell.",
+          "premises": [
+            "Protected debt and ban constructors are preserved; only clear entries can be evicted."
+          ],
+          "limits": "Single-cell eviction is not a general restart, re-registration or multi-prefix lifetime theorem."
+        }
+      ],
+      "controls": [
+        {
+          "name": "source_debt_evicted",
+          "sha256": "d2887ff80273277a2617130e657b6d943eaab66384796549877a42395938da20"
+        },
+        {
+          "name": "source_ban_evicted",
+          "sha256": "424316b27efaf63c941656f680ca3510f2c3fd4b58c9f9b94c128e4c139692b2"
+        },
+        {
+          "name": "joint_source_evicted",
+          "sha256": "f97f70280ccf0464ee76ba1012fad0d0f1c2790e26c158d67dda55887f5b20a5"
+        }
+      ],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/29-source-system.mech#sourceSystemTraceSlotBound"
+          ],
+          "rationale": "The statement bounds every modeled trace and initial table by that table fixed finite width.",
+          "remaining": ""
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection"
+          ],
+          "rationale": "Eviction preserves local protected state; the larger lifecycle requirement has not been audited.",
+          "remaining": "Audit protected debt/ban persistence across arbitrary re-registration, shared source/prefix accounting and restart/epoch transitions."
+        }
+      ]
+    },
+    {
+      "id": "M010",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M011",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M012",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 2,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 3,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M013",
+      "closure_packet": "R03",
+      "reviewed": true,
+      "scope_complete": false,
+      "scope_review": "Audited the general aggregate burst-plus-trusted-ticks envelope and a closed two-swarm example. Distinct source/prefix time envelopes, IPv4/IPv6 attribution, fresh identities and trusted traffic remain unaudited; the example does not establish those general scopes.",
+      "witnesses": [
+        {
+          "path": "proofs/38-source-admission-rate.mech",
+          "name": "sourceAdmissionBurstRateEnvelope",
+          "statement": "(trace : TimedSourceAdmissionTrace) -> (quota : Count) ->\n    (capacity : Count) -> (burst : Count) -> (rate : Count) -> (current : SourceAdmission) ->\n    AtMost (admissionCredits current) burst ->\n    AtMost (sourceAdmissionStarts (timedSourceAdmissions trace rate) quota capacity current)\n      (add burst (multiply (sourceAdmissionTrustedTicks trace) rate))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Aggregate successful starts over every TimedSourceAdmissionTrace are at most burst plus trusted ticks times rate.",
+          "premises": [
+            "Explicit proof argument: AtMost (admissionCredits current) burst.",
+            "Only authoritative trusted tick events issue credits; the modeled admission decisions enforce their defined checks."
+          ],
+          "limits": "The conclusion counts aggregate starts; it does not state a separate time envelope for every source or IPv4/IPv6 prefix."
+        },
+        {
+          "path": "proofs/38-source-admission-rate.mech",
+          "name": "admissionRateCountsBothSwarms",
+          "statement": "Equal Count\n    (sourceAdmissionStarts (timedSourceAdmissions admissionRateReuseTrace (next zero))\n      (next zero) (next zero) admissionExampleReady) (next (next zero))",
+          "scope_kind": "finite_example",
+          "establishes": "The fixed admissionRateReuseTrace counts two successful starts, one from each swarm.",
+          "premises": [
+            "The exact closed admissionRateReuseTrace, admissionExampleReady state and unit quota/capacity/rate are fixed."
+          ],
+          "limits": "No arbitrary state, trace, prefix or swarm-allocation quantifier occurs in this statement."
+        }
+      ],
+      "controls": [
+        {
+          "name": "admission_rate_tick_overissues",
+          "sha256": "a91f24fb0f97b30f9f5c821adbced5832975acc59a08caa52542c6cd4752a9d8"
+        }
+      ],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope",
+            "proofs/38-source-admission-rate.mech#admissionRateCountsBothSwarms"
+          ],
+          "rationale": "The aggregate envelope is general; the two-swarm reuse result is only a finite example.",
+          "remaining": "Audit distinct source/prefix and aggregate burst-plus-rate envelopes across all swarms, trusted traffic and fresh identities."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [
+            "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope"
+          ],
+          "rationale": "The exact initial-credit premise and trusted-tick aggregate scope are retained without crediting the closed example as general.",
+          "remaining": "Audit IPv4/IPv6 prefix attribution, unvalidated victim-address rejection and the relevant conditional/failure branches for the complete rate requirement."
+        }
+      ]
+    },
+    {
+      "id": "M014",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M015",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M016",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M017",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M018",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M019",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M020",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M021",
+      "closure_packet": "R03",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M022",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M023",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M024",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M025",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M026",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M027",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M028",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M029",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M030",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M031",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M032",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M033",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M034",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M035",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M036",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M037",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M038",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M039",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M040",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M041",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M042",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M043",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M044",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M045",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M046",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M047",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M048",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M049",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M050",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M051",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M052",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M053",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M054",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M055",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M056",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M057",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M058",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M059",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M060",
+      "closure_packet": "R07",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M061",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M062",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M063",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M064",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M065",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M066",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M067",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M068",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M069",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M070",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M071",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M072",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M073",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M074",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M075",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M076",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M077",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M078",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M079",
+      "closure_packet": "R08",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M080",
+      "closure_packet": "R04",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M081",
+      "closure_packet": "R05",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M082",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    },
+    {
+      "id": "M083",
+      "closure_packet": "R06",
+      "reviewed": false,
+      "scope_complete": false,
+      "scope_review": "",
+      "witnesses": [],
+      "controls": [],
+      "criteria": [
+        {
+          "index": 0,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        },
+        {
+          "index": 1,
+          "status": "unreviewed",
+          "witnesses": [],
+          "rationale": "No witness audit yet.",
+          "remaining": "Audit this criterion against the sealed required scope."
+        }
+      ]
+    }
+  ]
+}

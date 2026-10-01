@@ -818,3 +818,25 @@ No theorem witnesses or candidate atoms are credited to the new obligations.
 R01 was active after four execution turns. The fifth turn closed claim
 decomposition. Implementation proof and deployment qualification remain
 incomplete.
+
+## R02 witness audit, first pass
+
+`r02-witness-audit-check.json` records the first R02 witness-audit pass and the
+full model/qualification-guard run: 57 modules, 991 checked proof declarations,
+186 existing atomic model obligations, 1,383 source units, no axioms and 937
+rejected negative checks. Its `proof_witness_audit` block matches the generated
+inventory: four partial reviews, zero covered frozen obligations, 79 unreviewed
+obligations and 167 acceptance criteria still awaiting audit.
+
+The receipt retains input hashes. Separate regressions passed: 29 witness-audit
+checks, 40 source-disposition checks and 15 scope checks. The audit complete
+coverage command and the full qualification command both return the expected
+blocked exit 2. Implementation links were not checked in this run.
+
+The reviewed requirements are M004 (pending capacity), M005 (owned release),
+M009 (source bookkeeping) and M013 (source/prefix and aggregate rates). General
+trace/transition statements are distinct from the fixed two-swarm example.
+Unreviewed criterion work may already have witnesses elsewhere; it is not
+automatically an absent proof. R02 remains active after one of its planned three
+execution turns. The source scope is unchanged and all external obligations
+remain open. See [the first-pass audit](../docs/R02-AUDIT.md).

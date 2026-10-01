@@ -20,7 +20,9 @@ assumptions, source ranges and open implementation obligations. The
 retain all 1,383 source units. Source dispositions and the atomic source-obligation
 scope are sealed in [proof-scope.json](proof-scope.json): 83 model and 43 external
 obligations, all 102 original tracking IDs, and D01-D12. Proof-witness coverage
-remains incomplete. See the [R01 closure audit](docs/R01-CLOSURE.md).
+remains incomplete. See the [R01 closure audit](docs/R01-CLOSURE.md) and
+[R02 witness audit](docs/R02-AUDIT.md). The first R02 pass reviews four model
+obligations, retains their outstanding audit work and grants no full-scope closure.
 
 ## Run locally
 
@@ -30,6 +32,10 @@ in `.cache`. Run:
 ```sh
 make dispositions
 make disposition-regression
+make scope
+make scope-regression
+make audit
+make audit-regression
 make check
 make gate-regression
 make qualify

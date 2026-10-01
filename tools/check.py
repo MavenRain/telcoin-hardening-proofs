@@ -2183,7 +2183,7 @@ def implementation_links(path: Path | None, catalog: dict) -> dict:
 
 def input_hashes() -> dict[str, str]:
     paths = ["claims.json", "atomic-claims.json", "source-inventory.json", "source-ledger.json",
-             "proof-roadmap.json", "proof-scope.json", "docs/R01-CLOSURE.md",
+             "proof-roadmap.json", "proof-scope.json", "proof-audit.json", "docs/R01-CLOSURE.md", "docs/R02-AUDIT.md",
              "docs/FULL-QUALIFICATION-ROADMAP.md", "docs/SOURCE-LEDGER.md",
              "sources/manifest.json", "implementation-map.json", "toolchain.lock.json",
              "README.md", "docs/COVERAGE.md", "docs/MODELS.md", "docs/TRUST.md",
@@ -2244,6 +2244,7 @@ def main() -> int:
               "claim_groups": len(claims), "source_units": len(inventory["units"]),
               "atomic_model_obligations": len(atoms),
               "source_dispositions": inventory["dispositions"],
+              "proof_witness_audit": inventory["witness_audit"],
               "claim_decomposition_complete": inventory["semantically_complete"],
               "model_coverage_complete": catalog["load"](ROOT / "atomic-claims.json")["coverage_complete"],
               "source_sha256": hashlib.sha256(source.encode()).hexdigest(),

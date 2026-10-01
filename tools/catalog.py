@@ -160,13 +160,18 @@ def inventory() -> dict:
     units = source_units(rows, claims)
     validator = runpy.run_path(str(ROOT / "tools/dispositions.py"))["validate"]
     plan = load(ROOT / "proof-roadmap.json")
-    summary = validator(units, load(ROOT / "source-ledger.json"),
+    ledger = load(ROOT / "source-ledger.json")
+    summary = validator(units, ledger,
                         digest((ROOT / "sources/manifest.json").read_bytes()),
                         {row["id"] for row in load(ROOT / "atomic-claims.json")["claims"]},
                         {row["id"]: set(row["workstreams"]) for row in plan["packets"]})
+    auditor = runpy.run_path(str(ROOT / "tools/audit.py"))["validate"]
+    witness_audit = auditor(ROOT, ledger, load(ROOT / "proof-scope.json"), load(ROOT / "proof-audit.json"))
     return {"version": 1, "semantically_complete": summary["complete"],
             "note": "Disposition links are checked; semantic rationales and theorem scope require review.",
-            "dispositions": summary, "units": units}
+            "dispositions": summary,
+            "witness_audit": {key: value for key, value in witness_audit.items() if key != "remaining"},
+            "units": units}
 
 
 def proof_plan(data: dict) -> dict:
@@ -230,6 +235,8 @@ def proof_plan(data: dict) -> dict:
     if packets[0]["status"] == "closed":
         scope = runpy.run_path(str(ROOT / "tools/scope.py"))["validate"]
         scope(ROOT, data, load(ROOT / "source-ledger.json"), load(ROOT / "proof-scope.json"))
+    if packets[1]["status"] == "closed" and not data["witness_audit"]["witness_audit_complete"]:
+        raise ValueError("R02 witness audit is incomplete")
     return plan | {"planned_turns": planned,
                    "turns_used": sum(row["turns_spent"] for row in packets),
                    "closed_packets": sum(row["status"] == "closed" for row in packets)}
@@ -269,8 +276,19 @@ def coverage_markdown(data: dict) -> str:
     for row in plan["packets"]:
         rows.append(f"| {row['id']} | {row['title']} | {row['planned_turns']} | "
                     f"{row['turns_spent']} | {row['status']} |")
+    audit = data["witness_audit"]
     rows.extend(["", "Evidence hashes check freshness. Each exit criterion still requires an audit "
                  "of its evidence, and semantic completeness requires the checked source disposition ledger.", "",
+            "## Frozen model witness audit", "",
+            f"{audit['reviewed_obligations']}/{audit['model_obligations']} model obligations have a first witness review: "
+            f"{audit['covered_obligations']} covered, {audit['partial_obligations']} partial, "
+            f"{audit['unreviewed_obligations']} unreviewed. "
+            f"{audit['unaudited_criteria']} acceptance criteria still need audit.", "",
+            f"The pinned corpus contains {audit['proof_declarations']} explicit proof declarations in "
+            f"{audit['modules']} modules. [proof-audit.json](../proof-audit.json) records exact statements, "
+            "premises, scope limits and outstanding criterion work. "
+            "See [the R02 audit](R02-AUDIT.md). Statement and hash checks do not establish semantic entailment. "
+            "Finite examples receive no general coverage credit; external obligations remain open.", "",
             "## Full implementation and deployment claims", "",
             "Every group below remains open against the Telcoin implementation and deployment. "
             "Theorem links cover only the explicitly stated model scope in `claims.json`.", "",

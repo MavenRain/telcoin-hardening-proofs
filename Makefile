@@ -1,4 +1,4 @@
-.PHONY: bootstrap check inventory qualify gate-regression dispositions disposition-regression scope scope-regression
+.PHONY: bootstrap check inventory qualify gate-regression dispositions disposition-regression scope scope-regression audit audit-regression
 
 bootstrap:
 	python3 -I tools/bootstrap.py
@@ -20,6 +20,12 @@ scope:
 
 scope-regression:
 	python3 -I tools/check_scope.py
+
+audit:
+	python3 -I tools/audit.py
+
+audit-regression:
+	python3 -I tools/check_audit.py
 
 qualify:
 	python3 -I tools/check.py --require-complete
