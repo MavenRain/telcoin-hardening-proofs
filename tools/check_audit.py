@@ -36,16 +36,16 @@ class AuditChecks(unittest.TestCase):
             self.validate()
         self.assertIn(message, str(caught.exception))
 
-    def test_first_pass_does_not_close_model_or_external_obligations(self):
+    def test_audited_model_coverage_does_not_close_external_obligations(self):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 4, 0, 4, 79))
+                          result["unreviewed_obligations"]), (83, 4, 1, 3, 79))
         self.assertFalse(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
-        self.assertEqual(len(result["remaining"]), 83)
+        self.assertEqual(len(result["remaining"]), 82)
         self.assertEqual(set(result["witness_scope_counts"]),
                          {"arbitrary_trace", "general_transition", "finite_example"})
 
@@ -170,8 +170,12 @@ class AuditChecks(unittest.TestCase):
         self.reject("unresolved criteria")
 
     def test_general_local_witnesses_do_not_imply_full_scope_credit(self):
+        covered = self.validate()["covered_obligations"]
         self.row()["criteria"][0].update(status="witnessed", remaining="")
-        self.assertEqual(self.validate()["covered_obligations"], 0)
+        result = self.validate()
+        self.assertEqual(result["covered_obligations"], covered)
+        self.assertEqual(next(row["status"] for row in result["remaining"]
+                              if row["id"] == "M004"), "partial")
 
     def test_witnessed_criterion_requires_evidence_and_empty_remaining_work(self):
         for operation in ("missing", "remaining"):

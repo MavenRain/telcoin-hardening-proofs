@@ -839,4 +839,38 @@ trace/transition statements are distinct from the fixed two-swarm example.
 Unreviewed criterion work may already have witnesses elsewhere; it is not
 automatically an absent proof. R02 remains active after one of its planned three
 execution turns. The source scope is unchanged and all external obligations
-remain open. See [the first-pass audit](../docs/R02-AUDIT.md).
+remain open. The second pass below supersedes this section. See [the current
+audit](../docs/R02-AUDIT.md).
+
+## R02 indexed witness audit, second pass
+
+`r02-indexed-witness-audit-check.json` records the second R02 pass and the full
+model/qualification-guard run. The corpus remains 57 modules, 991 checked proof
+declarations, 186 atomic model obligations and 1,383 source units, with no axioms
+and 938 rejected negative checks. The audit adds 16 exact general witnesses
+from existing modules 37 and 39. M005 is covered at the sealed model scope;
+three obligations remain partial, 79 remain unreviewed and 164 acceptance
+criteria still need audit.
+
+The whole-state unowned callback theorem and arbitrary-prefix receipt/release
+equalities witness every M005 terminal reason, duplicate and mismatched or
+arbitrarily stale callbacks, unrelated-slot preservation and restoration of
+the corresponding pending occupancy baseline. Source debt and spent credits
+stay consumed. Internal receipt authority, index stability, atomicity and
+nonwrapping generations remain explicit model premises. External obligation
+E013 owns their runtime refinement.
+
+M004 now records an exact R03 proof gap: zero total pending availability must
+imply selected-token absence for every index before the existing admission
+no-op and no-receipt results can be composed. Held-slot and missing-slot
+refusal alone do not state that implication. No proof declaration is added.
+A new mutation makes an unowned admission callback release a live slot without
+an owned receipt. Linked mutation hashes preserve the controls; the full run
+records their actual rejection sites, including failures in earlier modules.
+
+The receipt pins current proof inputs and tooling. The 29 witness-audit, 40
+source-disposition, 15 scope and full-qualification guard regressions pass.
+Audit complete coverage and full qualification still return blocked exit 2.
+Implementation links were not checked in this run. R02 remains active after
+two of its three planned turns; seven of the overall 50 turns are used. All
+43 external obligations remain open. See [the current audit](../docs/R02-AUDIT.md).

@@ -143,7 +143,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "The fixed LeasePool capacity and arbitrary PoolTrace bound are audited. A held lease refuses a reservation. Total-pool saturation and indexed admission branches in modules 37 and 39 still need a source-to-witness audit.",
+      "scope_review": "Reviewed the LeasePool and SourceAdmission trace bounds, arbitrary-prefix held-slot and out-of-range refusal, and receipt absence. These quantify over arbitrary finite pools or prefixes. The corpus has no audited general bridge from total lease availability zero to absence of a selected token; slot-local refusal is not total-capacity refusal. This exact proof gap belongs to R03.",
       "witnesses": [
         {
           "path": "proofs/21-pending-lifecycle.mech",
@@ -177,32 +177,137 @@
             "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
           ],
           "limits": "Conservation does not state the saturated indexed admission decision."
+        },
+        {
+          "path": "proofs/37-source-admission.mech",
+          "name": "sourceAdmissionTracePendingBound",
+          "statement": "(trace : SourceAdmissionTrace) -> (quota : Count) -> (capacity : Count) ->\n    (current : SourceAdmission) -> AtMost (leaseOccupancy (admissionPool (runSourceAdmissions trace quota capacity current)))\n      (leaseCapacity (admissionPool current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite SourceAdmissionTrace preserves pending occupancy at most the initial pool capacity, including indexed admissions, completions, maintenance and trusted clock events.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "This is the initial LeasePool capacity, not the source-table capacity argument, an earlier queue limit or an established-resource limit."
+        },
+        {
+          "path": "proofs/37-source-admission.mech",
+          "name": "sourceAdmissionTracePoolCapacity",
+          "statement": "(trace : SourceAdmissionTrace) -> (quota : Count) -> (capacity : Count) ->\n    (current : SourceAdmission) -> Equal Count\n      (leaseCapacity (admissionPool (runSourceAdmissions trace quota capacity current))) (leaseCapacity (admissionPool current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite SourceAdmissionTrace preserves the exact initial LeasePool capacity.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "A fixed structural capacity does not by itself prove refusal from exhausted availability."
+        },
+        {
+          "path": "proofs/37-source-admission.mech",
+          "name": "noLeaseAdmissionIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (index : Count) -> (current : SourceAdmission) ->\n    Equal CompletionToken (availableLeaseToken index (admissionPool current)) noOwnedLease ->\n    Equal SourceAdmission (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "An attempt with no selected available token preserves the whole SourceAdmission state.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "The selected availableLeaseToken equals noOwnedLease."
+          ],
+          "limits": "Token absence is a premise; the statement does not derive it from exhausted total capacity."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionHeldRefused",
+          "statement": "(quota : Count) -> (capacity : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->\n    Equal SourceAdmission\n      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt source swarm key (leasePrefixIndex prefix))\n        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "A held selected lease at any structural prefix index refuses admission and preserves the complete state.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "The selected slot is held; other slots may still be free. The prefix and suffix are arbitrary finite LeasePools, including other held leases. Runtime receipt authority, index stability and serialization remain external obligations."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionMissingRefused",
+          "statement": "(quota : Count) -> (capacity : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (distance : Count) ->\n    Equal SourceAdmission\n      (sourceAdmissionStep quota capacity\n        (sourceAdmissionAttempt source swarm key (add (leaseCapacity prefix) distance))\n        (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool)))\n      (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool))",
+          "scope_kind": "general_transition",
+          "establishes": "Every selected index at or beyond an arbitrary finite pool refuses admission and preserves the complete state.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "The selection is out of range, independently of the occupancy of existing slots. The prefix and suffix are arbitrary finite LeasePools, including other held leases. Runtime receipt authority, index stability and serialization remain external obligations."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionHeldHasNoReceipt",
+          "statement": "(quota : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->\n    Equal AdmissionReceipt\n      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key (leasePrefixIndex prefix))\n        (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))) noAdmissionReceipt",
+          "scope_kind": "general_transition",
+          "establishes": "Every held selected slot produces no admission receipt, independently of source permission and credits.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "This is held-slot receipt absence rather than a total-pool saturation implication. The prefix and suffix are arbitrary finite LeasePools, including other held leases. Runtime receipt authority, index stability and serialization remain external obligations."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionMissingHasNoReceipt",
+          "statement": "(quota : Count) -> (source : Reachability) ->\n    (swarm : SwarmClass) -> (key : Count) -> (table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (distance : Count) ->\n    Equal AdmissionReceipt\n      (admissionAttemptReceipt quota (sourceAdmissionAttempt source swarm key (add (leaseCapacity prefix) distance))\n        (sourceAdmission table credits (appendLeasePool prefix emptyLeasePool))) noAdmissionReceipt",
+          "scope_kind": "general_transition",
+          "establishes": "Every selection at or beyond an arbitrary finite pool produces no admission receipt.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "This is out-of-range receipt absence rather than a total-pool saturation implication. The prefix and suffix are arbitrary finite LeasePools, including other held leases. Runtime receipt authority, index stability and serialization remain external obligations."
         }
       ],
       "controls": [
         {
           "name": "pending_pool_grows",
           "sha256": "b92c67c2beffb6c319b6d38a6c3634e68906d115c1f2fd40115e5378f33f0979"
+        },
+        {
+          "name": "admission_starts_without_lease",
+          "sha256": "9366585929f1a519e88e778074ebf38873de260aef760be34ef377ec58f2b641"
+        },
+        {
+          "name": "admission_held_slot_fabricates_token",
+          "sha256": "b11108851c5642a9f0cc2c564261063de8fbe103b08a10ef2aec46eb92b32d10"
+        },
+        {
+          "name": "admission_missing_slot_fabricates_token",
+          "sha256": "2bb730345e0df86f6c6b6c37d1b268cd1ba66ed60ab826903df47679e70db775"
+        },
+        {
+          "name": "admission_refusal_emits_receipt",
+          "sha256": "eb33341cfc357da1ab2574c49796e603aece817be7d16f5429c15d4aeb8efc97"
+        },
+        {
+          "name": "indexed_distant_missing_slot_granted",
+          "sha256": "8e0b984e1efd218a8060b84694426b4cf12413e7df0f6b450cc4b7930d738567"
         }
       ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "gap",
           "witnesses": [
-            "proofs/21-pending-lifecycle.mech#heldReservationDenied"
+            "proofs/21-pending-lifecycle.mech#heldReservationDenied",
+            "proofs/37-source-admission.mech#noLeaseAdmissionIsNoOp",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionHeldRefused",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMissingRefused",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionHeldHasNoReceipt",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMissingHasNoReceipt"
           ],
-          "rationale": "The local held-slot refusal is general over generations; the required total-capacity refusal bridge is not audited.",
-          "remaining": "Audit a general implication from exhausted total pending capacity to refusal for every indexed admission branch in modules 37 and 39."
+          "rationale": "The general indexed held/missing-slot statements and token-absence implication establish complete-state refusal and no receipt. No audited statement derives token absence for every index from exhausted total pool availability.",
+          "remaining": "R03: prove for every finite LeasePool and Count index that zero leaseAvailability implies availableLeaseToken is noOwnedLease, then compose with the general admission no-op and receipt-absence witnesses."
         },
         {
           "index": 1,
           "status": "witnessed",
           "witnesses": [
             "proofs/21-pending-lifecycle.mech#pendingOccupancyTraceBound",
-            "proofs/21-pending-lifecycle.mech#pendingConservationTrace"
+            "proofs/21-pending-lifecycle.mech#pendingConservationTrace",
+            "proofs/37-source-admission.mech#sourceAdmissionTracePendingBound",
+            "proofs/37-source-admission.mech#sourceAdmissionTracePoolCapacity"
           ],
-          "rationale": "The bound and conservation statements quantify over every finite modeled PoolTrace and initial LeasePool.",
+          "rationale": "PoolTrace bound and conservation are complemented by the bound and exact capacity preservation for every finite SourceAdmissionTrace, which includes indexed admission, lifecycle and maintenance branches.",
           "remaining": ""
         }
       ]
@@ -211,8 +316,8 @@
       "id": "M005",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Audited local terminal reasons, unowned no-op, duplicate release and arbitrarily old generations. Indexed receipt ownership and whole-pool baseline restoration across every terminal branch remain unaudited.",
+      "scope_complete": true,
+      "scope_review": "Reviewed general whole-state unowned completion and arbitrary-prefix admission, receipt index/generation ownership and complete-state terminal release, as well as free-slot, repeated, mismatched and arbitrarily old-generation indexed callbacks. Prefix and suffix preservation supplies unrelated-slot protection. Owned release restores the pending occupancy baseline for all five PendingEnd constructors; source debt and spent credits stay consumed. Both sealed criteria are witnessed under atomic transitions, internal receipt authority, stable indexes and nonwrapping generations. External obligation E013 owns the runtime refinement of these premises, including callback authority.",
       "witnesses": [
         {
           "path": "proofs/21-pending-lifecycle.mech",
@@ -257,6 +362,110 @@
             "Atomic modeled transitions; internal callback tokens and nonwrapping Count generations."
           ],
           "limits": "Single lease terms; no theorem here relates arbitrary indexed receipts to whole-pool baseline restoration."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionChargesAndReserves",
+          "statement": "(quota : Count) -> (capacity : Count) -> (swarm : SwarmClass) ->\n    (key : Count) -> (table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) ->\n    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->\n    Equal SourceAdmission\n      (sourceAdmissionStep quota capacity (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))\n        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))\n      (sourceAdmission (restrictSource quota key (sourceChargeEvent validated) table) credits\n        (appendLeasePool prefix (leaseCell (heldLease generation) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "A permitted validated admission with positive credits changes only the selected free lease to held, charges the canonical source and consumes one shared credit.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "sourceTableChargeAllowed validated quota key table equals on; credits have the form next credits; the selected lease is free."
+          ],
+          "limits": "The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionOwnsReceipt",
+          "statement": "(quota : Count) -> (swarm : SwarmClass) -> (key : Count) ->\n    (table : SourceTable) -> (credits : Count) -> (prefix : LeasePool) ->\n    (generation : Count) -> (rest : LeasePool) ->\n    Equal Flag (sourceTableChargeAllowed validated quota key table) on ->\n    Equal AdmissionReceipt\n      (admissionAttemptReceipt quota (sourceAdmissionAttempt validated swarm key (leasePrefixIndex prefix))\n        (sourceAdmission table (next credits) (appendLeasePool prefix (leaseCell (freeLease generation) rest))))\n      (pendingAdmissionReceipt (leasePrefixIndex prefix) generation)",
+          "scope_kind": "general_transition",
+          "establishes": "The same eligible admission returns a receipt containing the exact structural prefix index and selected generation.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "sourceTableChargeAllowed validated quota key table equals on; credits have the form next credits; the selected lease is free."
+          ],
+          "limits": "The receipt is produced from the pre-admission state. Receipt authority and atomic pairing with the state update are modeled premises. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceCompletionActsOnSelectedLease",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (lease : Lease) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->\n    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell lease rest))))\n      (sourceAdmission table credits\n        (appendLeasePool prefix (leaseCell (pendingCompletion (ownedGeneration token) reason lease) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every modeled terminal reason applies pendingCompletion to the selected lease while preserving the source table, shared credits and every prefix/suffix lease.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "A pendingAdmissionReceipt supplies its index and generation; this statement does not cover noAdmissionReceipt. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionCompletionReleases",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (reason : PendingEnd) ->\n    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) reason\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every PendingEnd releases the matching held generation to the next free generation, preserving the complete prefix/suffix, source table and credit balance.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "The internal receipt identifies the selected currently held generation."
+          ],
+          "limits": "The pending occupancy returns to its corresponding pre-reservation baseline because free generations contribute zero occupancy. The whole pre-admission state is not restored: source debt and spent credits stay consumed. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionFreeCompletionIsNoOp",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->\n    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease generation) rest))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease generation) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "A callback targeting a free selected lease preserves the complete admission state for any token and terminal reason.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "The selected lease must be free. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionDuplicateCompletion",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (first : PendingEnd) -> (second : PendingEnd) ->\n    Equal SourceAdmission\n      (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) second\n        (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) first\n          (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (freeLease (next generation)) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Any two terminal reasons for the same indexed owned receipt have exactly the single-release state.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "The selected lease is held by the matching generation before the first callback."
+          ],
+          "limits": "No intervening re-reservation is modeled in this two-callback statement; stale-reuse cases have separate general witnesses. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionMismatchedCompletionPreserves",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (rest : LeasePool) -> (token : Count) -> (reason : PendingEnd) ->\n    Equal Flag (sameCount token generation) off ->\n    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) token) reason\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease generation) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Any indexed callback whose token differs from the held selected generation preserves the complete state.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations.",
+            "sameCount token generation equals off."
+          ],
+          "limits": "The mismatch premise is explicit; index authorization remains a runtime premise. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/39-indexed-source-admission.mech",
+          "name": "indexedSourceAdmissionStaleCompletionPreserves",
+          "statement": "(table : SourceTable) -> (credits : Count) ->\n    (prefix : LeasePool) -> (generation : Count) -> (gap : Count) -> (rest : LeasePool) -> (reason : PendingEnd) ->\n    Equal SourceAdmission (finishSourceAdmission (pendingAdmissionReceipt (leasePrefixIndex prefix) generation) reason\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease (next (add generation gap))) rest))))\n      (sourceAdmission table credits (appendLeasePool prefix (leaseCell (heldLease (next (add generation gap))) rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed receipt preserves every later held generation next (add generation gap), for arbitrary gap and terminal reason.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "Count generations do not wrap; forged matching receipts are outside the internal-callback model. The prefix and suffix are arbitrary finite LeasePools, including other held leases. External obligation E013 owns runtime receipt authority, index stability and serialization."
+        },
+        {
+          "path": "proofs/37-source-admission.mech",
+          "name": "unownedAdmissionCompletionIsNoOp",
+          "statement": "(reason : PendingEnd) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (finishSourceAdmission noAdmissionReceipt reason current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Every noAdmissionReceipt completion preserves the whole SourceAdmission state for every terminal reason.",
+          "premises": [
+            "Atomic modeled transitions; internal index-bound receipts; nonwrapping Count generations."
+          ],
+          "limits": "The callback has no receipt; forged matching receipts are excluded by internal receipt authority. External obligation E013 owns runtime receipt authority. The statement preserves arbitrary pools, including unrelated held leases."
         }
       ],
       "controls": [
@@ -267,28 +476,81 @@
         {
           "name": "unowned_completion_refunds",
           "sha256": "afc063919726b0eb60ae771b270add1874373239072bea94f90eff7ac47243fc"
+        },
+        {
+          "name": "indexed_prefix_loses_suffix",
+          "sha256": "79066b7d93c3368c5a15b9201d5fbc4e5c1bf6fda0f34989a6456fe17bffcc9b"
+        },
+        {
+          "name": "indexed_prefix_drops_cell",
+          "sha256": "c99e020c990f029146f813324885bc10876a88dc7f1399952961d509732d18f5"
+        },
+        {
+          "name": "indexed_prefix_changes_head",
+          "sha256": "fcfe0dc1d652e6df443184c1e259ea28df79e0b464ad81d973bf44f16c737cd9"
+        },
+        {
+          "name": "indexed_position_aliases_head",
+          "sha256": "680e00166b0ef6f39953c84b020f5fc1fa724cf889292a255c76210d11e1a03e"
+        },
+        {
+          "name": "indexed_position_skips_selected",
+          "sha256": "7ccc29112544f63c749ca7eeebfb6e0e40037411a50cb862340af70549277970"
+        },
+        {
+          "name": "indexed_deep_receipt_aliases",
+          "sha256": "7f8ec1519400bbf9bf143df3814c400dc1f3fd41ba37ca78c70cdfac20fb1eb5"
+        },
+        {
+          "name": "indexed_deep_receipt_changes_generation",
+          "sha256": "17af2f71469759766306a8a210f4cc29c939c60145688e18bd8e641801860169"
+        },
+        {
+          "name": "indexed_deep_completion_aliases",
+          "sha256": "67dba5aca4c4539251426e52868c6bae8289fb85266f0615ffc59a6dcab2be30"
+        },
+        {
+          "name": "indexed_deep_completion_changes_generation",
+          "sha256": "5a07915bc8ffd5066778945d946d01719131e2f8eb118acdd814a120b71de950"
+        },
+        {
+          "name": "admission_unowned_completion_spends_credit",
+          "sha256": "09fa0cb1cc316f34a147040c79d3cdd25084c3744907bcb56a5cbe0ae799c766"
+        },
+        {
+          "name": "admission_unowned_completion_refunds_live_slot",
+          "sha256": "c5dcb65a8f339c8ce6d8d4db80ba3e945f445fdd7366c2a3eb3760208eea3173"
         }
       ],
       "criteria": [
         {
           "index": 0,
-          "status": "unreviewed",
+          "status": "witnessed",
           "witnesses": [
             "proofs/21-pending-lifecycle.mech#unownedCompletionNoRefund",
             "proofs/21-pending-lifecycle.mech#repeatedTerminalReasonsIdempotent",
-            "proofs/21-pending-lifecycle.mech#arbitrarilyOldGenerationPreserved"
+            "proofs/21-pending-lifecycle.mech#arbitrarilyOldGenerationPreserved",
+            "proofs/39-indexed-source-admission.mech#indexedSourceCompletionActsOnSelectedLease",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionFreeCompletionIsNoOp",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionDuplicateCompletion",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionMismatchedCompletionPreserves",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionStaleCompletionPreserves",
+            "proofs/37-source-admission.mech#unownedAdmissionCompletionIsNoOp"
           ],
-          "rationale": "The local no-op, idempotence and old-generation statements are general, but receipt-to-pool ownership has not been audited.",
-          "remaining": "Audit unowned, repeated and arbitrary stale indexed callbacks through full-pool transitions, including unrelated live slots."
+          "rationale": "The general whole-admission unowned equality and indexed full-state equalities cover unrelated live slots, free slots, duplicate callbacks and all mismatched generations, including arbitrarily old receipts. Every statement quantifies over arbitrary modeled state or prefix/suffix and terminal reasons; no finite-example credit is needed.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "unreviewed",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases"
+            "proofs/21-pending-lifecycle.mech#everyTerminalReasonReleases",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionChargesAndReserves",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionOwnsReceipt",
+            "proofs/39-indexed-source-admission.mech#indexedSourceAdmissionCompletionReleases"
           ],
-          "rationale": "All five modeled owned terminal reasons release the matching local lease.",
-          "remaining": "Audit every owned terminal outcome from its indexed receipt to correct-slot removal and whole-pool baseline occupancy."
+          "rationale": "The arbitrary-prefix admission equality and exact receipt equality identify the sole reserved lease. The release equality quantifies over every PendingEnd and preserves all other leases. Since leaseOccupancy ignores a free lease generation, changing that selected held lease to free restores exactly the occupancy of the corresponding pre-reservation pool; source debt and shared credit charges remain consumed.",
+          "remaining": ""
         }
       ]
     },
