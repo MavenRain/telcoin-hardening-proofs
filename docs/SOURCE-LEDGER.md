@@ -140,7 +140,46 @@ Investigation, selected implementation, host-only changes, and a no-change
 decision retain separate outcome labels. A failed required qualification result
 still requires remediation and a passing subsequent evaluation.
 
-The ledger contains eleven model and nineteen external obligations. R01 remains
-active after three of its five planned turns; no exit criterion is closed.
-Later packets remain pending, and model checking does not establish runtime
-refinement or deployment qualification.
+At the end of this batch, the ledger contained eleven model and nineteen
+external obligations. R01 was active after three of its five planned turns.
+No exit criterion was closed, and later packets remained pending. Model checking
+does not establish runtime refinement or deployment qualification.
+
+## T2 and T5 audit batch
+
+The fourth R01 execution turn audits every source unit in the original T02 and
+T05 drafts and the revised T5 task, re-audits selected revised T2b clauses, and
+audits selected resource, decision, crosswalk and regression clauses. It adds
+131 audited units, bringing the total
+to 457 of 1,383: 255 context, 176 obligation and 26 superseded. 926 units remain
+pending. Source bytes, ranges, hashes and every existing obligation are retained.
+
+E011 now explicitly retains negotiated-group, deadline, baseline-topology and
+lane-cost observations for the required old/current release pairs. E020 records
+the real-listener Retry integration matrix, including controlled spoofing,
+token edges, policy changes and progress on paths that never reach the outer
+event loop. Token replay expectations follow the resolved protocol semantics.
+The historical unconditional-accept assertion is replaced by the candidate's
+intended behavior; honest reconnect results use declared D02/D04 scope and bounds.
+
+M012 requires established-resource grant/release accounting and composition,
+including trusted or exempt peers, every swarm and distinct resource dimensions.
+Receive credit is distinguished from resident bytes; concrete memory/task bounds
+need explicit cost domination. Admission and retention trust do not remove hard
+budgets or authorize bulk traffic to consume all critical-message service.
+
+E021 requires calibrated concurrent occupancy, idle/data RSS comparisons with
+uncertainty, window/catch-up sweeps and measurement provenance. Cumulative node
+connection counters, dropped requests invisible to upper layers and old structure
+sizes cannot establish the corresponding concurrent or resident resource bounds.
+Instrumented dependencies retain tracked maintenance evidence. E022 requires the
+D02-D04 whole-process derivation and passing M3b honest/hostile regressions, with
+observable shedding and selected catch-up, vote/epoch-record and persistence bounds.
+The original unconditional absence of a capacity warning is reconciled to these
+observable, selected service guarantees. Lower constants alone do not close T5.
+
+The ledger now contains twelve model and twenty-two external obligations. M012
+is assigned to R03; E020-E022 require external evidence in R08. No theorem witness
+or candidate atom is assigned here. R01 remains active after four of its five
+planned turns; source closure, claim decomposition and full qualification remain
+incomplete. Later packets remain pending.

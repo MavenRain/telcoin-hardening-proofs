@@ -341,7 +341,9 @@
       "acceptance_criteria": [
         "Both required cross-release directions connect under the intended Retry and timeout behavior.",
         "A single dependency-unified build is not the sole compatibility evidence.",
-        "Reproducible baselines, runner capabilities, integration cadence, and fixture/test-lane inventory are recorded."
+        "Reproducible baselines, runner capabilities, integration cadence, and fixture/test-lane inventory are recorded.",
+        "Record the negotiated key-exchange group, establishment/failure and elapsed handshake time against the effective inbound deadline for each required pairing.",
+        "Record baseline build/dependency features, honest reconnect topology and network conditions, lane wall/cache cost and measured runner capabilities; these observations guide cadence without waiving required rollout pairings."
       ],
       "required_evidence": [
         "T2a/T2b fixture and release-matrix results, supported-release decision, and reproducible lane inventory."
@@ -503,6 +505,82 @@
       ],
       "required_evidence": [
         "Recorded M1b selection, pinned implementation/refinement and concurrency controls, updated T3 receipt, affected topology/interoperability tests and hardware qualification results."
+      ],
+      "candidate_atoms": []
+    },
+    {
+      "id": "M012",
+      "kind": "model",
+      "workstream": "W1",
+      "closure_packet": "R03",
+      "property": "Established-resource grants and releases preserve finite per-peer and aggregate allocations, including authenticated trusted or exempt peers.",
+      "required_scope": "Established connections in both directions; QUIC streams and connection/stream credit; request-response, negotiating and Kademlia substreams; retained bytes and task/service state across every peer and swarm. Model each dimension explicitly and state concrete cost-domination and scheduling assumptions separately.",
+      "acceptance_criteria": [
+        "Grants cannot exceed the allocated resource vector, including under identity churn, connection overlap, exemptions and concurrent swarm activity.",
+        "Releasing or shedding an owned resource restores only its own allocation; stage accounting distinguishes established resources from pending handshakes and pre-accept work.",
+        "Per-peer limits compose within a finite whole-process allocation and retain required critical-class service under explicit workload and scheduling premises.",
+        "Advertised receive credit is distinguished from resident memory; any bound on resident bytes or tasks requires a stated domination premise."
+      ],
+      "required_evidence": [
+        "General established-resource accounting and composition theorems, with mutations for omitted peers/swarms, exempt-peer bypass, duplicated allocations, incorrect release, and conflation of credit with resident bytes."
+      ],
+      "candidate_atoms": []
+    },
+    {
+      "id": "E020",
+      "kind": "external",
+      "workstream": "W1",
+      "closure_packet": "R08",
+      "property": "The candidate real listener passes the Retry integration matrix with observable outcomes, intended token semantics, and bounded conditional progress.",
+      "required_scope": "T2b against the maintained T1a plus T6 candidate; controlled spoofing, token edges, all incoming outcomes, supported old/current peers, reconnects across policy/epoch changes, and effective timeouts. Distinguish ordinary CI, isolated controlled networking, and representative-hardware qualification.",
+      "acceptance_criteria": [
+        "Exercise valid, expired, malformed, replayed and wrong-binding tokens, including restart/key changes and loss/reordering, against the resolved protocol semantics; do not invent a single-use guarantee.",
+        "Controlled spoofed-source tests expose decision outcomes and timing, verify pre-accept Retry and prevent privileged-quota poisoning; test cadence and measured runner capabilities are recorded.",
+        "Sustained Retry-only, Ignore, Refuse and Accept paths preserve wakeups and command, refresh, heartbeat and stream-sweep progress within selected bounds without depending on an outer-loop accepted-connection event.",
+        "Honest full-population reconnects, all required workers and both swarms meet D04; stale, missing, contradictory and changing policy inputs exercise documented fallback without disabling authentication or hard budgets.",
+        "Tests assert the intended changed listener behavior. A historical unconditional-accept assertion cannot close the Retry rollout; required failures need remediation and a passing reevaluation."
+      ],
+      "required_evidence": [
+        "Versioned T2b integration results, controlled-network setup and cadence, effective-deadline and outcome observations, and paired baseline/candidate reconnect and progress runs."
+      ],
+      "candidate_atoms": []
+    },
+    {
+      "id": "E021",
+      "kind": "external",
+      "workstream": "W1",
+      "closure_packet": "R08",
+      "property": "Established-resource calibration records honest occupancy, resident memory, catch-up performance and critical-message service with explicit measurement limits.",
+      "required_scope": "M3a on the pinned baseline with D01 network/host inputs and D02 peer, worker, swarm and reconnect/catch-up shapes; include trusted/exempt peers, all relevant stream classes, and the complete process rather than a single identity or swarm.",
+      "acceptance_criteria": [
+        "Measure reconnect overlap, epoch changes and catch-up peaks: exact concurrent connections, QUIC/request-response/negotiating/Kademlia streams, receive credit/behavior, service occupancy, RSS, catch-up completion and vote latency.",
+        "Distinguish concurrent occupancy from cumulative node connection counters and upper bounds. Do not infer dropped inbound requests from upper-layer handler counts or unexported stream counters.",
+        "Contrast idle open streams with undrained data, verify ceiling occupancy, report RSS differences and run-to-run spread, and identify inconclusive attribution; neither advertised windows nor old structure sizes prove resident bytes.",
+        "Sweep relevant window settings and record network conditions, implementation/traffic shape, honest headroom and uncertainty. Instrumented dependencies retain tracked source pins, ownership and the exercised T3 maintenance procedure."
+      ],
+      "required_evidence": [
+        "Reproducible M3a traces and measurement-method record, concurrent occupancy evidence, idle/data RSS comparisons with uncertainty, window/catch-up sweeps, and tracked instrumentation provenance."
+      ],
+      "candidate_atoms": []
+    },
+    {
+      "id": "E022",
+      "kind": "external",
+      "workstream": "W1",
+      "closure_packet": "R08",
+      "property": "Selected established-peer limits enforce the measured whole-process budget and pass honest and hostile regressions without violating critical-message bounds.",
+      "required_scope": "T5 and M3b after M3a and D02-D04 parameter selection, coordinated with A3 trust treatment and S4 message-class isolation. Cover all identities, exemptions, connection directions, stream classes and swarms, with CPU/RSS/task/state allocations and consensus/storage headroom. Pending admission, handshake rate, identity-refusal placement and link-saturating attacks retain their separate scopes.",
+      "acceptance_criteria": [
+        "Derive selected per-peer and aggregate limits from measured honest peaks, resident costs and the host allocation. A graceful peer-count gate or trusted exemption is not a finite global resource bound.",
+        "Repeat the same reconnect/catch-up and critical-traffic workload with selected settings and hostile ceiling-reaching attempts, including distributed identities, both swarms and trusted/exempt senders.",
+        "Report granted connections, streams and credit separately from retained bytes and tasks; show correspondence between actual grants/releases and the resource model, plus concrete cost domination.",
+        "Observe every request/stream shedding stage, including unsignaled request-response capacity loss; account for timeout and old/current configuration effects. Catch-up, vote/epoch-record service and persistence satisfy D04.",
+        "Missing or changing policy inputs preserve finite hard budgets and class isolation; unauthenticated identity claims cannot acquire trusted resource exemptions.",
+        "Admission, connection-retention/mesh treatment and load-penalty exemption stay separate privileges. None of them stops protocol-violation accounting. A trusted or exempt peer that violates the protocol still gets violation penalties and can be banned.",
+        "Record budget owners, selected values, reasons and passing M3b results. Lower constants alone or a threshold adjustment solely to pass a candidate do not close T5."
+      ],
+      "required_evidence": [
+        "Written D02-D04 whole-process budget and parameter derivation; candidate runtime accounting/refinement and ceiling-grant tests; trusted and exempt-peer protocol-violation penalty and ban tests; M3b honest/hostile resource, shedding, compatibility, catch-up, vote and persistence results."
       ],
       "candidate_atoms": []
     }
@@ -4003,9 +4081,9 @@
         2
       ],
       "sha256": "574866b782ca5169ae6c53b72f53f8e2ac2b2064741766f82d948137bf1546ed",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4016,9 +4094,9 @@
         4
       ],
       "sha256": "70a969dce32838240cf51560886c5158a613d5cb4258b7d7101d0b627acad35f",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4029,9 +4107,9 @@
         6
       ],
       "sha256": "893178a52c436dd18ed4e8f56430f2e04a0c0cb193c4766c1f84c6eda134b824",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4042,9 +4120,9 @@
         8
       ],
       "sha256": "07d0475b1ac0c226fd2db4b208e134ce4f67fc891f298595424bd6f9d83f72e9",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4055,9 +4133,9 @@
         10
       ],
       "sha256": "d1d8b8a855ce9fbbc6bd796fd39d2d19e6f205173f0216cadb7b6d529b1857b9",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4068,9 +4146,9 @@
         12
       ],
       "sha256": "0fd5b53f8b3597ef4d31b1e21d856c8ec498f8cee3d26ddd98e3e3e37c86ca49",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4081,9 +4159,9 @@
         14
       ],
       "sha256": "1bdf59b94d68718839aaa6172ca401202b91ffd81506f672b94a7aed0b11a525",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4094,9 +4172,9 @@
         16
       ],
       "sha256": "3eed03b9f55ea7abe5a257dd9cc6443fc956fe43942fea21f8471f2b8ae7ff6a",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4107,10 +4185,15 @@
         18
       ],
       "sha256": "dc041df04021f550d02e97eaf4979b7c2772ce25389bf288b2f220cfa2ceda97",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011"
+      ],
+      "rationale": "Retain both old/current release directions and recorded establishment/failure, elapsed deadline and negotiated-group observations; D07 selects support duration.",
+      "reconciles": [
+        "U1010",
+        "U1292"
+      ]
     },
     {
       "id": "U0271",
@@ -4120,10 +4203,14 @@
         19
       ],
       "sha256": "e2f2ad0eddb3da557e7b83ab9c8e246ff3cf4ec6ab705508d78172340c162b0e",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "The permanent historical unconditional-accept assertion is replaced by intended Retry behavior, controlled spoofing outcomes/timing and recorded cadence on the candidate.",
+      "reconciles": [
+        "U1038",
+        "U1040",
+        "U1293"
+      ]
     },
     {
       "id": "U0272",
@@ -4133,10 +4220,15 @@
         20
       ],
       "sha256": "35f8ed7671e34ac4a6524beb124c8cf7b87146693f8c1d2cab6544de8e0b5ae0",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "Honest reconnect evidence is retained, but a universal zero-refusal guard on one historical shape becomes D04 failure/time bounds on the D02 supported population.",
+      "reconciles": [
+        "U1038",
+        "U1287",
+        "U1289",
+        "U1319"
+      ]
     },
     {
       "id": "U0273",
@@ -4146,10 +4238,13 @@
         21
       ],
       "sha256": "729f08e90198591d9a50eb9c7760abd8d4d15daa2f9c7faf28480cbd7510f4e8",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "Historical no-runtime-change and no-load-decision exclusions describe the original fixture issue; T2b now verifies the changed Retry feature while M1a separately qualifies hardware/load.",
+      "reconciles": [
+        "U1038",
+        "U1039"
+      ]
     },
     {
       "id": "U0274",
@@ -4159,10 +4254,14 @@
         22
       ],
       "sha256": "8605745fdf435c1ea5b70a7a81e7bbdc529644129db0cd2050d5e58e4c0b94da",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "The original three-artifact closure becomes required T2a/T2b feature-release evidence, with measured environments and shared selected reconnect bounds.",
+      "reconciles": [
+        "U1010",
+        "U1040",
+        "U1289"
+      ]
     },
     {
       "id": "U0275",
@@ -4172,9 +4271,9 @@
         24
       ],
       "sha256": "9e644d899762f4766b529be2738b476459f7324a17156ee974382f440b47aae5",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4185,9 +4284,9 @@
         26
       ],
       "sha256": "3f94fa6d551546bacb245657e5946e16ed7d5e59d8f210a718105f3150da9dc4",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Historical attacker assumptions or example host/topology, not an independently selected production envelope; D01-D04 and versioned candidate qualification retain the actual measurement scope.",
       "reconciles": []
     },
     {
@@ -4198,10 +4297,16 @@
         28
       ],
       "sha256": "cee34d03d839446ba6624958f003013f9bb6fa9ae0b8b3deda729e8b6f6179fa",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M006",
+        "E010"
+      ],
+      "rationale": "Preserve documented fail-open authorization and firewall-independent, below-saturation qualification; hard budgets/authentication remain active.",
+      "reconciles": [
+        "U0914",
+        "U1286"
+      ]
     },
     {
       "id": "U0278",
@@ -4211,10 +4316,14 @@
         30
       ],
       "sha256": "86b97634342b5e8adb96cc0a56efd0e12ab27090ebb7a5e8085ce2243e0480e8",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M007"
+      ],
+      "rationale": "Every swarm contributes to the host allocation; no per-swarm limit is independently credited as the complete process budget.",
+      "reconciles": [
+        "U0911"
+      ]
     },
     {
       "id": "U0279",
@@ -4224,9 +4333,9 @@
         32
       ],
       "sha256": "265ba05e8d3544cf2524ca03fce498724acb4460d121cca5175024a3ffda4514",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4237,9 +4346,9 @@
         34
       ],
       "sha256": "edb6849b4e82220981920a47230dbbc97513c8288223fb156f01479121936698",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Historical attacker assumptions or example host/topology, not an independently selected production envelope; D01-D04 and versioned candidate qualification retain the actual measurement scope.",
       "reconciles": []
     },
     {
@@ -4250,9 +4359,9 @@
         36
       ],
       "sha256": "3ae31cffa34908a1916060da4fb75d1c6e44418fe7bb72ca6328d245e3d551f3",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4263,9 +4372,9 @@
         38
       ],
       "sha256": "fb4219bdb9612695b4b4bb232cdfc374ce1f40895c870ddfec4b0b5cfd64c8cd",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical source/dependency/test/runner observation, retained as research evidence; it does not establish current build behavior or a new acceptance criterion.",
       "reconciles": []
     },
     {
@@ -4276,9 +4385,9 @@
         40
       ],
       "sha256": "45367777f14f0cebb43cd4756c9a370a7fcc3de314b0b85fbb3c42297b8b6aee",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4289,9 +4398,9 @@
         42
       ],
       "sha256": "7f9b82a6ec1222a690000c4697b7e45469f3d17f278d7e621bce9609cb6ecce5",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4302,9 +4411,9 @@
         44
       ],
       "sha256": "6853375ad62add13cd158177c6dc5336f68e4a29220c7ee7476abc3c2d6d56b6",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4315,9 +4424,9 @@
         46
       ],
       "sha256": "f635143310d8aa27d70a03ab6d5929f0900c691432ffae28a947f109071d603b",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4328,9 +4437,9 @@
         48
       ],
       "sha256": "3cbf2cc49f998254897b48bba435308733cdca561fdb4dffab4b33121be314b1",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4341,9 +4450,9 @@
         50
       ],
       "sha256": "4f37fd348f57a09f42086b1d22f2e8a452fb736b7b4ba0829268d15d1800006a",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4354,9 +4463,9 @@
         52
       ],
       "sha256": "918c5e55262c0e5958532c4f6c1a67e366b5683c37ed53a3945b3d48b31b74d5",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4367,9 +4476,9 @@
         54
       ],
       "sha256": "9c4fd6e0e76a1d335f8ff530022f6fc7df84c2281f88e8d4d65fd3e2082ac61b",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4380,9 +4489,9 @@
         56
       ],
       "sha256": "2fd04ee23923e3549b89cb4f055c9b247fb9d2e19c7f0c26f5044b85e93bbe82",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4393,10 +4502,14 @@
         58
       ],
       "sha256": "87e4c18186f77dd4652233c236570052e835934716b1aa7febfa3226667ad9fe",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E020"
+      ],
+      "rationale": "Controlled-source tests record actual listener outcomes and cannot use the spoofable input value as authenticated evidence.",
+      "reconciles": [
+        "U1314"
+      ]
     },
     {
       "id": "U0293",
@@ -4406,10 +4519,16 @@
         60
       ],
       "sha256": "803d10c10b40d4256de62e854b013b7e29b19b932f8d3cc4316804f87febee3f",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011",
+        "E005"
+      ],
+      "rationale": "Real-listener coverage and required pre-accept observability need the actual transport seam; carried test instrumentation retains tracked patch maintenance and compatibility evidence.",
+      "reconciles": [
+        "U1008",
+        "U1016"
+      ]
     },
     {
       "id": "U0294",
@@ -4419,10 +4538,16 @@
         62
       ],
       "sha256": "71c21d753d965dc9ce251b5416d7866edce5796f49e8b5c9b5f8653b79fbf3e1",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M006",
+        "E020"
+      ],
+      "rationale": "A stale/missing-policy refusal assertion cannot silently disable the required fail-open behavior; candidate policy-change/fallback cases remain required.",
+      "reconciles": [
+        "U0914",
+        "U1038"
+      ]
     },
     {
       "id": "U0295",
@@ -4432,10 +4557,15 @@
         64
       ],
       "sha256": "1806c58d9404d0232dfbc7f006d0e9ffa6db2b4a8b6af67990e561333b4db620",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011"
+      ],
+      "rationale": "Like-with-like tests alone cannot replace both cross-release directions.",
+      "reconciles": [
+        "U1010",
+        "U1325"
+      ]
     },
     {
       "id": "U0296",
@@ -4445,10 +4575,13 @@
         66
       ],
       "sha256": "649af053a7feb32dcbc6a3400566b64070dc105bcef0d5f8e54f76768c434635",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "A fixed single-peer fixture is replaced by supported D02 populations, both swarms and all expected workers, without treating one historical ten-validator example as universal qualification.",
+      "reconciles": [
+        "U1287",
+        "U1319"
+      ]
     },
     {
       "id": "U0297",
@@ -4458,10 +4591,14 @@
         68
       ],
       "sha256": "f4a7f25db931ee30236ab601ad281e3184fcca886abbefba4b9b1671c93848ec",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E020"
+      ],
+      "rationale": "Candidate fixtures exercise epoch/policy changes and fallback rather than pinning one committee indefinitely.",
+      "reconciles": [
+        "U1038"
+      ]
     },
     {
       "id": "U0298",
@@ -4471,9 +4608,9 @@
         70
       ],
       "sha256": "1759e3b7e85c241a2736f73b44682577ed25ed57e35e7d36e977cc3c7d8909ea",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4484,10 +4621,15 @@
         72
       ],
       "sha256": "915e1b0d60efa9783f5f8c068af840f1efc12db3f4d42ea19fd940880850c6c0",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011",
+        "E020"
+      ],
+      "rationale": "Measured runner/link capability determines ordinary versus isolated controlled-network evidence; lack of spoofing capability is recorded, not interpreted as a passing test.",
+      "reconciles": [
+        "U1293"
+      ]
     },
     {
       "id": "U0300",
@@ -4497,10 +4639,15 @@
         74
       ],
       "sha256": "aea0a5f603d17ea813b9fca2f88aa5c6b7aed83b4f2ac0f4a29f46d297d9295d",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "Retain reproducible honest reconnect distributions and outcome separation across swarms; use declared network/population and D04 tolerances instead of universal historical-host zero-refusal acceptance.",
+      "reconciles": [
+        "U1008",
+        "U1287",
+        "U1289",
+        "U1319"
+      ]
     },
     {
       "id": "U0301",
@@ -4510,10 +4657,14 @@
         76
       ],
       "sha256": "657979425919feb44dc710265c7e1445f3f68dc6f3c79048795011eee0c67cb3",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "Pairing outcome/deadline/group and lane-cost observations are retained by E011, but the required rollout matrix cannot be made optional solely because a unified build or scheduled lane is cheaper.",
+      "reconciles": [
+        "U1010",
+        "U1292",
+        "U1325"
+      ]
     },
     {
       "id": "U0302",
@@ -4523,9 +4674,9 @@
         78
       ],
       "sha256": "7d15237b384da28a0683a1fe048f87830f780bbc8ae28d822d61e015ad68ec4d",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4536,10 +4687,15 @@
         80
       ],
       "sha256": "0a500ab5b1d324f3b4f57647ec729f43a8cea6b8c081d65d1b16401e05ef28e9",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011",
+        "E020"
+      ],
+      "rationale": "The runner networking question becomes measured D08 capability and a reproducible assigned test environment.",
+      "reconciles": [
+        "U1293"
+      ]
     },
     {
       "id": "U0304",
@@ -4549,10 +4705,14 @@
         81
       ],
       "sha256": "9e92e052bddca324cb0e0f7f762027951cc42c42aa52e8899d729543cdfe4570",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E011"
+      ],
+      "rationale": "D07 explicitly decides continuing mixed-fleet support while requiring the named rollout pairing in both directions.",
+      "reconciles": [
+        "U1292"
+      ]
     },
     {
       "id": "U0305",
@@ -4562,9 +4722,9 @@
         82
       ],
       "sha256": "6e36d9cb1368e25282889c13527a1dfe060c233c6517a7d7e77ad5acba6a61df",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Surveyed fixture/build/networking approach or unresolved comparison, not a mandated implementation choice; E011/E020 require real-listener evidence and measured lane capability.",
       "reconciles": []
     },
     {
@@ -4575,10 +4735,14 @@
         83
       ],
       "sha256": "f0424162a35f40337c899072c3b30e3735045bc199c8b820a8d1583b114151b8",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E010"
+      ],
+      "rationale": "Network conditions are part of the production envelope; a reconnect distribution on one link cannot qualify a different network.",
+      "reconciles": [
+        "U1286"
+      ]
     },
     {
       "id": "U0307",
@@ -4588,9 +4752,9 @@
         85
       ],
       "sha256": "630a5d69a70931054a3387840411306fb495280bfa0b3554006321cccbae0d00",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original title/labels or section heading; it locates the substantive audited source units.",
       "reconciles": []
     },
     {
@@ -4601,9 +4765,9 @@
         87
       ],
       "sha256": "be0328ca1a07a377bc9f4ec31af629741a467d2941a42e185e9514a7effcafeb",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4614,9 +4778,9 @@
         88
       ],
       "sha256": "1c05c0e9d523cf00dfd87d3167004231472ca9882d99e8c1ddd3c71ffab05650",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4627,9 +4791,9 @@
         89
       ],
       "sha256": "a3dad0393b63357c37b0bcc503d9b25fe2c0107382b361ae0b6413ac47619415",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4640,9 +4804,9 @@
         90
       ],
       "sha256": "345084b424badd5669900faeb7c340ba7775a5de56239c0df3b3abacf85e0115",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4653,9 +4817,9 @@
         91
       ],
       "sha256": "4981459a0803b700416824e5cf9ac7927beeed30c1936aaa72c1199089baf06e",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4666,9 +4830,9 @@
         92
       ],
       "sha256": "0a4b1e9728d5c175c3a8d79c33e75f58256154d8389c1a50c0063dca8799ca19",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4679,9 +4843,9 @@
         93
       ],
       "sha256": "6da6d87154a5037080ed56a3294faf961fdd808af910245e3026d0c2160cf759",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4692,9 +4856,9 @@
         94
       ],
       "sha256": "0a6ac616ad11b4a660d084a752d83bbb156b72a92879e5462a481ac7723083bf",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -4705,9 +4869,9 @@
         95
       ],
       "sha256": "f00dda3fca33313db07a75ca0576cd09daf0a1492ad85c23cef251f412c5eaed",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related issue or source locator; its listener, accounting, crypto or maintenance relationship is retained without treating historical issue status as validation.",
       "reconciles": []
     },
     {
@@ -6274,9 +6438,9 @@
         2
       ],
       "sha256": "2e5f3ff887245af7100c3549c7f6045d99d64528baecbaec2b3da013711361e7",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6287,9 +6451,9 @@
         4
       ],
       "sha256": "70a969dce32838240cf51560886c5158a613d5cb4258b7d7101d0b627acad35f",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6300,9 +6464,9 @@
         6
       ],
       "sha256": "d7dfc1b55a2af3ff77cecf5a2407c34f1a706f0f9139cd36bd0ea8f6ce5b3c24",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6313,9 +6477,9 @@
         8
       ],
       "sha256": "c3834723a08ce12d506153a34a077882d2b8903d1fe69d694ce46e59c925a161",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6326,9 +6490,9 @@
         9
       ],
       "sha256": "23cca02b74f386463efa24796c7a9011b0d2c93f0c38b4d15d5d276205b59b43",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6339,9 +6503,9 @@
         10
       ],
       "sha256": "d68115cd0eeb5a4ab51de875cd76f946eb0558adecf959808d34dd0a0d983e0b",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6352,9 +6516,9 @@
         11
       ],
       "sha256": "e0fc2a7d3aa6e86a8ac9a13f2193b59003e99845971c09858752ee7e602ef2e0",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6365,9 +6529,9 @@
         12
       ],
       "sha256": "a7ba09d28573bcdd5948249b7bde644f7ebbd7b263f770b5ce11c1439d216c14",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6378,9 +6542,9 @@
         13
       ],
       "sha256": "996270770ae0f323adfc0a97fcb525ca9ca690b3e30cc16e459f67552ff9757f",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6391,9 +6555,9 @@
         14
       ],
       "sha256": "e75df353de22c9b187e0f7490fcb9bba0126e88b843f19f8672cd762df87deb7",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6404,9 +6568,9 @@
         15
       ],
       "sha256": "ce78fe94630fa61b6f4af5719c98e0831f48ad5e4409a6a84be3aaed3ff63129",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6417,9 +6581,9 @@
         17
       ],
       "sha256": "e2b41890c55afb85594851c70f66edc431d57f72a0061f604ed1e907a7f8a284",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6430,9 +6594,9 @@
         19
       ],
       "sha256": "2ee471bb47b5304cfabe9f3665106ee788947c7bc7b5fc3f7bd9378f6f619096",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6443,9 +6607,9 @@
         21
       ],
       "sha256": "6f9897d10002a480b60f1d844ed88b0cc238b13e4908258202b0223be02b26ce",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6456,9 +6620,9 @@
         23
       ],
       "sha256": "3eed03b9f55ea7abe5a257dd9cc6443fc956fe43942fea21f8471f2b8ae7ff6a",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6469,10 +6633,18 @@
         25
       ],
       "sha256": "cdf3704c67fc52d3dd3ff28e7732ab5e160a678bf2cf1be0a2e21c6182305760",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M012",
+        "E021",
+        "E022"
+      ],
+      "rationale": "Grant tests bind connection/stream/credit allocations to measured honest peak and host budgets; counts alone are not resident bytes.",
+      "reconciles": [
+        "U1068",
+        "U1070",
+        "U1340"
+      ]
     },
     {
       "id": "U0442",
@@ -6482,10 +6654,18 @@
         26
       ],
       "sha256": "f31136cc5bc87cf0e82b885eae2648e9049f8bd948976c280a7f2bb4903ff429",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M012",
+        "E021",
+        "E022"
+      ],
+      "rationale": "Retain peak resident-memory measurement and the selected bound, with actual concurrent ceiling occupancy and concrete cost domination.",
+      "reconciles": [
+        "U1068",
+        "U1070",
+        "U1340"
+      ]
     },
     {
       "id": "U0443",
@@ -6495,10 +6675,15 @@
         27
       ],
       "sha256": "b61906f2178744aa8bad0e22a1d256a0f7579b7279a0d6cb483864dca54517cc",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "The unconditional absence of a capacity WARN becomes observable shedding plus D04 catch-up/critical-message bounds under the declared multi-swarm workload; silent loss remains unacceptable evidence.",
+      "reconciles": [
+        "U1070",
+        "U1289",
+        "U1321",
+        "U1341"
+      ]
     },
     {
       "id": "U0444",
@@ -6508,10 +6693,18 @@
         28
       ],
       "sha256": "38cbd131b66c0464e6a59a1f0b228eab5b54bba6b0c49cf0b59cc554922db449",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M012",
+        "E022",
+        "E010"
+      ],
+      "rationale": "Established-stage requirements retain separate pending/rate/refusal ownership and below-link-saturation scope; later caps cannot erase earlier costs and bulk transport migration is not required here.",
+      "reconciles": [
+        "U0910",
+        "U1070",
+        "U1286"
+      ]
     },
     {
       "id": "U0445",
@@ -6521,10 +6714,15 @@
         29
       ],
       "sha256": "808e9684ae476f67bd0263f854ecab812cf6a59b4a44f65eccd9fb4d7e2801e9",
-      "disposition": "pending",
+      "disposition": "superseded",
       "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "rationale": "Original peak/memory/grant/reconnect artifacts remain in M3a/M3b; closure additionally requires selected whole-process allocations and critical-message regression evidence.",
+      "reconciles": [
+        "U1068",
+        "U1070",
+        "U1340",
+        "U1341"
+      ]
     },
     {
       "id": "U0446",
@@ -6534,9 +6732,9 @@
         31
       ],
       "sha256": "9e644d899762f4766b529be2738b476459f7324a17156ee974382f440b47aae5",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6547,9 +6745,9 @@
         33
       ],
       "sha256": "3f94fa6d551546bacb245657e5946e16ed7d5e59d8f210a718105f3150da9dc4",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Historical attacker scope or example topology; candidate measurements retain D01-D04 declared network, peer and swarm conditions rather than assuming these fixed values.",
       "reconciles": []
     },
     {
@@ -6560,10 +6758,18 @@
         35
       ],
       "sha256": "cee34d03d839446ba6624958f003013f9bb6fa9ae0b8b3deda729e8b6f6179fa",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M006",
+        "E010",
+        "E022"
+      ],
+      "rationale": "Preserve firewall-independent below-saturation operation and policy fallback while maintaining authentication, finite established budgets and class isolation.",
+      "reconciles": [
+        "U0914",
+        "U1286",
+        "U1070"
+      ]
     },
     {
       "id": "U0449",
@@ -6573,10 +6779,14 @@
         37
       ],
       "sha256": "86b97634342b5e8adb96cc0a56efd0e12ab27090ebb7a5e8085ce2243e0480e8",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M007"
+      ],
+      "rationale": "Per-swarm established costs multiply across all primary/worker swarms and must compose within the host allocation.",
+      "reconciles": [
+        "U0911"
+      ]
     },
     {
       "id": "U0450",
@@ -6586,9 +6796,9 @@
         39
       ],
       "sha256": "265ba05e8d3544cf2524ca03fce498724acb4460d121cca5175024a3ffda4514",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6599,9 +6809,9 @@
         41
       ],
       "sha256": "edb6849b4e82220981920a47230dbbc97513c8288223fb156f01479121936698",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Historical attacker scope or example topology; candidate measurements retain D01-D04 declared network, peer and swarm conditions rather than assuming these fixed values.",
       "reconciles": []
     },
     {
@@ -6612,9 +6822,9 @@
         43
       ],
       "sha256": "462ab5074a692ef0ce71e2af6c19fdd135b16a973721931737e775530a0141a1",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6625,9 +6835,9 @@
         45
       ],
       "sha256": "a3583c59852f31522e1ecac841527e9b9e2b4c4a2a6fc429be8ca9875c7fab2f",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6638,9 +6848,9 @@
         47
       ],
       "sha256": "acea31445ff3d3e6a475710ff44154f3ccc1efa04316d10d28a5789672579ccb",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6651,9 +6861,9 @@
         49
       ],
       "sha256": "45367777f14f0cebb43cd4756c9a370a7fcc3de314b0b85fbb3c42297b8b6aee",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6664,9 +6874,9 @@
         51
       ],
       "sha256": "e5af8fd103aeef8df3398a701d2325052cc8e9eb967846c94f9df5b52bbf18b7",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "An unimplemented byte/work accounting alternative is surveyed, without mandating that design or treating it as an existing resource bound.",
       "reconciles": []
     },
     {
@@ -6677,10 +6887,18 @@
         53
       ],
       "sha256": "bca6c64f111950dab90a48ff5ade4820de089f40af308b8396944e6959dccc36",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M006",
+        "M012",
+        "E022"
+      ],
+      "rationale": "Any class-based limit or exemption respects policy churn/fallback and authenticated trust; trust never grants unbounded established resources.",
+      "reconciles": [
+        "U0914",
+        "U0918",
+        "U1068"
+      ]
     },
     {
       "id": "U0458",
@@ -6690,10 +6908,16 @@
         55
       ],
       "sha256": "a8ab42ff0bb3b030b7f0c040c0e5fa257da4850ff9ee21482b30e7bc042b6f2d",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022"
+      ],
+      "rationale": "Lowering inherited ceilings requires measured reconnect/catch-up headroom and regressions, including shared request-response capacity and receive-window effects.",
+      "reconciles": [
+        "U1340",
+        "U1341"
+      ]
     },
     {
       "id": "U0459",
@@ -6703,9 +6927,9 @@
         57
       ],
       "sha256": "2fd04ee23923e3549b89cb4f055c9b247fb9d2e19c7f0c26f5044b85e93bbe82",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6716,10 +6940,14 @@
         59
       ],
       "sha256": "eee850cdceb46f00cf3c670d1362529db074cf548c28864b72be4f1ff70ae287",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E022"
+      ],
+      "rationale": "Regression evidence distinguishes advertised QUIC parameters from unsignaled request-response shedding and ensuing timeout/configuration compatibility effects.",
+      "reconciles": [
+        "U1070"
+      ]
     },
     {
       "id": "U0461",
@@ -6729,10 +6957,16 @@
         60
       ],
       "sha256": "af53910901b0b9d5dbf54d362bebbcd7fdb735b1689efa088134b21dbec72cd2",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M006",
+        "E022"
+      ],
+      "rationale": "Committee churn or missing policy cannot disable finite established budgets or exclude honest traffic through an untested derived class value.",
+      "reconciles": [
+        "U0914",
+        "U1068"
+      ]
     },
     {
       "id": "U0462",
@@ -6742,10 +6976,14 @@
         61
       ],
       "sha256": "fbdb6bf7d4f6ee4c7c31606279b6476e8927115750fc08b69543bf63453a84aa",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021"
+      ],
+      "rationale": "Measure reconnect overlap and catch-up peaks, not only steady-state use.",
+      "reconciles": [
+        "U1340"
+      ]
     },
     {
       "id": "U0463",
@@ -6755,10 +6993,18 @@
         62
       ],
       "sha256": "53e2face23534a39b2731bb13ada962d9240b940221d4191c772edd812e0d1a0",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M007",
+        "E021",
+        "E022"
+      ],
+      "rationale": "Measurements and selected resource allocations cover every swarm in the process.",
+      "reconciles": [
+        "U1068",
+        "U1070",
+        "U1340"
+      ]
     },
     {
       "id": "U0464",
@@ -6768,10 +7014,18 @@
         63
       ],
       "sha256": "2f8ad522b466dbf18a3a88638193b352cd3ff0d397867f2d65eb88adebc1779f",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M007",
+        "M012",
+        "E022"
+      ],
+      "rationale": "Freely minted identities and peer-count exemptions cannot be treated as a finite global budget; include every grant within aggregate allocations.",
+      "reconciles": [
+        "U0911",
+        "U0918",
+        "U1070"
+      ]
     },
     {
       "id": "U0465",
@@ -6781,10 +7035,18 @@
         64
       ],
       "sha256": "6cd7bc3ba4c3cd78f8831e5666c7089f9c9f435cf8dce3b6d79ba9230e9de8f4",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022"
+      ],
+      "rationale": "D02-D04 population, burst, throughput, memory share and host headroom are selected before candidate limits are accepted.",
+      "reconciles": [
+        "U1287",
+        "U1288",
+        "U1289",
+        "U1340"
+      ]
     },
     {
       "id": "U0466",
@@ -6794,9 +7056,9 @@
         66
       ],
       "sha256": "1759e3b7e85c241a2736f73b44682577ed25ed57e35e7d36e977cc3c7d8909ea",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6807,10 +7069,16 @@
         68
       ],
       "sha256": "2bc579f0d07af85928181c832f3eae471f768c41091fad2c8f0d3b38fc3c254d",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E005"
+      ],
+      "rationale": "Measure exact concurrent connection and all relevant stream peaks across epochs/reconnects; cumulative upper bounds or upper-layer request counts do not substitute. Instrumented crates retain the exercised maintenance receipt.",
+      "reconciles": [
+        "U1340",
+        "U1016"
+      ]
     },
     {
       "id": "U0468",
@@ -6820,10 +7088,14 @@
         70
       ],
       "sha256": "73bb5c1b4fc2385c745469f8502a559a63397e7b138389506c1f9d4b35a6e974",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021"
+      ],
+      "rationale": "Retain idle-versus-undrained-data RSS comparisons, actual ceiling occupancy and run-to-run uncertainty; inconclusive attribution does not establish a byte bound.",
+      "reconciles": [
+        "U1340"
+      ]
     },
     {
       "id": "U0469",
@@ -6833,10 +7105,16 @@
         72
       ],
       "sha256": "ac301a2d698a0e130b882d8e212cbcb95771cbe1eacb2bdce845afe14501cf9b",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022"
+      ],
+      "rationale": "Window sweeps and catch-up completion are calibrated on the recorded network and repeated under selected production settings.",
+      "reconciles": [
+        "U1340",
+        "U1341"
+      ]
     },
     {
       "id": "U0470",
@@ -6846,9 +7124,9 @@
         74
       ],
       "sha256": "dc023862c7dc28d91b8f0173b970bff6d50c9bf4e2c2a519298e12eef00618d1",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Pinned historical ceilings, arithmetic or source behavior, not selected production bounds or current resident-memory measurements; credit, struct size, cumulative counters and exempt-peer bypass receive no resource-proof credit.",
       "reconciles": []
     },
     {
@@ -6859,9 +7137,9 @@
         76
       ],
       "sha256": "7d15237b384da28a0683a1fe048f87830f780bbc8ae28d822d61e015ad68ec4d",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6872,10 +7150,16 @@
         78
       ],
       "sha256": "6ca1079a347dc22ec7dad32d130430fb00491cc195024723a8c7d4d5c7f9b4fa",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M012",
+        "E022"
+      ],
+      "rationale": "Record the standing established-budget design explicitly; graceful peer-count refusal and exemptions do not impose a hard identity/resource bound.",
+      "reconciles": [
+        "U1068",
+        "U1070"
+      ]
     },
     {
       "id": "U0473",
@@ -6885,10 +7169,16 @@
         79
       ],
       "sha256": "8b0ab8b90d4c1c18d07d8baa33b7975b38d4077d15bbf65fd08fb27ecabc1072",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E010",
+        "E021"
+      ],
+      "rationale": "D01 supplies network conditions for calibrated occupancy and catch-up/window measurements.",
+      "reconciles": [
+        "U1286",
+        "U1340"
+      ]
     },
     {
       "id": "U0474",
@@ -6898,10 +7188,16 @@
         80
       ],
       "sha256": "bd6d1777b8a53191dd6732a30d41c24e94e3d5a3fa659acdd83b139a0abba82c",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "M012",
+        "E022"
+      ],
+      "rationale": "Coordinate resource treatment with the admission/trust contract; eligibility/retention privileges stay distinct from finite established allocations.",
+      "reconciles": [
+        "U0918",
+        "U1068"
+      ]
     },
     {
       "id": "U0475",
@@ -6911,10 +7207,14 @@
         81
       ],
       "sha256": "d8f669d577f518b4f6a2264656b7c75ec5cdae4782b31d7a0a4f89a7c02f5fe5",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
-      "reconciles": []
+      "disposition": "obligation",
+      "obligations": [
+        "E022"
+      ],
+      "rationale": "D03 selects the whole-process transport memory share with consensus/storage headroom and allocation across swarms.",
+      "reconciles": [
+        "U1288"
+      ]
     },
     {
       "id": "U0476",
@@ -6924,9 +7224,9 @@
         83
       ],
       "sha256": "630a5d69a70931054a3387840411306fb495280bfa0b3554006321cccbae0d00",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Original metadata, section heading or table scaffolding; it locates the substantive audited resource requirements.",
       "reconciles": []
     },
     {
@@ -6937,9 +7237,9 @@
         85
       ],
       "sha256": "729d793fe4ad17dbae68d68b5b03c84f7f25db55154cabe1ca1d120f85c054e5",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -6950,9 +7250,9 @@
         86
       ],
       "sha256": "7a8e0d1de69eaefec3a74284f93d4e861fb16da8e8d7299941b90691be9253df",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -6963,9 +7263,9 @@
         87
       ],
       "sha256": "2aa6376a84e8af509fe1edb46e74985d39e795301a9f484e9187a8c4d0f81c36",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -6976,9 +7276,9 @@
         88
       ],
       "sha256": "35312f4fe946b44e7f9b34b45d308d433ee971519b417e49ce7f1f841dc975c3",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -6989,9 +7289,9 @@
         89
       ],
       "sha256": "5d1627ee87c3d73fd5d8bf3fdd32a9cbc9b1433fb10e15757f57f597abdf06a6",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -7002,9 +7302,9 @@
         90
       ],
       "sha256": "f2d9f62d3fb8c401e003fdc255e6b7334cdd34d439703d17f7f610a1f54924e0",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -7015,9 +7315,9 @@
         91
       ],
       "sha256": "637ca2151fe0f8e6d5edf3353f7db3ae12c9ea199b74f77fa92c585e97c97a0f",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -7028,9 +7328,9 @@
         92
       ],
       "sha256": "bd22688a8019b26a6b9dbdd32d69d2ffc54c8fe56a8abfa18653b789b860e0f8",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Related tracking/source locator; dependency, bulk-traffic shape and stage relationships remain traceable without making historical issue status qualification evidence.",
       "reconciles": []
     },
     {
@@ -12770,9 +13070,12 @@
         59
       ],
       "sha256": "4db542ba3ec4d443153430e91d2013e96360595be08b833d5f50bbdff67c7ff1",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E022",
+        "M012"
+      ],
+      "rationale": "Established resource accounting remains separate from pending occupancy and pre-accept cost.",
       "reconciles": []
     },
     {
@@ -12785,10 +13088,12 @@
       "sha256": "d6ceed51f2151d4a7393b87dfc6ea82c681ef22c1178852dca1925ca2fc77a95",
       "disposition": "obligation",
       "obligations": [
+        "E010",
+        "E022",
         "M007",
-        "E010"
+        "M012"
       ],
-      "rationale": "Compose source/prefix and swarm budgets at process scope and qualify simultaneous and distributed attack traffic.",
+      "rationale": "Compose source/prefix and swarm budgets at process scope and qualify simultaneous and distributed attack traffic. T2/T5 audit: Resource allocations include every swarm, identity and prefix; per-peer/source ceilings alone do not establish the process bound.",
       "reconciles": []
     },
     {
@@ -12880,9 +13185,12 @@
         75
       ],
       "sha256": "cd0ddd21469bf8974b8ab1d38d32a22f33caffda77c74d4d9c9a2624687451b7",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E022",
+        "M012"
+      ],
+      "rationale": "Admission or retention trust does not authorize unbounded resource grants; load exemptions stay distinct from protocol-violation penalties.",
       "reconciles": []
     },
     {
@@ -12893,9 +13201,13 @@
         77
       ],
       "sha256": "5d5d55219cf35f4b2b5aab7e3f64db069db3dbd4c0746810a4fb2029bdf821c3",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022",
+        "M008"
+      ],
+      "rationale": "Critical message classes retain service alongside legitimate bulk senders; consensus and catch-up are measured together.",
       "reconciles": []
     },
     {
@@ -14525,9 +14837,10 @@
       "obligations": [
         "E008",
         "E010",
-        "E011"
+        "E011",
+        "E020"
       ],
-      "rationale": "Candidate integration covers token edges, controlled spoofing, filter branches, mass reconnects, release pairs, deadlines, and Retry-only progress.",
+      "rationale": "Candidate integration covers token edges, controlled spoofing, filter branches, mass reconnects, release pairs, deadlines, and Retry-only progress. T2/T5 audit: Candidate Retry integration covers token edges, controlled spoofing, all outcomes, honest reconnects, release pairs and deadlines, including progress before the outer loop.",
       "reconciles": []
     },
     {
@@ -14542,9 +14855,10 @@
       "obligations": [
         "E008",
         "E010",
-        "E011"
+        "E011",
+        "E020"
       ],
-      "rationale": "The complete integration suite uses T1a/T6 and controlled networking; representative hardware qualification stays with M1a.",
+      "rationale": "The complete integration suite uses T1a/T6 and controlled networking; representative hardware qualification stays with M1a. T2/T5 audit: Integration is evaluated on T1a plus T6 using the measured controlled-network lane; M1a hardware qualification remains distinct.",
       "reconciles": []
     },
     {
@@ -14558,9 +14872,10 @@
       "disposition": "obligation",
       "obligations": [
         "E008",
-        "E011"
+        "E011",
+        "E020"
       ],
-      "rationale": "Record candidate test cadence/environments and assert the intended changed Retry behavior.",
+      "rationale": "Record candidate test cadence/environments and assert the intended changed Retry behavior. T2/T5 audit: Passing candidate integration, recorded cadence and environments replace permanently asserting historical unconditional acceptance.",
       "reconciles": []
     },
     {
@@ -14939,9 +15254,9 @@
         141
       ],
       "sha256": "6712cd35eccf49df97417343b5efe1526785146f15c59e7daab345cba245780d",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Task heading, suggested ownership/status or original-source locator; acceptance obligations are recorded in the task body and completion clauses.",
       "reconciles": []
     },
     {
@@ -14952,9 +15267,9 @@
         143
       ],
       "sha256": "a5f81865c7ab0577a3ba12ee7fce97224d622a01d0bcefa82779b11ae59dc768",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Task heading, suggested ownership/status or original-source locator; acceptance obligations are recorded in the task body and completion clauses.",
       "reconciles": []
     },
     {
@@ -14965,9 +15280,14 @@
         145
       ],
       "sha256": "d9f4212ab788f1493c1040f31cda64a3435dbee2e359c147d339d3f55445c9b2",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022",
+        "M007",
+        "M012"
+      ],
+      "rationale": "Calibrated established dimensions compose across peers, exemptions and swarms, with separate trust/class contracts and credit/resident-byte observations.",
       "reconciles": []
     },
     {
@@ -14978,9 +15298,12 @@
         147
       ],
       "sha256": "194436f354c341dda32a7196b211cd1bb448907118cb5e5f9811c6653ea533bb",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022"
+      ],
+      "rationale": "Baseline calibration and D02-D04 precede production-value selection; T10 and crypto optimization are not prerequisites.",
       "reconciles": []
     },
     {
@@ -14991,9 +15314,14 @@
         149
       ],
       "sha256": "298ffadb230b7dcc7345435cd5e645bf35f8c3176128130c91e7dcc9974820a6",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E022",
+        "M007",
+        "M008",
+        "M012"
+      ],
+      "rationale": "M3b covers hostile ceiling grants plus catch-up and critical traffic; exemptions and all swarms are budgeted and shedding is observable within critical-service bounds.",
       "reconciles": []
     },
     {
@@ -15004,9 +15332,9 @@
         151
       ],
       "sha256": "a63198ce7c6caf2dee1b8c53c3bb2c8064e57505805889b753044b040e9de4ec",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Task heading, suggested ownership/status or original-source locator; acceptance obligations are recorded in the task body and completion clauses.",
       "reconciles": []
     },
     {
@@ -15727,9 +16055,14 @@
         24
       ],
       "sha256": "ba0779bdc67a465f3b0be5fca21eda655801404481fac652d717424f5695c635",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022",
+        "M007",
+        "M012"
+      ],
+      "rationale": "T5 is explicitly revised from isolated peer ceilings to calibrated whole-process allocations, including trusted traffic and multiplicative peer/stream/swarm effects.",
       "reconciles": []
     },
     {
@@ -15964,9 +16297,12 @@
         45
       ],
       "sha256": "7c7cb31b129a68e456d8df6dfc00041e17838a7c656a6a08dda2bb42a36980f5",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E011",
+        "E020"
+      ],
+      "rationale": "T02 becomes required T2a/T2b release evidence developed with the feature, plus shared calibration and qualification.",
       "reconciles": []
     },
     {
@@ -16003,9 +16339,13 @@
         48
       ],
       "sha256": "de581a9da0fe160d57cdf460ffc05e49bf2e34e6d5d732d6a40c32952c2b0583",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022",
+        "M012"
+      ],
+      "rationale": "T05 remains Launch with measured host allocations and explicit A3 trust/S4 class contracts.",
       "reconciles": []
     },
     {
@@ -17866,9 +18206,11 @@
       "sha256": "539ad668c257b56173ace27db3514494c16e300fb0d32bd2945673c803bab44c",
       "disposition": "obligation",
       "obligations": [
-        "E010"
+        "E010",
+        "E021",
+        "E022"
       ],
-      "rationale": "D02 fixes honest identities, workers, shared addresses, and concurrent reconnect/catch-up populations.",
+      "rationale": "D02 fixes honest identities, workers, shared addresses, and concurrent reconnect/catch-up populations. T2/T5 audit: D02 declares honest/exempt populations, all workers and supported reconnect/catch-up shapes before established settings are selected.",
       "reconciles": []
     },
     {
@@ -17881,10 +18223,11 @@
       "sha256": "902e8496770ad6962dbdda1b6c2a6c081fcf94d4dc1865a51a88eac29b007c92",
       "disposition": "obligation",
       "obligations": [
-        "M007",
-        "E010"
+        "E010",
+        "E022",
+        "M007"
       ],
-      "rationale": "D03 allocates whole-process resource budgets across swarms while reserving consensus/storage headroom.",
+      "rationale": "D03 allocates whole-process resource budgets across swarms while reserving consensus/storage headroom. T2/T5 audit: D03 allocates whole-process CPU/RSS/tasks/state across swarms with consensus and storage headroom.",
       "reconciles": []
     },
     {
@@ -17897,9 +18240,11 @@
       "sha256": "79f3caf47ce90f863a27d678502c311faac039de7543ae983a2a974162bbbbef",
       "disposition": "obligation",
       "obligations": [
-        "E010"
+        "E010",
+        "E021",
+        "E022"
       ],
-      "rationale": "D04 records acceptance bounds for service, consensus, reconnect failures/time, catch-up, and persistence before scoring a candidate.",
+      "rationale": "D04 records acceptance bounds for service, consensus, reconnect failures/time, catch-up, and persistence before scoring a candidate. T2/T5 audit: D04 binds the permitted service, reconnect, vote, catch-up and persistence outcome before candidate acceptance.",
       "reconciles": []
     },
     {
@@ -17959,9 +18304,10 @@
       "disposition": "obligation",
       "obligations": [
         "E010",
-        "E011"
+        "E011",
+        "E020"
       ],
-      "rationale": "D08 establishes reproducible ordinary, controlled-network, and representative-hardware test capabilities/cadence.",
+      "rationale": "D08 establishes reproducible ordinary, controlled-network, and representative-hardware test capabilities/cadence. T2/T5 audit: D08 records measured runner capabilities and reproducible ordinary/isolated/real-NIC lanes before cadence and qualification claims.",
       "reconciles": []
     },
     {
@@ -18237,13 +18583,14 @@
       "sha256": "b485cd570a7aa8d2fe46f5dbc94ba71d13cf0eb19248e4cbdb898486e5d025ac",
       "disposition": "obligation",
       "obligations": [
+        "E008",
+        "E014",
+        "E020",
         "M001",
         "M002",
-        "M003",
-        "E008",
-        "E014"
+        "M003"
       ],
-      "rationale": "Spoofed/unvalidated attempts must take pre-accept Retry with bounded transient work/state and no victim privileged-quota consumption.",
+      "rationale": "Spoofed/unvalidated attempts must take pre-accept Retry with bounded transient work/state and no victim privileged-quota consumption. T2/T5 audit: Runtime spoofing tests exercise pre-accept Retry, finite transient bounds and protection against claimed-source quota poisoning.",
       "reconciles": []
     },
     {
@@ -18256,10 +18603,11 @@
       "sha256": "6cd55162663bbcc62757a97c069bd4285ea6becdcbf02978294373c36d96fde9",
       "disposition": "obligation",
       "obligations": [
-        "M001",
-        "E008"
+        "E008",
+        "E020",
+        "M001"
       ],
-      "rationale": "Reachability evidence follows resolved token semantics, including invalid tokens, bindings, replay, restart/key changes, and loss/reordering.",
+      "rationale": "Reachability evidence follows resolved token semantics, including invalid tokens, bindings, replay, restart/key changes, and loss/reordering. T2/T5 audit: Token edge/restart/key-change/loss cases use the resolved protocol semantics and do not turn invalid tokens into reachability evidence.",
       "reconciles": []
     },
     {
@@ -18272,12 +18620,13 @@
       "sha256": "e2316ca2345979c88027410d8ac4fb955b70456193c33f3de4d5f5da6864c8c3",
       "disposition": "obligation",
       "obligations": [
-        "M002",
-        "M008",
         "E008",
-        "E017"
+        "E017",
+        "E020",
+        "M002",
+        "M008"
       ],
-      "rationale": "Require actual command, refresh, heartbeat, and sweep progress with wakeups and bounded transport turns on continuous Retry/Ignore/Refuse/Accept paths.",
+      "rationale": "Require actual command, refresh, heartbeat, and sweep progress with wakeups and bounded transport turns on continuous Retry/Ignore/Refuse/Accept paths. T2/T5 audit: All incoming outcomes preserve wakeups and selected command/timer progress, including sustained Retry-only traffic.",
       "reconciles": []
     },
     {
@@ -18324,11 +18673,12 @@
       "sha256": "687d470c3cb1f3c801d4e973be2b9ffeac41a9340bb9660cbb083681d65fe23d",
       "disposition": "obligation",
       "obligations": [
+        "E010",
+        "E020",
         "M008",
-        "M010",
-        "E010"
+        "M010"
       ],
-      "rationale": "Full committee/hub reconnect preserves the selected conditional service/connectivity and measured recovery bounds across every expected swarm/worker.",
+      "rationale": "Full committee/hub reconnect preserves the selected conditional service/connectivity and measured recovery bounds across every expected swarm/worker. T2/T5 audit: Honest full-population reconnects include both swarms and all workers and meet selected D04 establishment/service/recovery bounds.",
       "reconciles": []
     },
     {
@@ -18357,9 +18707,13 @@
         54
       ],
       "sha256": "23669593f9b82c81f3de5474cd7bb6be516e6e4efef28fc31987c13d6ec9bbc0",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021",
+        "E022",
+        "M008"
+      ],
+      "rationale": "Bulk and catch-up traffic retain critical-message service and persistence within selected bounds, including legitimate senders.",
       "reconciles": []
     },
     {
@@ -18409,9 +18763,11 @@
         58
       ],
       "sha256": "b25758c42e47cddbb8bd0c701c21538111444f55e62b9f8ceddb7f243d6f176a",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E011"
+      ],
+      "rationale": "Required previous/current pairs run in both directions; stock connectivity and timeout evidence cannot rely only on a unified dependency build.",
       "reconciles": []
     },
     {
@@ -18437,9 +18793,10 @@
       "sha256": "e3abad1a4b07ebd1b27eb1ef1cc0201bfa0818e8e2f27dd7549baf3efa215d2a",
       "disposition": "obligation",
       "obligations": [
-        "E008"
+        "E008",
+        "E020"
       ],
-      "rationale": "Token replay expectations are tied to resolved protocol behavior, without assuming unsupported single-use semantics.",
+      "rationale": "Token replay expectations are tied to resolved protocol behavior, without assuming unsupported single-use semantics. T2/T5 audit: Replay expectations follow the pinned protocol implementation; stronger single-use guarantees require separate evidence.",
       "reconciles": []
     },
     {
@@ -18618,9 +18975,9 @@
         85
       ],
       "sha256": "4070f02983e6959ff4a4563947f579b07c6c76ff43f08d296cbad9df23a69e3c",
-      "disposition": "pending",
+      "disposition": "context",
       "obligations": [],
-      "rationale": "",
+      "rationale": "Heading for the baseline/calibration and candidate regression measurement tasks.",
       "reconciles": []
     },
     {
@@ -18631,9 +18988,11 @@
         87
       ],
       "sha256": "d709541c31d5e8248a0345d02a9c81aa2dd6fb33bdfa0eb078285d9bae385800",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E021"
+      ],
+      "rationale": "M3a records honest concurrent resources, receive behavior, RSS and service outcomes across both swarms and trusted/exempt traffic, distinguishing credit from bytes.",
       "reconciles": []
     },
     {
@@ -18644,9 +19003,12 @@
         89
       ],
       "sha256": "e0d219a87935f36aef9c0d4b6cf33dd485157dda04b6b74a06054197095e50cd",
-      "disposition": "pending",
-      "obligations": [],
-      "rationale": "",
+      "disposition": "obligation",
+      "obligations": [
+        "E022",
+        "M012"
+      ],
+      "rationale": "Select D02-D04 settings and repeat M3b with hostile ceiling attempts; whole-host and critical-class regression evidence is required beyond reducing constants.",
       "reconciles": []
     },
     {

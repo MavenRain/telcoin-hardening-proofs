@@ -5,10 +5,10 @@ report records local model checking only. The current complete-qualification
 command rejects all implementation and deployment certification.
 
 `source-disposition-check.json` records the current pinned source-disposition
-links and the exact pending remainder. `t6-t7-source-audit-model-check.json`
+links and the exact pending remainder. `t2-t5-source-audit-model-check.json`
 records the full proof/mutation run and blocked-qualification regression after
-the third R01 audit batch. That batch audits the original T06/T07 drafts and
-selected revised requirements, retaining eleven model and nineteen external
+the fourth R01 audit batch. That batch audits the original T02/T05 drafts and
+selected revised requirements, retaining twelve model and twenty-two external
 obligations. It assigns no theorem witnesses or new proof credit; candidate
 implementation links were not checked in this run. Source rationales still
 require semantic review, and R01 remains active.
@@ -773,27 +773,37 @@ refinement, ownership, storage, cleanup and service delivery remain open.
 
 `source-disposition-check.json` is a byte copy of
 `.build/source-disposition-report.json` from `make dispositions`. It validates
-the pinned ledger for all 1,383 source units. 326 units have an audited
-disposition: 178 context, 131 obligation and 17 superseded. 1,057 units remain
-pending. The ledger assigns 11 model obligations, M001-M011, and 19 external
-obligations, E001-E019. The checker verifies source pins, exhaustive unit
+the pinned ledger for all 1,383 source units. 457 units have an audited
+disposition: 255 context, 176 obligation and 26 superseded. 926 units remain
+pending. The ledger assigns 12 model obligations, M001-M012, and 22 external
+obligations, E001-E022. The checker verifies source pins, exhaustive unit
 coverage, obligation links and reconciliation structure. It gives no proof
 credit. Reviewers must still assess each rationale and each closure scope.
 
-`source-ledger-model-check.json` and `t1-t4-source-audit-model-check.json`
-preserve the first and second R01 audit receipts with their historical counts.
-`t6-t7-source-audit-model-check.json` records the third batch: 57 modules,
-991 checked proof declarations, 186 atomic model obligations, 1,383 source
-units, no axioms and 937 rejected negative checks. Its `source_dispositions`
-block equals the `dispositions` block of `source-disposition-check.json`.
-Implementation links were not checked in these runs. The full qualification
-command still returns the expected blocked exit 2.
+`source-ledger-model-check.json`, `t1-t4-source-audit-model-check.json` and
+`t6-t7-source-audit-model-check.json` preserve the first three R01 audit receipts
+with their historical counts. `t2-t5-source-audit-model-check.json` records the
+fourth batch: 57 modules, 991 checked proof declarations, 186 atomic model
+obligations, 1,383 source units, no axioms and 937 rejected negative checks.
+Its `source_dispositions` block equals the `dispositions` block of the current
+`source-disposition-check.json`. Implementation links were not checked in this
+run. The full qualification command still returns the expected blocked exit 2.
 
-The third batch audits the original T06/T07 drafts and selected revised
-T6/M1b/T7-T12, crosswalk and acceptance clauses. M008 retains explicit
-command-age and timer-service premises; M011 retains concurrency bounds after
-serialization changes. E017-E019 separately retain runtime progress,
-measurement/selection, and conditional restructuring evidence. The ledger
-credits no theorem witnesses or candidate atoms for these obligations.
+The fourth batch audits every original T02/T05 unit and selected revised
+T2b/T5, resource, decision, crosswalk and regression clauses. E011 retains
+release-direction, negotiated-group, effective-deadline and baseline/lane
+observations. E020 requires the candidate Retry integration matrix, including
+spoofing/token edges, policy changes and progress before the outer event loop.
+Historical unconditional acceptance and zero-refusal/zero-capacity-warning
+guards are reconciled to intended Retry behavior and declared D02/D04 bounds.
+
+M012 requires established-resource grant/release accounting and whole-process
+composition across trusted/exempt peers and all swarms. E021 separately requires
+honest resource calibration, accurate concurrent occupancy and resident-memory
+measurement limits. E022 requires selected allocations and passing M3b regressions
+for hostile ceiling attempts alongside catch-up and critical traffic. Credit is
+not resident memory, cumulative connection counts are not concurrent occupancy,
+and lowering constants alone does not close the measured whole-process budget.
+No theorem witnesses or candidate atoms are credited to the new obligations.
 Claim decomposition, implementation proof and deployment qualification remain
-incomplete, and R01 remains active after three execution turns.
+incomplete, and R01 remains active after four execution turns.
