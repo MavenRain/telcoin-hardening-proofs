@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 1025 additional semantic mutations must
+The 1055 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -481,3 +481,23 @@ charges, and overflow arrivals receive packet and queue charges. Per-trace and
 per-poll bounds do not establish wall-clock rate, eventual service, concrete
 allocator bounds, protocol verification or runtime scheduling. These external
 premises remain open in the sealed ledger after M002's model closure.
+
+## Shared population allocation boundary
+
+Module 80 grants each finite participant occurrence a separately owned vector
+of weighted pools. The sum of all slices must fit the one supplied host vector.
+Honest-peer, connection, worker and reconnect-burst capacities and per-entry
+weights are explicit model parameters, with no selected production constants.
+All routing paths must use these slices. Identity changes retain charges, and
+population reconfiguration needs a new aggregate-fit witness.
+
+Weights must dominate concrete allocations. Per-interval work must include
+administrative, denial, overflow and cleanup work, and the runtime must enforce
+the clipping budget before exceeding its slice. Work coordinates have their
+own units and supplied host allocations. The model's per-interval work bound
+does not prove cumulative rate or scheduling fairness. Supplied source labels
+do not prove IP/prefix normalization. Concrete resource vectors, shared
+runtime routing, calibration and deployment guarantees remain external or
+separately open model obligations, including M003, M009, M012 and M013.
+E022 owns established-resource routing and work-budget enforcement. E013 owns
+runtime pending accounting. E010 owns calibration and deployment guarantees.

@@ -1,0 +1,405 @@
+-- Arbitrary finite participants and dimensions share one declared host vector.
+-- Weights, complete routing and work-budget enforcement require refinement.
+mu HostRole : Type 0 with
+| hostHonest : HostRole
+| hostWorker : HostRole
+| hostReconnect : HostRole
+| hostDistributed : HostRole
+
+mu HostBanks : Type 0 with
+| noHostBanks : HostBanks
+| hostBank : Count -> LeasePool -> HostBanks -> HostBanks
+
+def rec hostBankUse : Count -> HostBanks -> Count :=
+  fun (axis : Count) (banks : HostBanks) =>
+    case axis as selected in Count return Count with
+    | zero =>
+      (case banks as self in HostBanks return Count with
+      | noHostBanks => zero
+      | hostBank weight pool rest => multiply (leaseOccupancy pool) weight)
+    | next previous =>
+      case banks as self in HostBanks return Count with
+      | noHostBanks => zero
+      | hostBank weight pool rest => hostBankUse previous rest
+
+def rec hostBankAllocation : Count -> HostBanks -> Count :=
+  fun (axis : Count) (banks : HostBanks) =>
+    case axis as selected in Count return Count with
+    | zero =>
+      (case banks as self in HostBanks return Count with
+      | noHostBanks => zero
+      | hostBank weight pool rest => multiply (leaseCapacity pool) weight)
+    | next previous =>
+      case banks as self in HostBanks return Count with
+      | noHostBanks => zero
+      | hostBank weight pool rest => hostBankAllocation previous rest
+
+def rec hostBankBound : (axis : Count) -> (banks : HostBanks) ->
+    AtMost (hostBankUse axis banks) (hostBankAllocation axis banks) :=
+  fun (axis : Count) (banks : HostBanks) =>
+    case axis as selected in Count
+        return AtMost (hostBankUse selected banks) (hostBankAllocation selected banks) with
+    | zero =>
+      (case banks as self in HostBanks
+          return AtMost (hostBankUse zero self) (hostBankAllocation zero self) with
+      | noHostBanks => least zero
+      | hostBank weight pool rest =>
+        multipliedBounds (leaseOccupancy pool) (leaseCapacity pool) weight (leasePoolBound pool))
+    | next previous =>
+      case banks as self in HostBanks
+          return AtMost (hostBankUse (next previous) self) (hostBankAllocation (next previous) self) with
+      | noHostBanks => least zero
+      | hostBank weight pool rest => hostBankBound previous rest
+
+def rec hostBankStep : Count -> PoolAction -> HostBanks -> HostBanks :=
+  fun (axis : Count) (action : PoolAction) (banks : HostBanks) =>
+    case axis as selected in Count return HostBanks with
+    | zero =>
+      (case banks as self in HostBanks return HostBanks with
+      | noHostBanks => noHostBanks
+      | hostBank weight pool rest => hostBank weight (poolStep action pool) rest)
+    | next previous =>
+      case banks as self in HostBanks return HostBanks with
+      | noHostBanks => noHostBanks
+      | hostBank weight pool rest => hostBank weight pool (hostBankStep previous action rest)
+
+def rec hostBankStepAllocation : (axis : Count) -> (action : PoolAction) ->
+    (banks : HostBanks) -> (measured : Count) ->
+    Equal Count (hostBankAllocation measured (hostBankStep axis action banks))
+      (hostBankAllocation measured banks) :=
+  fun (axis : Count) (action : PoolAction) (banks : HostBanks) =>
+    case axis as selected in Count return (measured : Count) ->
+        Equal Count (hostBankAllocation measured (hostBankStep selected action banks))
+          (hostBankAllocation measured banks) with
+    | zero =>
+      (case banks as self in HostBanks return (measured : Count) ->
+          Equal Count (hostBankAllocation measured (hostBankStep zero action self))
+            (hostBankAllocation measured self) with
+      | noHostBanks => fun (measured : Count) => same
+      | hostBank weight pool rest =>
+        fun (measured : Count) =>
+          case measured as coordinate in Count return
+              Equal Count (hostBankAllocation coordinate (hostBankStep zero action (hostBank weight pool rest)))
+                (hostBankAllocation coordinate (hostBank weight pool rest)) with
+          | zero => congruent Count Count (fun (cap : Count) => multiply cap weight)
+              (leaseCapacity (poolStep action pool)) (leaseCapacity pool) (poolStepCapacity action pool)
+          | next previous => same)
+    | next previous =>
+      case banks as self in HostBanks return (measured : Count) ->
+          Equal Count (hostBankAllocation measured (hostBankStep (next previous) action self))
+            (hostBankAllocation measured self) with
+      | noHostBanks => fun (measured : Count) => same
+      | hostBank weight pool rest =>
+        fun (measured : Count) =>
+          case measured as coordinate in Count return
+              Equal Count (hostBankAllocation coordinate (hostBankStep (next previous) action (hostBank weight pool rest)))
+                (hostBankAllocation coordinate (hostBank weight pool rest)) with
+          | zero => same
+          | next remaining => hostBankStepAllocation previous action rest remaining
+
+-- Every occurrence owns a distinct slice, even when its labels coincide.
+mu HostFleet : Type 0 with
+| noHostFleet : HostFleet
+| hostMember : HostRole -> Count -> Count -> Count -> HostBanks -> HostFleet -> HostFleet
+
+def rec hostFleetUse : Count -> HostFleet -> Count :=
+  fun (axis : Count) (fleet : HostFleet) =>
+    case fleet as self in HostFleet return Count with
+    | noHostFleet => zero
+    | hostMember role swarm source identity banks rest =>
+      add (hostBankUse axis banks) (hostFleetUse axis rest)
+
+def rec hostFleetAllocation : Count -> HostFleet -> Count :=
+  fun (axis : Count) (fleet : HostFleet) =>
+    case fleet as self in HostFleet return Count with
+    | noHostFleet => zero
+    | hostMember role swarm source identity banks rest =>
+      add (hostBankAllocation axis banks) (hostFleetAllocation axis rest)
+
+def rec hostFleetBound : (axis : Count) -> (fleet : HostFleet) ->
+    AtMost (hostFleetUse axis fleet) (hostFleetAllocation axis fleet) :=
+  fun (axis : Count) (fleet : HostFleet) =>
+    case fleet as self in HostFleet return
+        AtMost (hostFleetUse axis self) (hostFleetAllocation axis self) with
+    | noHostFleet => least zero
+    | hostMember role swarm source identity banks rest =>
+      addBounds (hostBankUse axis banks) (hostBankAllocation axis banks)
+        (hostFleetUse axis rest) (hostFleetAllocation axis rest)
+        (hostBankBound axis banks) (hostFleetBound axis rest)
+
+def rec hostFleetStep : Count -> Count -> PoolAction -> HostFleet -> HostFleet :=
+  fun (member : Count) (axis : Count) (action : PoolAction) (fleet : HostFleet) =>
+    case member as selected in Count return HostFleet with
+    | zero =>
+      (case fleet as self in HostFleet return HostFleet with
+      | noHostFleet => noHostFleet
+      | hostMember role swarm source identity banks rest =>
+        hostMember role swarm source identity (hostBankStep axis action banks) rest)
+    | next previous =>
+      case fleet as self in HostFleet return HostFleet with
+      | noHostFleet => noHostFleet
+      | hostMember role swarm source identity banks rest =>
+        hostMember role swarm source identity banks (hostFleetStep previous axis action rest)
+
+def rec hostFleetStepAllocation : (member : Count) -> (axis : Count) ->
+    (action : PoolAction) -> (fleet : HostFleet) -> (measured : Count) ->
+    Equal Count (hostFleetAllocation measured (hostFleetStep member axis action fleet))
+      (hostFleetAllocation measured fleet) :=
+  fun (member : Count) (axis : Count) (action : PoolAction) (fleet : HostFleet) (measured : Count) =>
+    case member as selected in Count return
+        Equal Count (hostFleetAllocation measured (hostFleetStep selected axis action fleet))
+          (hostFleetAllocation measured fleet) with
+    | zero =>
+      (case fleet as self in HostFleet return
+          Equal Count (hostFleetAllocation measured (hostFleetStep zero axis action self))
+            (hostFleetAllocation measured self) with
+      | noHostFleet => same
+      | hostMember role swarm source identity banks rest =>
+        congruent Count Count (fun (amount : Count) => add amount (hostFleetAllocation measured rest))
+          (hostBankAllocation measured (hostBankStep axis action banks)) (hostBankAllocation measured banks)
+          (hostBankStepAllocation axis action banks measured))
+    | next previous =>
+      case fleet as self in HostFleet return
+          Equal Count (hostFleetAllocation measured (hostFleetStep (next previous) axis action self))
+            (hostFleetAllocation measured self) with
+      | noHostFleet => same
+      | hostMember role swarm source identity banks rest =>
+        congruent Count Count (fun (amount : Count) => add (hostBankAllocation measured banks) amount)
+          (hostFleetAllocation measured (hostFleetStep previous axis action rest))
+          (hostFleetAllocation measured rest) (hostFleetStepAllocation previous axis action rest measured)
+
+-- Churn changes labels while retaining the entire charged allocation slice.
+def rec hostFleetRelabel : Count -> HostRole -> Count -> Count -> Count -> HostFleet -> HostFleet :=
+  fun (member : Count) (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (fleet : HostFleet) =>
+    case member as selected in Count return HostFleet with
+    | zero =>
+      (case fleet as self in HostFleet return HostFleet with
+      | noHostFleet => noHostFleet
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest =>
+        hostMember role swarm source identity banks rest)
+    | next previous =>
+      case fleet as self in HostFleet return HostFleet with
+      | noHostFleet => noHostFleet
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest =>
+        hostMember oldRole oldSwarm oldSource oldIdentity banks
+          (hostFleetRelabel previous role swarm source identity rest)
+
+def rec hostFleetRelabelAllocation : (member : Count) -> (role : HostRole) -> (swarm : Count) ->
+    (source : Count) -> (identity : Count) -> (fleet : HostFleet) -> (axis : Count) ->
+    Equal Count (hostFleetAllocation axis (hostFleetRelabel member role swarm source identity fleet))
+      (hostFleetAllocation axis fleet) :=
+  fun (member : Count) (role : HostRole) (swarm : Count) (source : Count) (identity : Count)
+      (fleet : HostFleet) (axis : Count) =>
+    case member as selected in Count return
+        Equal Count (hostFleetAllocation axis (hostFleetRelabel selected role swarm source identity fleet))
+          (hostFleetAllocation axis fleet) with
+    | zero =>
+      (case fleet as self in HostFleet return
+          Equal Count (hostFleetAllocation axis (hostFleetRelabel zero role swarm source identity self))
+            (hostFleetAllocation axis self) with
+      | noHostFleet => same
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest => same)
+    | next previous =>
+      case fleet as self in HostFleet return
+          Equal Count (hostFleetAllocation axis (hostFleetRelabel (next previous) role swarm source identity self))
+            (hostFleetAllocation axis self) with
+      | noHostFleet => same
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest =>
+        congruent Count Count (fun (amount : Count) => add (hostBankAllocation axis banks) amount)
+          (hostFleetAllocation axis (hostFleetRelabel previous role swarm source identity rest))
+          (hostFleetAllocation axis rest) (hostFleetRelabelAllocation previous role swarm source identity rest axis)
+
+def rec hostFleetRelabelUse : (member : Count) -> (role : HostRole) -> (swarm : Count) ->
+    (source : Count) -> (identity : Count) -> (fleet : HostFleet) -> (axis : Count) ->
+    Equal Count (hostFleetUse axis (hostFleetRelabel member role swarm source identity fleet))
+      (hostFleetUse axis fleet) :=
+  fun (member : Count) (role : HostRole) (swarm : Count) (source : Count) (identity : Count)
+      (fleet : HostFleet) (axis : Count) =>
+    case member as selected in Count return
+        Equal Count (hostFleetUse axis (hostFleetRelabel selected role swarm source identity fleet))
+          (hostFleetUse axis fleet) with
+    | zero =>
+      (case fleet as self in HostFleet return
+          Equal Count (hostFleetUse axis (hostFleetRelabel zero role swarm source identity self))
+            (hostFleetUse axis self) with
+      | noHostFleet => same
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest => same)
+    | next previous =>
+      case fleet as self in HostFleet return
+          Equal Count (hostFleetUse axis (hostFleetRelabel (next previous) role swarm source identity self))
+            (hostFleetUse axis self) with
+      | noHostFleet => same
+      | hostMember oldRole oldSwarm oldSource oldIdentity banks rest =>
+        congruent Count Count (fun (amount : Count) => add (hostBankUse axis banks) amount)
+          (hostFleetUse axis (hostFleetRelabel previous role swarm source identity rest))
+          (hostFleetUse axis rest) (hostFleetRelabelUse previous role swarm source identity rest axis)
+
+mu HostTrace : Type 0 with
+| hostDone : HostTrace
+| hostEvent : Count -> Count -> PoolAction -> HostTrace -> HostTrace
+| hostChurn : Count -> HostRole -> Count -> Count -> Count -> HostTrace -> HostTrace
+
+def rec runHostFleet : HostTrace -> HostFleet -> HostFleet :=
+  fun (trace : HostTrace) (fleet : HostFleet) =>
+    case trace as self in HostTrace return HostFleet with
+    | hostDone => fleet
+    | hostEvent member axis action rest => runHostFleet rest (hostFleetStep member axis action fleet)
+    | hostChurn member role swarm source identity rest =>
+      runHostFleet rest (hostFleetRelabel member role swarm source identity fleet)
+
+def rec hostTraceAllocation : (trace : HostTrace) -> (fleet : HostFleet) -> (axis : Count) ->
+    Equal Count (hostFleetAllocation axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet) :=
+  fun (trace : HostTrace) (fleet : HostFleet) (axis : Count) =>
+    case trace as self in HostTrace return
+        Equal Count (hostFleetAllocation axis (runHostFleet self fleet)) (hostFleetAllocation axis fleet) with
+    | hostDone => same
+    | hostEvent member selected action rest =>
+      equalTransitivity Count (hostFleetAllocation axis (runHostFleet rest (hostFleetStep member selected action fleet)))
+        (hostFleetAllocation axis (hostFleetStep member selected action fleet)) (hostFleetAllocation axis fleet)
+        (hostTraceAllocation rest (hostFleetStep member selected action fleet) axis)
+        (hostFleetStepAllocation member selected action fleet axis)
+    | hostChurn member role swarm source identity rest =>
+      equalTransitivity Count
+        (hostFleetAllocation axis (runHostFleet rest (hostFleetRelabel member role swarm source identity fleet)))
+        (hostFleetAllocation axis (hostFleetRelabel member role swarm source identity fleet))
+        (hostFleetAllocation axis fleet)
+        (hostTraceAllocation rest (hostFleetRelabel member role swarm source identity fleet) axis)
+        (hostFleetRelabelAllocation member role swarm source identity fleet axis)
+
+def hostTraceBound : (trace : HostTrace) -> (fleet : HostFleet) -> (axis : Count) ->
+    AtMost (hostFleetUse axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet) :=
+  fun (trace : HostTrace) (fleet : HostFleet) (axis : Count) =>
+    equalTransport Count (fun (allocation : Count) => AtMost (hostFleetUse axis (runHostFleet trace fleet)) allocation)
+      (hostFleetAllocation axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet)
+      (hostTraceAllocation trace fleet axis) (hostFleetBound axis (runHostFleet trace fleet))
+
+def sharedHostTraceBound : (trace : HostTrace) -> (fleet : HostFleet) -> (host : Count -> Count) ->
+    ((axis : Count) -> AtMost (hostFleetAllocation axis fleet) (host axis)) -> (axis : Count) ->
+    AtMost (hostFleetUse axis (runHostFleet trace fleet)) (host axis) :=
+  fun (trace : HostTrace) (fleet : HostFleet) (host : Count -> Count)
+      (fits : (axis : Count) -> AtMost (hostFleetAllocation axis fleet) (host axis)) (axis : Count) =>
+    boundTransitive (hostFleetUse axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet)
+      (host axis) (hostTraceBound trace fleet axis) (fits axis)
+
+-- Per-interval work demands are clipped to the same declared slices.
+-- The caller supplies a separate fleet/host vector for each work unit.
+def rec hostFleetWork : Count -> (Count -> Count) -> HostFleet -> Count :=
+  fun (axis : Count) (demand : Count -> Count) (fleet : HostFleet) =>
+    case fleet as self in HostFleet return Count with
+    | noHostFleet => zero
+    | hostMember role swarm source identity banks rest =>
+      add (boundedWork (hostBankAllocation axis banks) (demand zero))
+        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest)
+
+def rec hostFleetWorkBound : (axis : Count) -> (demand : Count -> Count) -> (fleet : HostFleet) ->
+    AtMost (hostFleetWork axis demand fleet) (hostFleetAllocation axis fleet) :=
+  fun (axis : Count) (demand : Count -> Count) (fleet : HostFleet) =>
+    case fleet as self in HostFleet return
+        AtMost (hostFleetWork axis demand self) (hostFleetAllocation axis self) with
+    | noHostFleet => least zero
+    | hostMember role swarm source identity banks rest =>
+      addBounds (boundedWork (hostBankAllocation axis banks) (demand zero)) (hostBankAllocation axis banks)
+        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest) (hostFleetAllocation axis rest)
+        (workBound (hostBankAllocation axis banks) (demand zero))
+        (hostFleetWorkBound axis (fun (index : Count) => demand (next index)) rest)
+
+def sharedHostWorkBound : (axis : Count) -> (demand : Count -> Count) -> (fleet : HostFleet) ->
+    (host : Count) -> AtMost (hostFleetAllocation axis fleet) host ->
+    AtMost (hostFleetWork axis demand fleet) host :=
+  fun (axis : Count) (demand : Count -> Count) (fleet : HostFleet) (host : Count)
+      (fits : AtMost (hostFleetAllocation axis fleet) host) =>
+    boundTransitive (hostFleetWork axis demand fleet) (hostFleetAllocation axis fleet) host
+      (hostFleetWorkBound axis demand fleet) fits
+
+def sharedHostWorkAfterTraceBound : (trace : HostTrace) -> (axis : Count) ->
+    (demand : Count -> Count) -> (fleet : HostFleet) -> (host : Count) ->
+    AtMost (hostFleetAllocation axis fleet) host ->
+    AtMost (hostFleetWork axis demand (runHostFleet trace fleet)) host :=
+  fun (trace : HostTrace) (axis : Count) (demand : Count -> Count) (fleet : HostFleet)
+      (host : Count) (fits : AtMost (hostFleetAllocation axis fleet) host) =>
+    sharedHostWorkBound axis demand (runHostFleet trace fleet) host
+      (equalTransport Count (fun (amount : Count) => AtMost amount host)
+        (hostFleetAllocation axis fleet) (hostFleetAllocation axis (runHostFleet trace fleet))
+        (equalSymmetry Count (hostFleetAllocation axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet)
+          (hostTraceAllocation trace fleet axis)) fits)
+
+-- Complete-state equations pin routing, all participants and every work charge.
+def hostBankHeadUse : (weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->
+    Equal Count (hostBankUse zero (hostBank weight pool rest)) (multiply (leaseOccupancy pool) weight) :=
+  fun (weight : Count) (pool : LeasePool) (rest : HostBanks) => same
+
+def hostBankHeadAllocation : (weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->
+    Equal Count (hostBankAllocation zero (hostBank weight pool rest)) (multiply (leaseCapacity pool) weight) :=
+  fun (weight : Count) (pool : LeasePool) (rest : HostBanks) => same
+
+def hostBankHeadStep : (weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->
+    (action : PoolAction) -> Equal HostBanks (hostBankStep zero action (hostBank weight pool rest))
+      (hostBank weight (poolStep action pool) rest) :=
+  fun (weight : Count) (pool : LeasePool) (rest : HostBanks) (action : PoolAction) => same
+
+def hostBankTailStep : (weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->
+    (axis : Count) -> (action : PoolAction) ->
+    Equal HostBanks (hostBankStep (next axis) action (hostBank weight pool rest))
+      (hostBank weight pool (hostBankStep axis action rest)) :=
+  fun (weight : Count) (pool : LeasePool) (rest : HostBanks) (axis : Count) (action : PoolAction) => same
+
+def hostFleetHeadStep : (role : HostRole) -> (swarm : Count) -> (source : Count) ->
+    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->
+    (axis : Count) -> (action : PoolAction) ->
+    Equal HostFleet (hostFleetStep zero axis action (hostMember role swarm source identity banks rest))
+      (hostMember role swarm source identity (hostBankStep axis action banks) rest) :=
+  fun (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (banks : HostBanks)
+      (rest : HostFleet) (axis : Count) (action : PoolAction) => same
+
+def hostFleetTailStep : (role : HostRole) -> (swarm : Count) -> (source : Count) ->
+    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->
+    (member : Count) -> (axis : Count) -> (action : PoolAction) ->
+    Equal HostFleet (hostFleetStep (next member) axis action (hostMember role swarm source identity banks rest))
+      (hostMember role swarm source identity banks (hostFleetStep member axis action rest)) :=
+  fun (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (banks : HostBanks)
+      (rest : HostFleet) (member : Count) (axis : Count) (action : PoolAction) => same
+
+def hostFleetUseIncludesEveryMember : (role : HostRole) -> (swarm : Count) -> (source : Count) ->
+    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->
+    Equal Count (hostFleetUse axis (hostMember role swarm source identity banks rest))
+      (add (hostBankUse axis banks) (hostFleetUse axis rest)) :=
+  fun (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (banks : HostBanks)
+      (rest : HostFleet) (axis : Count) => same
+
+def hostFleetAllocationIncludesEveryMember : (role : HostRole) -> (swarm : Count) -> (source : Count) ->
+    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->
+    Equal Count (hostFleetAllocation axis (hostMember role swarm source identity banks rest))
+      (add (hostBankAllocation axis banks) (hostFleetAllocation axis rest)) :=
+  fun (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (banks : HostBanks)
+      (rest : HostFleet) (axis : Count) => same
+
+def hostTraceExecutesHead : (member : Count) -> (axis : Count) -> (action : PoolAction) ->
+    (rest : HostTrace) -> (fleet : HostFleet) ->
+    Equal HostFleet (runHostFleet (hostEvent member axis action rest) fleet)
+      (runHostFleet rest (hostFleetStep member axis action fleet)) :=
+  fun (member : Count) (axis : Count) (action : PoolAction) (rest : HostTrace) (fleet : HostFleet) => same
+
+def hostWorkIncludesEveryMember : (role : HostRole) -> (swarm : Count) -> (source : Count) ->
+    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->
+    (demand : Count -> Count) ->
+    Equal Count (hostFleetWork axis demand (hostMember role swarm source identity banks rest))
+      (add (boundedWork (hostBankAllocation axis banks) (demand zero))
+        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest)) :=
+  fun (role : HostRole) (swarm : Count) (source : Count) (identity : Count) (banks : HostBanks)
+      (rest : HostFleet) (axis : Count) (demand : Count -> Count) => same
+
+def hostChurnRetainsBanks : (oldRole : HostRole) -> (oldSwarm : Count) -> (oldSource : Count) ->
+    (oldIdentity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->
+    (role : HostRole) -> (swarm : Count) -> (source : Count) -> (identity : Count) ->
+    Equal HostFleet (hostFleetRelabel zero role swarm source identity
+      (hostMember oldRole oldSwarm oldSource oldIdentity banks rest))
+      (hostMember role swarm source identity banks rest) :=
+  fun (oldRole : HostRole) (oldSwarm : Count) (oldSource : Count) (oldIdentity : Count)
+      (banks : HostBanks) (rest : HostFleet) (role : HostRole) (swarm : Count) (source : Count) (identity : Count) => same
+
+def hostChurnExecutesHead : (member : Count) -> (role : HostRole) -> (swarm : Count) ->
+    (source : Count) -> (identity : Count) -> (rest : HostTrace) -> (fleet : HostFleet) ->
+    Equal HostFleet (runHostFleet (hostChurn member role swarm source identity rest) fleet)
+      (runHostFleet rest (hostFleetRelabel member role swarm source identity fleet)) :=
+  fun (member : Count) (role : HostRole) (swarm : Count) (source : Count)
+      (identity : Count) (rest : HostTrace) (fleet : HostFleet) => same

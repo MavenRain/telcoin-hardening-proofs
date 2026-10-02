@@ -996,6 +996,36 @@ repository audit covers four of 83 model obligations, retains 79 exact gaps
 and leaves all 43 external obligations open. Full qualification remains guarded.
 Prior receipts retain their original input hashes and historical counts.
 
+## R03 shared host composition, turn 5
+
+`r03-shared-host-check.json` records the complete corpus after module 80:
+1108 explicit proof declarations in 63 modules, empty axiom disclosure and
+1058 rejected negative checks (1055 registered mutations plus three generic
+controls). The compiler and every validation input remain pinned.
+
+Module 80 closes M007 with arbitrary finite swarm/source/identity populations
+and weighted resource coordinates under one supplied host vector. Honest,
+worker, reconnect and distributed roles all contribute their separately owned
+slices. Arbitrary indexed pool-action and identity-churn traces preserve the
+aggregate allocation. Churn retains occupied banks and their charges. Work
+demands are clipped per participant and compose over one declared interval;
+separate resource/work units receive separate fleet and host vectors.
+
+Thirty controls exercise omitted participants, duplicated slices, churn resets,
+wrong routing/coordinates, trace omissions and work-budget bypasses. Complete
+state equations constrain grants and accounting, as well as upper bounds.
+Runtime work-budget enforcement, complete routing and cost/storage dominance
+remain premises. Source normalization and specific established resource
+vectors remain separate model obligations; calibration remains external. E022
+owns established-resource work-budget enforcement and complete routing. E013
+owns runtime pending accounting. E010 owns cost/storage dominance and
+calibration.
+
+R03 has spent five turns and remains active with five assigned obligations.
+The audit covers six of 83 model obligations and retains 77 exact gaps; all 43
+external obligations remain open. Full qualification remains blocked. Earlier
+receipts retain their historical input hashes and counts.
+
 ## R03 unlocked handshake executor, turn 4
 
 `r03-unlocked-executor-check.json` records the complete pinned-compiler check

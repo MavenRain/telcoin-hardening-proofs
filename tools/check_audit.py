@@ -40,13 +40,13 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 83, 5, 78, 0))
+                          result["unreviewed_obligations"]), (83, 83, 6, 77, 0))
         self.assertEqual(result["unaudited_criteria"], 0)
         self.assertTrue(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
-        self.assertEqual(len(result["remaining"]), 78)
+        self.assertEqual(len(result["remaining"]), 77)
         self.assertEqual(set(result["witness_scope_counts"]),
                          {"arbitrary_trace", "general_transition", "conditional_liveness", "finite_example"})
 

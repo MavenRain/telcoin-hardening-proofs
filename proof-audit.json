@@ -65,7 +65,8 @@
     "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0",
     "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc",
     "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1",
-    "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e"
+    "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e",
+    "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686"
   },
   "obligations": [
     {
@@ -1929,8 +1930,8 @@
       "id": "M007",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The frozen required scope remains a model obligation in R03.",
+      "scope_complete": true,
+      "scope_review": "R03 turn 5 closes both frozen M007 criteria. Module 80 composes arbitrary finite swarm/source/identity populations and weighted resource dimensions, with honest, worker, reconnect and distributed roles, under one explicitly supplied host vector. Connection and reconnect-burst parameters are member counts, bank weights and bank capacities in this arbitrary fleet. Each honest peer, connection, worker or reconnecting peer can be a separate member with its own banks. Traces keep the member population fixed for one interval. A burst in that interval is any finite trace of hostEvent and hostChurn steps. M013 owns burst-plus-rate budgets across intervals. Indexed ownership transitions and identity churn preserve every slice. Per-interval clipped work demands share the same aggregate allocation condition. Runtime routing, storage/work dominance and work-budget enforcement remain external premises. External obligation E022 owns established-resource routing and enforcement of the measured whole-process budget across all identities, connection directions and swarms. External obligation E013 owns runtime pending accounting within the same whole-process budget. External obligation E010 owns production calibration and deployed storage and work dominance. Source normalization and resource-specific vectors remain M003/M009/M012 work.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -1941,7 +1942,7 @@
           "premises": [
             "Primary and worker allocations are supplied separately; their sum must fit a host allocation."
           ],
-          "limits": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. These local statements do not establish: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters. Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
+          "limits": "Local two-swarm result. Module 80 supplies the separate arbitrary-population composition."
         },
         {
           "path": "proofs/22-weighted-resources.mech",
@@ -1952,30 +1953,511 @@
           "premises": [
             "The two pool capacities and per-entry costs are supplied model parameters; runtime cost domination is not established."
           ],
-          "limits": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. These local statements do not establish: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters. Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
+          "limits": "Local two-swarm result. Module 80 supplies the separate arbitrary-population composition."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankBound",
+          "statement": "(axis : Count) -> (banks : HostBanks) ->\n    AtMost (hostBankUse axis banks) (hostBankAllocation axis banks)",
+          "scope_kind": "general_transition",
+          "establishes": "Every coordinate of an arbitrary weighted lease-pool vector is bounded by its allocation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankStepAllocation",
+          "statement": "(axis : Count) -> (action : PoolAction) ->\n    (banks : HostBanks) -> (measured : Count) ->\n    Equal Count (hostBankAllocation measured (hostBankStep axis action banks))\n      (hostBankAllocation measured banks)",
+          "scope_kind": "general_transition",
+          "establishes": "Every coordinate allocation survives any indexed pool action, including missing indices.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetBound",
+          "statement": "(axis : Count) -> (fleet : HostFleet) ->\n    AtMost (hostFleetUse axis fleet) (hostFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "All members of an arbitrary finite fleet contribute to the aggregate weighted resource bound.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetStepAllocation",
+          "statement": "(member : Count) -> (axis : Count) ->\n    (action : PoolAction) -> (fleet : HostFleet) -> (measured : Count) ->\n    Equal Count (hostFleetAllocation measured (hostFleetStep member axis action fleet))\n      (hostFleetAllocation measured fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed participant/dimension action preserves every aggregate allocation coordinate.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetRelabelAllocation",
+          "statement": "(member : Count) -> (role : HostRole) -> (swarm : Count) ->\n    (source : Count) -> (identity : Count) -> (fleet : HostFleet) -> (axis : Count) ->\n    Equal Count (hostFleetAllocation axis (hostFleetRelabel member role swarm source identity fleet))\n      (hostFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing any selected role/swarm/source/identity label preserves the aggregate allocation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. No module-80 definition reads a label. The equality follows because relabeling keeps the bank vector. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetRelabelUse",
+          "statement": "(member : Count) -> (role : HostRole) -> (swarm : Count) ->\n    (source : Count) -> (identity : Count) -> (fleet : HostFleet) -> (axis : Count) ->\n    Equal Count (hostFleetUse axis (hostFleetRelabel member role swarm source identity fleet))\n      (hostFleetUse axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Identity churn preserves charged resource use at every coordinate, not only the capacity.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. No module-80 definition reads a label. The equality follows because relabeling keeps the bank vector. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostTraceAllocation",
+          "statement": "(trace : HostTrace) -> (fleet : HostFleet) -> (axis : Count) ->\n    Equal Count (hostFleetAllocation axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Arbitrary mixed pool-action and identity-churn traces preserve the declared allocation vector.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. HostTrace has no join step, so membership is fixed during the trace. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostTraceBound",
+          "statement": "(trace : HostTrace) -> (fleet : HostFleet) -> (axis : Count) ->\n    AtMost (hostFleetUse axis (runHostFleet trace fleet)) (hostFleetAllocation axis fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary mixed trace remains within the initial aggregate allocation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. HostTrace has no join step, so membership is fixed during the trace. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "sharedHostTraceBound",
+          "statement": "(trace : HostTrace) -> (fleet : HostFleet) -> (host : Count -> Count) ->\n    ((axis : Count) -> AtMost (hostFleetAllocation axis fleet) (host axis)) -> (axis : Count) ->\n    AtMost (hostFleetUse axis (runHostFleet trace fleet)) (host axis)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An arbitrary mixed trace fits the one host vector when the initial sum of all slices fits it.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. HostTrace has no join step, so membership is fixed during the trace. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetWorkBound",
+          "statement": "(axis : Count) -> (demand : Count -> Count) -> (fleet : HostFleet) ->\n    AtMost (hostFleetWork axis demand fleet) (hostFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Arbitrary per-member work demands, clipped to each slice, compose within the aggregate allocation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "sharedHostWorkBound",
+          "statement": "(axis : Count) -> (demand : Count -> Count) -> (fleet : HostFleet) ->\n    (host : Count) -> AtMost (hostFleetAllocation axis fleet) host ->\n    AtMost (hostFleetWork axis demand fleet) host",
+          "scope_kind": "general_transition",
+          "establishes": "One per-interval host work bound includes every arbitrary finite participant.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "sharedHostWorkAfterTraceBound",
+          "statement": "(trace : HostTrace) -> (axis : Count) ->\n    (demand : Count -> Count) -> (fleet : HostFleet) -> (host : Count) ->\n    AtMost (hostFleetAllocation axis fleet) host ->\n    AtMost (hostFleetWork axis demand (runHostFleet trace fleet)) host",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Per-interval clipped work demands fit the initial shared host allocation after any mixed trace.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. HostTrace has no join step, so membership is fixed during the trace. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankHeadUse",
+          "statement": "(weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->\n    Equal Count (hostBankUse zero (hostBank weight pool rest)) (multiply (leaseOccupancy pool) weight)",
+          "scope_kind": "general_transition",
+          "establishes": "Head-coordinate usage charges the actual occupied lease count times its weight.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankHeadAllocation",
+          "statement": "(weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->\n    Equal Count (hostBankAllocation zero (hostBank weight pool rest)) (multiply (leaseCapacity pool) weight)",
+          "scope_kind": "general_transition",
+          "establishes": "Head-coordinate allocation charges the structural capacity times its weight.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankHeadStep",
+          "statement": "(weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->\n    (action : PoolAction) -> Equal HostBanks (hostBankStep zero action (hostBank weight pool rest))\n      (hostBank weight (poolStep action pool) rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Head-coordinate routing applies the supplied pool action and preserves all other banks.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostBankTailStep",
+          "statement": "(weight : Count) -> (pool : LeasePool) -> (rest : HostBanks) ->\n    (axis : Count) -> (action : PoolAction) ->\n    Equal HostBanks (hostBankStep (next axis) action (hostBank weight pool rest))\n      (hostBank weight pool (hostBankStep axis action rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Successor-coordinate routing preserves the head bank and routes into the suffix.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetHeadStep",
+          "statement": "(role : HostRole) -> (swarm : Count) -> (source : Count) ->\n    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->\n    (axis : Count) -> (action : PoolAction) ->\n    Equal HostFleet (hostFleetStep zero axis action (hostMember role swarm source identity banks rest))\n      (hostMember role swarm source identity (hostBankStep axis action banks) rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Head-participant routing retains all labels and all other participants.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetTailStep",
+          "statement": "(role : HostRole) -> (swarm : Count) -> (source : Count) ->\n    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->\n    (member : Count) -> (axis : Count) -> (action : PoolAction) ->\n    Equal HostFleet (hostFleetStep (next member) axis action (hostMember role swarm source identity banks rest))\n      (hostMember role swarm source identity banks (hostFleetStep member axis action rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Successor-participant routing preserves the head and routes into the suffix.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetUseIncludesEveryMember",
+          "statement": "(role : HostRole) -> (swarm : Count) -> (source : Count) ->\n    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->\n    Equal Count (hostFleetUse axis (hostMember role swarm source identity banks rest))\n      (add (hostBankUse axis banks) (hostFleetUse axis rest))",
+          "scope_kind": "general_transition",
+          "establishes": "The usage equation includes both the head slice and the whole suffix.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostFleetAllocationIncludesEveryMember",
+          "statement": "(role : HostRole) -> (swarm : Count) -> (source : Count) ->\n    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->\n    Equal Count (hostFleetAllocation axis (hostMember role swarm source identity banks rest))\n      (add (hostBankAllocation axis banks) (hostFleetAllocation axis rest))",
+          "scope_kind": "general_transition",
+          "establishes": "The allocation equation includes both the head slice and the whole suffix.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostTraceExecutesHead",
+          "statement": "(member : Count) -> (axis : Count) -> (action : PoolAction) ->\n    (rest : HostTrace) -> (fleet : HostFleet) ->\n    Equal HostFleet (runHostFleet (hostEvent member axis action rest) fleet)\n      (runHostFleet rest (hostFleetStep member axis action fleet))",
+          "scope_kind": "general_transition",
+          "establishes": "Every action event executes its supplied routing and then the full continuation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostWorkIncludesEveryMember",
+          "statement": "(role : HostRole) -> (swarm : Count) -> (source : Count) ->\n    (identity : Count) -> (banks : HostBanks) -> (rest : HostFleet) -> (axis : Count) ->\n    (demand : Count -> Count) ->\n    Equal Count (hostFleetWork axis demand (hostMember role swarm source identity banks rest))\n      (add (boundedWork (hostBankAllocation axis banks) (demand zero))\n        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest))",
+          "scope_kind": "general_transition",
+          "establishes": "The work equation clips the selected demand and includes each later member demand.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostChurnRetainsBanks",
+          "statement": "(oldRole : HostRole) -> (oldSwarm : Count) -> (oldSource : Count) ->\n    (oldIdentity : Count) -> (banks : HostBanks) -> (rest : HostFleet) ->\n    (role : HostRole) -> (swarm : Count) -> (source : Count) -> (identity : Count) ->\n    Equal HostFleet (hostFleetRelabel zero role swarm source identity\n      (hostMember oldRole oldSwarm oldSource oldIdentity banks rest))\n      (hostMember role swarm source identity banks rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Head churn installs the new labels while retaining the entire bank vector and all other members.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
+        },
+        {
+          "path": "proofs/80-shared-host-composition.mech",
+          "name": "hostChurnExecutesHead",
+          "statement": "(member : Count) -> (role : HostRole) -> (swarm : Count) ->\n    (source : Count) -> (identity : Count) -> (rest : HostTrace) -> (fleet : HostFleet) ->\n    Equal HostFleet (runHostFleet (hostChurn member role swarm source identity rest) fleet)\n      (runHostFleet rest (hostFleetRelabel member role swarm source identity fleet))",
+          "scope_kind": "general_transition",
+          "establishes": "Every churn event executes its supplied relabeling and then the full continuation.",
+          "premises": [
+            "Finite separately owned slices; every routing path uses the declared fleet and fixed weights.",
+            "The sum of all slices fits each supplied host coordinate wherever a host-bound premise is present.",
+            "Runtime weights dominate allocations; actual per-interval work is enforced by the modeled clipping budget."
+          ],
+          "limits": "Labels are arbitrary supplied identifiers, not an IP-normalization proof. Pool actions reuse generation-owned module-21 semantics. Work bounds concern one declared budget interval; runtime enforcement, calibration and cumulative rate/service delivery are not proved."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "host_use_drops_weight",
+          "sha256": "507129750439d0005f191c93a81ea57eb66c5404b840279b4620988a9401a2b3"
+        },
+        {
+          "name": "host_use_charges_capacity",
+          "sha256": "2831f348de7fb1d945b1c1e70624bf803b91b715f8cd61c43a687133cde84657"
+        },
+        {
+          "name": "host_allocation_drops_weight",
+          "sha256": "e71f8b9654691d63f83da6bf22bf0b9920bfae10925410d01765e74bc99c5d46"
+        },
+        {
+          "name": "host_allocation_charges_occupancy",
+          "sha256": "24430785229e232f9a8e27cbfcc71a91f0f30d164c8cfaa2b56ac581dec75b0d"
+        },
+        {
+          "name": "host_bank_use_wrong_dimension",
+          "sha256": "452dc839b0dddd8171bcae900e3ec4e3c9b25418b1780c86d2a7b0940d26f251"
+        },
+        {
+          "name": "host_bank_allocation_wrong_dimension",
+          "sha256": "697b05350b54cfb43d9e64d4360982605693299513877d748be33011e1550b68"
+        },
+        {
+          "name": "host_bank_step_ignores_action",
+          "sha256": "9803399504c7e22551664d83fde946da5078c6220b39c26a277e933524b48dca"
+        },
+        {
+          "name": "host_bank_step_drops_tail",
+          "sha256": "06d84729e2f3011ed81715afeb59086f4058d703fae90c788d025924c1f24421"
+        },
+        {
+          "name": "host_bank_step_updates_wrong_dimension",
+          "sha256": "8f5373915493a6d73c81f7417bb60dded2a916197ae2cff58f67029ef59d8f2d"
+        },
+        {
+          "name": "host_use_omits_swarm",
+          "sha256": "7c149b7209e28d31d387844940cb4c8ae679581c4c6586fb2ac02d68745197b5"
+        },
+        {
+          "name": "host_use_omits_population_tail",
+          "sha256": "dcdb503fc89ed9967698c5f03b8dd47d71ade59a2cfc1079c6e4980ddd63aa5c"
+        },
+        {
+          "name": "host_use_duplicates_allocation",
+          "sha256": "b1bdcb2c02e7e52def3a4dbca9a2de61f34b3c275f26c894a6b65a9130214af4"
+        },
+        {
+          "name": "host_allocation_omits_swarm",
+          "sha256": "694f8e6a0945c74b38dc765c70682b686c512afb98468b09436dd4f6d6ed1a2e"
+        },
+        {
+          "name": "host_allocation_omits_population_tail",
+          "sha256": "bb037c51cf738ed928a249eb8ea4c12a8dafaac780da6c4cdec5e7df90e9660a"
+        },
+        {
+          "name": "host_step_ignores_action",
+          "sha256": "ebf8d84a4e3896314e9c22cf15e19188ac596c36255acbbff133e269b366cf32"
+        },
+        {
+          "name": "host_step_drops_swarm_tail",
+          "sha256": "175735aa339c8c91e5455206226a70b52fac76b94e9fd26a4e2ecc2aa184d8a4"
+        },
+        {
+          "name": "host_step_updates_wrong_identity",
+          "sha256": "f70db81ef8bc5d4759cd0aee6db77690fcd1df9faa6503587d39208fae35299c"
+        },
+        {
+          "name": "host_churn_resets_banks",
+          "sha256": "c54d669e8fa26e22e5c8a0782188b87c78d6c86586e6be28b25a5b3b1eb0a616"
+        },
+        {
+          "name": "host_churn_duplicates_slice",
+          "sha256": "795c704a45ef3249f77414ca9c0d840af88fff5c40bdb6178e69562d54e32c2c"
+        },
+        {
+          "name": "host_churn_drops_population_tail",
+          "sha256": "6c7af7a9f5a08c248419fc0339088e4b9ec89e4853836114b5a1febef4a1470f"
+        },
+        {
+          "name": "host_churn_ignores_new_identity",
+          "sha256": "1ff204d716f773939c8f3b8d0aa500e0b3fda67e7c49df2a58636a689dea9f42"
+        },
+        {
+          "name": "host_churn_skips_deep_member",
+          "sha256": "63103c925ebe45d03cad81395338dc6fa4a1f1cee964bd8cd11ee99822dc16cd"
+        },
+        {
+          "name": "host_trace_skips_action",
+          "sha256": "2889f4eeb14fbafc3f648f742f23207c6e5b468e03b2d5f88bf208110fec941e"
+        },
+        {
+          "name": "host_trace_skips_tail",
+          "sha256": "25e13250d25ef537810472318d24bae865cbbb67ae101a4b7cd842ae3699eb9a"
+        },
+        {
+          "name": "host_trace_skips_churn",
+          "sha256": "b98a59a57d2fabb46569043883e9018e9f71d4fe02b3674a030efed4e8f9986a"
+        },
+        {
+          "name": "host_work_bypasses_slice",
+          "sha256": "e12515ecb4cf933a83ec62f06f6a63abf6b98c45d7884a3c1dd6790fbfa461a1"
+        },
+        {
+          "name": "host_work_omits_member",
+          "sha256": "e656d64ec7620cc22c5ed1fd9fc361ea7403f9a525278d4c35368ca5b36ba70c"
+        },
+        {
+          "name": "host_work_omits_population_tail",
+          "sha256": "84cce0dae7ca76d387b11f7e9486666aac95b62e7acb741840a7e340859d7b92"
+        },
+        {
+          "name": "host_work_reuses_first_demand",
+          "sha256": "d2e68976676d3424d8af863a1a1090e27ea2365b6db971b040cc9d901ae6e0f9"
+        },
+        {
+          "name": "host_work_duplicates_slice",
+          "sha256": "4d12dfcc04e9c3a0cd522fa7a37f3d0009af0970d3e008da0241e5274e55c4d5"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/20-accounting.mech#twoSwarmBound",
-            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
+            "proofs/80-shared-host-composition.mech#hostBankBound",
+            "proofs/80-shared-host-composition.mech#hostBankStepAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetBound",
+            "proofs/80-shared-host-composition.mech#hostFleetStepAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetRelabelAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetRelabelUse",
+            "proofs/80-shared-host-composition.mech#hostTraceAllocation",
+            "proofs/80-shared-host-composition.mech#hostTraceBound",
+            "proofs/80-shared-host-composition.mech#sharedHostTraceBound",
+            "proofs/80-shared-host-composition.mech#hostFleetWorkBound",
+            "proofs/80-shared-host-composition.mech#sharedHostWorkBound",
+            "proofs/80-shared-host-composition.mech#sharedHostWorkAfterTraceBound",
+            "proofs/80-shared-host-composition.mech#hostBankHeadUse",
+            "proofs/80-shared-host-composition.mech#hostBankHeadAllocation",
+            "proofs/80-shared-host-composition.mech#hostBankHeadStep",
+            "proofs/80-shared-host-composition.mech#hostBankTailStep",
+            "proofs/80-shared-host-composition.mech#hostFleetHeadStep",
+            "proofs/80-shared-host-composition.mech#hostFleetTailStep",
+            "proofs/80-shared-host-composition.mech#hostFleetUseIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostFleetAllocationIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostTraceExecutesHead",
+            "proofs/80-shared-host-composition.mech#hostWorkIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostChurnRetainsBanks",
+            "proofs/80-shared-host-composition.mech#hostChurnExecutesHead"
           ],
-          "rationale": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Generalize composition to arbitrary finite swarms/sources and resource/work dimensions under a single declared host allocation, including honest-peer, worker and reconnect parameters."
+          "rationale": "hostFleetBound and sharedHostTraceBound quantify over an arbitrary finite population and every resource coordinate. The total allocated weight includes every honest/worker/reconnect/distributed member and every supplied swarm/source/identity. hostFleetWorkBound and sharedHostWorkAfterTraceBound compose arbitrary clipped work demands under the same sum-of-slices host premise. Complete-state equations pin routing and head/suffix accounting.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/20-accounting.mech#twoSwarmBound",
-            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound"
+            "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
+            "proofs/80-shared-host-composition.mech#hostBankBound",
+            "proofs/80-shared-host-composition.mech#hostBankStepAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetBound",
+            "proofs/80-shared-host-composition.mech#hostFleetStepAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetRelabelAllocation",
+            "proofs/80-shared-host-composition.mech#hostFleetRelabelUse",
+            "proofs/80-shared-host-composition.mech#hostTraceAllocation",
+            "proofs/80-shared-host-composition.mech#hostTraceBound",
+            "proofs/80-shared-host-composition.mech#sharedHostTraceBound",
+            "proofs/80-shared-host-composition.mech#hostFleetWorkBound",
+            "proofs/80-shared-host-composition.mech#sharedHostWorkBound",
+            "proofs/80-shared-host-composition.mech#sharedHostWorkAfterTraceBound",
+            "proofs/80-shared-host-composition.mech#hostBankHeadUse",
+            "proofs/80-shared-host-composition.mech#hostBankHeadAllocation",
+            "proofs/80-shared-host-composition.mech#hostBankHeadStep",
+            "proofs/80-shared-host-composition.mech#hostBankTailStep",
+            "proofs/80-shared-host-composition.mech#hostFleetHeadStep",
+            "proofs/80-shared-host-composition.mech#hostFleetTailStep",
+            "proofs/80-shared-host-composition.mech#hostFleetUseIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostFleetAllocationIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostTraceExecutesHead",
+            "proofs/80-shared-host-composition.mech#hostWorkIncludesEveryMember",
+            "proofs/80-shared-host-composition.mech#hostChurnRetainsBanks",
+            "proofs/80-shared-host-composition.mech#hostChurnExecutesHead"
           ],
-          "rationale": "Two capped swarm scalars and two weighted pending pools are bounded; arbitrary populations and host allocations are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Prove arbitrary distributed identities/prefixes share that aggregate allocation rather than independently receiving its full capacity."
+          "rationale": "Every distributed identity/prefix occurrence contributes its own slice to hostFleetAllocation; equal labels and labels that churn assigns receive no independent host budget. hostFleetRelabelAllocation and hostFleetRelabelUse retain allocations and charges through arbitrary relabeling. No module-80 definition reads a role, swarm, source or identity label. These equalities follow because relabeling keeps the bank vector. The controls host_churn_resets_banks and host_churn_duplicates_slice reject changes to that definition. HostTrace has no join step, so membership is fixed during the interval. A new source needs a new aggregate-fit witness. M012 owns grants that change the population. M013 owns distinct-source and aggregate burst budgets for handshake starts. hostTraceAllocation and sharedHostTraceBound extend this fact to arbitrary mixed ownership/churn traces, and the work bounds include all member demands. Mutation controls reject omitted participants, duplicated slices and charge-resetting churn.",
+          "remaining": ""
         }
       ]
     },

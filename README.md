@@ -27,11 +27,11 @@ unaudited criteria. At R02 closure, M005 was covered and 82 obligations retained
 exact R03-R08 model gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records
 the completed batches.
 
-R03 turn 4 closes M011 with separate finite waiting and active handshake banks,
-generation-owned transfers and terminal releases, and shared host resource and
-work envelopes across endpoint and swarm schedules. M001, M002, M004 and M005
-remain covered. Five obligations are now covered; 78 retain model gaps,
-including six assigned to R03. See the
+R03 turn 5 closes M007 with arbitrary finite swarm/source/identity populations,
+weighted resource vectors and per-interval work demands under one shared host
+allocation. Mixed ownership and identity-churn traces preserve every slice.
+M001, M002, M004, M005 and M011 remain covered. Six obligations are now covered;
+77 retain model gaps, including five assigned to R03. See the
 [R03 admission audit](docs/R03-ADMISSION.md).
 
 ## Run locally
@@ -52,7 +52,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 1028 deliberately invalid
+source hashes and coverage freshness, and requires 1058 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -95,7 +95,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1084 explicit equality and order proof declarations across 62 modules. This count
+1108 explicit equality and order proof declarations across 63 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -162,6 +162,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `77-authentication-reachability-composition.mech` | Authentication can grant verified identity and listed privilege independently of address validation. Arbitrary mixed traces project exactly to authentication-only execution, reachability traces preserve authentication results, and consistent initial privilege gates remain valid. |
 | `78-prevalidation-envelope.mech` | A finite queue shared by both swarms bounds occupancy, retained bytes and explicit transient allocations before validation. Arbitrary incoming traces and fuel-limited polls charge packet capture, queue examination, parsing and token work on all decision outcomes, including overflow and silent paths. |
 | `79-unlocked-handshake-executor.mech` | Separate shared waiting and active banks bound arbitrary endpoint/swarm schedules without a mutex premise. Generation-owned transfers and terminal releases preserve ownership; arbitrary resource weights and charged finite traces compose within a host envelope. |
+| `80-shared-host-composition.mech` | Arbitrary finite participant populations and weighted resource coordinates share one host vector. Indexed ownership actions and identity churn preserve allocations and retained charges; clipped per-interval work demands include every participant. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

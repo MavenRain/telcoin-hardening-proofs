@@ -2270,10 +2270,37 @@ service delivery or fairness. The 24 executor controls exercise dispatch
 authority, missing/deep indices, ownership transfer, terminal cleanup, resource
 allocation and work charging.
 
+## Arbitrary population and host-vector composition
+
+`80-shared-host-composition.mech` closes M007. A finite HostFleet contains
+arbitrary honest, worker, reconnect and distributed members with supplied
+swarm/source/identity labels. Each member owns a finite vector of weighted
+LeasePools. Every occurrence contributes its capacity-weight product to each
+aggregate coordinate. The declared host vector is a separate parameter, with
+an explicit premise that the sum of all allocations fits it.
+
+Indexed pool actions preserve every allocation coordinate. Churn retains the
+bank vector, including its occupied leases, while replacing labels. Arbitrary
+mixed traces therefore preserve aggregate allocation and keep weighted use
+within the initial sum. Missing members and coordinates allocate nothing.
+Complete-state equations constrain event routing and all head/suffix charges.
+
+`hostFleetWorkBound` composes arbitrary per-member demands clipped to their
+slices. `sharedHostWorkAfterTraceBound` keeps this per-interval sum within its
+initial host allocation after any mixed trace. Separate resource/work units
+use separate vectors. Runtime clipping, complete work/storage accounting and
+production calibration remain premises. E022 owns established-resource clipping
+and work accounting. E013 owns runtime pending accounting. E010 owns production
+calibration and storage dominance. Membership is fixed during the allocation
+interval; changing population requires a new aggregate-fit witness.
+Source normalization, resource-specific established vectors, rates and service
+remain separate obligations. Thirty controls include omitted populations,
+duplicated allocations, charge-resetting identity churn and work bypasses.
+
 ## Negative controls
 
-The checker rejects 1028 invalid variants: three direct checks of equality,
-ordering and termination, plus 1025 semantic mutations. Mutations exercise such
+The checker rejects 1058 invalid variants: three direct checks of equality,
+ordering and termination, plus 1055 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
