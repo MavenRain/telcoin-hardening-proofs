@@ -64,7 +64,8 @@
     "proofs/75-saturated-source-admission.mech": "7079d0c3f628df0199cbdd68b559d66a011fab6cdccff02974b781c97931a49a",
     "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0",
     "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc",
-    "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1"
+    "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1",
+    "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e"
   },
   "obligations": [
     {
@@ -2243,24 +2244,469 @@
       "id": "M011",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. The frozen required scope remains a model obligation in R03.",
-      "witnesses": [],
-      "controls": [],
+      "scope_complete": true,
+      "scope_review": "R03 turn 4 closes M011 at its frozen model scope. Shared finite waiting and active banks bound arbitrary endpoint/swarm schedules after work leaves the swarm task. Generation-owned dispatch and terminal transitions, arbitrary resource weights and charged trace work require atomic ownership and explicit runtime dominance, with no accept/endpoint mutex premise. Runtime refinement remains external E019.",
+      "witnesses": [
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorWaitingTraceBound",
+          "statement": "(trace : ExecutorTrace) -> (bank : ExecutorBank) ->\n    AtMost (leaseOccupancy (executorLane off (runExecutor trace bank))) (leaseCapacity (executorLane off bank))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite event schedule bounds retained waiting ownership by the initial shared waiting capacity.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorActiveTraceBound",
+          "statement": "(trace : ExecutorTrace) -> (bank : ExecutorBank) ->\n    AtMost (leaseOccupancy (executorLane on (runExecutor trace bank))) (leaseCapacity (executorLane on bank))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite event schedule bounds active worker ownership by the initial shared active capacity.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorTraceCapacity",
+          "statement": "(active : Flag) -> (trace : ExecutorTrace) -> (bank : ExecutorBank) ->\n    Equal Count (leaseCapacity (executorLane active (runExecutor trace bank)))\n      (leaseCapacity (executorLane active bank))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Each bank keeps its declared finite width through every event trace.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorRejectedDispatchPreservesBanks",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) ->\n    (waitingIndex : Count) -> (generation : Count) -> (activeIndex : Count) -> (demand : Count) -> (bank : ExecutorBank) ->\n    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) off ->\n    Equal ExecutorBank (executorStep (executorDispatch swarm endpoint waitingIndex generation activeIndex demand) bank) bank",
+          "scope_kind": "general_transition",
+          "establishes": "Every refused dispatch preserves both banks at arbitrary indices and generations.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorPermittedDispatchTransfers",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) ->\n    (waitingIndex : Count) -> (generation : Count) -> (activeIndex : Count) -> (demand : Count) -> (bank : ExecutorBank) ->\n    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) on ->\n    Equal ExecutorBank (executorStep (executorDispatch swarm endpoint waitingIndex generation activeIndex demand) bank)\n      (executorBank\n        (poolStep (completeAt waitingIndex (ownedGeneration generation) connectionEstablished) (executorLane off bank))\n        (poolStep (reserveAt activeIndex) (executorLane on bank)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every permitted dispatch releases its selected waiting ticket and reserves its selected active target at arbitrary indices and generations.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorStaleActiveCallback",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (generation : Count) ->\n    (reason : PendingEnd) -> (demand : Count) -> (waiting : LeasePool) -> (rest : LeasePool) ->\n    Equal LeasePool\n      (executorLane on (executorStep (executorActiveEnd swarm endpoint zero (ownedGeneration generation) reason demand)\n        (executorBank waiting (leaseCell (heldLease (next generation)) rest))))\n      (leaseCell (heldLease (next generation)) rest)",
+          "scope_kind": "general_transition",
+          "establishes": "At the head active slot, every terminal reason preserves a newer active generation against its immediate predecessor callback. This declaration does not cover other active indices.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorStaleWaitingCallback",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (generation : Count) ->\n    (reason : PendingEnd) -> (demand : Count) -> (running : LeasePool) -> (rest : LeasePool) ->\n    Equal LeasePool\n      (executorLane off (executorStep (executorWaitingEnd swarm endpoint zero (ownedGeneration generation) reason demand)\n        (executorBank (leaseCell (heldLease (next generation)) rest) running)))\n      (leaseCell (heldLease (next generation)) rest)",
+          "scope_kind": "general_transition",
+          "establishes": "At the head waiting slot, every terminal reason preserves a newer waiting generation against its immediate predecessor callback. This declaration does not cover other waiting indices.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorFreeWaitingCannotDispatch",
+          "statement": "(generation : Count) -> (waitingGeneration : Count) ->\n    (waitingRest : LeasePool) -> (running : LeasePool) -> (activeIndex : Count) ->\n    Equal Flag (executorTransferAllowed zero generation activeIndex\n      (executorBank (leaseCell (freeLease waitingGeneration) waitingRest) running)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A free head waiting cell supplies no dispatch authority for any generation or active target. This declaration does not cover other waiting indices.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorMissingWaitingCannotDispatch",
+          "statement": "(waitingIndex : Count) -> (generation : Count) ->\n    (running : LeasePool) -> (activeIndex : Count) ->\n    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex\n      (executorBank emptyLeasePool running)) off",
+          "scope_kind": "general_transition",
+          "establishes": "No waiting index in an empty bank supplies dispatch authority.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorStaleWaitingCannotDispatch",
+          "statement": "(generation : Count) -> (waitingRest : LeasePool) ->\n    (running : LeasePool) -> (activeIndex : Count) ->\n    Equal Flag (executorTransferAllowed zero generation activeIndex\n      (executorBank (leaseCell (heldLease (next generation)) waitingRest) running)) off",
+          "scope_kind": "general_transition",
+          "establishes": "An immediate-predecessor ticket at the head waiting cell cannot dispatch its newer owner into any active bank. This declaration does not cover other waiting indices.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorFullActiveCannotDispatch",
+          "statement": "(waitingIndex : Count) -> (generation : Count) ->\n    (waiting : LeasePool) -> (activeGeneration : Count) -> (activeRest : LeasePool) ->\n    Equal Flag (executorTransferAllowed waitingIndex generation zero\n      (executorBank waiting (leaseCell (heldLease activeGeneration) activeRest))) off",
+          "scope_kind": "general_transition",
+          "establishes": "An occupied head active target refuses transfer for every waiting index and generation. This declaration does not cover other active indices.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorMissingActiveCannotDispatch",
+          "statement": "(waitingIndex : Count) -> (generation : Count) ->\n    (waiting : LeasePool) -> (activeIndex : Count) ->\n    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex\n      (executorBank waiting emptyLeasePool)) off",
+          "scope_kind": "general_transition",
+          "establishes": "An empty active bank refuses transfer for every selected index and waiting owner.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorDeepDispatchTransfersOnlyOwner",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->\n    (waitingHead : Lease) -> (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorDispatch swarm endpoint (next (next zero)) zero (next (next zero)) demand)\n        (executorBank (leaseCell waitingHead (leaseCell (freeLease zero) (leaseCell (heldLease zero) waitingRest)))\n          (leaseCell activeHead (leaseCell (heldLease zero) (leaseCell (freeLease zero) activeRest)))))\n      (executorBank (leaseCell waitingHead (leaseCell (freeLease zero) (leaseCell (freeLease (next zero)) waitingRest)))\n        (leaseCell activeHead (leaseCell (heldLease zero) (leaseCell (heldLease zero) activeRest))))",
+          "scope_kind": "general_transition",
+          "establishes": "At the third slot with generation zero, dispatch preserves arbitrary prefix cells and tails, releases the waiting owner and acquires the active owner.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorDeepActiveTerminalReleasesOnlyOwner",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) ->\n    (reason : PendingEnd) -> (demand : Count) -> (waitingHead : Lease) -> (activeHead : Lease) ->\n    (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorActiveEnd swarm endpoint (next zero) (ownedGeneration zero) reason demand)\n        (executorBank (leaseCell waitingHead waitingRest)\n          (leaseCell activeHead (leaseCell (heldLease zero) activeRest))))\n      (executorBank (leaseCell waitingHead waitingRest)\n        (leaseCell activeHead (leaseCell (freeLease (next zero)) activeRest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason at the second active slot with generation zero releases only that slot, preserving arbitrary prefix cells and both tails.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorDeepWaitingTerminalReleasesOnlyOwner",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) ->\n    (reason : PendingEnd) -> (demand : Count) -> (waitingHead : Lease) -> (activeHead : Lease) ->\n    (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorWaitingEnd swarm endpoint (next zero) (ownedGeneration zero) reason demand)\n        (executorBank (leaseCell waitingHead (leaseCell (heldLease zero) waitingRest))\n          (leaseCell activeHead activeRest)))\n      (executorBank (leaseCell waitingHead (leaseCell (freeLease (next zero)) waitingRest))\n        (leaseCell activeHead activeRest))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason at the second waiting slot with generation zero releases only that slot, preserving arbitrary prefix cells and both tails.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorArrivalOwnsWaiting",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->\n    (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorArrival swarm endpoint zero demand)\n        (executorBank (leaseCell (freeLease zero) waitingRest) (leaseCell activeHead activeRest)))\n      (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell activeHead activeRest))",
+          "scope_kind": "general_transition",
+          "establishes": "At the head waiting slot with free generation zero, arrival acquires that slot and preserves the waiting tail and the active bank.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorActiveTerminalReleasesOwner",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->\n    (reason : PendingEnd) -> (waitingHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorActiveEnd swarm endpoint zero (ownedGeneration zero) reason demand)\n        (executorBank (leaseCell waitingHead waitingRest) (leaseCell (heldLease zero) activeRest)))\n      (executorBank (leaseCell waitingHead waitingRest) (leaseCell (freeLease (next zero)) activeRest))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason at the head active slot with generation zero releases that slot and preserves the waiting bank and the active tail.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorWaitingTerminalReleasesOwner",
+          "statement": "(swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->\n    (reason : PendingEnd) -> (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->\n    Equal ExecutorBank\n      (executorStep (executorWaitingEnd swarm endpoint zero (ownedGeneration zero) reason demand)\n        (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell activeHead activeRest)))\n      (executorBank (leaseCell (freeLease (next zero)) waitingRest) (leaseCell activeHead activeRest))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason at the head waiting slot with generation zero releases that slot and preserves the active bank and the waiting tail.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorHostResourceTraceBound",
+          "statement": "(waitingWeight : Count) -> (activeWeight : Count) ->\n    (trace : ExecutorTrace) -> (bank : ExecutorBank) ->\n    AtMost (executorResource waitingWeight activeWeight (runExecutor trace bank))\n      (executorAllocation waitingWeight activeWeight bank)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every endpoint/swarm event trace composes waiting and active allocations within their single shared host allocation for arbitrary resource weights.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorHostWorkTraceBound",
+          "statement": "(base : Count) -> (workCap : Count) -> (trace : ExecutorTrace) -> (bank : ExecutorBank) ->\n    AtMost (executorTraceWork base workCap trace bank)\n      (multiply (executorTraceLength trace) (executorWorkBudget base workCap bank))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace bounds total charged work by its event count times the initial host event budget, including denied and terminal events.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorEventWorkBound",
+          "statement": "(base : Count) -> (workCap : Count) -> (event : ExecutorEvent) -> (bank : ExecutorBank) ->\n    AtMost (executorEventWork base workCap event bank) (executorWorkBudget base workCap bank)",
+          "scope_kind": "general_transition",
+          "establishes": "Every event charges fixed cost, both finite bank scan envelopes and capped execution demand within the host event budget.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorZeroDemandStillCharges",
+          "statement": "(base : Count) -> (workCap : Count) -> (event : ExecutorEvent) ->\n    (bank : ExecutorBank) -> Equal Count (executorDemand event) zero ->\n    Equal Count (executorEventWork base workCap event bank) (add base (executorScanEnvelope bank))",
+          "scope_kind": "general_transition",
+          "establishes": "An event with no execution demand still charges fixed administrative work and the finite scan envelope.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        },
+        {
+          "path": "proofs/79-unlocked-handshake-executor.mech",
+          "name": "executorSingletonWorkCharged",
+          "statement": "(base : Count) -> (workCap : Count) -> (event : ExecutorEvent) ->\n    (bank : ExecutorBank) ->\n    Equal Count (executorTraceWork base workCap (executorThen event executorDone) bank)\n      (executorEventWork base workCap event bank)",
+          "scope_kind": "general_transition",
+          "establishes": "A one-event schedule charges exactly its event work, including every dispatch or terminal outcome.",
+          "premises": [
+            "All endpoint and swarm work routes through the same finite waiting and active banks, with internal index/generation callback tokens and nonwrapping generations.",
+            "Reservation, transfer and terminal release are atomic ownership transitions; the model permits every finite interleaving and requires no mutex or fair scheduling.",
+            "An active terminal event represents actual worker termination and resident release. Cancellation requests retain their active charge until that terminal event.",
+            "Each supplied waiting/active weight dominates the corresponding resident allocation in one resource dimension. Fixed event cost and capped execution demand dominate runtime costs; both bank scans are charged."
+          ],
+          "limits": "These are model bounds. E019 must refine concrete off-task workers, callback provenance, atomic transfer, cancellation/join lifetimes and complete endpoint routing. The model does not prove fairness, delivery, runtime cost dominance or independent private-bank allocations."
+        }
+      ],
+      "controls": [
+        {
+          "name": "executor_unowned_waiting_dispatches",
+          "sha256": "45682eda741231448cf9d68712c40d6e33b3d5cb8b08bdbfde257344de29842a"
+        },
+        {
+          "name": "executor_stale_waiting_dispatches",
+          "sha256": "e83034113aa7d726eb172591dde3d628e37779248f1574699750b15264c64504"
+        },
+        {
+          "name": "executor_deep_waiting_checks_head",
+          "sha256": "94d351eac0ada16bd5a08201655b98946e5197e36ece1b9e28256a34edb48aef"
+        },
+        {
+          "name": "executor_missing_waiting_dispatches",
+          "sha256": "137e1455f6a4831e9199f1271cbe5f5e6fde03d3cb2a0293005e510f683230ab"
+        },
+        {
+          "name": "executor_occupied_active_accepts",
+          "sha256": "32020d7cf012971152b9144f3f68ab937ed9d64839853cde5d2aa117d1bbd7e6"
+        },
+        {
+          "name": "executor_missing_active_accepts",
+          "sha256": "c8beee68415f72a1e89a0b10b055d1f6c73a9535da3a04e4e81c199eeabe8a1b"
+        },
+        {
+          "name": "executor_deep_active_checks_head",
+          "sha256": "682e6a5e6c9028f224c33fa20055b77e5d3eb18234de551bf8842a87a3b9133a"
+        },
+        {
+          "name": "executor_refused_dispatch_starts",
+          "sha256": "54d5c3f833c2349d2b77b50015eb049e76a787dec899ed1be406d21fd78c989b"
+        },
+        {
+          "name": "executor_dispatch_retains_waiting",
+          "sha256": "ae9751c680fc7ec66e9ce5f9d663faf02af534d87c6dd0d9a421d20fb596b580"
+        },
+        {
+          "name": "executor_dispatch_skips_active_owner",
+          "sha256": "180472dedd0d3613cf87b948313475019bc43e54acbb549d58dfe21dc3a231ad"
+        },
+        {
+          "name": "executor_dispatch_releases_wrong_waiting",
+          "sha256": "f266a48fdab2b5f7d6360a9531f36efbc2a69bf861a7472f712ec7694fabf9a2"
+        },
+        {
+          "name": "executor_dispatch_reserves_wrong_active",
+          "sha256": "e334be844ad775fe0b0418623fcd6ae357fd3f2d201425f4b48b1634268cda6a"
+        },
+        {
+          "name": "executor_arrival_loses_waiting_owner",
+          "sha256": "b66cb426b3bb09277675f01e018e06d54dd4326bf174b5a341de868e8ea03fe7"
+        },
+        {
+          "name": "executor_waiting_terminal_retains_owner",
+          "sha256": "6f6a16ff73a47d2c802ac58f4f513d31e2b4b503e27818023921456e431d33d8"
+        },
+        {
+          "name": "executor_active_terminal_retains_owner",
+          "sha256": "5f17a1a8d13e718ccd1f7a2dae48eff2f48b69289d0483005821f68df86dceeb"
+        },
+        {
+          "name": "executor_waiting_terminal_releases_wrong_slot",
+          "sha256": "1be7f5851c488b0d37e595162e27fff697622408b012ee69238b5b4e70b1185e"
+        },
+        {
+          "name": "executor_active_terminal_releases_wrong_slot",
+          "sha256": "bce803d785ed7bfcb93807f723e00c6ae73c30c3b6442e105ed90cca2a619e20"
+        },
+        {
+          "name": "executor_active_resource_exceeds_allocation",
+          "sha256": "960fe9cb3afeb1c7f2e817812b9d56cc0c5a5d74e609eccda4e8830ecf5b75a8"
+        },
+        {
+          "name": "executor_waiting_resource_exceeds_allocation",
+          "sha256": "14fcd96aabaeec5163ce27ff9d338621f47c7daf9429c706a426c6b077dd9185"
+        },
+        {
+          "name": "executor_work_uncapped",
+          "sha256": "5daa2ac8d9fa66abd77c8cb1d628611b2471071c2dc851e532a528ce52085e1c"
+        },
+        {
+          "name": "executor_work_omits_fixed_charge",
+          "sha256": "e84e0c04af54bdd18b787730062b2173353093f48f8e9545e4f833c726798f21"
+        },
+        {
+          "name": "executor_work_omits_scan_charge",
+          "sha256": "f678f720dcb7e8fec35b89a2129f7c792bb252b180759a909ed19c05fac42f5e"
+        },
+        {
+          "name": "executor_trace_omits_event_charge",
+          "sha256": "caee337e35145354753340cdea45d52faa27bb92679342312dc61105ea4b53fe"
+        },
+        {
+          "name": "executor_trace_length_omits_event",
+          "sha256": "2a5d6ccae9d1754d2356570420f99c6d9fbd40d84aac360865b7c047164da46a"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R03: Add bounded active-executor and retained-waiting ownership transitions for arbitrary dispatch, completion, failure and cancellation schedules after moving work off the swarm task."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/79-unlocked-handshake-executor.mech#executorWaitingTraceBound",
+            "proofs/79-unlocked-handshake-executor.mech#executorActiveTraceBound",
+            "proofs/79-unlocked-handshake-executor.mech#executorTraceCapacity",
+            "proofs/79-unlocked-handshake-executor.mech#executorRejectedDispatchPreservesBanks",
+            "proofs/79-unlocked-handshake-executor.mech#executorPermittedDispatchTransfers",
+            "proofs/79-unlocked-handshake-executor.mech#executorStaleActiveCallback",
+            "proofs/79-unlocked-handshake-executor.mech#executorStaleWaitingCallback",
+            "proofs/79-unlocked-handshake-executor.mech#executorFreeWaitingCannotDispatch",
+            "proofs/79-unlocked-handshake-executor.mech#executorMissingWaitingCannotDispatch",
+            "proofs/79-unlocked-handshake-executor.mech#executorStaleWaitingCannotDispatch",
+            "proofs/79-unlocked-handshake-executor.mech#executorFullActiveCannotDispatch",
+            "proofs/79-unlocked-handshake-executor.mech#executorMissingActiveCannotDispatch",
+            "proofs/79-unlocked-handshake-executor.mech#executorDeepDispatchTransfersOnlyOwner",
+            "proofs/79-unlocked-handshake-executor.mech#executorDeepActiveTerminalReleasesOnlyOwner",
+            "proofs/79-unlocked-handshake-executor.mech#executorDeepWaitingTerminalReleasesOnlyOwner",
+            "proofs/79-unlocked-handshake-executor.mech#executorArrivalOwnsWaiting",
+            "proofs/79-unlocked-handshake-executor.mech#executorActiveTerminalReleasesOwner",
+            "proofs/79-unlocked-handshake-executor.mech#executorWaitingTerminalReleasesOwner"
+          ],
+          "rationale": "The recorded general trace bounds and ownership transitions establish this criterion under the explicit shared-bank, atomicity and runtime domination premises. Fixed-slot semantic witnesses retain their stated generation/index limits.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "The corpus has pending ownership and weighted pool bounds, but no unlocked handshake executor/waiting-work transition system. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R03: Compose every endpoint/swarm allocation and work cost into a host envelope without relying on accept/endpoint mutex serialization."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/79-unlocked-handshake-executor.mech#executorHostResourceTraceBound",
+            "proofs/79-unlocked-handshake-executor.mech#executorHostWorkTraceBound",
+            "proofs/79-unlocked-handshake-executor.mech#executorEventWorkBound",
+            "proofs/79-unlocked-handshake-executor.mech#executorZeroDemandStillCharges",
+            "proofs/79-unlocked-handshake-executor.mech#executorSingletonWorkCharged"
+          ],
+          "rationale": "In the model, every endpoint and swarm event uses one waiting bank and one active bank. No event reads its endpoint field, so each endpoint charge is part of the same occupancy. No endpoint gets a private copy of the allocation. executorHostResourceTraceBound bounds the summed weighted charge of both banks by the single initial host allocation for every finite trace. executorEventWorkBound bounds the work of each event by the host event budget. executorHostWorkTraceBound bounds the work of every finite trace by its event count times that budget. executorSingletonWorkCharged and executorZeroDemandStillCharges show that each event keeps its charge, also at zero demand. The model has no per-endpoint quota. Composition depends on the recorded shared-bank routing premise. E019 owns this premise: its criterion 1 requires process-wide composition and an explicit M011 refinement. Traces permit every finite interleaving. The only ordering premise is that each reservation, transfer and terminal release is atomic. No witness uses the removed accept/endpoint mutex, a serialization premise or a fairness premise.",
+          "remaining": ""
         }
       ]
     },

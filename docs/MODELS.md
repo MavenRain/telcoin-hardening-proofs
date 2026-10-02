@@ -2226,10 +2226,54 @@ enforcement of the byte, parsing, token and poll budgets remain external.
 The model does not verify evidence classification, protocol acceptance,
 cryptography, scheduling or actual object allocation.
 
+## Unlocked handshake executor and shared host allocation
+
+`79-unlocked-handshake-executor.mech` discharges M011 using separate finite
+waiting and active LeasePools. Events carry an arbitrary endpoint identifier and
+either swarm classification; every event routes through the same two banks.
+An arrival reserves its selected waiting slot. Dispatch requires a held waiting
+generation that matches its internal ticket and a real vacant active slot.
+Missing indices refuse transfer. At the head slot, a free or stale waiting
+ticket and an occupied active target also refuse transfer. Atomic dispatch
+releases the waiting owner and acquires the active owner. Waiting and active
+terminal events apply generation-owned release for all five PendingEnd reasons. Work events preserve ownership.
+
+`executorWaitingTraceBound` and `executorActiveTraceBound` quantify arbitrary
+finite event schedules and initial banks. `executorTraceCapacity` preserves
+both declared widths. `executorRejectedDispatchPreservesBanks` and
+`executorPermittedDispatchTransfers` specify both outcomes at arbitrary indices
+and generations. Deep-slot witnesses preserve arbitrary surrounding cells and
+tails; their fixed generation/index limits are recorded in the audit. Stale
+callback lemmas cover the head slot, every immediate predecessor generation and
+every terminal reason. The model permits arbitrary event interleavings without fair scheduling
+or an accept/endpoint mutex premise.
+
+For any resource dimension with waiting weight w and active weight a,
+`executorHostResourceTraceBound` bounds w times waiting occupancy plus a times
+active occupancy by w times waiting capacity plus a times active capacity. The
+same allocation covers every endpoint and swarm. Independent private pools must
+be routed or refined into that allocation before the theorem applies.
+
+Every event charges fixed administrative cost, two full passes over each finite
+bank and capped execution demand. `executorHostWorkTraceBound` bounds a trace by
+its event count times the initial shared event budget. Denial, overflow and
+terminal events remain charged. `executorZeroDemandStillCharges` and
+`executorSingletonWorkCharged` prevent empty demand or short schedules from
+silently erasing administrative work.
+
+E019 owns concrete worker and callback refinement. Terminal active events must
+represent actual task termination and resident release; a cancellation request
+alone must retain the active charge. Atomic transfer, complete routing, internal
+callback tickets, nonwrapping generations, resource dominance and execution
+budget enforcement remain explicit premises. These bounds do not establish
+service delivery or fairness. The 24 executor controls exercise dispatch
+authority, missing/deep indices, ownership transfer, terminal cleanup, resource
+allocation and work charging.
+
 ## Negative controls
 
-The checker rejects 1004 invalid variants: three direct checks of equality,
-ordering and termination, plus 1001 semantic mutations. Mutations exercise such
+The checker rejects 1028 invalid variants: three direct checks of equality,
+ordering and termination, plus 1025 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

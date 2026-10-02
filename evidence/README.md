@@ -995,3 +995,27 @@ R03 has spent three turns and remains active with seven obligations. The
 repository audit covers four of 83 model obligations, retains 79 exact gaps
 and leaves all 43 external obligations open. Full qualification remains guarded.
 Prior receipts retain their original input hashes and historical counts.
+
+## R03 unlocked handshake executor, turn 4
+
+`r03-unlocked-executor-check.json` records the complete pinned-compiler check
+after module 79: 1084 proof declarations across 62 modules, empty axiom
+disclosure, and 1028 rejected negative checks (1025 registered semantic
+mutations and three generic controls). Its input hashes cover the current proof
+corpus, witness audit, catalog and validation tooling.
+
+The 30 new proof declarations bound separate shared waiting and active banks
+over arbitrary endpoint/swarm schedules. General conditional dispatch witnesses
+specify refused and permitted transfers at arbitrary indices and generations.
+Deep-slot transfer and terminal witnesses preserve surrounding ownership;
+stale callbacks preserve newer owners. Arbitrary weighted resource and charged
+work trace bounds compose within one declared host allocation. All 24 new
+controls must produce proof type mismatches, including missing-release,
+unbounded/refused dispatch and deleted work charges.
+
+R03 has spent four turns and remains active with six obligations. The audit
+covers five of 83 model obligations, retains 78 exact gaps and leaves all 43
+external obligations open. E019 retains concrete worker termination, atomic
+transfer, callback provenance, complete routing and resource/work dominance.
+Qualification and the disposition, scope and audit regressions remain guarded.
+Prior receipts retain their original input hashes and historical counts.

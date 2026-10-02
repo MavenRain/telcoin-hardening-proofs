@@ -1,10 +1,10 @@
-# R03 admission boundary, turn 3
+# R03 admission boundary, turn 4
 
-R03 is active after three execution turns. Turn 1 closed M004, turn 2 closed
-M001 with authentication and reachability composition, and turn 3 closes
-M002 with a pre-validation queue, allocation and processing-work envelope.
-M005 was already covered by R02. The audit covers four of 83 model
-obligations, retains 79 exact gaps, and leaves all 43 external obligations
+R03 is active after four execution turns. Turn 1 closed M004, turn 2 closed
+M001 with authentication and reachability composition, turn 3 closed M002
+with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
+execution, ownership and host envelopes. M005 was already covered by R02.
+The audit covers five of 83 model obligations, retains 78 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
 obligations, packet assignments and qualification guards remain intact.
 
@@ -13,6 +13,7 @@ obligations, packet assignments and qualification guards remain intact.
 | M001 | Existing general unvalidated Retry refusal; module 76's invalid-evidence complete-state no-op and unvalidated-address preservation; module 77's authentication grants and clearing, arbitrary mixed-trace erasure and authority projections, post-authentication reachability traces and privilege-gate preservation. | Correct classification of runtime address and identity evidence is granted. Cookies and signatures are token-validation and cryptographic premises. E008 and E020 own their runtime semantics, M014 to M017 own detailed protocol authentication, and E029 owns runtime listing and privilege enforcement. |
 | M002 | Module 78's arbitrary mixed-trace queue, retained-byte and transient-allocation bounds; exact packet/queue/parsing/token charges and arbitrary finite-fuel poll work bounds. | Finite shared allocation and enforced budgets are modeled. Runtime storage/work dominance, serialization, workspace lifetime and supplied outcome classifications remain external. E008 owns the transport queue, budget, serialization, workspace and outcome premises. E010 owns deployed storage and work dominance. Later pending and established caps supply no premise. |
 | M004 | Module 75's arbitrary-pool and arbitrary-index exhaustion bridge, composed complete-state admission refusal and receipt absence; existing arbitrary PoolTrace and SourceAdmissionTrace bounds, conservation and fixed structural capacity. | Exhaustion means zero total leaseAvailability, including empty pools and missing indices. Runtime receipt authority, stable indices, serialization, nonwrapping generations and storage dominance remain external. E013 owns them. |
+| M011 | Module 79's arbitrary endpoint/swarm trace bounds for separate waiting and active banks, conditional refused/permitted dispatch transitions, generation-owned terminal releases, shared weighted host allocation and charged work envelope. | All endpoint work routes through the same banks. Atomic transfer, internal callback provenance, nonwrapping generations, actual task termination on terminal release, and runtime resource/work dominance remain E019 premises. No mutex or fair scheduling is assumed. |
 
 The saturation proof recurses over the entire LeasePool. A free cell contradicts
 zero availability; a held cell permits either local refusal or induction into
@@ -94,25 +95,55 @@ enforcement of the byte, parsing, token and poll budgets remain external.
 The model does not verify evidence classification, protocol acceptance,
 cryptography, scheduling or actual object allocation.
 
+## Unlocked handshake execution and host envelopes
+
+Module 79 models waiting jobs and active executors in separate fixed-width
+LeasePools. Every endpoint identifier and either swarm uses the same two banks.
+Dispatch requires a matching held waiting generation and a vacant active target.
+The atomic transition releases that waiting owner and reserves the active slot.
+A refused dispatch preserves both banks at arbitrary indices and generations.
+For each terminal reason, the audited proofs show that release at the second
+slot with generation zero frees only that owner. Stale waiting and active
+callbacks preserve the newer owner at the head slot against its immediate
+predecessor generation. General trace bounds cover every finite interleaving and
+initial bank state; the proofs require no accept/endpoint mutex or fairness
+premise.
+
+For arbitrary waiting and active resource weights, the summed resident charge
+stays within the two banks' single host allocation. Each event charges fixed
+administrative work, two passes over both finite banks, and capped execution
+demand. Zero-demand and one-event witnesses prevent silent charge deletion.
+The arbitrary trace work theorem uses the initial host event budget and counts
+every event, including denial, overflow and terminal cleanup.
+
+E019 must establish complete endpoint routing, atomic reservation/transfer,
+internal token provenance and nonwrapping generations. It must also show that
+weights dominate actual allocations and work, and that active terminal release
+means the worker has stopped and released its resident resources. Cancellation
+requests must retain their charge until that terminal event. The model proves
+bounded ownership and accounting; executor fairness and service delivery remain
+outside this obligation. The 24 new controls reject weakened lookup, dispatch,
+terminal release, allocation and work accounting.
+
 ## Remaining R03 scope
 
-Seven R03 obligations remain: M003, M007, M009, M011, M012, M013 and M021.
+Six R03 obligations remain: M003, M007, M009, M012, M013 and M021.
 Their exact per-criterion work remains in proof-audit.json. It includes
 pending/established shared limits, handshake
-credit, normalized source attribution and churn lifetimes, unlocked ownership
-and aggregate/source rate composition. R03 stays active until its three exit
+credit, normalized source attribution and churn lifetimes, established resource
+vectors, endpoint migration and aggregate/source rate composition. R03 stays active until its three exit
 criteria close.
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-prevalidation-envelope-check.json](../evidence/r03-prevalidation-envelope-check.json).
-The corpus has 1054 explicit proof declarations in 61 modules. The full run
-includes 1004 negative checks (1001 registered mutations plus three generic
+[r03-unlocked-executor-check.json](../evidence/r03-unlocked-executor-check.json).
+The corpus has 1084 explicit proof declarations in 62 modules. The full run
+includes 1028 negative checks (1025 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1, turn-2 and R02 receipts retain their original counts
+open. The historical R03 turn-1, turn-2, turn-3 and R02 receipts retain their original counts
 and input hashes.

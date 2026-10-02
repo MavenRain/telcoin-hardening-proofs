@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 1001 additional semantic mutations must
+The 1025 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -191,6 +191,25 @@ weights stay fixed. Empty schedules, pauses and empty resize segments retain
 their specified charges. Twelve operational mutations require type mismatches.
 The equalities need no initial fit or credit bound. They neither validate a
 concrete cost weight nor prove runtime refinement or deployment qualification.
+
+## Unlocked executor lifetime and cost boundary
+
+Module 79 bounds finite waiting and active ownership across arbitrary endpoint
+and swarm event traces. Every event must route through the same banks; their
+capacities cover the host allocation rather than separate private pools. The
+model assumes atomic reservation and ownership transfer, internal callback
+tickets and nonwrapping generations. It assumes no accept/endpoint mutex or
+fair scheduling. Matching terminal callbacks release their selected owner;
+stale callbacks preserve a newer generation.
+
+E019 must refine actual worker lifetimes, cancellation and callback provenance.
+An active terminal event must mean that execution has stopped and resident
+resources have been released. A cancellation request alone must retain the
+active charge until that terminal event. Supplied waiting and active resource
+weights must dominate allocations in the same unit. Event work charges fixed
+administrative cost, two passes over both banks and enforced capped execution
+demand. Concrete scan, dispatch and cleanup costs must fit those charges.
+The trace bounds do not establish worker fairness or service delivery.
 
 ## Open boundaries
 

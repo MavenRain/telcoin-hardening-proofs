@@ -1,0 +1,466 @@
+-- R03: one waiting bank and one active bank shared by every endpoint and swarm.
+-- Transfers are atomic ownership transitions. No fairness or mutex premise is used.
+mu ExecutorBank : Type 0 with
+| executorBank : LeasePool -> LeasePool -> ExecutorBank
+
+def executorLane : Flag -> ExecutorBank -> LeasePool :=
+  fun (active : Flag) (bank : ExecutorBank) =>
+    case bank as self in ExecutorBank return LeasePool with
+    | executorBank waiting running =>
+      case active as lane in Flag return LeasePool with
+      | off => waiting
+      | on => running
+
+def rec executorOwnedAt : Count -> Count -> LeasePool -> Flag :=
+  fun (index : Count) (generation : Count) (pool : LeasePool) =>
+    case index as selected in Count return Flag with
+    | zero =>
+      (case pool as self in LeasePool return Flag with
+      | emptyLeasePool => off
+      | leaseCell lease rest =>
+        (case lease as cell in Lease return Flag with
+        | freeLease current => off
+        | heldLease current => sameCount generation current))
+    | next previous =>
+      case pool as self in LeasePool return Flag with
+      | emptyLeasePool => off
+      | leaseCell lease rest => executorOwnedAt previous generation rest
+
+def rec executorVacantAt : Count -> LeasePool -> Flag :=
+  fun (index : Count) (pool : LeasePool) =>
+    case index as selected in Count return Flag with
+    | zero =>
+      (case pool as self in LeasePool return Flag with
+      | emptyLeasePool => off
+      | leaseCell lease rest =>
+        (case lease as cell in Lease return Flag with
+        | freeLease generation => on
+        | heldLease generation => off))
+    | next previous =>
+      case pool as self in LeasePool return Flag with
+      | emptyLeasePool => off
+      | leaseCell lease rest => executorVacantAt previous rest
+
+def executorTransferAllowed : Count -> Count -> Count -> ExecutorBank -> Flag :=
+  fun (waitingIndex : Count) (generation : Count) (activeIndex : Count) (bank : ExecutorBank) =>
+    both (executorOwnedAt waitingIndex generation (executorLane off bank))
+      (executorVacantAt activeIndex (executorLane on bank))
+
+mu ExecutorEvent : Type 0 with
+| executorArrival : SwarmClass -> Count -> Count -> Count -> ExecutorEvent
+| executorDispatch : SwarmClass -> Count -> Count -> Count -> Count -> Count -> ExecutorEvent
+| executorWaitingEnd : SwarmClass -> Count -> Count -> CompletionToken -> PendingEnd -> Count -> ExecutorEvent
+| executorActiveEnd : SwarmClass -> Count -> Count -> CompletionToken -> PendingEnd -> Count -> ExecutorEvent
+| executorWork : SwarmClass -> Count -> Count -> ExecutorEvent
+
+def executorIdle : PoolAction := completeAt zero noOwnedLease handshakeCancelled
+
+def executorDispatchAction : Flag -> Flag -> Count -> Count -> Count -> PoolAction :=
+  fun (allowed : Flag) (active : Flag) (waitingIndex : Count) (generation : Count) (activeIndex : Count) =>
+    case allowed as decision in Flag return PoolAction with
+    | off => executorIdle
+    | on =>
+      case active as lane in Flag return PoolAction with
+      | off => completeAt waitingIndex (ownedGeneration generation) connectionEstablished
+      | on => reserveAt activeIndex
+
+def executorLaneAction : Flag -> ExecutorEvent -> ExecutorBank -> PoolAction :=
+  fun (active : Flag) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    case event as self in ExecutorEvent return PoolAction with
+    | executorArrival swarm endpoint index demand =>
+      (case active as lane in Flag return PoolAction with
+      | off => reserveAt index
+      | on => executorIdle)
+    | executorDispatch swarm endpoint waitingIndex generation activeIndex demand =>
+      executorDispatchAction (executorTransferAllowed waitingIndex generation activeIndex bank)
+        active waitingIndex generation activeIndex
+    | executorWaitingEnd swarm endpoint index token reason demand =>
+      (case active as lane in Flag return PoolAction with
+      | off => completeAt index token reason
+      | on => executorIdle)
+    | executorActiveEnd swarm endpoint index token reason demand =>
+      (case active as lane in Flag return PoolAction with
+      | off => executorIdle
+      | on => completeAt index token reason)
+    | executorWork swarm endpoint demand => executorIdle
+
+def executorStep : ExecutorEvent -> ExecutorBank -> ExecutorBank :=
+  fun (event : ExecutorEvent) (bank : ExecutorBank) =>
+    executorBank
+      (poolStep (executorLaneAction off event bank) (executorLane off bank))
+      (poolStep (executorLaneAction on event bank) (executorLane on bank))
+
+def executorStepCapacity : (active : Flag) -> (event : ExecutorEvent) -> (bank : ExecutorBank) ->
+    Equal Count (leaseCapacity (executorLane active (executorStep event bank)))
+      (leaseCapacity (executorLane active bank)) :=
+  fun (active : Flag) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    case active as lane in Flag return
+        Equal Count (leaseCapacity (executorLane lane (executorStep event bank)))
+          (leaseCapacity (executorLane lane bank)) with
+    | off => poolStepCapacity (executorLaneAction off event bank) (executorLane off bank)
+    | on => poolStepCapacity (executorLaneAction on event bank) (executorLane on bank)
+
+mu ExecutorTrace : Type 0 with
+| executorDone : ExecutorTrace
+| executorThen : ExecutorEvent -> ExecutorTrace -> ExecutorTrace
+
+def rec runExecutor : ExecutorTrace -> ExecutorBank -> ExecutorBank :=
+  fun (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    case trace as self in ExecutorTrace return ExecutorBank with
+    | executorDone => bank
+    | executorThen event rest => runExecutor rest (executorStep event bank)
+
+def rec executorTraceCapacity : (active : Flag) -> (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    Equal Count (leaseCapacity (executorLane active (runExecutor trace bank)))
+      (leaseCapacity (executorLane active bank)) :=
+  fun (active : Flag) (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    case trace as self in ExecutorTrace return
+        Equal Count (leaseCapacity (executorLane active (runExecutor self bank)))
+          (leaseCapacity (executorLane active bank)) with
+    | executorDone => same
+    | executorThen event rest =>
+      equalTransitivity Count (leaseCapacity (executorLane active (runExecutor rest (executorStep event bank))))
+        (leaseCapacity (executorLane active (executorStep event bank))) (leaseCapacity (executorLane active bank))
+        (executorTraceCapacity active rest (executorStep event bank)) (executorStepCapacity active event bank)
+
+def executorLaneTraceBound : (active : Flag) -> (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    AtMost (leaseOccupancy (executorLane active (runExecutor trace bank)))
+      (leaseCapacity (executorLane active bank)) :=
+  fun (active : Flag) (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    equalTransport Count
+      (fun (cap : Count) => AtMost (leaseOccupancy (executorLane active (runExecutor trace bank))) cap)
+      (leaseCapacity (executorLane active (runExecutor trace bank))) (leaseCapacity (executorLane active bank))
+      (executorTraceCapacity active trace bank) (leasePoolBound (executorLane active (runExecutor trace bank)))
+
+def executorWaitingTraceBound : (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    AtMost (leaseOccupancy (executorLane off (runExecutor trace bank))) (leaseCapacity (executorLane off bank)) :=
+  fun (trace : ExecutorTrace) (bank : ExecutorBank) => executorLaneTraceBound off trace bank
+
+def executorActiveTraceBound : (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    AtMost (leaseOccupancy (executorLane on (runExecutor trace bank))) (leaseCapacity (executorLane on bank)) :=
+  fun (trace : ExecutorTrace) (bank : ExecutorBank) => executorLaneTraceBound on trace bank
+
+def executorResource : Count -> Count -> ExecutorBank -> Count :=
+  fun (waitingWeight : Count) (activeWeight : Count) (bank : ExecutorBank) =>
+    add (multiply (leaseOccupancy (executorLane off bank)) waitingWeight)
+      (multiply (leaseOccupancy (executorLane on bank)) activeWeight)
+
+def executorAllocation : Count -> Count -> ExecutorBank -> Count :=
+  fun (waitingWeight : Count) (activeWeight : Count) (bank : ExecutorBank) =>
+    add (multiply (leaseCapacity (executorLane off bank)) waitingWeight)
+      (multiply (leaseCapacity (executorLane on bank)) activeWeight)
+
+def executorHostResourceTraceBound : (waitingWeight : Count) -> (activeWeight : Count) ->
+    (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    AtMost (executorResource waitingWeight activeWeight (runExecutor trace bank))
+      (executorAllocation waitingWeight activeWeight bank) :=
+  fun (waitingWeight : Count) (activeWeight : Count) (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    addBounds
+      (multiply (leaseOccupancy (executorLane off (runExecutor trace bank))) waitingWeight)
+      (multiply (leaseCapacity (executorLane off bank)) waitingWeight)
+      (multiply (leaseOccupancy (executorLane on (runExecutor trace bank))) activeWeight)
+      (multiply (leaseCapacity (executorLane on bank)) activeWeight)
+      (multipliedBounds (leaseOccupancy (executorLane off (runExecutor trace bank)))
+        (leaseCapacity (executorLane off bank)) waitingWeight (executorWaitingTraceBound trace bank))
+      (multipliedBounds (leaseOccupancy (executorLane on (runExecutor trace bank)))
+        (leaseCapacity (executorLane on bank)) activeWeight (executorActiveTraceBound trace bank))
+
+def executorDemand : ExecutorEvent -> Count :=
+  fun (event : ExecutorEvent) =>
+    case event as self in ExecutorEvent return Count with
+    | executorArrival swarm endpoint index demand => demand
+    | executorDispatch swarm endpoint waitingIndex generation activeIndex demand => demand
+    | executorWaitingEnd swarm endpoint index token reason demand => demand
+    | executorActiveEnd swarm endpoint index token reason demand => demand
+    | executorWork swarm endpoint demand => demand
+
+-- Two full passes through each finite bank dominate lookup and mutation scans.
+def executorScanEnvelope : ExecutorBank -> Count :=
+  fun (bank : ExecutorBank) =>
+    multiply (add (leaseCapacity (executorLane off bank)) (leaseCapacity (executorLane on bank))) (next (next zero))
+
+def executorEventWork : Count -> Count -> ExecutorEvent -> ExecutorBank -> Count :=
+  fun (base : Count) (workCap : Count) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    add (add base (executorScanEnvelope bank)) (boundedWork workCap (executorDemand event))
+
+def executorWorkBudget : Count -> Count -> ExecutorBank -> Count :=
+  fun (base : Count) (workCap : Count) (bank : ExecutorBank) =>
+    add (add base (executorScanEnvelope bank)) workCap
+
+def executorEventWorkBound : (base : Count) -> (workCap : Count) -> (event : ExecutorEvent) -> (bank : ExecutorBank) ->
+    AtMost (executorEventWork base workCap event bank) (executorWorkBudget base workCap bank) :=
+  fun (base : Count) (workCap : Count) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    addBounds (add base (executorScanEnvelope bank)) (add base (executorScanEnvelope bank))
+      (boundedWork workCap (executorDemand event)) workCap
+      (reflexiveBound (add base (executorScanEnvelope bank))) (workBound workCap (executorDemand event))
+
+def executorWorkBudgetStable : (base : Count) -> (workCap : Count) -> (event : ExecutorEvent) -> (bank : ExecutorBank) ->
+    Equal Count (executorWorkBudget base workCap (executorStep event bank)) (executorWorkBudget base workCap bank) :=
+  fun (base : Count) (workCap : Count) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    congruent Count Count
+      (fun (slots : Count) => add (add base (multiply slots (next (next zero)))) workCap)
+      (add (leaseCapacity (executorLane off (executorStep event bank))) (leaseCapacity (executorLane on (executorStep event bank))))
+      (add (leaseCapacity (executorLane off bank)) (leaseCapacity (executorLane on bank)))
+      (equalTransitivity Count
+        (add (leaseCapacity (executorLane off (executorStep event bank))) (leaseCapacity (executorLane on (executorStep event bank))))
+        (add (leaseCapacity (executorLane off bank)) (leaseCapacity (executorLane on (executorStep event bank))))
+        (add (leaseCapacity (executorLane off bank)) (leaseCapacity (executorLane on bank)))
+        (congruent Count Count (fun (slots : Count) => add slots (leaseCapacity (executorLane on (executorStep event bank))))
+          (leaseCapacity (executorLane off (executorStep event bank))) (leaseCapacity (executorLane off bank))
+          (executorStepCapacity off event bank))
+        (congruent Count Count (fun (slots : Count) => add (leaseCapacity (executorLane off bank)) slots)
+          (leaseCapacity (executorLane on (executorStep event bank))) (leaseCapacity (executorLane on bank))
+          (executorStepCapacity on event bank)))
+
+def rec executorTraceLength : ExecutorTrace -> Count :=
+  fun (trace : ExecutorTrace) =>
+    case trace as self in ExecutorTrace return Count with
+    | executorDone => zero
+    | executorThen event rest => next (executorTraceLength rest)
+
+def rec executorTraceWork : Count -> Count -> ExecutorTrace -> ExecutorBank -> Count :=
+  fun (base : Count) (workCap : Count) (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    case trace as self in ExecutorTrace return Count with
+    | executorDone => zero
+    | executorThen event rest =>
+      add (executorEventWork base workCap event bank) (executorTraceWork base workCap rest (executorStep event bank))
+
+def rec executorHostWorkTraceBound : (base : Count) -> (workCap : Count) -> (trace : ExecutorTrace) -> (bank : ExecutorBank) ->
+    AtMost (executorTraceWork base workCap trace bank)
+      (multiply (executorTraceLength trace) (executorWorkBudget base workCap bank)) :=
+  fun (base : Count) (workCap : Count) (trace : ExecutorTrace) (bank : ExecutorBank) =>
+    case trace as self in ExecutorTrace return
+        AtMost (executorTraceWork base workCap self bank)
+          (multiply (executorTraceLength self) (executorWorkBudget base workCap bank)) with
+    | executorDone => least zero
+    | executorThen event rest =>
+      addBounds (executorEventWork base workCap event bank) (executorWorkBudget base workCap bank)
+        (executorTraceWork base workCap rest (executorStep event bank))
+        (multiply (executorTraceLength rest) (executorWorkBudget base workCap bank))
+        (executorEventWorkBound base workCap event bank)
+        (equalTransport Count
+          (fun (budget : Count) => AtMost (executorTraceWork base workCap rest (executorStep event bank))
+            (multiply (executorTraceLength rest) budget))
+          (executorWorkBudget base workCap (executorStep event bank)) (executorWorkBudget base workCap bank)
+          (executorWorkBudgetStable base workCap event bank)
+          (executorHostWorkTraceBound base workCap rest (executorStep event bank)))
+
+def executorStaleActiveCallback : (swarm : SwarmClass) -> (endpoint : Count) -> (generation : Count) ->
+    (reason : PendingEnd) -> (demand : Count) -> (waiting : LeasePool) -> (rest : LeasePool) ->
+    Equal LeasePool
+      (executorLane on (executorStep (executorActiveEnd swarm endpoint zero (ownedGeneration generation) reason demand)
+        (executorBank waiting (leaseCell (heldLease (next generation)) rest))))
+      (leaseCell (heldLease (next generation)) rest) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (generation : Count) (reason : PendingEnd)
+      (demand : Count) (waiting : LeasePool) (rest : LeasePool) => staleCompletionAfterReuse generation reason rest
+
+def executorStaleWaitingCallback : (swarm : SwarmClass) -> (endpoint : Count) -> (generation : Count) ->
+    (reason : PendingEnd) -> (demand : Count) -> (running : LeasePool) -> (rest : LeasePool) ->
+    Equal LeasePool
+      (executorLane off (executorStep (executorWaitingEnd swarm endpoint zero (ownedGeneration generation) reason demand)
+        (executorBank (leaseCell (heldLease (next generation)) rest) running)))
+      (leaseCell (heldLease (next generation)) rest) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (generation : Count) (reason : PendingEnd)
+      (demand : Count) (running : LeasePool) (rest : LeasePool) => staleCompletionAfterReuse generation reason rest
+
+def executorBothOffRight : (flag : Flag) -> Equal Flag (both flag off) off :=
+  fun (flag : Flag) =>
+    case flag as self in Flag return Equal Flag (both self off) off with
+    | off => same
+    | on => same
+
+def executorFreeWaitingCannotDispatch : (generation : Count) -> (waitingGeneration : Count) ->
+    (waitingRest : LeasePool) -> (running : LeasePool) -> (activeIndex : Count) ->
+    Equal Flag (executorTransferAllowed zero generation activeIndex
+      (executorBank (leaseCell (freeLease waitingGeneration) waitingRest) running)) off :=
+  fun (generation : Count) (waitingGeneration : Count) (waitingRest : LeasePool)
+      (running : LeasePool) (activeIndex : Count) => same
+
+def executorMissingWaitingCannotDispatch : (waitingIndex : Count) -> (generation : Count) ->
+    (running : LeasePool) -> (activeIndex : Count) ->
+    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex
+      (executorBank emptyLeasePool running)) off :=
+  fun (waitingIndex : Count) (generation : Count) (running : LeasePool) (activeIndex : Count) =>
+    case waitingIndex as selected in Count return
+        Equal Flag (executorTransferAllowed selected generation activeIndex (executorBank emptyLeasePool running)) off with
+    | zero => same
+    | next previous => same
+
+def executorStaleWaitingCannotDispatch : (generation : Count) -> (waitingRest : LeasePool) ->
+    (running : LeasePool) -> (activeIndex : Count) ->
+    Equal Flag (executorTransferAllowed zero generation activeIndex
+      (executorBank (leaseCell (heldLease (next generation)) waitingRest) running)) off :=
+  fun (generation : Count) (waitingRest : LeasePool) (running : LeasePool) (activeIndex : Count) =>
+    congruent Flag Flag (fun (matches : Flag) => both matches (executorVacantAt activeIndex running))
+      (sameCount generation (next generation)) off (sameCountSuccessorOff generation)
+
+def executorFullActiveCannotDispatch : (waitingIndex : Count) -> (generation : Count) ->
+    (waiting : LeasePool) -> (activeGeneration : Count) -> (activeRest : LeasePool) ->
+    Equal Flag (executorTransferAllowed waitingIndex generation zero
+      (executorBank waiting (leaseCell (heldLease activeGeneration) activeRest))) off :=
+  fun (waitingIndex : Count) (generation : Count) (waiting : LeasePool)
+      (activeGeneration : Count) (activeRest : LeasePool) =>
+    executorBothOffRight (executorOwnedAt waitingIndex generation waiting)
+
+def executorMissingActiveCannotDispatch : (waitingIndex : Count) -> (generation : Count) ->
+    (waiting : LeasePool) -> (activeIndex : Count) ->
+    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex
+      (executorBank waiting emptyLeasePool)) off :=
+  fun (waitingIndex : Count) (generation : Count) (waiting : LeasePool) (activeIndex : Count) =>
+    case activeIndex as selected in Count return
+        Equal Flag (executorTransferAllowed waitingIndex generation selected (executorBank waiting emptyLeasePool)) off with
+    | zero => executorBothOffRight (executorOwnedAt waitingIndex generation waiting)
+    | next previous => executorBothOffRight (executorOwnedAt waitingIndex generation waiting)
+
+-- Arbitrary untouched cells and tails remain unchanged during a deep transfer.
+def executorDeepDispatchTransfersOnlyOwner : (swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->
+    (waitingHead : Lease) -> (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorDispatch swarm endpoint (next (next zero)) zero (next (next zero)) demand)
+        (executorBank (leaseCell waitingHead (leaseCell (freeLease zero) (leaseCell (heldLease zero) waitingRest)))
+          (leaseCell activeHead (leaseCell (heldLease zero) (leaseCell (freeLease zero) activeRest)))))
+      (executorBank (leaseCell waitingHead (leaseCell (freeLease zero) (leaseCell (freeLease (next zero)) waitingRest)))
+        (leaseCell activeHead (leaseCell (heldLease zero) (leaseCell (heldLease zero) activeRest)))) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (demand : Count) (waitingHead : Lease)
+      (activeHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorArrivalOwnsWaiting : (swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->
+    (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorArrival swarm endpoint zero demand)
+        (executorBank (leaseCell (freeLease zero) waitingRest) (leaseCell activeHead activeRest)))
+      (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell activeHead activeRest)) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (demand : Count)
+      (activeHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorRefusedDispatchPreservesBanks : (swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->
+    (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorDispatch swarm endpoint zero zero zero demand)
+        (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell (heldLease zero) activeRest)))
+      (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell (heldLease zero) activeRest)) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (demand : Count)
+      (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorActiveTerminalReleasesOwner : (swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->
+    (reason : PendingEnd) -> (waitingHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorActiveEnd swarm endpoint zero (ownedGeneration zero) reason demand)
+        (executorBank (leaseCell waitingHead waitingRest) (leaseCell (heldLease zero) activeRest)))
+      (executorBank (leaseCell waitingHead waitingRest) (leaseCell (freeLease (next zero)) activeRest)) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (demand : Count) (reason : PendingEnd)
+      (waitingHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorWaitingTerminalReleasesOwner : (swarm : SwarmClass) -> (endpoint : Count) -> (demand : Count) ->
+    (reason : PendingEnd) -> (activeHead : Lease) -> (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorWaitingEnd swarm endpoint zero (ownedGeneration zero) reason demand)
+        (executorBank (leaseCell (heldLease zero) waitingRest) (leaseCell activeHead activeRest)))
+      (executorBank (leaseCell (freeLease (next zero)) waitingRest) (leaseCell activeHead activeRest)) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (demand : Count) (reason : PendingEnd)
+      (activeHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorDeepActiveTerminalReleasesOnlyOwner : (swarm : SwarmClass) -> (endpoint : Count) ->
+    (reason : PendingEnd) -> (demand : Count) -> (waitingHead : Lease) -> (activeHead : Lease) ->
+    (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorActiveEnd swarm endpoint (next zero) (ownedGeneration zero) reason demand)
+        (executorBank (leaseCell waitingHead waitingRest)
+          (leaseCell activeHead (leaseCell (heldLease zero) activeRest))))
+      (executorBank (leaseCell waitingHead waitingRest)
+        (leaseCell activeHead (leaseCell (freeLease (next zero)) activeRest))) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (reason : PendingEnd) (demand : Count)
+      (waitingHead : Lease) (activeHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorDeepWaitingTerminalReleasesOnlyOwner : (swarm : SwarmClass) -> (endpoint : Count) ->
+    (reason : PendingEnd) -> (demand : Count) -> (waitingHead : Lease) -> (activeHead : Lease) ->
+    (waitingRest : LeasePool) -> (activeRest : LeasePool) ->
+    Equal ExecutorBank
+      (executorStep (executorWaitingEnd swarm endpoint (next zero) (ownedGeneration zero) reason demand)
+        (executorBank (leaseCell waitingHead (leaseCell (heldLease zero) waitingRest))
+          (leaseCell activeHead activeRest)))
+      (executorBank (leaseCell waitingHead (leaseCell (freeLease (next zero)) waitingRest))
+        (leaseCell activeHead activeRest)) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (reason : PendingEnd) (demand : Count)
+      (waitingHead : Lease) (activeHead : Lease) (waitingRest : LeasePool) (activeRest : LeasePool) => same
+
+def executorEmptyDemandWork : (workCap : Count) -> Equal Count (boundedWork workCap zero) zero :=
+  fun (workCap : Count) =>
+    case workCap as cap in Count return Equal Count (boundedWork cap zero) zero with
+    | zero => same
+    | next previous => same
+
+def executorZeroDemandStillCharges : (base : Count) -> (workCap : Count) -> (event : ExecutorEvent) ->
+    (bank : ExecutorBank) -> Equal Count (executorDemand event) zero ->
+    Equal Count (executorEventWork base workCap event bank) (add base (executorScanEnvelope bank)) :=
+  fun (base : Count) (workCap : Count) (event : ExecutorEvent) (bank : ExecutorBank)
+      (emptyDemand : Equal Count (executorDemand event) zero) =>
+    equalTransitivity Count (executorEventWork base workCap event bank)
+      (add (add base (executorScanEnvelope bank)) zero) (add base (executorScanEnvelope bank))
+      (congruent Count Count (fun (work : Count) => add (add base (executorScanEnvelope bank)) work)
+        (boundedWork workCap (executorDemand event)) zero
+        (equalTransitivity Count (boundedWork workCap (executorDemand event)) (boundedWork workCap zero) zero
+          (congruent Count Count (fun (demand : Count) => boundedWork workCap demand)
+            (executorDemand event) zero emptyDemand) (executorEmptyDemandWork workCap)))
+      (addRightZero (add base (executorScanEnvelope bank)))
+
+def executorSingletonWorkCharged : (base : Count) -> (workCap : Count) -> (event : ExecutorEvent) ->
+    (bank : ExecutorBank) ->
+    Equal Count (executorTraceWork base workCap (executorThen event executorDone) bank)
+      (executorEventWork base workCap event bank) :=
+  fun (base : Count) (workCap : Count) (event : ExecutorEvent) (bank : ExecutorBank) =>
+    addRightZero (executorEventWork base workCap event bank)
+
+def executorIdleBanks : (bank : ExecutorBank) ->
+    Equal ExecutorBank
+      (executorBank (poolStep executorIdle (executorLane off bank)) (poolStep executorIdle (executorLane on bank))) bank :=
+  fun (bank : ExecutorBank) =>
+    case bank as self in ExecutorBank return
+        Equal ExecutorBank
+          (executorBank (poolStep executorIdle (executorLane off self)) (poolStep executorIdle (executorLane on self))) self with
+    | executorBank waiting running =>
+      case waiting as wait in LeasePool return
+          Equal ExecutorBank (executorBank (poolStep executorIdle wait) (poolStep executorIdle running)) (executorBank wait running) with
+      | emptyLeasePool =>
+        (case running as active in LeasePool return
+            Equal ExecutorBank (executorBank emptyLeasePool (poolStep executorIdle active)) (executorBank emptyLeasePool active) with
+        | emptyLeasePool => same
+        | leaseCell lease rest => same)
+      | leaseCell lease rest =>
+        case running as active in LeasePool return
+            Equal ExecutorBank (executorBank (leaseCell lease rest) (poolStep executorIdle active)) (executorBank (leaseCell lease rest) active) with
+        | emptyLeasePool => same
+        | leaseCell activeLease activeRest => same
+
+def executorRejectedDispatchPreservesBanks : (swarm : SwarmClass) -> (endpoint : Count) ->
+    (waitingIndex : Count) -> (generation : Count) -> (activeIndex : Count) -> (demand : Count) -> (bank : ExecutorBank) ->
+    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) off ->
+    Equal ExecutorBank (executorStep (executorDispatch swarm endpoint waitingIndex generation activeIndex demand) bank) bank :=
+  fun (swarm : SwarmClass) (endpoint : Count) (waitingIndex : Count) (generation : Count)
+      (activeIndex : Count) (demand : Count) (bank : ExecutorBank)
+      (denied : Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) off) =>
+    equalTransitivity ExecutorBank
+      (executorStep (executorDispatch swarm endpoint waitingIndex generation activeIndex demand) bank)
+      (executorBank (poolStep executorIdle (executorLane off bank)) (poolStep executorIdle (executorLane on bank))) bank
+      (congruent Flag ExecutorBank
+        (fun (allowed : Flag) => executorBank
+          (poolStep (executorDispatchAction allowed off waitingIndex generation activeIndex) (executorLane off bank))
+          (poolStep (executorDispatchAction allowed on waitingIndex generation activeIndex) (executorLane on bank)))
+        (executorTransferAllowed waitingIndex generation activeIndex bank) off denied)
+      (executorIdleBanks bank)
+
+def executorPermittedDispatchTransfers : (swarm : SwarmClass) -> (endpoint : Count) ->
+    (waitingIndex : Count) -> (generation : Count) -> (activeIndex : Count) -> (demand : Count) -> (bank : ExecutorBank) ->
+    Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) on ->
+    Equal ExecutorBank (executorStep (executorDispatch swarm endpoint waitingIndex generation activeIndex demand) bank)
+      (executorBank
+        (poolStep (completeAt waitingIndex (ownedGeneration generation) connectionEstablished) (executorLane off bank))
+        (poolStep (reserveAt activeIndex) (executorLane on bank))) :=
+  fun (swarm : SwarmClass) (endpoint : Count) (waitingIndex : Count) (generation : Count)
+      (activeIndex : Count) (demand : Count) (bank : ExecutorBank)
+      (allowed : Equal Flag (executorTransferAllowed waitingIndex generation activeIndex bank) on) =>
+    congruent Flag ExecutorBank
+      (fun (decision : Flag) => executorBank
+        (poolStep (executorDispatchAction decision off waitingIndex generation activeIndex) (executorLane off bank))
+        (poolStep (executorDispatchAction decision on waitingIndex generation activeIndex) (executorLane on bank)))
+      (executorTransferAllowed waitingIndex generation activeIndex bank) on allowed
