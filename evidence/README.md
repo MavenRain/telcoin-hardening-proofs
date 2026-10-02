@@ -958,3 +958,18 @@ Runtime evidence classification, authentication, callback authority, stable
 indices, storage dominance and implementation refinement remain external.
 Earlier receipts, including R02 closure, retain their original hashes and
 claim scopes.
+
+## R03 authentication and reachability composition, turn 2
+
+`r03-authentication-composition-check.json` records the full proof and mutation
+gate for module 77: 1021 proof declarations across 60 modules and 967 rejected
+negative checks (964 registered semantic mutations plus three generic controls).
+Twenty general proof statements compose real authentication grants and
+clearing with arbitrary reachability-evidence and mixed authority traces.
+Eighteen new mutations reject incorrect verification/listing grants,
+reachability side effects, skipped events and authority-erasure defects.
+M001 now joins M004 and M005 at the sealed model scope: three of 83 model
+obligations are covered, 80 retain exact gaps, and all 43 external obligations
+remain open. Evidence classification and runtime authentication, listing and
+privilege enforcement remain explicit external premises. The historical
+turn-1 receipt retains its original corpus and audit counts.

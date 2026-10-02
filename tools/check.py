@@ -2165,6 +2165,69 @@ MUTATIONS += [
 ]
 
 
+_AUTHENTICATION_STATE = (
+    "    admissionAuthority (authorityReachability current) verified (privileged verified listed)"
+)
+_AUTHORITY_DISPATCH = (
+    "    | authorityReachabilityEvent evidence => applyReachabilityEvidence evidence current\n"
+    "    | authorityAuthenticationEvent verified listed => applyAuthentication verified listed current"
+)
+_AUTHENTICATION_ONLY_DISPATCH = (
+    "    | authorityReachabilityEvent evidence => current\n"
+    "    | authorityAuthenticationEvent verified listed => applyAuthentication verified listed current"
+)
+_AUTHORITY_ERASURE = (
+    "    admissionAuthority unvalidated (authorityIdentity current) (authorityPrivilege current)"
+)
+MUTATIONS += [
+    ("authentication_unverified_grants_identity", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace(") verified (", ") on (")),
+    ("authentication_verified_never_grants_identity", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace(") verified (", ") off (")),
+    ("authentication_privilege_ignores_verification", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace("privileged verified listed", "privileged on listed")),
+    ("authentication_privilege_ignores_listing", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace("privileged verified listed", "privileged verified on")),
+    ("authentication_never_grants_privilege", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace("(privileged verified listed)", "off")),
+    ("authentication_grants_reachability", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace("(authorityReachability current)", "validated")),
+    ("authentication_retains_old_identity", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace(") verified (", ") (authorityIdentity current) (")),
+    ("authentication_retains_old_privilege", _AUTHENTICATION_STATE,
+     _AUTHENTICATION_STATE.replace("(privileged verified listed)", "(authorityPrivilege current)")),
+    ("mixed_reachability_grants_authentication", _AUTHORITY_DISPATCH,
+     _AUTHORITY_DISPATCH.replace("applyReachabilityEvidence evidence current", "applyAuthentication on on current")),
+    ("mixed_authentication_swaps_verification_and_listing", _AUTHORITY_DISPATCH,
+     _AUTHORITY_DISPATCH.replace("applyAuthentication verified listed current", "applyAuthentication listed verified current")),
+    ("mixed_authentication_is_skipped", _AUTHORITY_DISPATCH,
+     _AUTHORITY_DISPATCH.replace("applyAuthentication verified listed current", "current")),
+    ("mixed_authentication_grants_reachability", _AUTHORITY_DISPATCH,
+     _AUTHORITY_DISPATCH.replace("applyAuthentication verified listed current",
+                               "applyReachabilityEvidence validReachabilityEvidence (applyAuthentication verified listed current)")),
+    ("mixed_trace_skips_head_event",
+     "    | authorityThen event rest => runAuthorityTrace rest (authorityStep event current)",
+     "    | authorityThen event rest => runAuthorityTrace rest current"),
+    ("authentication_projection_accepts_reachability", _AUTHENTICATION_ONLY_DISPATCH,
+     _AUTHENTICATION_ONLY_DISPATCH.replace("evidence => current", "evidence => applyReachabilityEvidence evidence current")),
+    ("authentication_projection_skips_authentication", _AUTHENTICATION_ONLY_DISPATCH,
+     _AUTHENTICATION_ONLY_DISPATCH.replace("applyAuthentication verified listed current", "current")),
+    ("authority_erasure_discards_identity", _AUTHORITY_ERASURE,
+     _AUTHORITY_ERASURE.replace("(authorityIdentity current)", "off")),
+    ("authority_erasure_discards_privilege", _AUTHORITY_ERASURE,
+     _AUTHORITY_ERASURE.replace("(authorityPrivilege current)", "off")),
+    ("mixed_trace_claims_no_authentication_changes",
+     "def rec mixedAuthorityTraceErasesToAuthenticationTrace : (trace : AuthorityTrace) ->\n"
+     "    (current : AdmissionAuthority) ->\n"
+     "    Equal AdmissionAuthority (eraseAuthorityReachability (runAuthorityTrace trace current))\n"
+     "      (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current)) :=",
+     "def rec mixedAuthorityTraceErasesToAuthenticationTrace : (trace : AuthorityTrace) ->\n"
+     "    (current : AdmissionAuthority) ->\n"
+     "    Equal AdmissionAuthority (eraseAuthorityReachability (runAuthorityTrace trace current))\n"
+     "      (eraseAuthorityReachability current) :="),
+]
+
+
 def invoke(compiler: Path, command: str, bundle: Path):
     return subprocess.run([str(compiler), command, str(bundle)], capture_output=True, text=True, timeout=120)
 

@@ -1,0 +1,214 @@
+-- Authentication results are classified by the granted cryptographic premise.
+-- Reachability evidence and verified identity update independent authority fields.
+
+def applyAuthentication : Flag -> Flag -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) =>
+    admissionAuthority (authorityReachability current) verified (privileged verified listed)
+
+def authenticationPreservesReachability : (verified : Flag) -> (listed : Flag) ->
+    (current : AdmissionAuthority) ->
+    Equal Reachability (authorityReachability (applyAuthentication verified listed current))
+      (authorityReachability current) :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) => same
+
+def authenticationSetsIdentity : (verified : Flag) -> (listed : Flag) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (applyAuthentication verified listed current)) verified :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) => same
+
+def authenticationSetsPrivilege : (verified : Flag) -> (listed : Flag) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (applyAuthentication verified listed current))
+      (privileged verified listed) :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) => same
+
+def rejectedAuthenticationClearsAuthority : (listed : Flag) -> (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (applyAuthentication off listed current)
+      (admissionAuthority (authorityReachability current) off off) :=
+  fun (listed : Flag) (current : AdmissionAuthority) => same
+
+def acceptedListedAuthenticationGrantsAuthority : (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (applyAuthentication on on current)
+      (admissionAuthority (authorityReachability current) on on) :=
+  fun (current : AdmissionAuthority) => same
+
+def authenticationPrivilegeRequiresIdentity : (verified : Flag) -> (listed : Flag) ->
+    Equal Flag (privileged verified (privileged verified listed)) (privileged verified listed) :=
+  fun (verified : Flag) (listed : Flag) =>
+    case verified as identity in Flag return
+        Equal Flag (privileged identity (privileged identity listed)) (privileged identity listed) with
+    | off => same
+    | on => same
+
+def eraseAuthorityReachability : AdmissionAuthority -> AdmissionAuthority :=
+  fun (current : AdmissionAuthority) =>
+    admissionAuthority unvalidated (authorityIdentity current) (authorityPrivilege current)
+
+def erasurePreservesIdentity : (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (eraseAuthorityReachability current)) (authorityIdentity current) :=
+  fun (current : AdmissionAuthority) => same
+
+def erasurePreservesPrivilege : (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (eraseAuthorityReachability current)) (authorityPrivilege current) :=
+  fun (current : AdmissionAuthority) => same
+
+def reachabilityEvidenceErasesToCurrent : (evidence : ReachabilityEvidence) ->
+    (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (eraseAuthorityReachability (applyReachabilityEvidence evidence current))
+      (eraseAuthorityReachability current) :=
+  fun (evidence : ReachabilityEvidence) (current : AdmissionAuthority) =>
+    case evidence as proof in ReachabilityEvidence return
+        Equal AdmissionAuthority (eraseAuthorityReachability (applyReachabilityEvidence proof current))
+          (eraseAuthorityReachability current) with
+    | invalidReachabilityEvidence => same
+    | validReachabilityEvidence => same
+
+def authenticationCommutesWithErasure : (verified : Flag) -> (listed : Flag) ->
+    (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (eraseAuthorityReachability (applyAuthentication verified listed current))
+      (applyAuthentication verified listed (eraseAuthorityReachability current)) :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) => same
+
+mu AuthorityEvent : Type 0 with
+| authorityReachabilityEvent : ReachabilityEvidence -> AuthorityEvent
+| authorityAuthenticationEvent : Flag -> Flag -> AuthorityEvent
+
+def authorityStep : AuthorityEvent -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (event : AuthorityEvent) (current : AdmissionAuthority) =>
+    case event as action in AuthorityEvent return AdmissionAuthority with
+    | authorityReachabilityEvent evidence => applyReachabilityEvidence evidence current
+    | authorityAuthenticationEvent verified listed => applyAuthentication verified listed current
+
+def authenticationOnlyStep : AuthorityEvent -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (event : AuthorityEvent) (current : AdmissionAuthority) =>
+    case event as action in AuthorityEvent return AdmissionAuthority with
+    | authorityReachabilityEvent evidence => current
+    | authorityAuthenticationEvent verified listed => applyAuthentication verified listed current
+
+def authorityStepErasesToAuthenticationStep : (event : AuthorityEvent) ->
+    (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (eraseAuthorityReachability (authorityStep event current))
+      (authenticationOnlyStep event (eraseAuthorityReachability current)) :=
+  fun (event : AuthorityEvent) (current : AdmissionAuthority) =>
+    case event as action in AuthorityEvent return
+        Equal AdmissionAuthority (eraseAuthorityReachability (authorityStep action current))
+          (authenticationOnlyStep action (eraseAuthorityReachability current)) with
+    | authorityReachabilityEvent evidence => reachabilityEvidenceErasesToCurrent evidence current
+    | authorityAuthenticationEvent verified listed => authenticationCommutesWithErasure verified listed current
+
+mu AuthorityTrace : Type 0 with
+| authorityDone : AuthorityTrace
+| authorityThen : AuthorityEvent -> AuthorityTrace -> AuthorityTrace
+
+def rec runAuthorityTrace : AuthorityTrace -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in AuthorityTrace return AdmissionAuthority with
+    | authorityDone => current
+    | authorityThen event rest => runAuthorityTrace rest (authorityStep event current)
+
+def rec runAuthenticationOnlyTrace : AuthorityTrace -> AdmissionAuthority -> AdmissionAuthority :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in AuthorityTrace return AdmissionAuthority with
+    | authorityDone => current
+    | authorityThen event rest => runAuthenticationOnlyTrace rest (authenticationOnlyStep event current)
+
+def authenticationEventRunsAuthentication : (verified : Flag) -> (listed : Flag) ->
+    (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority
+      (runAuthorityTrace (authorityThen (authorityAuthenticationEvent verified listed) authorityDone) current)
+      (applyAuthentication verified listed current) :=
+  fun (verified : Flag) (listed : Flag) (current : AdmissionAuthority) => same
+
+def reachabilityEventRunsReachability : (evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority
+      (runAuthorityTrace (authorityThen (authorityReachabilityEvent evidence) authorityDone) current)
+      (applyReachabilityEvidence evidence current) :=
+  fun (evidence : ReachabilityEvidence) (current : AdmissionAuthority) => same
+
+def rec mixedAuthorityTraceErasesToAuthenticationTrace : (trace : AuthorityTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal AdmissionAuthority (eraseAuthorityReachability (runAuthorityTrace trace current))
+      (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current)) :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority) =>
+    case trace as schedule in AuthorityTrace return
+        Equal AdmissionAuthority (eraseAuthorityReachability (runAuthorityTrace schedule current))
+          (runAuthenticationOnlyTrace schedule (eraseAuthorityReachability current)) with
+    | authorityDone => same
+    | authorityThen event rest =>
+      equalTransitivity AdmissionAuthority
+        (eraseAuthorityReachability (runAuthorityTrace rest (authorityStep event current)))
+        (runAuthenticationOnlyTrace rest (eraseAuthorityReachability (authorityStep event current)))
+        (runAuthenticationOnlyTrace rest (authenticationOnlyStep event (eraseAuthorityReachability current)))
+        (mixedAuthorityTraceErasesToAuthenticationTrace rest (authorityStep event current))
+        (congruent AdmissionAuthority AdmissionAuthority
+          (fun (state : AdmissionAuthority) => runAuthenticationOnlyTrace rest state)
+          (eraseAuthorityReachability (authorityStep event current))
+          (authenticationOnlyStep event (eraseAuthorityReachability current))
+          (authorityStepErasesToAuthenticationStep event current))
+
+def mixedAuthorityTraceIdentityComesFromAuthentication : (trace : AuthorityTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (runAuthorityTrace trace current))
+      (authorityIdentity (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current))) :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority) =>
+    congruent AdmissionAuthority Flag authorityIdentity
+      (eraseAuthorityReachability (runAuthorityTrace trace current))
+      (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current))
+      (mixedAuthorityTraceErasesToAuthenticationTrace trace current)
+
+def mixedAuthorityTracePrivilegeComesFromAuthentication : (trace : AuthorityTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (runAuthorityTrace trace current))
+      (authorityPrivilege (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current))) :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority) =>
+    congruent AdmissionAuthority Flag authorityPrivilege
+      (eraseAuthorityReachability (runAuthorityTrace trace current))
+      (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current))
+      (mixedAuthorityTraceErasesToAuthenticationTrace trace current)
+
+def reachabilityTraceAfterAuthenticationKeepsIdentity : (trace : ReachabilityEvidenceTrace) ->
+    (verified : Flag) -> (listed : Flag) -> (current : AdmissionAuthority) ->
+    Equal Flag (authorityIdentity (runReachabilityEvidence trace (applyAuthentication verified listed current)))
+      verified :=
+  fun (trace : ReachabilityEvidenceTrace) (verified : Flag) (listed : Flag) (current : AdmissionAuthority) =>
+    reachabilityEvidenceTracePreservesIdentity trace (applyAuthentication verified listed current)
+
+def reachabilityTraceAfterAuthenticationKeepsPrivilege : (trace : ReachabilityEvidenceTrace) ->
+    (verified : Flag) -> (listed : Flag) -> (current : AdmissionAuthority) ->
+    Equal Flag (authorityPrivilege (runReachabilityEvidence trace (applyAuthentication verified listed current)))
+      (privileged verified listed) :=
+  fun (trace : ReachabilityEvidenceTrace) (verified : Flag) (listed : Flag) (current : AdmissionAuthority) =>
+    reachabilityEvidenceTracePreservesPrivilege trace (applyAuthentication verified listed current)
+
+def authorityStepPreservesPrivilegeGate : (event : AuthorityEvent) -> (current : AdmissionAuthority) ->
+    Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current) ->
+    Equal Flag (privileged (authorityIdentity (authorityStep event current))
+      (authorityPrivilege (authorityStep event current))) (authorityPrivilege (authorityStep event current)) :=
+  fun (event : AuthorityEvent) (current : AdmissionAuthority)
+      (gate : Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current)) =>
+    case event as action in AuthorityEvent return
+        Equal Flag (privileged (authorityIdentity (authorityStep action current))
+          (authorityPrivilege (authorityStep action current))) (authorityPrivilege (authorityStep action current)) with
+    | authorityReachabilityEvent evidence =>
+      (case evidence as proof in ReachabilityEvidence return
+          Equal Flag (privileged (authorityIdentity (applyReachabilityEvidence proof current))
+            (authorityPrivilege (applyReachabilityEvidence proof current)))
+            (authorityPrivilege (applyReachabilityEvidence proof current)) with
+      | invalidReachabilityEvidence => gate
+      | validReachabilityEvidence => gate)
+    | authorityAuthenticationEvent verified listed => authenticationPrivilegeRequiresIdentity verified listed
+
+def rec mixedAuthorityTracePreservesPrivilegeGate : (trace : AuthorityTrace) ->
+    (current : AdmissionAuthority) ->
+    Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current) ->
+    Equal Flag (privileged (authorityIdentity (runAuthorityTrace trace current))
+      (authorityPrivilege (runAuthorityTrace trace current))) (authorityPrivilege (runAuthorityTrace trace current)) :=
+  fun (trace : AuthorityTrace) (current : AdmissionAuthority)
+      (gate : Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current)) =>
+    case trace as schedule in AuthorityTrace return
+        Equal Flag (privileged (authorityIdentity (runAuthorityTrace schedule current))
+          (authorityPrivilege (runAuthorityTrace schedule current))) (authorityPrivilege (runAuthorityTrace schedule current)) with
+    | authorityDone => gate
+    | authorityThen event rest =>
+      mixedAuthorityTracePreservesPrivilegeGate rest (authorityStep event current)
+        (authorityStepPreservesPrivilegeGate event current gate)

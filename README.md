@@ -27,9 +27,10 @@ unaudited criteria. At R02 closure, M005 was covered and 82 obligations retained
 exact R03-R08 model gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records
 the completed batches.
 
-R03 turn 1 closes M004 (total pending-lease exhaustion). M001 keeps its
-identity and privilege composition gap. Two obligations are now covered;
-81 retain model gaps, including nine assigned to R03. See the
+R03 turn 2 closes M001 by composing reachability evidence with an
+authentication transition that can grant identity and privilege. M004
+and M005 remain covered. Three obligations are now covered; 80 retain
+model gaps, including eight assigned to R03. See the
 [R03 admission audit](docs/R03-ADMISSION.md).
 
 ## Run locally
@@ -50,7 +51,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 949 deliberately invalid
+source hashes and coverage freshness, and requires 967 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -93,7 +94,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1001 explicit equality and order proof declarations across 59 modules. This count
+1021 explicit equality and order proof declarations across 60 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -157,6 +158,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `74-policy-ingress-capacity-schedule-cost-compatibility.mech` | Per-turn and aggregate administrative charges agree at fixed capacity and across one resize. Complete symbolic costs agree with the earlier executors without fit or credit premises; pauses retain handoff and turn charges, and empty segments retain resize charges. |
 | `75-saturated-source-admission.mech` | Zero total availability in any finite LeasePool implies token absence at every Count index, complete-state refusal and no admission receipt. |
 | `76-reachability-authority.mech` | Invalid reachability evidence preserves the whole authority state; valid evidence changes address reachability only. Both branches and arbitrary finite evidence traces preserve identity and privilege flags. Runtime evidence classification and authentication remain external. |
+| `77-authentication-reachability-composition.mech` | Authentication can grant verified identity and listed privilege independently of address validation. Arbitrary mixed traces project exactly to authentication-only execution, reachability traces preserve authentication results, and consistent initial privilege gates remain valid. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

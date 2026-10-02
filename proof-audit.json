@@ -62,15 +62,16 @@
     "proofs/73-policy-ingress-capacity-schedule-compatibility.mech": "27fb0055e193e81fa8198034415dc2f10f2436d14a50747be9a0797655d5b93a",
     "proofs/74-policy-ingress-capacity-schedule-cost-compatibility.mech": "f2520312a58165d8d038a3f8090a5ad6e702cdb999cde7cc6a3098e1fada0dd3",
     "proofs/75-saturated-source-admission.mech": "7079d0c3f628df0199cbdd68b559d66a011fab6cdccff02974b781c97931a49a",
-    "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0"
+    "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0",
+    "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc"
   },
   "obligations": [
     {
       "id": "M001",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "R03 adds explicit valid/invalid reachability-evidence transitions over address reachability and two identity and privilege flags. Invalid evidence preserves the whole state and cannot validate an unvalidated address. No modeled transition writes identity or privilege, so their preservation is vacuous for the second criterion. The existing general unvalidated Retry branch supplies the first criterion. The required scope grants explicit token-validation and cryptographic premises, including evidence classification, cookies and signatures. External obligations E008 and E020 own runtime token semantics and evidence classification. Model obligations M014 to M017 own the authentication transitions. External obligation E029 owns runtime privilege enforcement and the runtime refinement of the admission and identity contracts.",
+      "scope_complete": true,
+      "scope_review": "The general unvalidated Retry refusal and invalid reachability-evidence no-op cover the two sealed criteria. Module 77 composes address evidence with an authentication transition that can grant verified identity and listed privilege. For every arbitrary finite interleaving, erasing address reachability yields exactly authentication-only execution from the same initial authority flags. Reachability evidence therefore contributes neither identity nor privilege, including after successful authentication. Rejected authentication clears both authority flags, accepted listed authentication grants both, and mixed traces preserve the initial privilege-requires-identity invariant. Correct runtime evidence classification, cookies and signatures remain granted token-validation and cryptographic premises. E008 and E020 own their runtime semantics, M014 to M017 own detailed protocol authentication, and E029 owns runtime listing and privilege enforcement.",
       "witnesses": [
         {
           "path": "proofs/10-transport.mech",
@@ -181,6 +182,268 @@
             "Atomic modeled reachability-evidence transitions; valid/invalid tags correctly classify runtime evidence."
           ],
           "limits": "This is the address-evidence boundary. It does not verify cookies, signatures, authenticated identities or runtime privilege checks. Independent authentication transitions and runtime enforcement remain external obligations."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationPreservesReachability",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    (current : AdmissionAuthority) ->\n    Equal Reachability (authorityReachability (applyAuthentication verified listed current))\n      (authorityReachability current)",
+          "scope_kind": "general_transition",
+          "establishes": "Authentication does not validate or invalidate the current address.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationSetsIdentity",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (applyAuthentication verified listed current)) verified",
+          "scope_kind": "general_transition",
+          "establishes": "The identity flag equals the classified verification result for every prior state and listing flag.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationSetsPrivilege",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (applyAuthentication verified listed current))\n      (privileged verified listed)",
+          "scope_kind": "general_transition",
+          "establishes": "The privilege flag equals verification gated by authenticated listing status.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "rejectedAuthenticationClearsAuthority",
+          "statement": "(listed : Flag) -> (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (applyAuthentication off listed current)\n      (admissionAuthority (authorityReachability current) off off)",
+          "scope_kind": "general_transition",
+          "establishes": "Rejected authentication clears identity and privilege in the complete modeled state.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "acceptedListedAuthenticationGrantsAuthority",
+          "statement": "(current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (applyAuthentication on on current)\n      (admissionAuthority (authorityReachability current) on on)",
+          "scope_kind": "general_transition",
+          "establishes": "Accepted authentication of a listed identity grants both authority flags for every prior state.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationPrivilegeRequiresIdentity",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    Equal Flag (privileged verified (privileged verified listed)) (privileged verified listed)",
+          "scope_kind": "general_transition",
+          "establishes": "Authentication cannot produce privilege without a verified identity.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "erasurePreservesIdentity",
+          "statement": "(current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (eraseAuthorityReachability current)) (authorityIdentity current)",
+          "scope_kind": "general_transition",
+          "establishes": "Removing address reachability retains the identity flag.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "erasurePreservesPrivilege",
+          "statement": "(current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (eraseAuthorityReachability current)) (authorityPrivilege current)",
+          "scope_kind": "general_transition",
+          "establishes": "Removing address reachability retains the privilege flag.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "reachabilityEvidenceErasesToCurrent",
+          "statement": "(evidence : ReachabilityEvidence) ->\n    (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (eraseAuthorityReachability (applyReachabilityEvidence evidence current))\n      (eraseAuthorityReachability current)",
+          "scope_kind": "general_transition",
+          "establishes": "Erasing reachability after either evidence classification retains exactly the prior authority fields.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationCommutesWithErasure",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (eraseAuthorityReachability (applyAuthentication verified listed current))\n      (applyAuthentication verified listed (eraseAuthorityReachability current))",
+          "scope_kind": "general_transition",
+          "establishes": "Authentication and removal of address reachability commute in the complete modeled state.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authorityStepErasesToAuthenticationStep",
+          "statement": "(event : AuthorityEvent) ->\n    (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (eraseAuthorityReachability (authorityStep event current))\n      (authenticationOnlyStep event (eraseAuthorityReachability current))",
+          "scope_kind": "general_transition",
+          "establishes": "Every mixed step projects to the corresponding authentication-only step.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authenticationEventRunsAuthentication",
+          "statement": "(verified : Flag) -> (listed : Flag) ->\n    (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority\n      (runAuthorityTrace (authorityThen (authorityAuthenticationEvent verified listed) authorityDone) current)\n      (applyAuthentication verified listed current)",
+          "scope_kind": "general_transition",
+          "establishes": "A classified authentication event actually executes the granting or clearing transition.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "reachabilityEventRunsReachability",
+          "statement": "(evidence : ReachabilityEvidence) -> (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority\n      (runAuthorityTrace (authorityThen (authorityReachabilityEvent evidence) authorityDone) current)\n      (applyReachabilityEvidence evidence current)",
+          "scope_kind": "general_transition",
+          "establishes": "A reachability event actually executes the independently modeled address-evidence transition.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "mixedAuthorityTraceErasesToAuthenticationTrace",
+          "statement": "(trace : AuthorityTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal AdmissionAuthority (eraseAuthorityReachability (runAuthorityTrace trace current))\n      (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary finite mixed trace projects to exactly the authentication-only execution from the same initial authority flags.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "mixedAuthorityTraceIdentityComesFromAuthentication",
+          "statement": "(trace : AuthorityTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (runAuthorityTrace trace current))\n      (authorityIdentity (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Mixed-trace identity depends on initial identity and authentication events; reachability events contribute no identity changes.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "mixedAuthorityTracePrivilegeComesFromAuthentication",
+          "statement": "(trace : AuthorityTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (runAuthorityTrace trace current))\n      (authorityPrivilege (runAuthenticationOnlyTrace trace (eraseAuthorityReachability current)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Mixed-trace privilege depends on initial privilege and authentication events; reachability events contribute no privilege changes.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "reachabilityTraceAfterAuthenticationKeepsIdentity",
+          "statement": "(trace : ReachabilityEvidenceTrace) ->\n    (verified : Flag) -> (listed : Flag) -> (current : AdmissionAuthority) ->\n    Equal Flag (authorityIdentity (runReachabilityEvidence trace (applyAuthentication verified listed current)))\n      verified",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Any finite reachability-evidence trace retains the identity result of an authentication transition.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "reachabilityTraceAfterAuthenticationKeepsPrivilege",
+          "statement": "(trace : ReachabilityEvidenceTrace) ->\n    (verified : Flag) -> (listed : Flag) -> (current : AdmissionAuthority) ->\n    Equal Flag (authorityPrivilege (runReachabilityEvidence trace (applyAuthentication verified listed current)))\n      (privileged verified listed)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Any finite reachability-evidence trace retains the verification-gated privilege result of an authentication transition.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "authorityStepPreservesPrivilegeGate",
+          "statement": "(event : AuthorityEvent) -> (current : AdmissionAuthority) ->\n    Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current) ->\n    Equal Flag (privileged (authorityIdentity (authorityStep event current))\n      (authorityPrivilege (authorityStep event current))) (authorityPrivilege (authorityStep event current))",
+          "scope_kind": "general_transition",
+          "establishes": "Every mixed step preserves the initial invariant that privilege requires verified identity.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity.",
+            "The initial authority flags satisfy the stated privilege-requires-identity invariant."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
+        },
+        {
+          "path": "proofs/77-authentication-reachability-composition.mech",
+          "name": "mixedAuthorityTracePreservesPrivilegeGate",
+          "statement": "(trace : AuthorityTrace) ->\n    (current : AdmissionAuthority) ->\n    Equal Flag (privileged (authorityIdentity current) (authorityPrivilege current)) (authorityPrivilege current) ->\n    Equal Flag (privileged (authorityIdentity (runAuthorityTrace trace current))\n      (authorityPrivilege (runAuthorityTrace trace current))) (authorityPrivilege (runAuthorityTrace trace current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary finite mixed trace preserves the initial invariant that privilege requires verified identity.",
+          "premises": [
+            "Runtime verification flags correctly classify cryptographic identity evidence.",
+            "Reachability evidence classification, cookies and signatures satisfy the granted token-validation and cryptographic premises.",
+            "Listing status correctly describes the authenticated identity.",
+            "The initial authority flags satisfy the stated privilege-requires-identity invariant."
+          ],
+          "limits": "This is a classified-evidence model, not a runtime verifier. Token and cryptographic semantics remain E008 and E020; runtime listing and privilege enforcement remain E029. M014 to M017 own detailed protocol authentication."
         }
       ],
       "controls": [
@@ -211,6 +474,78 @@
         {
           "name": "reachability_trace_discards_authority",
           "sha256": "f20f5949b6c977bb980d0bcc7a3351b0b20e212ddd0a50f1fa20e319549b3117"
+        },
+        {
+          "name": "authentication_unverified_grants_identity",
+          "sha256": "6796ba999ed1d2728779e890740994eee03098a094cfffda1c088496c64769e3"
+        },
+        {
+          "name": "authentication_verified_never_grants_identity",
+          "sha256": "c84e0d48dca1d583798f6b1b921f197e2eb7375c19b6ee77450041d7b676b826"
+        },
+        {
+          "name": "authentication_privilege_ignores_verification",
+          "sha256": "1551ab269b90693e9b5c57462d35443cd71b8171c667ea35393097557324aacb"
+        },
+        {
+          "name": "authentication_privilege_ignores_listing",
+          "sha256": "e4cda2ac5e00c1988f3ea7250abd75150268f7f803ac5ea1d349cdf367d70b2f"
+        },
+        {
+          "name": "authentication_never_grants_privilege",
+          "sha256": "30e2be5bf7c58f900514548d08dd442437803a4c0150770d7dba0f914cae3807"
+        },
+        {
+          "name": "authentication_grants_reachability",
+          "sha256": "2544c8641530058636b05a91f1642d349c5986773f8be0a40b66ef513a95c8f1"
+        },
+        {
+          "name": "authentication_retains_old_identity",
+          "sha256": "dd93f0f3c2d37faf202d2f4ae23ffbd368c91f7db249d84693259d8e0117feb9"
+        },
+        {
+          "name": "authentication_retains_old_privilege",
+          "sha256": "d5fa05d27117bf9e5d5eba047a48fdf25fac0963fdad65130d64c1fe8dee82a3"
+        },
+        {
+          "name": "mixed_reachability_grants_authentication",
+          "sha256": "d3c2b551e38fb9b9739376ebbc49f6519ba0295a1d7a83e4c874e23366e2318c"
+        },
+        {
+          "name": "mixed_authentication_swaps_verification_and_listing",
+          "sha256": "e1169ffc06bbcb0137beee5f69605a52151f0ef3e784ffe4775df9012dee2213"
+        },
+        {
+          "name": "mixed_authentication_is_skipped",
+          "sha256": "9b7b0800889ccef4067afc6ff743458777da98ad79eee5b20b27606445aa5b6f"
+        },
+        {
+          "name": "mixed_authentication_grants_reachability",
+          "sha256": "89d17580ced66a74f814413e2021073086e3a3814153b716f2e2977c49c1ac4e"
+        },
+        {
+          "name": "mixed_trace_skips_head_event",
+          "sha256": "eee70a44ddc02b85eea4806561aaddbf4edd0193987fa01c8a5e64c6e1055af1"
+        },
+        {
+          "name": "authentication_projection_accepts_reachability",
+          "sha256": "7ee2726d6c1e3f28dbc327c3c5ef2ab8e644b00978cac984b05d6f2653cb8c91"
+        },
+        {
+          "name": "authentication_projection_skips_authentication",
+          "sha256": "9931d8536aca345f079367882d9ce01bfb0249864506eb24d9dcc3d7dc90b7cd"
+        },
+        {
+          "name": "authority_erasure_discards_identity",
+          "sha256": "2bd303b4137a07f7a3350af66b2968cfa7553026a4b39db0ecc09a6bdd42cb59"
+        },
+        {
+          "name": "authority_erasure_discards_privilege",
+          "sha256": "0c4923523965a5862cb2fda335ef9fd68fabc48a6e2f90b1d9d9364a830a0da2"
+        },
+        {
+          "name": "mixed_trace_claims_no_authentication_changes",
+          "sha256": "73b71cf040d74a6a8a242c3010b4421a818f3ced215a4c613a76eb25e76abc1e"
         }
       ],
       "criteria": [
@@ -225,7 +560,7 @@
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/30-admission-and-service.mech#authenticationAlwaysRequired",
             "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege",
@@ -235,10 +570,30 @@
             "proofs/76-reachability-authority.mech#reachabilityEvidencePreservesIdentity",
             "proofs/76-reachability-authority.mech#reachabilityEvidencePreservesPrivilege",
             "proofs/76-reachability-authority.mech#reachabilityEvidenceTracePreservesIdentity",
-            "proofs/76-reachability-authority.mech#reachabilityEvidenceTracePreservesPrivilege"
+            "proofs/76-reachability-authority.mech#reachabilityEvidenceTracePreservesPrivilege",
+            "proofs/77-authentication-reachability-composition.mech#authenticationPreservesReachability",
+            "proofs/77-authentication-reachability-composition.mech#authenticationSetsIdentity",
+            "proofs/77-authentication-reachability-composition.mech#authenticationSetsPrivilege",
+            "proofs/77-authentication-reachability-composition.mech#rejectedAuthenticationClearsAuthority",
+            "proofs/77-authentication-reachability-composition.mech#acceptedListedAuthenticationGrantsAuthority",
+            "proofs/77-authentication-reachability-composition.mech#authenticationPrivilegeRequiresIdentity",
+            "proofs/77-authentication-reachability-composition.mech#erasurePreservesIdentity",
+            "proofs/77-authentication-reachability-composition.mech#erasurePreservesPrivilege",
+            "proofs/77-authentication-reachability-composition.mech#reachabilityEvidenceErasesToCurrent",
+            "proofs/77-authentication-reachability-composition.mech#authenticationCommutesWithErasure",
+            "proofs/77-authentication-reachability-composition.mech#authorityStepErasesToAuthenticationStep",
+            "proofs/77-authentication-reachability-composition.mech#authenticationEventRunsAuthentication",
+            "proofs/77-authentication-reachability-composition.mech#reachabilityEventRunsReachability",
+            "proofs/77-authentication-reachability-composition.mech#mixedAuthorityTraceErasesToAuthenticationTrace",
+            "proofs/77-authentication-reachability-composition.mech#mixedAuthorityTraceIdentityComesFromAuthentication",
+            "proofs/77-authentication-reachability-composition.mech#mixedAuthorityTracePrivilegeComesFromAuthentication",
+            "proofs/77-authentication-reachability-composition.mech#reachabilityTraceAfterAuthenticationKeepsIdentity",
+            "proofs/77-authentication-reachability-composition.mech#reachabilityTraceAfterAuthenticationKeepsPrivilege",
+            "proofs/77-authentication-reachability-composition.mech#authorityStepPreservesPrivilegeGate",
+            "proofs/77-authentication-reachability-composition.mech#mixedAuthorityTracePreservesPrivilegeGate"
           ],
-          "rationale": "The general invalid-evidence no-op and unvalidated-address statements prevent invalid reachability validation. No modeled transition writes identity or privilege, so the identity and privilege preservation statements are vacuous and earn no credit for the authenticated-privilege half.",
-          "remaining": "R03: Compose reachability-evidence transitions with an authentication transition that can set identity and privilege, and prove that reachability evidence alone cannot set either flag. Module 76 has no transition that writes identity or privilege, so its preservation statements are vacuous for this criterion."
+          "rationale": "The existing general invalid-evidence no-op and unvalidated-address preservation prevent invalid validation. Module 77 has a real authority-granting authentication transition, with general accepted and rejected complete-state statements. Its arbitrary mixed-trace erasure theorem and identity and privilege projections prove that reachability evidence alone never changes either authority flag. General post-authentication reachability traces retain exactly the verified identity and gated privilege; the result does not rely on an absence of modeled authority grants.",
+          "remaining": ""
         }
       ]
     },
