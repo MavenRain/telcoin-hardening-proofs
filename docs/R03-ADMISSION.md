@@ -1,11 +1,12 @@
-# R03 admission boundary, turn 5
+# R03 admission boundary, turn 6
 
-R03 is active after five execution turns. Turn 1 closed M004, turn 2 closed
+R03 is active after six execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
-population and resource/work composition. M005 was already covered by R02.
-The audit covers six of 83 model obligations, retains 77 exact gaps, and leaves all 43 external obligations
+population and resource/work composition. Turn 6 closes M021 with endpoint
+routing, migration ownership and finite discarded-state bounds. M005 was already covered by R02.
+The audit covers seven of 83 model obligations, retains 76 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
 obligations, packet assignments and qualification guards remain intact.
 
@@ -16,6 +17,7 @@ obligations, packet assignments and qualification guards remain intact.
 | M004 | Module 75's arbitrary-pool and arbitrary-index exhaustion bridge, composed complete-state admission refusal and receipt absence; existing arbitrary PoolTrace and SourceAdmissionTrace bounds, conservation and fixed structural capacity. | Exhaustion means zero total leaseAvailability, including empty pools and missing indices. Runtime receipt authority, stable indices, serialization, nonwrapping generations and storage dominance remain external. E013 owns them. |
 | M011 | Module 79's arbitrary endpoint/swarm trace bounds for separate waiting and active banks, conditional refused/permitted dispatch transitions, generation-owned terminal releases, shared weighted host allocation and charged work envelope. | All endpoint work routes through the same banks. Atomic transfer, internal callback provenance, nonwrapping generations, actual task termination on terminal release, and runtime resource/work dominance remain E019 premises. No mutex or fair scheduling is assumed. |
 | M007 | Module 80's arbitrary finite population and weighted-coordinate bounds, allocation preservation under mixed ownership/churn traces, retained charges on identity changes, and per-interval clipped work composition. | Every participant receives a separately owned slice whose sum fits the one supplied host vector. Connection and reconnect-burst parameters are member counts, bank weights and bank capacities in this arbitrary fleet. A burst in one interval is any finite trace of hostEvent and hostChurn steps over the fixed population. M013 owns burst-plus-rate budgets across intervals. Runtime routing, weight dominance, work-budget enforcement and production calibration remain external. E022 owns established-resource routing, weight dominance and work-budget enforcement. E013 owns runtime pending accounting. E010 owns production calibration and deployed storage and work dominance. Labels do not establish source normalization; specific established resource vectors remain M012 work. |
+| M021 | Module 81's unique connection lookup, exact indexed update and other-slot preservation; generation-owned migration, establishment and terminal cleanup; arbitrary schedule capacity, live-cell and discarded-tombstone bounds and exact conservation. | All endpoints and swarms share one finite serialized routing table. Internal callback authority, destination validation, nonwrapping generations and fixed-width storage dominance remain E019 premises. Migration preserves the original endpoint owner; handshake success retains established routing. No fairness or concrete socket restructuring is proved. |
 
 The saturation proof recurses over the entire LeasePool. A free cell contradicts
 zero availability; a held cell permits either local refusal or induction into
@@ -154,25 +156,49 @@ and cumulative rate accounting need their own evidence. Thirty new controls
 reject omitted swarms, duplicated slices, identity charge resets, routing and
 trace omissions, incorrect weights and work-budget bypasses.
 
+## Endpoint routing and migration ownership
+
+[81-endpoint-routing.mech](../proofs/81-endpoint-routing.mech) closes M021 at
+its sealed model scope. Listener and dial endpoints carry explicit swarm and
+socket identifiers. Every connection uses one global slot/generation identifier
+in a finite shared routing table. A lookup returns at most one destination.
+Indexed updates change the selected existing slot and preserve every other slot.
+
+Reservation records the same endpoint as original owner and current destination.
+Validated matching migration changes the destination while retaining that owner
+and pending/established phase. Unvalidated or mismatched migration preserves the
+complete cell. Handshake success retains the route in the established phase.
+Refusal, timeout, cancellation, failure, peer close and shedding erase only the
+matching route and advance its generation before reuse. Old routing identifiers
+remain absent after actual cleanup and replacement reservation.
+
+Every finite schedule preserves the initial allocation, bounds live routes and
+discarded generation tombstones separately, and conserves their sum exactly.
+Vacant cells retain one tombstone each; migration retains one current endpoint
+instead of an endpoint history. These are retained-cell bounds for every event
+ordering. They supply no fairness, delivery or concrete byte-bound conclusion.
+E019 retains runtime routing, internal callback authority, destination validation,
+serialization, nonwrapping generations, storage dominance and regressions.
+
 ## Remaining R03 scope
 
-Five R03 obligations remain: M003, M009, M012, M013 and M021.
+Four R03 obligations remain: M003, M009, M012 and M013.
 Their exact per-criterion work remains in proof-audit.json. It includes
 pending/established shared limits, handshake
 credit, normalized source attribution and churn lifetimes, established resource
-vectors, endpoint migration and aggregate/source rate composition. R03 stays active until its three exit
+vectors and aggregate/source rate composition. R03 stays active until its three exit
 criteria close.
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-shared-host-check.json](../evidence/r03-shared-host-check.json).
-The corpus has 1108 explicit proof declarations in 63 modules. The full run
-includes 1058 negative checks (1055 registered mutations plus three generic
+[r03-endpoint-routing-check.json](../evidence/r03-endpoint-routing-check.json).
+The corpus has 1141 explicit proof declarations in 64 modules. The full run
+includes 1080 negative checks (1077 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-4 and R02 receipts retain their original counts
+open. The historical R03 turn-1 through turn-5 and R02 receipts retain their original counts
 and input hashes.

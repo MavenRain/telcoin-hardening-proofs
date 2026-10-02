@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 1055 additional semantic mutations must
+The 1077 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -501,3 +501,25 @@ runtime routing, calibration and deployment guarantees remain external or
 separately open model obligations, including M003, M009, M012 and M013.
 E022 owns established-resource routing and work-budget enforcement. E013 owns
 runtime pending accounting. E010 owns calibration and deployment guarantees.
+
+## Endpoint routing refinement boundary
+
+Module 81 assumes all listener/dial endpoints and swarms use one finite serialized
+routing table. A connection identifier names a global slot and nonwrapping
+generation. Internal callback provenance must prevent unowned reservation,
+establishment and terminal transitions. The supplied validation flag must certify
+the actual selected migration destination; generation matching alone grants no
+address authority. Atomic migration retains the original endpoint owner.
+
+Success retains established routing. Terminal cleanup represents actual
+connection termination and removal of its routing state. A vacant slot holds one
+fixed-width generation tombstone; migration replaces the current endpoint instead
+of retaining old endpoint history. Fixed-width identifiers, generations and cell
+metadata must dominate these retained-cell counts in concrete storage. Any extra
+queued callbacks, routing aliases or endpoint histories require their own bound.
+
+Arbitrary finite schedules bound live and discarded routing cells under every
+event ordering. They do not prove fairness, eventual service, byte allocation,
+runtime uniqueness or a selected socket layout. E019 owns refinement of these
+premises and affected transport, maintenance, compatibility and deployment
+regressions. The sealed external ledger remains open after M021 model closure.

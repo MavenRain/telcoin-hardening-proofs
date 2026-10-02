@@ -1,0 +1,578 @@
+-- One serialized routing table shared by every listener, dial endpoint and swarm.
+-- Runtime callback authority, address validation and fixed-width storage are premises.
+mu RouteEndpoint : Type 0 with
+| listenerRouteEndpoint : Count -> Count -> RouteEndpoint
+| dialRouteEndpoint : Count -> Count -> RouteEndpoint
+
+mu RoutePhase : Type 0 with
+| pendingRoutePhase : RoutePhase
+| establishedRoutePhase : RoutePhase
+
+mu RouteCell : Type 0 with
+| vacantRoute : Count -> RouteCell
+| occupiedRoute : Count -> RouteEndpoint -> RouteEndpoint -> RoutePhase -> RouteCell
+
+mu RouteLocation : Type 0 with
+| noRouteLocation : RouteLocation
+| atRouteEndpoint : RouteEndpoint -> RouteLocation
+
+def routeCellLease : RouteCell -> Lease :=
+  fun (cell : RouteCell) =>
+    case cell as self in RouteCell return Lease with
+    | vacantRoute generation => freeLease generation
+    | occupiedRoute generation owner endpoint phase => heldLease generation
+
+def routeCellOwner : RouteCell -> RouteLocation :=
+  fun (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteLocation with
+    | vacantRoute generation => noRouteLocation
+    | occupiedRoute generation owner endpoint phase => atRouteEndpoint owner
+
+def occupiedRouteKeepsItsCharge : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> Equal Lease
+      (routeCellLease (occupiedRoute generation owner current phase)) (heldLease generation) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint) (phase : RoutePhase) => same
+
+def vacantRouteHasOnlyTombstone : (generation : Count) ->
+    Equal Lease (routeCellLease (vacantRoute generation)) (freeLease generation) :=
+  fun (generation : Count) => same
+
+def reserveRoute : RouteEndpoint -> RouteCell -> RouteCell :=
+  fun (endpoint : RouteEndpoint) (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteCell with
+    | vacantRoute generation => occupiedRoute generation endpoint endpoint pendingRoutePhase
+    | occupiedRoute generation owner current phase => occupiedRoute generation owner current phase
+
+def routeReservationOwnsEndpoint : (generation : Count) -> (endpoint : RouteEndpoint) ->
+    Equal RouteCell (reserveRoute endpoint (vacantRoute generation))
+      (occupiedRoute generation endpoint endpoint pendingRoutePhase) :=
+  fun (generation : Count) (endpoint : RouteEndpoint) => same
+
+def occupiedRouteRefusesReservation : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (endpoint : RouteEndpoint) ->
+    Equal RouteCell (reserveRoute endpoint (occupiedRoute generation owner current phase))
+      (occupiedRoute generation owner current phase) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (endpoint : RouteEndpoint) => same
+
+def migrationRouteDecision : Count -> RouteEndpoint -> RouteEndpoint -> RoutePhase ->
+    RouteEndpoint -> Flag -> RouteCell :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) (permitted : Flag) =>
+    case permitted as self in Flag return RouteCell with
+    | off => occupiedRoute generation owner current phase
+    | on => occupiedRoute generation owner destination phase
+
+def migrateRoute : Count -> Flag -> RouteEndpoint -> RouteCell -> RouteCell :=
+  fun (token : Count) (validated : Flag) (destination : RouteEndpoint) (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteCell with
+    | vacantRoute generation => vacantRoute generation
+    | occupiedRoute generation owner current phase =>
+      migrationRouteDecision generation owner current phase destination
+        (both validated (sameCount token generation))
+
+def unvalidatedRouteMigrationIsNoOp : (token : Count) -> (destination : RouteEndpoint) ->
+    (cell : RouteCell) -> Equal RouteCell (migrateRoute token off destination cell) cell :=
+  fun (token : Count) (destination : RouteEndpoint) (cell : RouteCell) =>
+    case cell as self in RouteCell return
+        Equal RouteCell (migrateRoute token off destination self) self with
+    | vacantRoute generation => same
+    | occupiedRoute generation owner current phase => same
+
+def matchingRouteMigration : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->
+    Equal RouteCell (migrateRoute generation on destination
+      (occupiedRoute generation owner current phase))
+      (occupiedRoute generation owner destination phase) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) =>
+    congruent Flag RouteCell
+      (fun (permitted : Flag) => migrationRouteDecision generation owner current phase destination permitted)
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def staleRouteMigrationIsNoOp : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->
+    Equal RouteCell (migrateRoute generation on destination
+      (occupiedRoute (next generation) owner current phase))
+      (occupiedRoute (next generation) owner current phase) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) =>
+    congruent Flag RouteCell
+      (fun (permitted : Flag) => migrationRouteDecision (next generation) owner current phase destination permitted)
+      (sameCount generation (next generation)) off (sameCountSuccessorOff generation)
+
+def migrationDecisionPreservesOwner : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->
+    (permitted : Flag) -> Equal RouteLocation
+      (routeCellOwner (migrationRouteDecision generation owner current phase destination permitted))
+      (atRouteEndpoint owner) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) (permitted : Flag) =>
+    case permitted as self in Flag return Equal RouteLocation
+        (routeCellOwner (migrationRouteDecision generation owner current phase destination self))
+        (atRouteEndpoint owner) with
+    | off => same
+    | on => same
+
+def routeMigrationPreservesOwner : (token : Count) -> (validated : Flag) ->
+    (destination : RouteEndpoint) -> (cell : RouteCell) -> Equal RouteLocation
+      (routeCellOwner (migrateRoute token validated destination cell)) (routeCellOwner cell) :=
+  fun (token : Count) (validated : Flag) (destination : RouteEndpoint) (cell : RouteCell) =>
+    case cell as self in RouteCell return Equal RouteLocation
+        (routeCellOwner (migrateRoute token validated destination self)) (routeCellOwner self) with
+    | vacantRoute generation => same
+    | occupiedRoute generation owner current phase =>
+      migrationDecisionPreservesOwner generation owner current phase destination
+        (both validated (sameCount token generation))
+
+def establishRouteDecision : Count -> RouteEndpoint -> RouteEndpoint -> RoutePhase -> Flag -> RouteCell :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (matches : Flag) =>
+    case matches as self in Flag return RouteCell with
+    | off => occupiedRoute generation owner current phase
+    | on => occupiedRoute generation owner current establishedRoutePhase
+
+def establishRoute : Count -> RouteCell -> RouteCell :=
+  fun (token : Count) (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteCell with
+    | vacantRoute generation => vacantRoute generation
+    | occupiedRoute generation owner current phase =>
+      establishRouteDecision generation owner current phase (sameCount token generation)
+
+def vacantRouteEstablishmentIsNoOp : (token : Count) -> (generation : Count) ->
+    Equal RouteCell (establishRoute token (vacantRoute generation)) (vacantRoute generation) :=
+  fun (token : Count) (generation : Count) => same
+
+def successfulHandshakeRetainsRoute : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> Equal RouteCell
+      (establishRoute generation (occupiedRoute generation owner current pendingRoutePhase))
+      (occupiedRoute generation owner current establishedRoutePhase) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint) =>
+    congruent Flag RouteCell
+      (fun (matches : Flag) => establishRouteDecision generation owner current pendingRoutePhase matches)
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def mismatchedRouteEstablishmentIsNoOp : (token : Count) -> (generation : Count) ->
+    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) ->
+    Equal Flag (sameCount token generation) off -> Equal RouteCell
+      (establishRoute token (occupiedRoute generation owner current phase))
+      (occupiedRoute generation owner current phase) :=
+  fun (token : Count) (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (mismatch : Equal Flag (sameCount token generation) off) =>
+    congruent Flag RouteCell
+      (fun (matches : Flag) => establishRouteDecision generation owner current phase matches)
+      (sameCount token generation) off mismatch
+
+mu RouteEnd : Type 0 with
+| routeRefused : RouteEnd
+| routeTimedOut : RouteEnd
+| routeCancelled : RouteEnd
+| routeFailed : RouteEnd
+| routePeerClosed : RouteEnd
+| routeShed : RouteEnd
+
+def finishRouteDecision : Count -> RouteEndpoint -> RouteEndpoint -> RoutePhase -> Flag -> RouteCell :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (matches : Flag) =>
+    case matches as self in Flag return RouteCell with
+    | off => occupiedRoute generation owner current phase
+    | on => vacantRoute (next generation)
+
+def finishRoute : Count -> RouteEnd -> RouteCell -> RouteCell :=
+  fun (token : Count) (reason : RouteEnd) (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteCell with
+    | vacantRoute generation => vacantRoute generation
+    | occupiedRoute generation owner current phase =>
+      finishRouteDecision generation owner current phase (sameCount token generation)
+
+def everyRouteTerminalReleasesOwner : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->
+    Equal RouteCell (finishRoute generation reason (occupiedRoute generation owner current phase))
+      (vacantRoute (next generation)) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (reason : RouteEnd) =>
+    congruent Flag RouteCell
+      (fun (matches : Flag) => finishRouteDecision generation owner current phase matches)
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def staleRouteTerminalIsNoOp : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->
+    Equal RouteCell (finishRoute generation reason (occupiedRoute (next generation) owner current phase))
+      (occupiedRoute (next generation) owner current phase) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (reason : RouteEnd) =>
+    congruent Flag RouteCell
+      (fun (matches : Flag) => finishRouteDecision (next generation) owner current phase matches)
+      (sameCount generation (next generation)) off (sameCountSuccessorOff generation)
+
+def vacantRouteTerminalIsNoOp : (token : Count) -> (reason : RouteEnd) -> (generation : Count) ->
+    Equal RouteCell (finishRoute token reason (vacantRoute generation)) (vacantRoute generation) :=
+  fun (token : Count) (reason : RouteEnd) (generation : Count) => same
+
+def mismatchedRouteTerminalIsNoOp : (token : Count) -> (generation : Count) ->
+    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->
+    Equal Flag (sameCount token generation) off -> Equal RouteCell
+      (finishRoute token reason (occupiedRoute generation owner current phase))
+      (occupiedRoute generation owner current phase) :=
+  fun (token : Count) (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (reason : RouteEnd) (mismatch : Equal Flag (sameCount token generation) off) =>
+    congruent Flag RouteCell
+      (fun (matches : Flag) => finishRouteDecision generation owner current phase matches)
+      (sameCount token generation) off mismatch
+
+def mismatchedRouteMigrationIsNoOp : (token : Count) -> (generation : Count) ->
+    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) ->
+    (destination : RouteEndpoint) -> (validated : Flag) -> Equal Flag (sameCount token generation) off ->
+    Equal RouteCell (migrateRoute token validated destination (occupiedRoute generation owner current phase))
+      (occupiedRoute generation owner current phase) :=
+  fun (token : Count) (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) (validated : Flag)
+      (mismatch : Equal Flag (sameCount token generation) off) =>
+    case validated as evidence in Flag return Equal RouteCell
+        (migrateRoute token evidence destination (occupiedRoute generation owner current phase))
+        (occupiedRoute generation owner current phase) with
+    | off => same
+    | on =>
+      congruent Flag RouteCell
+        (fun (matches : Flag) => migrationRouteDecision generation owner current phase destination matches)
+        (sameCount token generation) off mismatch
+
+mu RoutePool : Type 0 with
+| routePoolDone : RoutePool
+| routePoolCell : RouteCell -> RoutePool -> RoutePool
+
+def rec routeLeases : RoutePool -> LeasePool :=
+  fun (pool : RoutePool) =>
+    case pool as self in RoutePool return LeasePool with
+    | routePoolDone => emptyLeasePool
+    | routePoolCell cell rest => leaseCell (routeCellLease cell) (routeLeases rest)
+
+def rec updateRoute : Count -> (RouteCell -> RouteCell) -> RoutePool -> RoutePool :=
+  fun (index : Count) (change : RouteCell -> RouteCell) (pool : RoutePool) =>
+    case index as self in Count return RoutePool with
+    | zero =>
+      (case pool as state in RoutePool return RoutePool with
+      | routePoolDone => routePoolDone
+      | routePoolCell cell rest => routePoolCell (change cell) rest)
+    | next previous =>
+      case pool as state in RoutePool return RoutePool with
+      | routePoolDone => routePoolDone
+      | routePoolCell cell rest => routePoolCell cell (updateRoute previous change rest)
+
+def rec routeAt : Count -> RoutePool -> RouteCell :=
+  fun (index : Count) (pool : RoutePool) =>
+    case index as self in Count return RouteCell with
+    | zero =>
+      (case pool as state in RoutePool return RouteCell with
+      | routePoolDone => vacantRoute zero
+      | routePoolCell cell rest => cell)
+    | next previous =>
+      case pool as state in RoutePool return RouteCell with
+      | routePoolDone => vacantRoute zero
+      | routePoolCell cell rest => routeAt previous rest
+
+mu RouteConnectionId : Type 0 with
+| routeConnectionId : Count -> Count -> RouteConnectionId
+
+def routeLookupDecision : RouteEndpoint -> Flag -> RouteLocation :=
+  fun (endpoint : RouteEndpoint) (matches : Flag) =>
+    case matches as self in Flag return RouteLocation with
+    | off => noRouteLocation
+    | on => atRouteEndpoint endpoint
+
+def routeLookupCell : Count -> RouteCell -> RouteLocation :=
+  fun (token : Count) (cell : RouteCell) =>
+    case cell as self in RouteCell return RouteLocation with
+    | vacantRoute generation => noRouteLocation
+    | occupiedRoute generation owner current phase => routeLookupDecision current (sameCount token generation)
+
+def lookupRouteConnection : RouteConnectionId -> RoutePool -> RouteLocation :=
+  fun (identifier : RouteConnectionId) (pool : RoutePool) =>
+    case identifier as self in RouteConnectionId return RouteLocation with
+    | routeConnectionId index generation => routeLookupCell generation (routeAt index pool)
+
+def matchingRouteLookup : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> Equal RouteLocation
+      (routeLookupCell generation (occupiedRoute generation owner current phase)) (atRouteEndpoint current) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint) (phase : RoutePhase) =>
+    congruent Flag RouteLocation (routeLookupDecision current)
+      (sameCount generation generation) on (sameCountReflexive generation)
+
+def staleRouteLookupIsAbsent : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> Equal RouteLocation
+      (routeLookupCell generation (occupiedRoute (next generation) owner current phase)) noRouteLocation :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint) (phase : RoutePhase) =>
+    congruent Flag RouteLocation (routeLookupDecision current)
+      (sameCount generation (next generation)) off (sameCountSuccessorOff generation)
+
+def routeMigrationRoutesToDestination : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->
+    Equal RouteLocation (routeLookupCell generation
+      (migrateRoute generation on destination (occupiedRoute generation owner current phase)))
+      (atRouteEndpoint destination) :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (destination : RouteEndpoint) =>
+    equalTransitivity RouteLocation
+      (routeLookupCell generation (migrateRoute generation on destination
+        (occupiedRoute generation owner current phase)))
+      (routeLookupCell generation (occupiedRoute generation owner destination phase))
+      (atRouteEndpoint destination)
+      (congruent RouteCell RouteLocation (routeLookupCell generation)
+        (migrateRoute generation on destination (occupiedRoute generation owner current phase))
+        (occupiedRoute generation owner destination phase)
+        (matchingRouteMigration generation owner current phase destination))
+      (matchingRouteLookup generation owner destination phase)
+
+def routeTerminalRemovesRouting : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->
+    (token : Count) -> Equal RouteLocation
+      (routeLookupCell token (finishRoute generation reason (occupiedRoute generation owner current phase)))
+      noRouteLocation :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (reason : RouteEnd) (token : Count) =>
+    congruent RouteCell RouteLocation (routeLookupCell token)
+      (finishRoute generation reason (occupiedRoute generation owner current phase))
+      (vacantRoute (next generation)) (everyRouteTerminalReleasesOwner generation owner current phase reason)
+
+def routeReuseRejectsOldRouting : (generation : Count) -> (owner : RouteEndpoint) ->
+    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->
+    (replacement : RouteEndpoint) -> Equal RouteLocation
+      (routeLookupCell generation (reserveRoute replacement
+        (finishRoute generation reason (occupiedRoute generation owner current phase)))) noRouteLocation :=
+  fun (generation : Count) (owner : RouteEndpoint) (current : RouteEndpoint)
+      (phase : RoutePhase) (reason : RouteEnd) (replacement : RouteEndpoint) =>
+    equalTransitivity RouteLocation
+      (routeLookupCell generation (reserveRoute replacement
+        (finishRoute generation reason (occupiedRoute generation owner current phase))))
+      (routeLookupCell generation (occupiedRoute (next generation) replacement replacement pendingRoutePhase))
+      noRouteLocation
+      (congruent RouteCell RouteLocation
+        (fun (cell : RouteCell) => routeLookupCell generation (reserveRoute replacement cell))
+        (finishRoute generation reason (occupiedRoute generation owner current phase))
+        (vacantRoute (next generation)) (everyRouteTerminalReleasesOwner generation owner current phase reason))
+      (staleRouteLookupIsAbsent generation replacement replacement pendingRoutePhase)
+
+mu SeparateRouteSlots : (0 selected : Count) -> (0 other : Count) -> Type 0 with
+| routeZeroBefore : (other : Count) -> SeparateRouteSlots zero (next other)
+| routeZeroAfter : (selected : Count) -> SeparateRouteSlots (next selected) zero
+| routeSeparateNext : (selected : Count) -> (other : Count) -> SeparateRouteSlots selected other ->
+    SeparateRouteSlots (next selected) (next other)
+
+def rec routeUpdateDoesNotTouchOtherSlot : (selected : Count) -> (other : Count) ->
+    SeparateRouteSlots selected other -> (change : RouteCell -> RouteCell) -> (pool : RoutePool) ->
+    Equal RouteCell (routeAt other (updateRoute selected change pool)) (routeAt other pool) :=
+  fun (selected : Count) (other : Count) (separate : SeparateRouteSlots selected other)
+      (change : RouteCell -> RouteCell) (pool : RoutePool) =>
+    case separate as proof in SeparateRouteSlots left right return
+        Equal RouteCell (routeAt right (updateRoute left change pool)) (routeAt right pool) with
+    | routeZeroBefore otherIndex =>
+      (case pool as state in RoutePool return Equal RouteCell
+          (routeAt (next otherIndex) (updateRoute zero change state)) (routeAt (next otherIndex) state) with
+      | routePoolDone => same
+      | routePoolCell cell rest => same)
+    | routeZeroAfter selectedIndex =>
+      (case pool as state in RoutePool return Equal RouteCell
+          (routeAt zero (updateRoute (next selectedIndex) change state)) (routeAt zero state) with
+      | routePoolDone => same
+      | routePoolCell cell rest => same)
+    | routeSeparateNext selectedIndex otherIndex previous =>
+      case pool as state in RoutePool return Equal RouteCell
+          (routeAt (next otherIndex) (updateRoute (next selectedIndex) change state))
+          (routeAt (next otherIndex) state) with
+      | routePoolDone => same
+      | routePoolCell cell rest => routeUpdateDoesNotTouchOtherSlot selectedIndex otherIndex previous change rest
+
+mu ExistingRouteSlot : (0 index : Count) -> (0 pool : RoutePool) -> Type 0 with
+| routeSlotHead : (cell : RouteCell) -> (rest : RoutePool) -> ExistingRouteSlot zero (routePoolCell cell rest)
+| routeSlotNext : (index : Count) -> (cell : RouteCell) -> (rest : RoutePool) -> ExistingRouteSlot index rest ->
+    ExistingRouteSlot (next index) (routePoolCell cell rest)
+
+def rec routeUpdateSelectsExactlyOneCell : (index : Count) -> (pool : RoutePool) ->
+    ExistingRouteSlot index pool -> (change : RouteCell -> RouteCell) ->
+    Equal RouteCell (routeAt index (updateRoute index change pool)) (change (routeAt index pool)) :=
+  fun (index : Count) (pool : RoutePool) (exists : ExistingRouteSlot index pool)
+      (change : RouteCell -> RouteCell) =>
+    case exists as proof in ExistingRouteSlot selected state return
+        Equal RouteCell (routeAt selected (updateRoute selected change state)) (change (routeAt selected state)) with
+    | routeSlotHead cell rest => same
+    | routeSlotNext previous cell rest earlier => routeUpdateSelectsExactlyOneCell previous rest earlier change
+
+def routeLocationEndpoint : RouteLocation -> RouteEndpoint :=
+  fun (location : RouteLocation) =>
+    case location as self in RouteLocation return RouteEndpoint with
+    | noRouteLocation => listenerRouteEndpoint zero zero
+    | atRouteEndpoint endpoint => endpoint
+
+def connectionRouteIsUnique : (identifier : RouteConnectionId) -> (pool : RoutePool) ->
+    (left : RouteEndpoint) -> (right : RouteEndpoint) ->
+    Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint left) ->
+    Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint right) ->
+    Equal RouteEndpoint left right :=
+  fun (identifier : RouteConnectionId) (pool : RoutePool) (left : RouteEndpoint)
+      (right : RouteEndpoint)
+      (first : Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint left))
+      (second : Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint right)) =>
+    congruent RouteLocation RouteEndpoint routeLocationEndpoint (atRouteEndpoint left) (atRouteEndpoint right)
+      (equalTransitivity RouteLocation (atRouteEndpoint left) (lookupRouteConnection identifier pool)
+        (atRouteEndpoint right)
+        (equalSymmetry RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint left) first) second)
+
+def rec routeUpdatePreservesCapacity : (index : Count) -> (change : RouteCell -> RouteCell) ->
+    (pool : RoutePool) -> Equal Count (leaseCapacity (routeLeases (updateRoute index change pool)))
+      (leaseCapacity (routeLeases pool)) :=
+  fun (index : Count) (change : RouteCell -> RouteCell) (pool : RoutePool) =>
+    case index as self in Count return Equal Count
+        (leaseCapacity (routeLeases (updateRoute self change pool))) (leaseCapacity (routeLeases pool)) with
+    | zero =>
+      (case pool as state in RoutePool return Equal Count
+          (leaseCapacity (routeLeases (updateRoute zero change state))) (leaseCapacity (routeLeases state)) with
+      | routePoolDone => same
+      | routePoolCell cell rest => same)
+    | next previous =>
+      case pool as state in RoutePool return Equal Count
+          (leaseCapacity (routeLeases (updateRoute (next previous) change state)))
+          (leaseCapacity (routeLeases state)) with
+      | routePoolDone => same
+      | routePoolCell cell rest =>
+        congruent Count Count (fun (n : Count) => next n)
+          (leaseCapacity (routeLeases (updateRoute previous change rest)))
+          (leaseCapacity (routeLeases rest)) (routeUpdatePreservesCapacity previous change rest)
+
+mu RouteAction : Type 0 with
+| reserveRouteAction : Count -> RouteEndpoint -> RouteAction
+| migrateRouteAction : RouteConnectionId -> Flag -> RouteEndpoint -> RouteAction
+| establishRouteAction : RouteConnectionId -> RouteAction
+| finishRouteAction : RouteConnectionId -> RouteEnd -> RouteAction
+
+def routeStep : RouteAction -> RoutePool -> RoutePool :=
+  fun (action : RouteAction) (pool : RoutePool) =>
+    case action as self in RouteAction return RoutePool with
+    | reserveRouteAction index endpoint => updateRoute index (reserveRoute endpoint) pool
+    | migrateRouteAction identifier validated destination =>
+      (case identifier as key in RouteConnectionId return RoutePool with
+      | routeConnectionId index generation => updateRoute index (migrateRoute generation validated destination) pool)
+    | establishRouteAction identifier =>
+      (case identifier as key in RouteConnectionId return RoutePool with
+      | routeConnectionId index generation => updateRoute index (establishRoute generation) pool)
+    | finishRouteAction identifier reason =>
+      case identifier as key in RouteConnectionId return RoutePool with
+      | routeConnectionId index generation => updateRoute index (finishRoute generation reason) pool
+
+def routeStepPreservesCapacity : (action : RouteAction) -> (pool : RoutePool) ->
+    Equal Count (leaseCapacity (routeLeases (routeStep action pool))) (leaseCapacity (routeLeases pool)) :=
+  fun (action : RouteAction) (pool : RoutePool) =>
+    case action as self in RouteAction return Equal Count
+        (leaseCapacity (routeLeases (routeStep self pool))) (leaseCapacity (routeLeases pool)) with
+    | reserveRouteAction index endpoint => routeUpdatePreservesCapacity index (reserveRoute endpoint) pool
+    | migrateRouteAction identifier validated destination =>
+      (case identifier as key in RouteConnectionId return Equal Count
+          (leaseCapacity (routeLeases (routeStep (migrateRouteAction key validated destination) pool)))
+          (leaseCapacity (routeLeases pool)) with
+      | routeConnectionId index generation => routeUpdatePreservesCapacity index (migrateRoute generation validated destination) pool)
+    | establishRouteAction identifier =>
+      (case identifier as key in RouteConnectionId return Equal Count
+          (leaseCapacity (routeLeases (routeStep (establishRouteAction key) pool)))
+          (leaseCapacity (routeLeases pool)) with
+      | routeConnectionId index generation => routeUpdatePreservesCapacity index (establishRoute generation) pool)
+    | finishRouteAction identifier reason =>
+      case identifier as key in RouteConnectionId return Equal Count
+          (leaseCapacity (routeLeases (routeStep (finishRouteAction key reason) pool)))
+          (leaseCapacity (routeLeases pool)) with
+      | routeConnectionId index generation => routeUpdatePreservesCapacity index (finishRoute generation reason) pool
+
+mu RouteSchedule : Type 0 with
+| routeScheduleDone : RouteSchedule
+| routeScheduleNext : RouteAction -> RouteSchedule -> RouteSchedule
+
+def rec runRouteSchedule : RouteSchedule -> RoutePool -> RoutePool :=
+  fun (schedule : RouteSchedule) (pool : RoutePool) =>
+    case schedule as self in RouteSchedule return RoutePool with
+    | routeScheduleDone => pool
+    | routeScheduleNext action rest => runRouteSchedule rest (routeStep action pool)
+
+def scheduledReservationRoutes : (index : Count) -> (generation : Count) ->
+    (endpoint : RouteEndpoint) -> (pool : RoutePool) -> ExistingRouteSlot index pool ->
+    Equal RouteCell (routeAt index pool) (vacantRoute generation) -> Equal RouteLocation
+      (lookupRouteConnection (routeConnectionId index generation)
+        (runRouteSchedule (routeScheduleNext (reserveRouteAction index endpoint) routeScheduleDone) pool))
+      (atRouteEndpoint endpoint) :=
+  fun (index : Count) (generation : Count) (endpoint : RouteEndpoint) (pool : RoutePool)
+      (exists : ExistingRouteSlot index pool)
+      (vacant : Equal RouteCell (routeAt index pool) (vacantRoute generation)) =>
+    equalTransitivity RouteLocation
+      (routeLookupCell generation (routeAt index (updateRoute index (reserveRoute endpoint) pool)))
+      (routeLookupCell generation (reserveRoute endpoint (vacantRoute generation)))
+      (atRouteEndpoint endpoint)
+      (equalTransitivity RouteLocation
+        (routeLookupCell generation (routeAt index (updateRoute index (reserveRoute endpoint) pool)))
+        (routeLookupCell generation (reserveRoute endpoint (routeAt index pool)))
+        (routeLookupCell generation (reserveRoute endpoint (vacantRoute generation)))
+        (congruent RouteCell RouteLocation (routeLookupCell generation)
+          (routeAt index (updateRoute index (reserveRoute endpoint) pool))
+          (reserveRoute endpoint (routeAt index pool))
+          (routeUpdateSelectsExactlyOneCell index pool exists (reserveRoute endpoint)))
+        (congruent RouteCell RouteLocation
+          (fun (cell : RouteCell) => routeLookupCell generation (reserveRoute endpoint cell))
+          (routeAt index pool) (vacantRoute generation) vacant))
+      (matchingRouteLookup generation endpoint endpoint pendingRoutePhase)
+
+def rec routeSchedulePreservesCapacity : (schedule : RouteSchedule) -> (pool : RoutePool) ->
+    Equal Count (leaseCapacity (routeLeases (runRouteSchedule schedule pool)))
+      (leaseCapacity (routeLeases pool)) :=
+  fun (schedule : RouteSchedule) (pool : RoutePool) =>
+    case schedule as self in RouteSchedule return Equal Count
+        (leaseCapacity (routeLeases (runRouteSchedule self pool))) (leaseCapacity (routeLeases pool)) with
+    | routeScheduleDone => same
+    | routeScheduleNext action rest =>
+      equalTransitivity Count (leaseCapacity (routeLeases (runRouteSchedule rest (routeStep action pool))))
+        (leaseCapacity (routeLeases (routeStep action pool))) (leaseCapacity (routeLeases pool))
+        (routeSchedulePreservesCapacity rest (routeStep action pool)) (routeStepPreservesCapacity action pool)
+
+def routeScheduleOccupancyBound : (schedule : RouteSchedule) -> (pool : RoutePool) ->
+    AtMost (leaseOccupancy (routeLeases (runRouteSchedule schedule pool)))
+      (leaseCapacity (routeLeases pool)) :=
+  fun (schedule : RouteSchedule) (pool : RoutePool) =>
+    equalTransport Count
+      (fun (cap : Count) => AtMost (leaseOccupancy (routeLeases (runRouteSchedule schedule pool))) cap)
+      (leaseCapacity (routeLeases (runRouteSchedule schedule pool))) (leaseCapacity (routeLeases pool))
+      (routeSchedulePreservesCapacity schedule pool)
+      (leasePoolBound (routeLeases (runRouteSchedule schedule pool)))
+
+-- Vacant cells are the only retained discarded state: one generation tombstone per slot.
+def rec routeDiscardedStateBound : (pool : RoutePool) ->
+    AtMost (leaseAvailability (routeLeases pool)) (leaseCapacity (routeLeases pool)) :=
+  fun (pool : RoutePool) =>
+    case pool as self in RoutePool return
+        AtMost (leaseAvailability (routeLeases self)) (leaseCapacity (routeLeases self)) with
+    | routePoolDone => least zero
+    | routePoolCell cell rest =>
+      case cell as original in RouteCell return
+          AtMost (leaseAvailability (routeLeases (routePoolCell original rest)))
+            (leaseCapacity (routeLeases (routePoolCell original rest))) with
+      | vacantRoute generation =>
+        lift (leaseAvailability (routeLeases rest)) (leaseCapacity (routeLeases rest))
+          (routeDiscardedStateBound rest)
+      | occupiedRoute generation owner current phase =>
+        weakenBound (leaseAvailability (routeLeases rest)) (leaseCapacity (routeLeases rest))
+          (routeDiscardedStateBound rest)
+
+def routeScheduleDiscardedStateBound : (schedule : RouteSchedule) -> (pool : RoutePool) ->
+    AtMost (leaseAvailability (routeLeases (runRouteSchedule schedule pool)))
+      (leaseCapacity (routeLeases pool)) :=
+  fun (schedule : RouteSchedule) (pool : RoutePool) =>
+    equalTransport Count
+      (fun (cap : Count) => AtMost (leaseAvailability (routeLeases (runRouteSchedule schedule pool))) cap)
+      (leaseCapacity (routeLeases (runRouteSchedule schedule pool))) (leaseCapacity (routeLeases pool))
+      (routeSchedulePreservesCapacity schedule pool)
+      (routeDiscardedStateBound (runRouteSchedule schedule pool))
+
+def routeScheduleConservesLiveAndDiscardedState : (schedule : RouteSchedule) -> (pool : RoutePool) ->
+    Equal Count (add (leaseOccupancy (routeLeases (runRouteSchedule schedule pool)))
+      (leaseAvailability (routeLeases (runRouteSchedule schedule pool)))) (leaseCapacity (routeLeases pool)) :=
+  fun (schedule : RouteSchedule) (pool : RoutePool) =>
+    equalTransitivity Count
+      (add (leaseOccupancy (routeLeases (runRouteSchedule schedule pool)))
+        (leaseAvailability (routeLeases (runRouteSchedule schedule pool))))
+      (leaseCapacity (routeLeases (runRouteSchedule schedule pool))) (leaseCapacity (routeLeases pool))
+      (leaseConservation (routeLeases (runRouteSchedule schedule pool)))
+      (routeSchedulePreservesCapacity schedule pool)

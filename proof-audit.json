@@ -66,7 +66,8 @@
     "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc",
     "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1",
     "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e",
-    "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686"
+    "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686",
+    "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f"
   },
   "obligations": [
     {
@@ -3558,24 +3559,466 @@
       "id": "M021",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Generation-tagged pending ownership does not model socket migration or connection routing ownership. The frozen required scope remains a model obligation in R03.",
-      "witnesses": [],
-      "controls": [],
+      "scope_complete": true,
+      "scope_review": "R03 turn 6 closes both frozen M021 criteria. Module 81 models listener/dial endpoints and all swarms in one generation-indexed routing table. An identifier selects one cell; distinct-slot update laws prevent cross-connection changes. Validated, generation-matching migration changes the destination while preserving the original owner. Handshake success retains established routing, while every terminal outcome removes the matching route and advances its generation before reuse. Unvalidated, mismatched and repeated-vacant callbacks preserve complete cells. Arbitrary finite schedules preserve capacity, bound live and discarded state separately, and conserve their sum. No fairness premise is used. E019 retains concrete callback authority, destination validation, serialization, generation/storage refinement and transport regression obligations.",
+      "witnesses": [
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "occupiedRouteKeepsItsCharge",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> Equal Lease\n      (routeCellLease (occupiedRoute generation owner current phase)) (heldLease generation)",
+          "scope_kind": "general_transition",
+          "establishes": "Every pending or established live route retains one generation-owned routing charge.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "vacantRouteHasOnlyTombstone",
+          "statement": "(generation : Count) ->\n    Equal Lease (routeCellLease (vacantRoute generation)) (freeLease generation)",
+          "scope_kind": "general_transition",
+          "establishes": "An unused route slot retains a generation tombstone and has no live route charge.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeReservationOwnsEndpoint",
+          "statement": "(generation : Count) -> (endpoint : RouteEndpoint) ->\n    Equal RouteCell (reserveRoute endpoint (vacantRoute generation))\n      (occupiedRoute generation endpoint endpoint pendingRoutePhase)",
+          "scope_kind": "general_transition",
+          "establishes": "Reservation in a vacant slot records the same endpoint as immutable owner and current destination.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "occupiedRouteRefusesReservation",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (endpoint : RouteEndpoint) ->\n    Equal RouteCell (reserveRoute endpoint (occupiedRoute generation owner current phase))\n      (occupiedRoute generation owner current phase)",
+          "scope_kind": "general_transition",
+          "establishes": "Reservation cannot steal an already occupied route from its owner.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "unvalidatedRouteMigrationIsNoOp",
+          "statement": "(token : Count) -> (destination : RouteEndpoint) ->\n    (cell : RouteCell) -> Equal RouteCell (migrateRoute token off destination cell) cell",
+          "scope_kind": "general_transition",
+          "establishes": "Unvalidated migration preserves the complete selected cell for every token and destination.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "matchingRouteMigration",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->\n    Equal RouteCell (migrateRoute generation on destination\n      (occupiedRoute generation owner current phase))\n      (occupiedRoute generation owner destination phase)",
+          "scope_kind": "general_transition",
+          "establishes": "Validated migration with the matching generation changes only the current destination.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeMigrationPreservesOwner",
+          "statement": "(token : Count) -> (validated : Flag) ->\n    (destination : RouteEndpoint) -> (cell : RouteCell) -> Equal RouteLocation\n      (routeCellOwner (migrateRoute token validated destination cell)) (routeCellOwner cell)",
+          "scope_kind": "general_transition",
+          "establishes": "Every migration, including denial and stale-token branches, retains the original endpoint owner.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "successfulHandshakeRetainsRoute",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> Equal RouteCell\n      (establishRoute generation (occupiedRoute generation owner current pendingRoutePhase))\n      (occupiedRoute generation owner current establishedRoutePhase)",
+          "scope_kind": "general_transition",
+          "establishes": "A matching successful handshake promotes pending routing to established routing without freeing the slot.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "mismatchedRouteEstablishmentIsNoOp",
+          "statement": "(token : Count) -> (generation : Count) ->\n    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) ->\n    Equal Flag (sameCount token generation) off -> Equal RouteCell\n      (establishRoute token (occupiedRoute generation owner current phase))\n      (occupiedRoute generation owner current phase)",
+          "scope_kind": "general_transition",
+          "establishes": "Any nonmatching generation cannot establish a different connection.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "vacantRouteEstablishmentIsNoOp",
+          "statement": "(token : Count) -> (generation : Count) ->\n    Equal RouteCell (establishRoute token (vacantRoute generation)) (vacantRoute generation)",
+          "scope_kind": "general_transition",
+          "establishes": "An establishment callback for a vacant slot leaves the complete cell unchanged.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "everyRouteTerminalReleasesOwner",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->\n    Equal RouteCell (finishRoute generation reason (occupiedRoute generation owner current phase))\n      (vacantRoute (next generation))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason clears the matching pending or established route and advances its generation.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "vacantRouteTerminalIsNoOp",
+          "statement": "(token : Count) -> (reason : RouteEnd) -> (generation : Count) ->\n    Equal RouteCell (finishRoute token reason (vacantRoute generation)) (vacantRoute generation)",
+          "scope_kind": "general_transition",
+          "establishes": "Repeated cleanup cannot release or advance a vacant slot.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "mismatchedRouteTerminalIsNoOp",
+          "statement": "(token : Count) -> (generation : Count) ->\n    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->\n    Equal Flag (sameCount token generation) off -> Equal RouteCell\n      (finishRoute token reason (occupiedRoute generation owner current phase))\n      (occupiedRoute generation owner current phase)",
+          "scope_kind": "general_transition",
+          "establishes": "Any nonmatching generation preserves the complete live cell under every terminal reason.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "mismatchedRouteMigrationIsNoOp",
+          "statement": "(token : Count) -> (generation : Count) ->\n    (owner : RouteEndpoint) -> (current : RouteEndpoint) -> (phase : RoutePhase) ->\n    (destination : RouteEndpoint) -> (validated : Flag) -> Equal Flag (sameCount token generation) off ->\n    Equal RouteCell (migrateRoute token validated destination (occupiedRoute generation owner current phase))\n      (occupiedRoute generation owner current phase)",
+          "scope_kind": "general_transition",
+          "establishes": "Any nonmatching generation cannot redirect the current connection, regardless of validation.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeMigrationRoutesToDestination",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (destination : RouteEndpoint) ->\n    Equal RouteLocation (routeLookupCell generation\n      (migrateRoute generation on destination (occupiedRoute generation owner current phase)))\n      (atRouteEndpoint destination)",
+          "scope_kind": "general_transition",
+          "establishes": "The lookup after permitted migration resolves to the selected destination.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeTerminalRemovesRouting",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->\n    (token : Count) -> Equal RouteLocation\n      (routeLookupCell token (finishRoute generation reason (occupiedRoute generation owner current phase)))\n      noRouteLocation",
+          "scope_kind": "general_transition",
+          "establishes": "Matching terminal cleanup removes routing for every lookup token.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeReuseRejectsOldRouting",
+          "statement": "(generation : Count) -> (owner : RouteEndpoint) ->\n    (current : RouteEndpoint) -> (phase : RoutePhase) -> (reason : RouteEnd) ->\n    (replacement : RouteEndpoint) -> Equal RouteLocation\n      (routeLookupCell generation (reserveRoute replacement\n        (finishRoute generation reason (occupiedRoute generation owner current phase)))) noRouteLocation",
+          "scope_kind": "general_transition",
+          "establishes": "After actual cleanup and reservation for a replacement, the old connection generation has no route.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeUpdateDoesNotTouchOtherSlot",
+          "statement": "(selected : Count) -> (other : Count) ->\n    SeparateRouteSlots selected other -> (change : RouteCell -> RouteCell) -> (pool : RoutePool) ->\n    Equal RouteCell (routeAt other (updateRoute selected change pool)) (routeAt other pool)",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed update preserves every structurally distinct slot, including deep slots.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeUpdateSelectsExactlyOneCell",
+          "statement": "(index : Count) -> (pool : RoutePool) ->\n    ExistingRouteSlot index pool -> (change : RouteCell -> RouteCell) ->\n    Equal RouteCell (routeAt index (updateRoute index change pool)) (change (routeAt index pool))",
+          "scope_kind": "general_transition",
+          "establishes": "An existing selected slot receives exactly the requested local transition.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "connectionRouteIsUnique",
+          "statement": "(identifier : RouteConnectionId) -> (pool : RoutePool) ->\n    (left : RouteEndpoint) -> (right : RouteEndpoint) ->\n    Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint left) ->\n    Equal RouteLocation (lookupRouteConnection identifier pool) (atRouteEndpoint right) ->\n    Equal RouteEndpoint left right",
+          "scope_kind": "general_transition",
+          "establishes": "One connection identifier cannot resolve to two distinct endpoint destinations in any admissible routing table.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "scheduledReservationRoutes",
+          "statement": "(index : Count) -> (generation : Count) ->\n    (endpoint : RouteEndpoint) -> (pool : RoutePool) -> ExistingRouteSlot index pool ->\n    Equal RouteCell (routeAt index pool) (vacantRoute generation) -> Equal RouteLocation\n      (lookupRouteConnection (routeConnectionId index generation)\n        (runRouteSchedule (routeScheduleNext (reserveRouteAction index endpoint) routeScheduleDone) pool))\n      (atRouteEndpoint endpoint)",
+          "scope_kind": "general_transition",
+          "establishes": "For every existing vacant slot, the event runner executes a scheduled reservation and exposes its matching connection route.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeSchedulePreservesCapacity",
+          "statement": "(schedule : RouteSchedule) -> (pool : RoutePool) ->\n    Equal Count (leaseCapacity (routeLeases (runRouteSchedule schedule pool)))\n      (leaseCapacity (routeLeases pool))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite endpoint/swarm event schedule preserves the initial shared routing-table capacity.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeScheduleOccupancyBound",
+          "statement": "(schedule : RouteSchedule) -> (pool : RoutePool) ->\n    AtMost (leaseOccupancy (routeLeases (runRouteSchedule schedule pool)))\n      (leaseCapacity (routeLeases pool))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite schedule bounds all live pending and established routes by the initial shared capacity.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeScheduleDiscardedStateBound",
+          "statement": "(schedule : RouteSchedule) -> (pool : RoutePool) ->\n    AtMost (leaseAvailability (routeLeases (runRouteSchedule schedule pool)))\n      (leaseCapacity (routeLeases pool))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite schedule bounds retained discarded-generation tombstones by the initial shared capacity.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        },
+        {
+          "path": "proofs/81-endpoint-routing.mech",
+          "name": "routeScheduleConservesLiveAndDiscardedState",
+          "statement": "(schedule : RouteSchedule) -> (pool : RoutePool) ->\n    Equal Count (add (leaseOccupancy (routeLeases (runRouteSchedule schedule pool)))\n      (leaseAvailability (routeLeases (runRouteSchedule schedule pool)))) (leaseCapacity (routeLeases pool))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Live routing cells and discarded-generation tombstones partition the original finite capacity exactly.",
+          "premises": [
+            "Every listener, dial endpoint and swarm shares one finite serialized routing table. A connection identifier is its global slot and nonwrapping generation.",
+            "Reservation, establishment, migration and terminal cleanup are atomic transitions. Internal callbacks carry authoritative slot/generation tokens; a supplied validated flag certifies the selected migration destination.",
+            "A terminal outcome represents actual connection termination and routing-state release. Handshake success establishes the route instead of releasing it. Each vacant slot retains only one fixed-width generation tombstone."
+          ],
+          "limits": "These are abstract routing and retained-cell bounds for arbitrary finite schedules. E019 owns concrete socket/endpoint routing, callback authority, destination validation, serialization, nonwrapping generations, fixed-width storage dominance and transport regressions. No scheduling fairness, delivery, runtime byte bound or endpoint restructuring is established."
+        }
+      ],
+      "controls": [
+        {
+          "name": "route_occupied_loses_charge",
+          "sha256": "4a44dfdf0eee85fcf7c853b5cf0e785b252e6797333c6998238eef5dcb90501b"
+        },
+        {
+          "name": "route_vacant_retains_charge",
+          "sha256": "1fcb5d6854b5119dd432d0eae0f826bbdf70ec7514ceaa15ca4d88f172a20e81"
+        },
+        {
+          "name": "route_reservation_steals_owner",
+          "sha256": "dfff1625688c0aee4c5c0bfbc30a60dc7a514ea282516b5ce09dc27776bc6e5d"
+        },
+        {
+          "name": "route_reservation_loses_endpoint",
+          "sha256": "0a51260bd938dd93ae71b4e32f903b5bf9566f1f0e1bff31535714725c2fab1d"
+        },
+        {
+          "name": "route_migration_steals_owner",
+          "sha256": "3eca96c51d70df40134021a1a0ebab6015e035de220e53405aca6bff4e5b893a"
+        },
+        {
+          "name": "route_migration_ignores_destination",
+          "sha256": "0354351372736561e328fd403d2aa5f2cd06254c6d4ea90cd9111156308238ff"
+        },
+        {
+          "name": "route_migration_ignores_validation",
+          "sha256": "c07e8ed788c2821e9f62844d95920abdd5342084b4d1ae3e8787027ec84d276a"
+        },
+        {
+          "name": "route_migration_ignores_generation",
+          "sha256": "5a5ced1ab0fb2d6a59f4952a2f9cba65fae958b8c3958d464fedc3d87b50d578"
+        },
+        {
+          "name": "route_handshake_loses_routing",
+          "sha256": "831d57757f48dec7c00eb5234003c0dc1b342ccf6f77ca80fd025cb6a98dcbbb"
+        },
+        {
+          "name": "route_handshake_ignores_generation",
+          "sha256": "866f2d1b883bfeeb6b643a7d14b528960f9b616eeefae0f9fdbc3fa7cc0b92c1"
+        },
+        {
+          "name": "route_establish_revives_vacant",
+          "sha256": "0eb7cf1e082a92b9a5f723e519233bb83127d84901a2ac45cb5858ded387f32a"
+        },
+        {
+          "name": "route_terminal_skips_release",
+          "sha256": "1853dfeceb7ce2c77e58ecbee5be865478b9fe53e0fa350fdb06853abf439756"
+        },
+        {
+          "name": "route_terminal_reuses_generation",
+          "sha256": "99612e05599ae2e4d8d297bc5bd97e569b8f59e6f1c9e1da017edc5d4892a366"
+        },
+        {
+          "name": "route_terminal_ignores_generation",
+          "sha256": "498a85ba3542ce775df98fc727279633c98fc381dc7cd424294e9e140a4cf198"
+        },
+        {
+          "name": "route_lookup_returns_owner",
+          "sha256": "959d71d9e67247433ab1a7a04b4a2269e3b57233cccea61da4c0cda7544cdc1a"
+        },
+        {
+          "name": "route_lookup_ignores_generation",
+          "sha256": "e4cc1d94fe2a83db8512b00b56c33911f049b59949e36aa80896d0c719d053fa"
+        },
+        {
+          "name": "route_lookup_erases_live_route",
+          "sha256": "cc8cc3c64f1f07bd8c11844bbddce5f9040221ba1480d9262101de684737ead4"
+        },
+        {
+          "name": "route_update_skips_selected_cell",
+          "sha256": "0811c22ce4037bb0c839bee7b63bf8a2b6957da5d556de23130fb838a4adeef5"
+        },
+        {
+          "name": "route_update_changes_other_cell",
+          "sha256": "10cc1aad2abc0e1b5ae26bdcb8a32e46aa1d4457b0b21968599d40f1693aeee1"
+        },
+        {
+          "name": "route_update_drops_slot",
+          "sha256": "305d4a491bc48f292580306160fe85865918445cb8586a8c3a31c7ebbd0a3379"
+        },
+        {
+          "name": "route_read_ignores_deep_index",
+          "sha256": "ce2fa1a41d43c30477422bf09e4b4a4df1a80342f971eb00111cd13bf650ce41"
+        },
+        {
+          "name": "route_schedule_skips_event",
+          "sha256": "da2773aa51c9a9adcce627c70fdb667b69007b67ec2afd994ed799d035b59a7f"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "Generation-tagged pending ownership does not model socket migration or connection routing ownership. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R03: Add listener/dial endpoint, connection identifier and migration ownership transitions and prove unique routing/ownership under all terminal outcomes."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/81-endpoint-routing.mech#occupiedRouteKeepsItsCharge",
+            "proofs/81-endpoint-routing.mech#vacantRouteHasOnlyTombstone",
+            "proofs/81-endpoint-routing.mech#routeReservationOwnsEndpoint",
+            "proofs/81-endpoint-routing.mech#occupiedRouteRefusesReservation",
+            "proofs/81-endpoint-routing.mech#unvalidatedRouteMigrationIsNoOp",
+            "proofs/81-endpoint-routing.mech#matchingRouteMigration",
+            "proofs/81-endpoint-routing.mech#routeMigrationPreservesOwner",
+            "proofs/81-endpoint-routing.mech#successfulHandshakeRetainsRoute",
+            "proofs/81-endpoint-routing.mech#mismatchedRouteEstablishmentIsNoOp",
+            "proofs/81-endpoint-routing.mech#vacantRouteEstablishmentIsNoOp",
+            "proofs/81-endpoint-routing.mech#everyRouteTerminalReleasesOwner",
+            "proofs/81-endpoint-routing.mech#vacantRouteTerminalIsNoOp",
+            "proofs/81-endpoint-routing.mech#mismatchedRouteTerminalIsNoOp",
+            "proofs/81-endpoint-routing.mech#mismatchedRouteMigrationIsNoOp",
+            "proofs/81-endpoint-routing.mech#routeMigrationRoutesToDestination",
+            "proofs/81-endpoint-routing.mech#routeTerminalRemovesRouting",
+            "proofs/81-endpoint-routing.mech#routeReuseRejectsOldRouting",
+            "proofs/81-endpoint-routing.mech#routeUpdateDoesNotTouchOtherSlot",
+            "proofs/81-endpoint-routing.mech#routeUpdateSelectsExactlyOneCell",
+            "proofs/81-endpoint-routing.mech#connectionRouteIsUnique",
+            "proofs/81-endpoint-routing.mech#scheduledReservationRoutes"
+          ],
+          "rationale": "General slot-selection, unique lookup, migration and cleanup statements quantify over endpoint, swarm, phase, generation and table parameters. Original ownership is retained, matching terminal outcomes erase routing, old identifiers fail after actual reuse, and other connections are unchanged.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "Generation-tagged pending ownership does not model socket migration or connection routing ownership. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R03: Quantify the endpoint/swarm schedules and finite discarded-state bounds without treating attacker steering as fair scheduling."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/81-endpoint-routing.mech#routeSchedulePreservesCapacity",
+            "proofs/81-endpoint-routing.mech#routeScheduleOccupancyBound",
+            "proofs/81-endpoint-routing.mech#routeScheduleDiscardedStateBound",
+            "proofs/81-endpoint-routing.mech#routeScheduleConservesLiveAndDiscardedState"
+          ],
+          "rationale": "Arbitrary finite schedules preserve the shared capacity and bound live and discarded cells by the initial allocation. Their exact conservation excludes unbounded retained history. All orderings are permitted; no attacker-controlled steering is treated as fair scheduling. Runtime authority, validation, atomicity and fixed-width storage premises remain explicit.",
+          "remaining": ""
         }
       ]
     },

@@ -1049,3 +1049,26 @@ external obligations open. E019 retains concrete worker termination, atomic
 transfer, callback provenance, complete routing and resource/work dominance.
 Qualification and the disposition, scope and audit regressions remain guarded.
 Prior receipts retain their original input hashes and historical counts.
+
+## R03 endpoint routing and migration, turn 6
+
+[r03-endpoint-routing-check.json](r03-endpoint-routing-check.json) records
+1141 explicit proof declarations in 64 modules, empty axiom disclosure and
+1080 rejected negative checks (1077 registered mutations plus three generic
+controls). Module 81 adds 33 proof declarations and 22 routing controls.
+
+M021 now has general listener/dial endpoint, swarm, connection-identifier and
+migration ownership witnesses. Permitted migration preserves the original owner;
+success retains established routing; matching terminal cleanup erases routing
+and advances the generation. Unvalidated and mismatched callbacks preserve cells,
+and old routing identifiers remain absent after actual cleanup and reuse. Exact
+indexed-update laws preserve unrelated connections. Arbitrary finite schedules
+preserve capacity, bound live and discarded cells and conserve their sum without
+fair scheduling. E019 retains runtime authority, validation, atomicity, generation
+and storage refinement plus transport regressions.
+
+The audit covers seven of 83 model obligations and retains 76 gaps. Four remain
+in R03: M003, M009, M012 and M013. All 43 external obligations remain open.
+Disposition, scope, audit and qualification regressions preserve the sealed
+source and external boundaries. Full qualification must continue to fail.
+Earlier R03 and R02 receipts retain their original counts and input hashes.

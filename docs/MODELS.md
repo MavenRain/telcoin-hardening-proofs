@@ -2299,8 +2299,8 @@ duplicated allocations, charge-resetting identity churn and work bypasses.
 
 ## Negative controls
 
-The checker rejects 1058 invalid variants: three direct checks of equality,
-ordering and termination, plus 1055 semantic mutations. Mutations exercise such
+The checker rejects 1080 invalid variants: three direct checks of equality,
+ordering and termination, plus 1077 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -2401,3 +2401,27 @@ mismatches on statements over variables or finite traces.
 Passing these controls tests that the definitions constrain the proof terms.
 It does not prove the checker sound, the Rust implementation refined, or the
 deployment qualified. `make qualify` therefore continues to reject completion.
+
+## Endpoint routing and generation-owned migration
+
+Module 81 models listener/dial endpoints with swarm and socket identifiers and
+one finite shared table. Its connection identifier contains the global slot and
+generation. General lookup uniqueness and indexed-update laws prevent one
+connection from selecting two destinations or changing another slot.
+
+Migration requires both validated destination evidence and the matching
+generation. It preserves the original owner and pending/established phase.
+Success retains established routing; every matching terminal reason clears the
+route and advances its generation before reuse. Unvalidated, mismatched and
+repeated-vacant callbacks preserve complete cells. Old routing identifiers are
+absent after actual cleanup and replacement reservation.
+
+Arbitrary finite schedules preserve table capacity and bound live routes and
+discarded generation tombstones by the initial allocation. Their sum is exactly
+that allocation. These proofs require no fair scheduling. The 22 routing
+controls weaken charges, reservation, migration validation/generation/ownership,
+handshake generation and vacant-slot checks, terminal release/reuse, lookup,
+indexed updates and event execution. Every full mutant must fail with a proof
+type mismatch.
+Runtime routing, callback authority, destination validation, atomicity,
+fixed-width storage and nonwrapping generations remain E019 premises.

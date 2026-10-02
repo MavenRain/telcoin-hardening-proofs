@@ -2339,6 +2339,33 @@ MUTATIONS += [
     ('host_work_duplicates_slice', 'def rec hostFleetWork : Count -> (Count -> Count) -> HostFleet -> Count :=\n  fun (axis : Count) (demand : Count -> Count) (fleet : HostFleet) =>\n    case fleet as self in HostFleet return Count with\n    | noHostFleet => zero\n    | hostMember role swarm source identity banks rest =>\n      add (boundedWork (hostBankAllocation axis banks) (demand zero))\n        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest)\n', 'def rec hostFleetWork : Count -> (Count -> Count) -> HostFleet -> Count :=\n  fun (axis : Count) (demand : Count -> Count) (fleet : HostFleet) =>\n    case fleet as self in HostFleet return Count with\n    | noHostFleet => zero\n    | hostMember role swarm source identity banks rest =>\n      add (boundedWork (add (hostBankAllocation axis banks) (hostBankAllocation axis banks)) (demand zero))\n        (hostFleetWork axis (fun (index : Count) => demand (next index)) rest)\n'),
 ]
 
+# R03 endpoint routing, migration and discarded-state controls.
+MUTATIONS += [
+    ('route_occupied_loses_charge', '| occupiedRoute generation owner endpoint phase => heldLease generation', '| occupiedRoute generation owner endpoint phase => freeLease generation'),
+    ('route_vacant_retains_charge', '| vacantRoute generation => freeLease generation\n    | occupiedRoute generation owner endpoint phase => heldLease generation', '| vacantRoute generation => heldLease generation\n    | occupiedRoute generation owner endpoint phase => heldLease generation'),
+    ('route_reservation_steals_owner', '| vacantRoute generation => occupiedRoute generation endpoint endpoint pendingRoutePhase\n    | occupiedRoute generation owner current phase => occupiedRoute generation owner current phase', '| vacantRoute generation => occupiedRoute generation endpoint endpoint pendingRoutePhase\n    | occupiedRoute generation owner current phase => occupiedRoute generation endpoint endpoint pendingRoutePhase'),
+    ('route_reservation_loses_endpoint', '| vacantRoute generation => occupiedRoute generation endpoint endpoint pendingRoutePhase', '| vacantRoute generation => vacantRoute generation'),
+    ('route_migration_steals_owner', '| on => occupiedRoute generation owner destination phase', '| on => occupiedRoute generation destination destination phase'),
+    ('route_migration_ignores_destination', '| on => occupiedRoute generation owner destination phase', '| on => occupiedRoute generation owner current phase'),
+    ('route_migration_ignores_validation', 'migrationRouteDecision generation owner current phase destination\n        (both validated (sameCount token generation))', 'migrationRouteDecision generation owner current phase destination\n        (sameCount token generation)'),
+    ('route_migration_ignores_generation', 'migrationRouteDecision generation owner current phase destination\n        (both validated (sameCount token generation))', 'migrationRouteDecision generation owner current phase destination\n        validated'),
+    ('route_handshake_loses_routing', '| on => occupiedRoute generation owner current establishedRoutePhase', '| on => vacantRoute (next generation)'),
+    ('route_handshake_ignores_generation', 'establishRouteDecision generation owner current phase (sameCount token generation)', 'establishRouteDecision generation owner current phase on'),
+    ('route_establish_revives_vacant', '| vacantRoute generation => vacantRoute generation\n    | occupiedRoute generation owner current phase =>\n      establishRouteDecision', '| vacantRoute generation => occupiedRoute generation (listenerRouteEndpoint zero zero) (listenerRouteEndpoint zero zero) establishedRoutePhase\n    | occupiedRoute generation owner current phase =>\n      establishRouteDecision'),
+    ('route_terminal_skips_release', '| on => vacantRoute (next generation)', '| on => occupiedRoute generation owner current phase'),
+    ('route_terminal_reuses_generation', '| on => vacantRoute (next generation)', '| on => vacantRoute generation'),
+    ('route_terminal_ignores_generation', 'finishRouteDecision generation owner current phase (sameCount token generation)', 'finishRouteDecision generation owner current phase on'),
+    ('route_lookup_returns_owner', '| occupiedRoute generation owner current phase => routeLookupDecision current (sameCount token generation)', '| occupiedRoute generation owner current phase => routeLookupDecision owner (sameCount token generation)'),
+    ('route_lookup_ignores_generation', '| occupiedRoute generation owner current phase => routeLookupDecision current (sameCount token generation)', '| occupiedRoute generation owner current phase => routeLookupDecision current on'),
+    ('route_lookup_erases_live_route', '| on => atRouteEndpoint endpoint', '| on => noRouteLocation'),
+    ('route_update_skips_selected_cell', '| routePoolCell cell rest => routePoolCell (change cell) rest', '| routePoolCell cell rest => routePoolCell cell rest'),
+    ('route_update_changes_other_cell', '| routePoolCell cell rest => routePoolCell cell (updateRoute previous change rest)', '| routePoolCell cell rest => routePoolCell (change cell) (updateRoute previous change rest)'),
+    ('route_update_drops_slot', '| routePoolCell cell rest => routePoolCell (change cell) rest', '| routePoolCell cell rest => rest'),
+    ('route_read_ignores_deep_index', '| routePoolCell cell rest => routeAt previous rest', '| routePoolCell cell rest => cell'),
+    ('route_schedule_skips_event', '| routeScheduleNext action rest => runRouteSchedule rest (routeStep action pool)', '| routeScheduleNext action rest => runRouteSchedule rest pool'),
+]
+
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")
