@@ -27,14 +27,14 @@ unaudited criteria. At R02 closure, M005 was covered and 82 obligations retained
 exact R03-R08 model gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records
 the completed batches.
 
-R03 turn 8 closes M003 with trusted authority bound to validated reachability,
-authenticated/listed identity and the normalized source key. Unvalidated and
-mismatched requests preserve the entire resource and allowance state. Admitted
-receipts alone spend the selected allowance; trusted load exemptions retain
-protocol penalties. Arbitrary mixed schedules preserve aggregate pending,
-source debt, shared credit and allowance bounds. Eight obligations are covered;
-75 retain model gaps, including three assigned to R03. See the
-[admission boundary](docs/R03-ADMISSION.md).
+R03 turn 9 closes M009 with normalized-source registration and eviction,
+shared T4b/T8 security state, and explicit restart and epoch lifetimes. Arbitrary
+mixed traces preserve every protected debt and ban and stay within the initial
+fixed table width. Fresh identities and caller keys cannot reset retained state;
+mapped/native IPv4 and fixed IPv6 prefixes share their selected restriction.
+Nine obligations are covered; 74 retain model gaps, including two assigned to
+R03. Runtime restoration and authorized security-state release remain external.
+See the [admission boundary](docs/R03-ADMISSION.md).
 
 ## Run locally
 
@@ -97,7 +97,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1205 explicit equality and order proof declarations across 66 modules. This count
+1236 explicit equality and order proof declarations across 67 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -168,6 +168,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `81-endpoint-routing.mech` | One shared routing table gives each connection a slot/generation identifier across listener/dial endpoints and swarms. Validated matching migration preserves its owner, success retains established routing, and terminal cleanup advances the generation. Arbitrary schedules bound live and discarded state without fairness. |
 | `82-normalized-source-attribution.mech` | Fixed IPv4/IPv6 prefix normalization, shared mapped/native IPv4 attribution, caller-key and identity independence, unvalidated refusal, exact event and receipt key selection, and arbitrary attributed-schedule debt, credit and aggregate pending bounds. Module 83 composes trusted authority. |
 | `83-trusted-source-authority.mech` | Validation, authentication, listing and source/identity binding gate privileged admission and load exemptions. Admitted receipts debit normalized allowances; protocol penalties remain active. Arbitrary mixed schedules preserve allowance, source debt, shared credit and aggregate pending bounds. |
+| `84-source-security-lifetimes.mech` | Normalized registration and eviction, exact shared T4b/T8 debt/ban lookup, and explicit restart/epoch transitions preserve protected source security and finite table width across arbitrary mixed traces. Runtime restart restoration and authorized debt service/expiry remain external. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

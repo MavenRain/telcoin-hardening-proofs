@@ -2499,5 +2499,35 @@ denied admission, wrong slots/swarms/keys, forged load exemptions and protocol
 exemptions, dropped ordinary/penalty events, refused or fabricated receipts,
 missing or collateral allowance debits, changed shared capacity, and dropped or
 stale trace state. Every control must fail over quantified inputs. M003 is
-covered by modules 82 and 83 together. M009/M013 and E014/E029/E013 retain their
-security-lifetime, timed-rate and runtime authority/accounting boundaries.
+covered by modules 82 and 83 together. Module 84 later covers M009. M013 and
+E014/E029/E013 retain their timed-rate and runtime authority/accounting
+boundaries.
+
+## Normalized source security lifetimes (module 84)
+
+`SourceLifetimeState` contains a boot generation, epoch and one fixed-width
+`SourceTable`. Registration and eviction always use `normalizedSourceKey`;
+fresh identities, claimed keys and T4b/T8 users cannot select another namespace.
+Mapped/native IPv4 share a prefix key, and IPv6 hosts share their fixed prefix.
+Security lookup selects retained debt/ban payloads from one protected table.
+
+Restart advances the boot generation; epoch change advances the epoch. Both
+retain the other counter, discard clear residents and preserve all protected
+cells. Protected debt and bans persist until authorized service or expiry in a
+separate trusted transition system. No clock event or arbitrary lifecycle
+boundary authorizes release in this churn-only model. Runtime restoration of
+protected cells across process restart is an E014 premise.
+
+The idempotent protection projection and unchanged structural width compose
+with every registration, eviction and lifecycle event. Arbitrary finite mixed
+traces preserve the entire protected table and each normalized restriction,
+and cardinality never exceeds the initial table width, including empty/full
+tables and arbitrary initial debt/ban payloads. First-slot re-registration is a
+complete-state no-op. This is persistence and bounded storage evidence; it
+does not establish rate fairness or a concrete implementation.
+
+Thirty-one counted proof declarations and 26 semantic controls cover this
+slice. Controls include same-width security erasure, shared-state separation,
+wrong keys, incorrect restriction selection and skipped/replayed trace steps.
+M009 is covered; M012 and M013 remain in R03. E014 and E029 retain the runtime
+prefix, storage-restoration, lifetime-counter and release-authority refinements.

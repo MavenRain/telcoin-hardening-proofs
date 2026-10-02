@@ -69,7 +69,8 @@
     "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686",
     "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f",
     "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898",
-    "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744"
+    "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744",
+    "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca"
   },
   "obligations": [
     {
@@ -3677,8 +3678,8 @@
       "id": "M009",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 completes the audit of source-table width and protected eviction. The corpus has no normalized multi-prefix identity bridge or restart/epoch lifecycle for retained T4b/T8 debt/ban state. Those remain model gaps in R03.",
+      "scope_complete": true,
+      "scope_review": "R03 turn 9 completes M009: module 84 composes fixed-prefix attribution with arbitrary shared T4b/T8 registration/eviction churn, explicit restart and epoch lifetimes, exact protected-state and restriction persistence, and cardinality bounded by initial fixed width. Protected debt and bans survive lifecycle boundaries; legitimate service/expiry and runtime persistence remain E014 premises.",
       "witnesses": [
         {
           "path": "proofs/29-source-system.mech",
@@ -3712,6 +3713,244 @@
             "Transitions are the modeled registration and eviction events over Count keys."
           ],
           "limits": "The trace has no enforcement or expiry events. Count keys do not establish IPv4/IPv6 prefix attribution, restart/epoch retention or shared T4b/T8 peer security state."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeTraceCardinalityBound",
+          "statement": "(events : SourceLifetimeTrace) -> (state : SourceLifetimeState) ->\n    AtMost (sourceTableSize (lifetimeTable (runSourceLifetimes events state))) (sourceTableWidth (lifetimeTable state))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite normalized-source trace, initial table and lifecycle counter pair stays within the initial fixed table width.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeTracePreservesProtection",
+          "statement": "(events : SourceLifetimeTrace) -> (state : SourceLifetimeState) ->\n    Equal SourceTable (protectedSources (lifetimeTable (runSourceLifetimes events state)))\n      (protectedSources (lifetimeTable state))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed registration, eviction, restart and epoch trace preserves every protected key, debt payload and ban cell in the initial table.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeTraceSharedSecurityPersists",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (events : SourceLifetimeTrace) -> (state : SourceLifetimeState) -> Equal SourceRestriction\n      (lifetimeSecurityAt use address (runSourceLifetimes events state)) (lifetimeSecurityAt use address state)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every normalized address and either T4b/T8 user observes identical protected security restrictions before and after every finite lifecycle trace.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeRegistrationUsesNormalizedKey",
+          "statement": "(use : SourceSecurityUse) -> (reach : Reachability) ->\n    (address : SourceAddress) -> (identity : Count) -> (claim : Count) -> (table : SourceTable) ->\n    Equal SourceTable (lifetimeTableStep (lifetimeRegister use reach address identity claim) table)\n      (rememberSource reach (normalizedSourceKey address) table)",
+          "scope_kind": "general_transition",
+          "establishes": "Registration uses the normalized source-address prefix key for every user, reachability, identity and caller claim.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeEvictionUsesNormalizedKey",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (table : SourceTable) -> Equal SourceTable (lifetimeTableStep (lifetimeEvict use address) table)\n      (evictSource (normalizedSourceKey address) table)",
+          "scope_kind": "general_transition",
+          "establishes": "Eviction uses the normalized source-address prefix key for every user and address.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeRegistrationIgnoresIdentityAndClaim",
+          "statement": "(use : SourceSecurityUse) -> (reach : Reachability) ->\n    (address : SourceAddress) -> (leftIdentity : Count) -> (rightIdentity : Count) ->\n    (leftClaim : Count) -> (rightClaim : Count) -> (state : SourceLifetimeState) ->\n    Equal SourceLifetimeState\n      (lifetimeSourceStep (lifetimeRegister use reach address leftIdentity leftClaim) state)\n      (lifetimeSourceStep (lifetimeRegister use reach address rightIdentity rightClaim) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing an identity or caller key preserves the complete registration result.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeValidatedResidentIsNoOp",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (identity : Count) -> (claim : Count) -> (boot : Count) -> (epoch : Count) ->\n    (restriction : SourceRestriction) -> (rest : SourceTable) -> Equal SourceLifetimeState\n      (lifetimeSourceStep (lifetimeRegister use validated address identity claim)\n        (sourceLifetimeState boot epoch (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest)))\n      (sourceLifetimeState boot epoch (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Validated re-registration preserves the complete state of a normalized resident in the first table slot and never duplicates or resets its restriction.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeMappedRegistrationSharesNativeState",
+          "statement": "(use : SourceSecurityUse) -> (reach : Reachability) ->\n    (prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (identity : Count) ->\n    (claim : Count) -> (state : SourceLifetimeState) -> Equal SourceLifetimeState\n      (lifetimeSourceStep (lifetimeRegister use reach (mappedIpv4SourceAddress prefix leftHost) identity claim) state)\n      (lifetimeSourceStep (lifetimeRegister use reach (ipv4SourceAddress prefix rightHost) identity claim) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 hosts in the same prefix produce identical registration state.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeMappedSecuritySharesNativeKey",
+          "statement": "(use : SourceSecurityUse) -> (prefix : Count) ->\n    (leftHost : Count) -> (rightHost : Count) -> (state : SourceLifetimeState) -> Equal SourceRestriction\n      (lifetimeSecurityAt use (mappedIpv4SourceAddress prefix leftHost) state)\n      (lifetimeSecurityAt use (ipv4SourceAddress prefix rightHost) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 hosts in the same prefix read identical security state.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeIpv6SecurityIgnoresHost",
+          "statement": "(use : SourceSecurityUse) -> (prefix : Count) ->\n    (leftHost : Count) -> (rightHost : Count) -> (state : SourceLifetimeState) -> Equal SourceRestriction\n      (lifetimeSecurityAt use (ipv6SourceAddress prefix leftHost) state)\n      (lifetimeSecurityAt use (ipv6SourceAddress prefix rightHost) state)",
+          "scope_kind": "general_transition",
+          "establishes": "IPv6 hosts in one fixed prefix read identical security state.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeRegistrationSharesT4bT8",
+          "statement": "(reach : Reachability) -> (address : SourceAddress) ->\n    (identity : Count) -> (claim : Count) -> (state : SourceLifetimeState) -> Equal SourceLifetimeState\n      (lifetimeSourceStep (lifetimeRegister securityT4b reach address identity claim) state)\n      (lifetimeSourceStep (lifetimeRegister securityT8 reach address identity claim) state)",
+          "scope_kind": "general_transition",
+          "establishes": "T4b and T8 registration uses one identical complete source state.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeT4bT8ShareSecurity",
+          "statement": "(state : SourceLifetimeState) -> Equal SourceTable\n    (lifetimeSharedSecurity securityT4b state) (lifetimeSharedSecurity securityT8 state)",
+          "scope_kind": "general_transition",
+          "establishes": "T4b and T8 read one identical protected security table.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeSecuritySelectsDebt",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (boot : Count) -> (epoch : Count) -> (debt : Count) -> (rest : SourceTable) -> Equal SourceRestriction\n      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch\n        (sourceSlot (trackedSource (normalizedSourceKey address) (sourceRateDebt debt)) rest))) (sourceRateDebt debt)",
+          "scope_kind": "general_transition",
+          "establishes": "A normalized resident debt cell in the first table slot is read with its exact arbitrary debt payload.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeSecuritySelectsBan",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (boot : Count) -> (epoch : Count) -> (rest : SourceTable) -> Equal SourceRestriction\n      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch\n        (sourceSlot (trackedSource (normalizedSourceKey address) sourceBan) rest))) sourceBan",
+          "scope_kind": "general_transition",
+          "establishes": "A normalized resident ban cell in the first table slot is read as a ban.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeSecuritySelectsJointDebtAndBan",
+          "statement": "(use : SourceSecurityUse) -> (address : SourceAddress) ->\n    (boot : Count) -> (epoch : Count) -> (debt : Count) -> (rest : SourceTable) -> Equal SourceRestriction\n      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch\n        (sourceSlot (trackedSource (normalizedSourceKey address) (sourceDebtAndBan debt)) rest))) (sourceDebtAndBan debt)",
+          "scope_kind": "general_transition",
+          "establishes": "A normalized resident joint debt/ban cell in the first table slot is read with its exact debt payload and ban.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeRestartAdvancesBoot",
+          "statement": "(boot : Count) -> (epoch : Count) -> (table : SourceTable) ->\n    Equal Count (lifetimeBoot (lifetimeSourceStep lifetimeRestart (sourceLifetimeState boot epoch table)))\n      (next boot)",
+          "scope_kind": "general_transition",
+          "establishes": "A process restart advances its explicit boot generation.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
+        },
+        {
+          "path": "proofs/84-source-security-lifetimes.mech",
+          "name": "lifetimeEpochAdvancesEpoch",
+          "statement": "(boot : Count) -> (epoch : Count) -> (table : SourceTable) ->\n    Equal Count (lifetimeEpoch (lifetimeSourceStep lifetimeEpochChange (sourceLifetimeState boot epoch table)))\n      (next epoch)",
+          "scope_kind": "general_transition",
+          "establishes": "An epoch boundary advances its explicit epoch counter.",
+          "premises": [
+            "One fixed-width SourceTable stores protected normalized source debt and bans for both T4b and T8.",
+            "SourceAddress supplies the validated fixed-prefix address classification; identities and caller keys cannot choose the security key.",
+            "Registration, safe eviction, restart and epoch change are serialized modeled events. Restart and epoch change preserve protected cells and advance natural-number counters.",
+            "Authorized debt service and ban expiry are separate trusted events, outside these churn-only traces."
+          ],
+          "limits": "E014 retains runtime prefix classification, shared-table refinement, security-state restoration across process restart, nonwrapping lifecycle counters and authorized debt/ban release semantics. E029 retains peer lifecycle refinement. The trace contains no debt service, ban expiry or new penalty events and proves persistence of existing protected state, not rate fairness."
         }
       ],
       "controls": [
@@ -3726,6 +3965,110 @@
         {
           "name": "joint_source_evicted",
           "sha256": "f97f70280ccf0464ee76ba1012fad0d0f1c2790e26c158d67dda55887f5b20a5"
+        },
+        {
+          "name": "source_lifetime_registration_uses_claim",
+          "sha256": "150626a2582bdd69ceb50f0ad3e46e6f56fea06779758229627f0c2cf074dc62"
+        },
+        {
+          "name": "source_lifetime_registration_uses_identity",
+          "sha256": "d0fa3cb5b723bcf1c66e19ecc8c1539c39c079b6e3b8177fa450d4924184e03a"
+        },
+        {
+          "name": "source_lifetime_registration_uses_fixed_key",
+          "sha256": "e6aebe1c008feb6910756cd1f8ea905d46257d40f0738b40519ac0c001e941df"
+        },
+        {
+          "name": "source_lifetime_unvalidated_registers",
+          "sha256": "7f56606a8c8483d9ea72b7a5b1cdb7b71a9974fe760203b119de47197b39e1b0"
+        },
+        {
+          "name": "source_lifetime_resident_duplicated",
+          "sha256": "dd63e5c7f5177ea53098300cd6a0bccb5dab94d2a04213be4c0d9cb6a0de649b"
+        },
+        {
+          "name": "source_lifetime_eviction_uses_fixed_key",
+          "sha256": "8d6e7c978430a477af0293370a09264e4007b91694c3a5daddb1c21871e05eee"
+        },
+        {
+          "name": "source_lifetime_eviction_erases_table",
+          "sha256": "3071004f360f70dc33d0ec03b7ec270a4f989cb84ac5adfb99f3af0ed1925fe5"
+        },
+        {
+          "name": "source_lifetime_restart_erases_table",
+          "sha256": "33a0a26c8e7039c186b72636da57a9688d7c7d8ca11b9eb0d68ea1b84ead6bb6"
+        },
+        {
+          "name": "source_lifetime_epoch_erases_table",
+          "sha256": "420a02814aff33774449f5eacdcfe1dec3cd668684270f87ad12ce3fe007764c"
+        },
+        {
+          "name": "source_lifetime_restart_grows_capacity",
+          "sha256": "a7cd6be99c1149d74b53a65479d5b7df10a6f7741f2ff1ede1abd10b235ad41a"
+        },
+        {
+          "name": "source_lifetime_epoch_grows_capacity",
+          "sha256": "7230de1c65d809861939ffc50dc8f9e3f3f50ea6ddec5b0598fa2a3f69f9c79c"
+        },
+        {
+          "name": "source_lifetime_t8_registration_split",
+          "sha256": "b1c002078f5203b11486f2df4ae48b8b6309d6545cabd669c6c59290d79b6f37"
+        },
+        {
+          "name": "source_lifetime_restart_clears_security_same_width",
+          "sha256": "a66990f66f1f0c4d4ca3d1212746ae2a3b5c4e4d707cf81cd142587542905488"
+        },
+        {
+          "name": "source_lifetime_epoch_clears_security_same_width",
+          "sha256": "d0142b349ec921f5506b23417dce3f12a353e76d1b020b2aadccaae355b68d3a"
+        },
+        {
+          "name": "source_lifetime_restart_reuses_boot",
+          "sha256": "af76f74707940946752c1584aaf0000d6db310cb00f9363d4c974e9edc44ffb5"
+        },
+        {
+          "name": "source_lifetime_epoch_reuses_epoch",
+          "sha256": "be65b78445d8d9a45fd8b6ba4a3128cd6c51d585fda45132bd80ec9e23feb603"
+        },
+        {
+          "name": "source_lifetime_restart_resets_epoch",
+          "sha256": "57d677b811f8ca0c30b1d6094d19a123ca03fdbd9f937f79ef32b8872abab853"
+        },
+        {
+          "name": "source_lifetime_epoch_resets_boot",
+          "sha256": "4b0ee1dd31364c6b43b4658a6e0821107b14ac96b8fa9926fc60581d061717b6"
+        },
+        {
+          "name": "source_lifetime_trace_drops_head",
+          "sha256": "0d13a9186388540f498f2e7f2ea32f9949e1c6b06e99ce766ffb1d4cefe78e47"
+        },
+        {
+          "name": "source_lifetime_trace_drops_tail",
+          "sha256": "c554cbc1219da8132ec19145b98d81bc35ec2c246f12595be791925939530c6c"
+        },
+        {
+          "name": "source_lifetime_trace_replays_head",
+          "sha256": "91af79059c0d87ff61498176ac6620393d3f93f7eef4df88dcf140c9c5505499"
+        },
+        {
+          "name": "source_lifetime_trace_done_resets",
+          "sha256": "6189abc406ef6a02529483e73b1a2de8c6bdd79114c8ed8c4d59cfbf0a3aabfc"
+        },
+        {
+          "name": "source_lifetime_t8_security_split",
+          "sha256": "44ab5610d09d5e8fb249b92231e403d6278f294b5cc470dabbc9e7313a04bcd0"
+        },
+        {
+          "name": "source_lifetime_query_uses_fixed_key",
+          "sha256": "15f87fd0039bd2b0bc7df9a0942a9e5a09db947c3a96dbf9625ab4064992edb7"
+        },
+        {
+          "name": "source_lifetime_query_erases_security",
+          "sha256": "b1e2d3e5beb5f489d791ba064da8c0587cd15802d73bf01424e8b075324fb98a"
+        },
+        {
+          "name": "source_lifetime_query_loses_selected_restriction",
+          "sha256": "fc8eb7cc3994534ef9f785db58adf11444f4c93ca9a2b64404b60a14b0d69acc"
         }
       ],
       "criteria": [
@@ -3733,20 +4076,37 @@
           "index": 0,
           "status": "witnessed",
           "witnesses": [
-            "proofs/29-source-system.mech#sourceSystemTraceSlotBound"
+            "proofs/29-source-system.mech#sourceSystemTraceSlotBound",
+            "proofs/84-source-security-lifetimes.mech#lifetimeTraceCardinalityBound"
           ],
-          "rationale": "The statement bounds every modeled trace and initial table by that table fixed finite width.",
+          "rationale": "Both arbitrary source-system traces and arbitrary normalized mixed lifecycle traces stay within their initial fixed table width.",
           "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/27-source-table.mech#sourceCellEvictionPreservesProtection",
-            "proofs/27-source-table.mech#sourceChurnPreservesProtection"
+            "proofs/27-source-table.mech#sourceChurnPreservesProtection",
+            "proofs/84-source-security-lifetimes.mech#lifetimeTracePreservesProtection",
+            "proofs/84-source-security-lifetimes.mech#lifetimeTraceSharedSecurityPersists",
+            "proofs/84-source-security-lifetimes.mech#lifetimeRegistrationUsesNormalizedKey",
+            "proofs/84-source-security-lifetimes.mech#lifetimeEvictionUsesNormalizedKey",
+            "proofs/84-source-security-lifetimes.mech#lifetimeRegistrationIgnoresIdentityAndClaim",
+            "proofs/84-source-security-lifetimes.mech#lifetimeValidatedResidentIsNoOp",
+            "proofs/84-source-security-lifetimes.mech#lifetimeMappedRegistrationSharesNativeState",
+            "proofs/84-source-security-lifetimes.mech#lifetimeMappedSecuritySharesNativeKey",
+            "proofs/84-source-security-lifetimes.mech#lifetimeIpv6SecurityIgnoresHost",
+            "proofs/84-source-security-lifetimes.mech#lifetimeRegistrationSharesT4bT8",
+            "proofs/84-source-security-lifetimes.mech#lifetimeT4bT8ShareSecurity",
+            "proofs/84-source-security-lifetimes.mech#lifetimeSecuritySelectsDebt",
+            "proofs/84-source-security-lifetimes.mech#lifetimeSecuritySelectsBan",
+            "proofs/84-source-security-lifetimes.mech#lifetimeSecuritySelectsJointDebtAndBan",
+            "proofs/84-source-security-lifetimes.mech#lifetimeRestartAdvancesBoot",
+            "proofs/84-source-security-lifetimes.mech#lifetimeEpochAdvancesEpoch"
           ],
-          "rationale": "Arbitrary registration and eviction churn preserves the protected source-table projection, and local eviction preserves protection. These statements use Count keys. They do not model normalized prefix attribution, restart/epoch lifetime or shared T4b/T8 peer security state.",
-          "remaining": "R03: Model normalized source/prefix attribution and restart/epoch lifetimes, and prove protected shared T4b/T8 debt/ban persistence when re-registration and eviction churn composes with those transitions."
+          "rationale": "Quantified normalized registration/eviction and arbitrary finite restart/epoch traces preserve the complete protected table and each selected source restriction, share T4b/T8 state, and ignore fresh identity/caller claims. Mapped/native IPv4 and IPv6 hosts respect fixed-prefix attribution. Lifetime counters advance without treating lifecycle boundaries as debt/ban release authority.",
+          "remaining": ""
         }
       ]
     },

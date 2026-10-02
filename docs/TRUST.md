@@ -498,7 +498,7 @@ own units and supplied host allocations. The model's per-interval work bound
 does not prove cumulative rate or scheduling fairness. Supplied source labels
 do not prove IP/prefix normalization. Concrete resource vectors, shared
 runtime routing, calibration and deployment guarantees remain external or
-separately open model obligations, including M003, M009, M012 and M013.
+separately open model obligations, including M012 and M013.
 E022 owns established-resource routing and work-budget enforcement. E013 owns
 runtime pending accounting. E010 owns calibration and deployment guarantees.
 
@@ -543,8 +543,8 @@ pool. All attributed events route through one serialized shared admission state.
 
 Module 82 witnesses M003's normalized-attribution criterion. Module 83
 composes trusted-exemption and privileged-allowance provenance and closes the
-remaining model criterion. Multi-prefix overlap, restart/epoch security lifetimes and distinct
-timed prefix buckets remain M009/M013 work. E014 owns runtime normalization,
+remaining model criterion. Module 84 closes M009 with multi-prefix overlap and restart/epoch security
+lifetimes. Distinct timed prefix buckets remain M013 work. E014 owns runtime normalization,
 validation, exemption and lifetime refinement. E013 owns concrete pending
 accounting, receipt authority, atomicity and storage dominance.
 
@@ -567,4 +567,24 @@ only admitted receipts debit an allowance. E013 owns atomic resource/allowance
 updates, receipt authority and concrete pending accounting. Initial-fit premises
 are explicit for source debt, credit and allowance trace bounds. Aggregate
 pending bounds hold for every initial pool. No timed prefix-rate or restart/epoch
-claim follows from fixed-budget allowance accounting; M009 and M013 remain open.
+claim follows from fixed-budget allowance accounting. Module 84 closes M009; M013 remains open.
+
+## Source security lifetimes
+
+Module 84 grants a correctly classified fixed-prefix `SourceAddress` and one
+shared, serialized finite security table for T4b and T8. The modeled restart
+and epoch transitions preserve protected keys, debt payloads and bans and
+advance natural-number lifecycle counters. Concrete persistence/restoration
+across process restart, counter nonwrapping, prefix parsing and shared-table
+storage refinement remain E014 obligations. E029 retains peer lifecycle
+refinement. A model restart retaining an abstract table is no proof that the
+deployed process restores that table.
+
+Protected state cannot expire merely because an identity re-registers, a safe
+eviction is attempted, a process restarts or an epoch changes. The churn trace
+contains no authorized debt service, ban expiry or new penalties. Those
+transitions require the earlier trusted policy and runtime release authority;
+the lifetime proof neither defines wall-clock expiry nor grants release to
+untrusted callers. The initial protected cells and payloads may be arbitrary.
+Correctly restoring their projection is necessary for the proved persistence.
+Rate fairness and production limits remain separate model/external work.

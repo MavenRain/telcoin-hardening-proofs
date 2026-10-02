@@ -40,13 +40,13 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 83, 8, 75, 0))
+                          result["unreviewed_obligations"]), (83, 83, 9, 74, 0))
         self.assertEqual(result["unaudited_criteria"], 0)
         self.assertTrue(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
-        self.assertEqual(len(result["remaining"]), 75)
+        self.assertEqual(len(result["remaining"]), 74)
         self.assertEqual(set(result["witness_scope_counts"]),
                          {"arbitrary_trace", "general_transition", "conditional_liveness", "finite_example"})
 
@@ -168,7 +168,10 @@ class AuditChecks(unittest.TestCase):
         self.reject("remaining criterion work")
 
     def test_complete_flag_cannot_hide_unresolved_criteria(self):
-        self.row("M009")["scope_complete"] = True
+        row = self.row("M009")
+        row["criteria"][1]["status"] = "gap"
+        row["criteria"][1]["remaining"] = "Injected unresolved model scope."
+        row["scope_complete"] = True
         self.reject("unresolved criteria")
 
     def test_general_local_witnesses_do_not_imply_full_scope_credit(self):

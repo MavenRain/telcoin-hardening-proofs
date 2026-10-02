@@ -2514,6 +2514,59 @@ MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_11, _TRUSTED_AUTH
         ('execution_trace_stale_state', '(trustedSourceStep quota capacity budget event current)', 'current'),
     ]]
 
+# R03 normalized source security, restart and epoch lifetime controls.
+_LIFETIME_TABLE_STEP = """def lifetimeTableStep : SourceLifetimeEvent -> SourceTable -> SourceTable :=
+  fun (event : SourceLifetimeEvent) (table : SourceTable) =>
+    case event as action in SourceLifetimeEvent return SourceTable with
+    | lifetimeRegister use reach address identity claim =>
+        rememberSource reach (normalizedSourceKey address) table
+    | lifetimeEvict use address => evictSource (normalizedSourceKey address) table
+    | lifetimeRestart => protectedSources table
+    | lifetimeEpochChange => protectedSources table"""
+MUTATIONS += [("source_lifetime_" + name, _LIFETIME_TABLE_STEP, _LIFETIME_TABLE_STEP.replace(before, after))
+              for name, before, after in [
+    ("registration_uses_claim", "rememberSource reach (normalizedSourceKey address) table", "rememberSource reach claim table"),
+    ("registration_uses_identity", "rememberSource reach (normalizedSourceKey address) table", "rememberSource reach identity table"),
+    ("registration_uses_fixed_key", "rememberSource reach (normalizedSourceKey address) table", "rememberSource reach zero table"),
+    ("unvalidated_registers", "rememberSource reach (normalizedSourceKey address) table", "rememberSource validated (normalizedSourceKey address) table"),
+    ("resident_duplicated", "rememberSource reach (normalizedSourceKey address) table", "insertSource (normalizedSourceKey address) table"),
+    ("eviction_uses_fixed_key", "evictSource (normalizedSourceKey address) table", "evictSource zero table"),
+    ("eviction_erases_table", "evictSource (normalizedSourceKey address) table", "noSourceSlots"),
+    ("restart_erases_table", "| lifetimeRestart => protectedSources table", "| lifetimeRestart => noSourceSlots"),
+    ("epoch_erases_table", "| lifetimeEpochChange => protectedSources table", "| lifetimeEpochChange => noSourceSlots"),
+    ("restart_grows_capacity", "| lifetimeRestart => protectedSources table", "| lifetimeRestart => sourceSlot vacantSource (protectedSources table)"),
+    ("epoch_grows_capacity", "| lifetimeEpochChange => protectedSources table", "| lifetimeEpochChange => sourceSlot vacantSource (protectedSources table)"),
+    ("t8_registration_split", "rememberSource reach (normalizedSourceKey address) table", "(case use as lane in SourceSecurityUse return SourceTable with\n        | securityT4b => rememberSource reach (normalizedSourceKey address) table\n        | securityT8 => table)"),
+]]
+_LIFETIME_SECURITY_RESET = """def rec resetLifetimeSecurity : SourceTable -> SourceTable :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return SourceTable with
+    | noSourceSlots => noSourceSlots
+    | sourceSlot cell rest => sourceSlot vacantSource (resetLifetimeSecurity rest)
+
+"""
+MUTATIONS += [("source_lifetime_" + name, _LIFETIME_TABLE_STEP,
+               _LIFETIME_SECURITY_RESET + _LIFETIME_TABLE_STEP.replace(before, after))
+              for name, before, after in [
+    ("restart_clears_security_same_width", "| lifetimeRestart => protectedSources table", "| lifetimeRestart => resetLifetimeSecurity table"),
+    ("epoch_clears_security_same_width", "| lifetimeEpochChange => protectedSources table", "| lifetimeEpochChange => resetLifetimeSecurity table"),
+]]
+MUTATIONS += [
+    ("source_lifetime_restart_reuses_boot", "| lifetimeRestart => next boot", "| lifetimeRestart => boot"),
+    ("source_lifetime_epoch_reuses_epoch", "| lifetimeEpochChange => next epoch", "| lifetimeEpochChange => epoch"),
+    ("source_lifetime_restart_resets_epoch", "| lifetimeRestart => epoch", "| lifetimeRestart => zero"),
+    ("source_lifetime_epoch_resets_boot", "| lifetimeEpochChange => boot", "| lifetimeEpochChange => zero"),
+    ("source_lifetime_trace_drops_head", "| sourceLifetimeThen event rest => runSourceLifetimes rest (lifetimeSourceStep event state)", "| sourceLifetimeThen event rest => runSourceLifetimes rest state"),
+    ("source_lifetime_trace_drops_tail", "| sourceLifetimeThen event rest => runSourceLifetimes rest (lifetimeSourceStep event state)", "| sourceLifetimeThen event rest => lifetimeSourceStep event state"),
+    ("source_lifetime_trace_replays_head", "| sourceLifetimeThen event rest => runSourceLifetimes rest (lifetimeSourceStep event state)", "| sourceLifetimeThen event rest => runSourceLifetimes rest (lifetimeSourceStep event (lifetimeSourceStep event state))"),
+    ("source_lifetime_trace_done_resets", "| sourceLifetimeDone => state", "| sourceLifetimeDone => sourceLifetimeState zero zero noSourceSlots"),
+    ("source_lifetime_t8_security_split", "fun (use : SourceSecurityUse) (state : SourceLifetimeState) => protectedSources (lifetimeTable state)", "fun (use : SourceSecurityUse) (state : SourceLifetimeState) =>\n    case use as lane in SourceSecurityUse return SourceTable with\n    | securityT4b => protectedSources (lifetimeTable state)\n    | securityT8 => noSourceSlots"),
+    ("source_lifetime_query_uses_fixed_key", "lifetimeRestrictionAt (normalizedSourceKey address) (lifetimeSharedSecurity use state)", "lifetimeRestrictionAt zero (lifetimeSharedSecurity use state)"),
+    ("source_lifetime_query_erases_security", "lifetimeRestrictionAt (normalizedSourceKey address) (lifetimeSharedSecurity use state)", "sourceClear"),
+    ("source_lifetime_query_loses_selected_restriction", "| off => lifetimeRestrictionAt key rest\n        | on => restriction", "| off => lifetimeRestrictionAt key rest\n        | on => sourceClear"),
+]
+
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")

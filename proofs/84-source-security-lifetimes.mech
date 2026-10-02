@@ -1,0 +1,357 @@
+-- One bounded, normalized security table is shared by T4b and T8.
+-- Restart and epoch boundaries retain protected debt and bans, discard clear
+-- residents, and advance explicit lifecycle counters. Authorized debt service
+-- and ban expiry are outside this churn-only transition system.
+
+mu SourceSecurityUse : Type 0 with
+| securityT4b : SourceSecurityUse
+| securityT8 : SourceSecurityUse
+
+mu SourceLifetimeState : Type 0 with
+| sourceLifetimeState : Count -> Count -> SourceTable -> SourceLifetimeState
+
+def lifetimeTable : SourceLifetimeState -> SourceTable :=
+  fun (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return SourceTable with
+    | sourceLifetimeState boot epoch table => table
+
+def lifetimeBoot : SourceLifetimeState -> Count :=
+  fun (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Count with
+    | sourceLifetimeState boot epoch table => boot
+
+def lifetimeEpoch : SourceLifetimeState -> Count :=
+  fun (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Count with
+    | sourceLifetimeState boot epoch table => epoch
+
+mu SourceLifetimeEvent : Type 0 with
+| lifetimeRegister : SourceSecurityUse -> Reachability -> SourceAddress -> Count -> Count -> SourceLifetimeEvent
+| lifetimeEvict : SourceSecurityUse -> SourceAddress -> SourceLifetimeEvent
+| lifetimeRestart : SourceLifetimeEvent
+| lifetimeEpochChange : SourceLifetimeEvent
+
+def lifetimeTableStep : SourceLifetimeEvent -> SourceTable -> SourceTable :=
+  fun (event : SourceLifetimeEvent) (table : SourceTable) =>
+    case event as action in SourceLifetimeEvent return SourceTable with
+    | lifetimeRegister use reach address identity claim =>
+        rememberSource reach (normalizedSourceKey address) table
+    | lifetimeEvict use address => evictSource (normalizedSourceKey address) table
+    | lifetimeRestart => protectedSources table
+    | lifetimeEpochChange => protectedSources table
+
+def lifetimeBootStep : SourceLifetimeEvent -> Count -> Count :=
+  fun (event : SourceLifetimeEvent) (boot : Count) =>
+    case event as action in SourceLifetimeEvent return Count with
+    | lifetimeRegister use reach address identity claim => boot
+    | lifetimeEvict use address => boot
+    | lifetimeRestart => next boot
+    | lifetimeEpochChange => boot
+
+def lifetimeEpochStep : SourceLifetimeEvent -> Count -> Count :=
+  fun (event : SourceLifetimeEvent) (epoch : Count) =>
+    case event as action in SourceLifetimeEvent return Count with
+    | lifetimeRegister use reach address identity claim => epoch
+    | lifetimeEvict use address => epoch
+    | lifetimeRestart => epoch
+    | lifetimeEpochChange => next epoch
+
+def lifetimeSourceStep : SourceLifetimeEvent -> SourceLifetimeState -> SourceLifetimeState :=
+  fun (event : SourceLifetimeEvent) (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return SourceLifetimeState with
+    | sourceLifetimeState boot epoch table => sourceLifetimeState
+        (lifetimeBootStep event boot) (lifetimeEpochStep event epoch) (lifetimeTableStep event table)
+
+def lifetimeRegistrationUsesNormalizedKey : (use : SourceSecurityUse) -> (reach : Reachability) ->
+    (address : SourceAddress) -> (identity : Count) -> (claim : Count) -> (table : SourceTable) ->
+    Equal SourceTable (lifetimeTableStep (lifetimeRegister use reach address identity claim) table)
+      (rememberSource reach (normalizedSourceKey address) table) :=
+  fun (use : SourceSecurityUse) (reach : Reachability) (address : SourceAddress)
+      (identity : Count) (claim : Count) (table : SourceTable) => same
+
+def lifetimeEvictionUsesNormalizedKey : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (table : SourceTable) -> Equal SourceTable (lifetimeTableStep (lifetimeEvict use address) table)
+      (evictSource (normalizedSourceKey address) table) :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (table : SourceTable) => same
+
+def lifetimeRegistrationIgnoresIdentityAndClaim : (use : SourceSecurityUse) -> (reach : Reachability) ->
+    (address : SourceAddress) -> (leftIdentity : Count) -> (rightIdentity : Count) ->
+    (leftClaim : Count) -> (rightClaim : Count) -> (state : SourceLifetimeState) ->
+    Equal SourceLifetimeState
+      (lifetimeSourceStep (lifetimeRegister use reach address leftIdentity leftClaim) state)
+      (lifetimeSourceStep (lifetimeRegister use reach address rightIdentity rightClaim) state) :=
+  fun (use : SourceSecurityUse) (reach : Reachability) (address : SourceAddress)
+      (leftIdentity : Count) (rightIdentity : Count) (leftClaim : Count) (rightClaim : Count)
+      (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal SourceLifetimeState
+        (lifetimeSourceStep (lifetimeRegister use reach address leftIdentity leftClaim) self)
+        (lifetimeSourceStep (lifetimeRegister use reach address rightIdentity rightClaim) self) with
+    | sourceLifetimeState boot epoch table => same
+
+def lifetimeUnvalidatedRegistrationIsNoOp : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (identity : Count) -> (claim : Count) -> (state : SourceLifetimeState) ->
+    Equal SourceLifetimeState
+      (lifetimeSourceStep (lifetimeRegister use unvalidated address identity claim) state) state :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (identity : Count) (claim : Count)
+      (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal SourceLifetimeState
+        (lifetimeSourceStep (lifetimeRegister use unvalidated address identity claim) self) self with
+    | sourceLifetimeState boot epoch table => same
+
+def lifetimeMappedRegistrationSharesNativeState : (use : SourceSecurityUse) -> (reach : Reachability) ->
+    (prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (identity : Count) ->
+    (claim : Count) -> (state : SourceLifetimeState) -> Equal SourceLifetimeState
+      (lifetimeSourceStep (lifetimeRegister use reach (mappedIpv4SourceAddress prefix leftHost) identity claim) state)
+      (lifetimeSourceStep (lifetimeRegister use reach (ipv4SourceAddress prefix rightHost) identity claim) state) :=
+  fun (use : SourceSecurityUse) (reach : Reachability) (prefix : Count) (leftHost : Count)
+      (rightHost : Count) (identity : Count) (claim : Count) (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal SourceLifetimeState
+        (lifetimeSourceStep (lifetimeRegister use reach (mappedIpv4SourceAddress prefix leftHost) identity claim) self)
+        (lifetimeSourceStep (lifetimeRegister use reach (ipv4SourceAddress prefix rightHost) identity claim) self) with
+    | sourceLifetimeState boot epoch table => same
+
+def lifetimeValidatedResidentIsNoOp : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (identity : Count) -> (claim : Count) -> (boot : Count) -> (epoch : Count) ->
+    (restriction : SourceRestriction) -> (rest : SourceTable) -> Equal SourceLifetimeState
+      (lifetimeSourceStep (lifetimeRegister use validated address identity claim)
+        (sourceLifetimeState boot epoch (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest)))
+      (sourceLifetimeState boot epoch (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest)) :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (identity : Count) (claim : Count)
+      (boot : Count) (epoch : Count) (restriction : SourceRestriction) (rest : SourceTable) =>
+    congruent SourceTable SourceLifetimeState (fun (table : SourceTable) => sourceLifetimeState boot epoch table)
+      (rememberSource validated (normalizedSourceKey address)
+        (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest))
+      (sourceSlot (trackedSource (normalizedSourceKey address) restriction) rest)
+      (knownSourceIsNotDuplicated (normalizedSourceKey address) restriction rest)
+
+def lifetimeRegistrationSharesT4bT8 : (reach : Reachability) -> (address : SourceAddress) ->
+    (identity : Count) -> (claim : Count) -> (state : SourceLifetimeState) -> Equal SourceLifetimeState
+      (lifetimeSourceStep (lifetimeRegister securityT4b reach address identity claim) state)
+      (lifetimeSourceStep (lifetimeRegister securityT8 reach address identity claim) state) :=
+  fun (reach : Reachability) (address : SourceAddress) (identity : Count) (claim : Count)
+      (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal SourceLifetimeState
+        (lifetimeSourceStep (lifetimeRegister securityT4b reach address identity claim) self)
+        (lifetimeSourceStep (lifetimeRegister securityT8 reach address identity claim) self) with
+    | sourceLifetimeState boot epoch table => same
+
+def protectedSourceCellIdempotent : (cell : SourceCell) ->
+    Equal SourceCell (protectedSourceCell (protectedSourceCell cell)) (protectedSourceCell cell) :=
+  fun (cell : SourceCell) =>
+    case cell as entry in SourceCell return Equal SourceCell
+        (protectedSourceCell (protectedSourceCell entry)) (protectedSourceCell entry) with
+    | vacantSource => same
+    | trackedSource key restriction =>
+      case restriction as security in SourceRestriction return Equal SourceCell
+          (protectedSourceCell (protectedSourceCell (trackedSource key security)))
+          (protectedSourceCell (trackedSource key security)) with
+      | sourceClear => same
+      | sourceDebtAndBan debt => same
+      | sourceRateDebt debt => same
+      | sourceBan => same
+
+def rec protectedSourceTableIdempotent : (table : SourceTable) ->
+    Equal SourceTable (protectedSources (protectedSources table)) (protectedSources table) :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return Equal SourceTable
+        (protectedSources (protectedSources self)) (protectedSources self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest => sourceSlotCongruent
+        (protectedSourceCell (protectedSourceCell cell)) (protectedSourceCell cell)
+        (protectedSources (protectedSources rest)) (protectedSources rest)
+        (protectedSourceCellIdempotent cell) (protectedSourceTableIdempotent rest)
+
+def rec protectedSourceTableWidth : (table : SourceTable) ->
+    Equal Count (sourceTableWidth (protectedSources table)) (sourceTableWidth table) :=
+  fun (table : SourceTable) =>
+    case table as self in SourceTable return Equal Count
+        (sourceTableWidth (protectedSources self)) (sourceTableWidth self) with
+    | noSourceSlots => same
+    | sourceSlot cell rest => congruent Count Count (fun (n : Count) => next n)
+        (sourceTableWidth (protectedSources rest)) (sourceTableWidth rest) (protectedSourceTableWidth rest)
+
+def lifetimeTableStepProtection : (event : SourceLifetimeEvent) -> (table : SourceTable) ->
+    Equal SourceTable (protectedSources (lifetimeTableStep event table)) (protectedSources table) :=
+  fun (event : SourceLifetimeEvent) (table : SourceTable) =>
+    case event as action in SourceLifetimeEvent return Equal SourceTable
+        (protectedSources (lifetimeTableStep action table)) (protectedSources table) with
+    | lifetimeRegister use reach address identity claim =>
+        sourceTableStepProtection (sourceRegistration reach (normalizedSourceKey address)) table
+    | lifetimeEvict use address => evictSourcePreservesProtection (normalizedSourceKey address) table
+    | lifetimeRestart => protectedSourceTableIdempotent table
+    | lifetimeEpochChange => protectedSourceTableIdempotent table
+
+def lifetimeTableStepWidth : (event : SourceLifetimeEvent) -> (table : SourceTable) ->
+    Equal Count (sourceTableWidth (lifetimeTableStep event table)) (sourceTableWidth table) :=
+  fun (event : SourceLifetimeEvent) (table : SourceTable) =>
+    case event as action in SourceLifetimeEvent return Equal Count
+        (sourceTableWidth (lifetimeTableStep action table)) (sourceTableWidth table) with
+    | lifetimeRegister use reach address identity claim =>
+        sourceTableStepWidth (sourceRegistration reach (normalizedSourceKey address)) table
+    | lifetimeEvict use address => evictSourcePreservesWidth (normalizedSourceKey address) table
+    | lifetimeRestart => protectedSourceTableWidth table
+    | lifetimeEpochChange => protectedSourceTableWidth table
+
+def lifetimeSourceStepProtection : (event : SourceLifetimeEvent) -> (state : SourceLifetimeState) ->
+    Equal SourceTable (protectedSources (lifetimeTable (lifetimeSourceStep event state)))
+      (protectedSources (lifetimeTable state)) :=
+  fun (event : SourceLifetimeEvent) (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal SourceTable
+        (protectedSources (lifetimeTable (lifetimeSourceStep event self))) (protectedSources (lifetimeTable self)) with
+    | sourceLifetimeState boot epoch table => lifetimeTableStepProtection event table
+
+def lifetimeSourceStepWidth : (event : SourceLifetimeEvent) -> (state : SourceLifetimeState) ->
+    Equal Count (sourceTableWidth (lifetimeTable (lifetimeSourceStep event state)))
+      (sourceTableWidth (lifetimeTable state)) :=
+  fun (event : SourceLifetimeEvent) (state : SourceLifetimeState) =>
+    case state as self in SourceLifetimeState return Equal Count
+        (sourceTableWidth (lifetimeTable (lifetimeSourceStep event self))) (sourceTableWidth (lifetimeTable self)) with
+    | sourceLifetimeState boot epoch table => lifetimeTableStepWidth event table
+
+def lifetimeRestartAdvancesBoot : (boot : Count) -> (epoch : Count) -> (table : SourceTable) ->
+    Equal Count (lifetimeBoot (lifetimeSourceStep lifetimeRestart (sourceLifetimeState boot epoch table)))
+      (next boot) :=
+  fun (boot : Count) (epoch : Count) (table : SourceTable) => same
+
+def lifetimeEpochAdvancesEpoch : (boot : Count) -> (epoch : Count) -> (table : SourceTable) ->
+    Equal Count (lifetimeEpoch (lifetimeSourceStep lifetimeEpochChange (sourceLifetimeState boot epoch table)))
+      (next epoch) :=
+  fun (boot : Count) (epoch : Count) (table : SourceTable) => same
+
+def lifetimeRestartRetainsEpoch : (boot : Count) -> (epoch : Count) -> (table : SourceTable) ->
+    Equal Count (lifetimeEpoch (lifetimeSourceStep lifetimeRestart (sourceLifetimeState boot epoch table))) epoch :=
+  fun (boot : Count) (epoch : Count) (table : SourceTable) => same
+
+def lifetimeEpochRetainsBoot : (boot : Count) -> (epoch : Count) -> (table : SourceTable) ->
+    Equal Count (lifetimeBoot (lifetimeSourceStep lifetimeEpochChange (sourceLifetimeState boot epoch table))) boot :=
+  fun (boot : Count) (epoch : Count) (table : SourceTable) => same
+
+mu SourceLifetimeTrace : Type 0 with
+| sourceLifetimeDone : SourceLifetimeTrace
+| sourceLifetimeThen : SourceLifetimeEvent -> SourceLifetimeTrace -> SourceLifetimeTrace
+
+def rec runSourceLifetimes : SourceLifetimeTrace -> SourceLifetimeState -> SourceLifetimeState :=
+  fun (events : SourceLifetimeTrace) (state : SourceLifetimeState) =>
+    case events as trace in SourceLifetimeTrace return SourceLifetimeState with
+    | sourceLifetimeDone => state
+    | sourceLifetimeThen event rest => runSourceLifetimes rest (lifetimeSourceStep event state)
+
+def lifetimeTraceDoneIsNoOp : (state : SourceLifetimeState) ->
+    Equal SourceLifetimeState (runSourceLifetimes sourceLifetimeDone state) state :=
+  fun (state : SourceLifetimeState) => same
+
+def lifetimeTraceExecutesHeadAndTail : (event : SourceLifetimeEvent) -> (rest : SourceLifetimeTrace) ->
+    (state : SourceLifetimeState) -> Equal SourceLifetimeState
+      (runSourceLifetimes (sourceLifetimeThen event rest) state)
+      (runSourceLifetimes rest (lifetimeSourceStep event state)) :=
+  fun (event : SourceLifetimeEvent) (rest : SourceLifetimeTrace) (state : SourceLifetimeState) => same
+
+def rec lifetimeTracePreservesProtection : (events : SourceLifetimeTrace) -> (state : SourceLifetimeState) ->
+    Equal SourceTable (protectedSources (lifetimeTable (runSourceLifetimes events state)))
+      (protectedSources (lifetimeTable state)) :=
+  fun (events : SourceLifetimeTrace) (state : SourceLifetimeState) =>
+    case events as trace in SourceLifetimeTrace return Equal SourceTable
+        (protectedSources (lifetimeTable (runSourceLifetimes trace state))) (protectedSources (lifetimeTable state)) with
+    | sourceLifetimeDone => same
+    | sourceLifetimeThen event rest => equalTransitivity SourceTable
+        (protectedSources (lifetimeTable (runSourceLifetimes rest (lifetimeSourceStep event state))))
+        (protectedSources (lifetimeTable (lifetimeSourceStep event state))) (protectedSources (lifetimeTable state))
+        (lifetimeTracePreservesProtection rest (lifetimeSourceStep event state)) (lifetimeSourceStepProtection event state)
+
+def rec lifetimeTracePreservesWidth : (events : SourceLifetimeTrace) -> (state : SourceLifetimeState) ->
+    Equal Count (sourceTableWidth (lifetimeTable (runSourceLifetimes events state)))
+      (sourceTableWidth (lifetimeTable state)) :=
+  fun (events : SourceLifetimeTrace) (state : SourceLifetimeState) =>
+    case events as trace in SourceLifetimeTrace return Equal Count
+        (sourceTableWidth (lifetimeTable (runSourceLifetimes trace state))) (sourceTableWidth (lifetimeTable state)) with
+    | sourceLifetimeDone => same
+    | sourceLifetimeThen event rest => equalTransitivity Count
+        (sourceTableWidth (lifetimeTable (runSourceLifetimes rest (lifetimeSourceStep event state))))
+        (sourceTableWidth (lifetimeTable (lifetimeSourceStep event state))) (sourceTableWidth (lifetimeTable state))
+        (lifetimeTracePreservesWidth rest (lifetimeSourceStep event state)) (lifetimeSourceStepWidth event state)
+
+def lifetimeTraceCardinalityBound : (events : SourceLifetimeTrace) -> (state : SourceLifetimeState) ->
+    AtMost (sourceTableSize (lifetimeTable (runSourceLifetimes events state))) (sourceTableWidth (lifetimeTable state)) :=
+  fun (events : SourceLifetimeTrace) (state : SourceLifetimeState) => equalTransport Count
+      (fun (limit : Count) => AtMost (sourceTableSize (lifetimeTable (runSourceLifetimes events state))) limit)
+      (sourceTableWidth (lifetimeTable (runSourceLifetimes events state))) (sourceTableWidth (lifetimeTable state))
+      (lifetimeTracePreservesWidth events state) (sourceTableBound (lifetimeTable (runSourceLifetimes events state)))
+
+def lifetimeSharedSecurity : SourceSecurityUse -> SourceLifetimeState -> SourceTable :=
+  fun (use : SourceSecurityUse) (state : SourceLifetimeState) => protectedSources (lifetimeTable state)
+
+def lifetimeT4bT8ShareSecurity : (state : SourceLifetimeState) -> Equal SourceTable
+    (lifetimeSharedSecurity securityT4b state) (lifetimeSharedSecurity securityT8 state) :=
+  fun (state : SourceLifetimeState) => same
+
+def rec lifetimeRestrictionAt : Count -> SourceTable -> SourceRestriction :=
+  fun (key : Count) (table : SourceTable) =>
+    case table as self in SourceTable return SourceRestriction with
+    | noSourceSlots => sourceClear
+    | sourceSlot cell rest =>
+      case cell as entry in SourceCell return SourceRestriction with
+      | vacantSource => lifetimeRestrictionAt key rest
+      | trackedSource resident restriction =>
+        case sameCount key resident as matched in Flag return SourceRestriction with
+        | off => lifetimeRestrictionAt key rest
+        | on => restriction
+
+def lifetimeRestrictionSelectsResident : (key : Count) -> (restriction : SourceRestriction) ->
+    (rest : SourceTable) -> Equal SourceRestriction
+      (lifetimeRestrictionAt key (sourceSlot (trackedSource key restriction) rest)) restriction :=
+  fun (key : Count) (restriction : SourceRestriction) (rest : SourceTable) =>
+    congruent Flag SourceRestriction (fun (hit : Flag) =>
+      case hit as matched in Flag return SourceRestriction with
+      | off => lifetimeRestrictionAt key rest
+      | on => restriction) (sameCount key key) on (sameCountReflexive key)
+
+def lifetimeSecurityAt : SourceSecurityUse -> SourceAddress -> SourceLifetimeState -> SourceRestriction :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (state : SourceLifetimeState) =>
+    lifetimeRestrictionAt (normalizedSourceKey address) (lifetimeSharedSecurity use state)
+
+def lifetimeSecuritySelectsDebt : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (boot : Count) -> (epoch : Count) -> (debt : Count) -> (rest : SourceTable) -> Equal SourceRestriction
+      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch
+        (sourceSlot (trackedSource (normalizedSourceKey address) (sourceRateDebt debt)) rest))) (sourceRateDebt debt) :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (boot : Count) (epoch : Count)
+      (debt : Count) (rest : SourceTable) =>
+    lifetimeRestrictionSelectsResident (normalizedSourceKey address) (sourceRateDebt debt) (protectedSources rest)
+
+def lifetimeSecuritySelectsBan : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (boot : Count) -> (epoch : Count) -> (rest : SourceTable) -> Equal SourceRestriction
+      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch
+        (sourceSlot (trackedSource (normalizedSourceKey address) sourceBan) rest))) sourceBan :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (boot : Count) (epoch : Count)
+      (rest : SourceTable) =>
+    lifetimeRestrictionSelectsResident (normalizedSourceKey address) sourceBan (protectedSources rest)
+
+def lifetimeSecuritySelectsJointDebtAndBan : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (boot : Count) -> (epoch : Count) -> (debt : Count) -> (rest : SourceTable) -> Equal SourceRestriction
+      (lifetimeSecurityAt use address (sourceLifetimeState boot epoch
+        (sourceSlot (trackedSource (normalizedSourceKey address) (sourceDebtAndBan debt)) rest))) (sourceDebtAndBan debt) :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (boot : Count) (epoch : Count)
+      (debt : Count) (rest : SourceTable) =>
+    lifetimeRestrictionSelectsResident (normalizedSourceKey address) (sourceDebtAndBan debt) (protectedSources rest)
+
+def lifetimeTraceSharedSecurityPersists : (use : SourceSecurityUse) -> (address : SourceAddress) ->
+    (events : SourceLifetimeTrace) -> (state : SourceLifetimeState) -> Equal SourceRestriction
+      (lifetimeSecurityAt use address (runSourceLifetimes events state)) (lifetimeSecurityAt use address state) :=
+  fun (use : SourceSecurityUse) (address : SourceAddress) (events : SourceLifetimeTrace)
+      (state : SourceLifetimeState) => congruent SourceTable SourceRestriction
+      (fun (table : SourceTable) => lifetimeRestrictionAt (normalizedSourceKey address) table)
+      (protectedSources (lifetimeTable (runSourceLifetimes events state))) (protectedSources (lifetimeTable state))
+      (lifetimeTracePreservesProtection events state)
+
+def lifetimeMappedSecuritySharesNativeKey : (use : SourceSecurityUse) -> (prefix : Count) ->
+    (leftHost : Count) -> (rightHost : Count) -> (state : SourceLifetimeState) -> Equal SourceRestriction
+      (lifetimeSecurityAt use (mappedIpv4SourceAddress prefix leftHost) state)
+      (lifetimeSecurityAt use (ipv4SourceAddress prefix rightHost) state) :=
+  fun (use : SourceSecurityUse) (prefix : Count) (leftHost : Count) (rightHost : Count)
+      (state : SourceLifetimeState) => same
+
+def lifetimeIpv6SecurityIgnoresHost : (use : SourceSecurityUse) -> (prefix : Count) ->
+    (leftHost : Count) -> (rightHost : Count) -> (state : SourceLifetimeState) -> Equal SourceRestriction
+      (lifetimeSecurityAt use (ipv6SourceAddress prefix leftHost) state)
+      (lifetimeSecurityAt use (ipv6SourceAddress prefix rightHost) state) :=
+  fun (use : SourceSecurityUse) (prefix : Count) (leftHost : Count) (rightHost : Count)
+      (state : SourceLifetimeState) => same

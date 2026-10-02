@@ -1121,3 +1121,25 @@ M003 is covered. The ledger covers eight of 83 model obligations and retains
 active. All 43 external obligations remain open. E014, E029 and E013 retain
 runtime authority, listing, allowance provisioning and pending refinement.
 The prior R03 receipts retain their original counts and input hashes.
+
+## R03 turn 9 source security lifetimes
+
+`r03-source-security-lifetimes-check.json` records the complete corpus and guard
+run: 67 modules, 1236 explicit equality/order proof declarations, 186 atomic
+obligations and 1172 rejected negative checks. Module 84 adds 31 counted proof
+declarations and 26 controls. Each new control is rejected by a general
+statement over quantified inputs, including debt/ban erasure at unchanged
+table width. Parser errors do not count as proof rejections.
+
+M009 is covered by arbitrary normalized-source registration/eviction and
+restart/epoch traces, exact protected-state persistence and T4b/T8 restriction
+selection, and cardinality bounded by initial fixed width. The source key
+ignores fresh identities and caller claims; mapped/native IPv4 and fixed IPv6
+prefixes share their security restriction. Restart/epoch lifetimes explicitly
+retain protected state. Authorized service/expiry is outside the churn trace;
+runtime restart restoration and release authority remain external.
+
+The ledger covers nine of 83 model obligations and retains 74 gaps; M012 and
+M013 remain in R03. R03 has used nine turns and remains active. All 43 external
+obligations remain open. E014 and E029 retain runtime source and peer lifecycle
+refinements. Historical R03 receipts retain their original counts and hashes.
