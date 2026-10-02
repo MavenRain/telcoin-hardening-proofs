@@ -1072,3 +1072,27 @@ in R03: M003, M009, M012 and M013. All 43 external obligations remain open.
 Disposition, scope, audit and qualification regressions preserve the sealed
 source and external boundaries. Full qualification must continue to fail.
 Earlier R03 and R02 receipts retain their original counts and input hashes.
+
+## R03 normalized source attribution, turn 7
+
+`r03-normalized-source-attribution-check.json` records the complete corpus and
+qualification-guard run: 65 modules, 1169 explicit equality/order proofs,
+186 atomic obligations and 1109 rejected negative checks. Module 82 adds
+28 explicit proofs, fixed IPv4/IPv6 normalization, mapped/native IPv4 sharing,
+unvalidated complete-state refusal, exact normalized event/receipt keys and
+arbitrary attributed-schedule debt, credit and aggregate pending bounds.
+
+The 29 new controls reject wrong namespace/host/key selection, identity-based
+charging, validation bypasses, wrong maintenance keys, altered clock/completion
+evidence, omitted or duplicated schedule events and an inflated step quota or
+capacity. Rejections are proof type
+mismatches over variables. The initial-fit premises for debt and credits remain
+explicit; aggregate pending occupancy is bounded for every initial pool.
+
+M003 criterion 1 is witnessed, while criterion 0 retains trusted exemptions and
+privileged-allowance provenance. The ledger still covers seven of 83 obligations
+and retains 76 gaps. R03 has used seven turns and remains active. E014 owns runtime
+normalization and authority refinement; E013 owns concrete pending refinement.
+All 43 external obligations remain open. Disposition, scope, audit and full
+qualification regressions preserve the frozen boundaries. Earlier receipts
+retain their original scopes and hashes.

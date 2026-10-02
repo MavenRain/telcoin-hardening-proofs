@@ -1,11 +1,13 @@
-# R03 admission boundary, turn 6
+# R03 admission boundary, turn 7
 
-R03 is active after six execution turns. Turn 1 closed M004, turn 2 closed
+R03 is active after seven execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
 population and resource/work composition. Turn 6 closes M021 with endpoint
-routing, migration ownership and finite discarded-state bounds. M005 was already covered by R02.
+routing, migration ownership and finite discarded-state bounds. Turn 7 witnesses
+M003's normalized-attribution criterion while retaining its exemption-provenance
+gap. M005 was already covered by R02.
 The audit covers seven of 83 model obligations, retains 76 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
 obligations, packet assignments and qualification guards remain intact.
@@ -180,25 +182,57 @@ ordering. They supply no fairness, delivery or concrete byte-bound conclusion.
 E019 retains runtime routing, internal callback authority, destination validation,
 serialization, nonwrapping generations, storage dominance and regressions.
 
+## Normalized source attribution
+
+[82-normalized-source-attribution.mech](../proofs/82-normalized-source-attribution.mech)
+witnesses M003 criterion 1. Addresses carry prefix and host components under one
+fixed normalization policy. Native and mapped IPv4 use the same even prefix
+namespace. IPv6 uses an odd namespace. General comparison laws preserve all
+within-family prefix distinctions and reject every cross-family pair. Host
+components never select the bucket, so shared-address peers share its debt.
+
+Admission, registration, penalties, eviction, expiry and admission receipts use
+the normalized address key. Caller-selected keys and fresh peer identities cannot
+change the admission result. Unvalidated attempts, registration and penalties
+preserve the complete admission state for every initial state, including its
+source table, shared credit and pending pool. Clock and completion translations
+retain their exact issued credit, receipt and terminal reason.
+
+The attributed schedule has its own recursive execution. A general equality
+connects every event and suffix to the existing source-admission schedule.
+Every finite attributed schedule bounds aggregate pending occupancy by the
+initial shared pool capacity. Selected normalized-source debt and shared credits
+also stay bounded when their explicit initial-fit premises hold. These are
+fixed-quota results; distinct timed prefix buckets remain M013 work.
+
+The module adds 28 explicit proofs and 29 semantic controls. All controls fail
+with proof type mismatches over variables, including wrong host/key selection,
+family aliasing, validation bypasses, altered clock/completion evidence,
+omitted or duplicated schedule events and an inflated step quota or capacity. The frozen M003 criterion 0 remains a
+gap because trusted exemptions and privileged-allowance provenance are absent.
+E014 owns runtime parsing, prefix-policy selection, validated-address evidence,
+key uniqueness, trusted exemptions and lifetime rules. E013 owns runtime pending
+refinement, receipt authority, serialization and storage dominance.
+
 ## Remaining R03 scope
 
 Four R03 obligations remain: M003, M009, M012 and M013.
 Their exact per-criterion work remains in proof-audit.json. It includes
-pending/established shared limits, handshake
-credit, normalized source attribution and churn lifetimes, established resource
+trusted-exemption and privileged-allowance provenance, normalized source
+churn and restart/epoch lifetimes, established resource
 vectors and aggregate/source rate composition. R03 stays active until its three exit
 criteria close.
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-endpoint-routing-check.json](../evidence/r03-endpoint-routing-check.json).
-The corpus has 1141 explicit proof declarations in 64 modules. The full run
-includes 1080 negative checks (1077 registered mutations plus three generic
+[r03-normalized-source-attribution-check.json](../evidence/r03-normalized-source-attribution-check.json).
+The corpus has 1169 explicit proof declarations in 65 modules. The full run
+includes 1109 negative checks (1106 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-5 and R02 receipts retain their original counts
+open. The historical R03 turn-1 through turn-6 and R02 receipts retain their original counts
 and input hashes.

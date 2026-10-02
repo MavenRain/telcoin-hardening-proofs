@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 1077 additional semantic mutations must
+The 1106 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -523,3 +523,27 @@ event ordering. They do not prove fairness, eventual service, byte allocation,
 runtime uniqueness or a selected socket layout. E019 owns refinement of these
 premises and affected transport, maintenance, compatibility and deployment
 regressions. The sealed external ledger remains open after M021 model closure.
+
+## Normalized attribution refinement boundary
+
+Module 82 accepts IPv4, mapped IPv4 and IPv6 address constructors with supplied
+prefix and host components. The runtime must extract those components from the
+actual address under a fixed prefix policy. The mathematical even/odd namespaces
+are injective within each family and disjoint across families. Mapping machine
+addresses to these keys requires nonwrapping encoding and a unique canonical
+source table. Peer identity and caller-selected key inputs cannot change the
+selected normalized key. Host components share their supplied prefix bucket.
+
+Validated reachability must certify the actual address. Penalty classification,
+eviction and trusted expiry are internal decisions for that same canonical key.
+Clock issues and generation-owned completion receipts retain the existing
+authority assumptions. Source quota and shared credit bounds require their
+stated initial-fit witnesses; the aggregate pending bound holds for every initial
+pool. All attributed events route through one serialized shared admission state.
+
+These proofs witness M003's normalized-attribution criterion. They do not
+establish trusted-exemption or privileged-allowance provenance, so M003 remains
+partial. Multi-prefix overlap, restart/epoch security lifetimes and distinct
+timed prefix buckets remain M009/M013 work. E014 owns runtime normalization,
+validation, exemption and lifetime refinement. E013 owns concrete pending
+accounting, receipt authority, atomicity and storage dominance.

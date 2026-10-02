@@ -1,0 +1,307 @@
+-- Prefix components are supplied by the runtime address parser and fixed policy.
+-- Host, peer identity and caller-selected keys never select an accounting bucket.
+mu SourceAddress : Type 0 with
+| ipv4SourceAddress : Count -> Count -> SourceAddress
+| mappedIpv4SourceAddress : Count -> Count -> SourceAddress
+| ipv6SourceAddress : Count -> Count -> SourceAddress
+
+def rec ipv4PrefixKey : Count -> Count :=
+  fun (prefix : Count) =>
+    case prefix as self in Count return Count with
+    | zero => zero
+    | next rest => next (next (ipv4PrefixKey rest))
+
+def ipv6PrefixKey : Count -> Count :=
+  fun (prefix : Count) => next (ipv4PrefixKey prefix)
+
+def normalizedSourceKey : SourceAddress -> Count :=
+  fun (address : SourceAddress) =>
+    case address as self in SourceAddress return Count with
+    | ipv4SourceAddress prefix host => ipv4PrefixKey prefix
+    | mappedIpv4SourceAddress prefix host => ipv4PrefixKey prefix
+    | ipv6SourceAddress prefix host => ipv6PrefixKey prefix
+
+def ipv4SharedPrefixAttribution : (prefix : Count) -> (left : Count) -> (right : Count) ->
+    Equal Count (normalizedSourceKey (ipv4SourceAddress prefix left))
+      (normalizedSourceKey (ipv4SourceAddress prefix right)) :=
+  fun (prefix : Count) (left : Count) (right : Count) => same
+
+def ipv6SharedPrefixAttribution : (prefix : Count) -> (left : Count) -> (right : Count) ->
+    Equal Count (normalizedSourceKey (ipv6SourceAddress prefix left))
+      (normalizedSourceKey (ipv6SourceAddress prefix right)) :=
+  fun (prefix : Count) (left : Count) (right : Count) => same
+
+def mappedIpv4SharesNativeAttribution : (prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->
+    Equal Count (normalizedSourceKey (mappedIpv4SourceAddress prefix mappedHost))
+      (normalizedSourceKey (ipv4SourceAddress prefix nativeHost)) :=
+  fun (prefix : Count) (mappedHost : Count) (nativeHost : Count) => same
+
+def normalizedIpv4UsesPrefixNamespace : (prefix : Count) -> (host : Count) ->
+    Equal Count (normalizedSourceKey (ipv4SourceAddress prefix host)) (ipv4PrefixKey prefix) :=
+  fun (prefix : Count) (host : Count) => same
+
+def normalizedIpv6UsesPrefixNamespace : (prefix : Count) -> (host : Count) ->
+    Equal Count (normalizedSourceKey (ipv6SourceAddress prefix host)) (ipv6PrefixKey prefix) :=
+  fun (prefix : Count) (host : Count) => same
+
+def normalizedMappedIpv4UsesPrefixNamespace : (prefix : Count) -> (host : Count) ->
+    Equal Count (normalizedSourceKey (mappedIpv4SourceAddress prefix host)) (ipv4PrefixKey prefix) :=
+  fun (prefix : Count) (host : Count) => same
+
+def rec ipv4Ipv6PrefixNamespacesDisjoint : (left : Count) -> (right : Count) ->
+    Equal Flag (sameCount (ipv4PrefixKey left) (ipv6PrefixKey right)) off :=
+  fun (left : Count) (right : Count) =>
+    case left as self in Count return Equal Flag (sameCount (ipv4PrefixKey self) (ipv6PrefixKey right)) off with
+    | zero => same
+    | next rest =>
+      case right as other in Count return Equal Flag (sameCount (ipv4PrefixKey (next rest)) (ipv6PrefixKey other)) off with
+      | zero => same
+      | next tail => ipv4Ipv6PrefixNamespacesDisjoint rest tail
+
+def rec ipv6Ipv4PrefixNamespacesDisjoint : (left : Count) -> (right : Count) ->
+    Equal Flag (sameCount (ipv6PrefixKey left) (ipv4PrefixKey right)) off :=
+  fun (left : Count) (right : Count) =>
+    case left as self in Count return Equal Flag (sameCount (ipv6PrefixKey self) (ipv4PrefixKey right)) off with
+    | zero =>
+      (case right as other in Count return Equal Flag (sameCount (ipv6PrefixKey zero) (ipv4PrefixKey other)) off with
+      | zero => same
+      | next rest => same)
+    | next rest =>
+      case right as other in Count return Equal Flag (sameCount (ipv6PrefixKey (next rest)) (ipv4PrefixKey other)) off with
+      | zero => same
+      | next tail => ipv6Ipv4PrefixNamespacesDisjoint rest tail
+
+def normalizedAddressFamiliesDisjoint : (leftPrefix : Count) -> (rightPrefix : Count) ->
+    (leftHost : Count) -> (rightHost : Count) ->
+    Equal Flag (sameCount (normalizedSourceKey (ipv4SourceAddress leftPrefix leftHost))
+      (normalizedSourceKey (ipv6SourceAddress rightPrefix rightHost))) off :=
+  fun (leftPrefix : Count) (rightPrefix : Count) (leftHost : Count) (rightHost : Count) =>
+    ipv4Ipv6PrefixNamespacesDisjoint leftPrefix rightPrefix
+
+def rec ipv4PrefixKeyComparison : (left : Count) -> (right : Count) ->
+    Equal Flag (sameCount (ipv4PrefixKey left) (ipv4PrefixKey right)) (sameCount left right) :=
+  fun (left : Count) (right : Count) =>
+    case left as self in Count return Equal Flag (sameCount (ipv4PrefixKey self) (ipv4PrefixKey right)) (sameCount self right) with
+    | zero =>
+      (case right as other in Count return Equal Flag (sameCount (ipv4PrefixKey zero) (ipv4PrefixKey other)) (sameCount zero other) with
+      | zero => same
+      | next rest => same)
+    | next rest =>
+      case right as other in Count return Equal Flag (sameCount (ipv4PrefixKey (next rest)) (ipv4PrefixKey other)) (sameCount (next rest) other) with
+      | zero => same
+      | next tail => ipv4PrefixKeyComparison rest tail
+
+def ipv6PrefixKeyComparison : (left : Count) -> (right : Count) ->
+    Equal Flag (sameCount (ipv6PrefixKey left) (ipv6PrefixKey right)) (sameCount left right) :=
+  fun (left : Count) (right : Count) => ipv4PrefixKeyComparison left right
+
+mu AttributedSourceEvent : Type 0 with
+| attributedSourceAttempt : Reachability -> SourceAddress -> SwarmClass -> Count -> Count -> Count -> AttributedSourceEvent
+| attributedSourceRegistration : Reachability -> SourceAddress -> Count -> AttributedSourceEvent
+| attributedSourcePenalty : Reachability -> SourceAddress -> Count -> AttributedSourceEvent
+| attributedSourceEviction : SourceAddress -> AttributedSourceEvent
+| attributedSourceExpiry : SourceAddress -> SourceExpiry -> AttributedSourceEvent
+| attributedSourceClock : Count -> AttributedSourceEvent
+| attributedSourceFinish : AdmissionReceipt -> PendingEnd -> AttributedSourceEvent
+
+def attributedSourceEvent : AttributedSourceEvent -> SourceAdmissionEvent :=
+  fun (event : AttributedSourceEvent) =>
+    case event as action in AttributedSourceEvent return SourceAdmissionEvent with
+    | attributedSourceAttempt source address swarm identity claimedKey index =>
+        sourceAdmissionAttempt source swarm (normalizedSourceKey address) index
+    | attributedSourceRegistration source address claimedKey =>
+        sourceAdmissionMaintenance (maintainSourceChurn (sourceRegistration source (normalizedSourceKey address)))
+    | attributedSourcePenalty source address claimedKey =>
+        (case source as evidence in Reachability return SourceAdmissionEvent with
+        | unvalidated => sourceAdmissionFinish noAdmissionReceipt handshakeFailed
+        | validated => sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address)))
+    | attributedSourceEviction address =>
+        sourceAdmissionMaintenance (maintainSourceChurn (sourceEviction (normalizedSourceKey address)))
+    | attributedSourceExpiry address expiry =>
+        sourceAdmissionMaintenance (maintainSourceExpiry (normalizedSourceKey address) expiry)
+    | attributedSourceClock issued => sourceAdmissionClock issued
+    | attributedSourceFinish receipt reason => sourceAdmissionFinish receipt reason
+
+def attributedSourceStep : Count -> Count -> AttributedSourceEvent -> SourceAdmission -> SourceAdmission :=
+  fun (quota : Count) (capacity : Count) (event : AttributedSourceEvent) (current : SourceAdmission) =>
+    sourceAdmissionStep quota capacity (attributedSourceEvent event) current
+
+def attributedAttemptUsesNormalizedKey : (source : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) -> (index : Count) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceAttempt source address swarm identity claimedKey index))
+      (sourceAdmissionAttempt source swarm (normalizedSourceKey address) index) :=
+  fun (source : Reachability) (address : SourceAddress) (swarm : SwarmClass)
+      (identity : Count) (claimedKey : Count) (index : Count) => same
+
+def attributedRegistrationUsesNormalizedKey : (source : Reachability) -> (address : SourceAddress) -> (claimedKey : Count) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceRegistration source address claimedKey))
+      (sourceAdmissionMaintenance (maintainSourceChurn (sourceRegistration source (normalizedSourceKey address)))) :=
+  fun (source : Reachability) (address : SourceAddress) (claimedKey : Count) => same
+
+def attributedPenaltyUsesNormalizedKey : (address : SourceAddress) -> (claimedKey : Count) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourcePenalty validated address claimedKey))
+      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))) :=
+  fun (address : SourceAddress) (claimedKey : Count) => same
+
+def attributedEvictionUsesNormalizedKey : (address : SourceAddress) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceEviction address))
+      (sourceAdmissionMaintenance (maintainSourceChurn (sourceEviction (normalizedSourceKey address)))) :=
+  fun (address : SourceAddress) => same
+
+def attributedExpiryUsesNormalizedKey : (address : SourceAddress) -> (expiry : SourceExpiry) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceExpiry address expiry))
+      (sourceAdmissionMaintenance (maintainSourceExpiry (normalizedSourceKey address) expiry)) :=
+  fun (address : SourceAddress) (expiry : SourceExpiry) => same
+
+def attributedAttemptIgnoresFreshIdentityAndClaim : (quota : Count) -> (capacity : Count) ->
+    (source : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) ->
+    (leftIdentity : Count) -> (rightIdentity : Count) -> (leftClaim : Count) -> (rightClaim : Count) ->
+    (index : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (attributedSourceStep quota capacity
+      (attributedSourceAttempt source address swarm leftIdentity leftClaim index) current)
+      (attributedSourceStep quota capacity
+        (attributedSourceAttempt source address swarm rightIdentity rightClaim index) current) :=
+  fun (quota : Count) (capacity : Count) (source : Reachability) (address : SourceAddress) (swarm : SwarmClass)
+      (leftIdentity : Count) (rightIdentity : Count) (leftClaim : Count) (rightClaim : Count)
+      (index : Count) (current : SourceAdmission) => same
+
+def unvalidatedAttributedRegistrationIsNoOp : (quota : Count) -> (capacity : Count) ->
+    (address : SourceAddress) -> (claimedKey : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (attributedSourceStep quota capacity
+      (attributedSourceRegistration unvalidated address claimedKey) current) current :=
+  fun (quota : Count) (capacity : Count) (address : SourceAddress) (claimedKey : Count)
+      (current : SourceAdmission) =>
+    case current as self in SourceAdmission return Equal SourceAdmission
+        (attributedSourceStep quota capacity (attributedSourceRegistration unvalidated address claimedKey) self) self with
+    | sourceAdmission table credits pool => same
+
+def attributedClockPreservesIssue : (issued : Count) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceClock issued))
+      (sourceAdmissionClock issued) :=
+  fun (issued : Count) => same
+
+def attributedFinishPreservesReceipt : (receipt : AdmissionReceipt) -> (reason : PendingEnd) ->
+    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceFinish receipt reason))
+      (sourceAdmissionFinish receipt reason) :=
+  fun (receipt : AdmissionReceipt) (reason : PendingEnd) => same
+
+def unvalidatedAttributedAttemptIsNoOp : (quota : Count) -> (capacity : Count) ->
+    (address : SourceAddress) -> (swarm : SwarmClass) -> (identity : Count) ->
+    (claimedKey : Count) -> (index : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (attributedSourceStep quota capacity
+      (attributedSourceAttempt unvalidated address swarm identity claimedKey index) current) current :=
+  fun (quota : Count) (capacity : Count) (address : SourceAddress) (swarm : SwarmClass)
+      (identity : Count) (claimedKey : Count) (index : Count) (current : SourceAdmission) =>
+    unvalidatedAdmissionIsNoOp quota capacity swarm (normalizedSourceKey address) index current
+
+def unvalidatedAttributedPenaltyIsNoOp : (quota : Count) -> (capacity : Count) ->
+    (address : SourceAddress) -> (claimedKey : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (attributedSourceStep quota capacity
+      (attributedSourcePenalty unvalidated address claimedKey) current) current :=
+  fun (quota : Count) (capacity : Count) (address : SourceAddress) (claimedKey : Count)
+      (current : SourceAdmission) => same
+
+def mappedIpv4AdmissionSharesNativeState : (quota : Count) -> (capacity : Count) ->
+    (source : Reachability) -> (prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->
+    (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) -> (index : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (attributedSourceStep quota capacity
+      (attributedSourceAttempt source (mappedIpv4SourceAddress prefix mappedHost) swarm identity claimedKey index) current)
+      (attributedSourceStep quota capacity
+        (attributedSourceAttempt source (ipv4SourceAddress prefix nativeHost) swarm identity claimedKey index) current) :=
+  fun (quota : Count) (capacity : Count) (source : Reachability) (prefix : Count)
+      (mappedHost : Count) (nativeHost : Count) (swarm : SwarmClass)
+      (identity : Count) (claimedKey : Count) (index : Count) (current : SourceAdmission) => same
+
+def attributedAttemptReceipt : Count -> AttributedSourceEvent -> SourceAdmission -> AdmissionReceipt :=
+  fun (quota : Count) (event : AttributedSourceEvent) (current : SourceAdmission) =>
+    admissionAttemptReceipt quota (attributedSourceEvent event) current
+
+def attributedReceiptUsesNormalizedKey : (quota : Count) -> (source : Reachability) ->
+    (address : SourceAddress) -> (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) ->
+    (index : Count) -> (current : SourceAdmission) ->
+    Equal AdmissionReceipt (attributedAttemptReceipt quota
+      (attributedSourceAttempt source address swarm identity claimedKey index) current)
+      (sourceStartReceipt index (planSourceStart quota source (normalizedSourceKey address) index current)) :=
+  fun (quota : Count) (source : Reachability) (address : SourceAddress) (swarm : SwarmClass)
+      (identity : Count) (claimedKey : Count) (index : Count) (current : SourceAdmission) => same
+
+mu AttributedSourceTrace : Type 0 with
+| attributedSourcesDone : AttributedSourceTrace
+| attributedSourcesThen : AttributedSourceEvent -> AttributedSourceTrace -> AttributedSourceTrace
+
+def rec attributedSourceAdmissions : AttributedSourceTrace -> SourceAdmissionTrace :=
+  fun (trace : AttributedSourceTrace) =>
+    case trace as self in AttributedSourceTrace return SourceAdmissionTrace with
+    | attributedSourcesDone => sourceAdmissionsDone
+    | attributedSourcesThen event rest =>
+        sourceAdmissionsThen (attributedSourceEvent event) (attributedSourceAdmissions rest)
+
+def rec runAttributedSources : AttributedSourceTrace -> Count -> Count -> SourceAdmission -> SourceAdmission :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (current : SourceAdmission) =>
+    case trace as self in AttributedSourceTrace return SourceAdmission with
+    | attributedSourcesDone => current
+    | attributedSourcesThen event rest =>
+        runAttributedSources rest quota capacity (attributedSourceStep quota capacity event current)
+
+def rec attributedTraceExecution : (trace : AttributedSourceTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) ->
+    Equal SourceAdmission (runAttributedSources trace quota capacity current)
+      (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current) :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (current : SourceAdmission) =>
+    case trace as self in AttributedSourceTrace return
+        Equal SourceAdmission (runAttributedSources self quota capacity current)
+          (runSourceAdmissions (attributedSourceAdmissions self) quota capacity current) with
+    | attributedSourcesDone => same
+    | attributedSourcesThen event rest =>
+        attributedTraceExecution rest quota capacity (attributedSourceStep quota capacity event current)
+
+def attributedTracePendingBound : (trace : AttributedSourceTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) ->
+    AtMost (leaseOccupancy (admissionPool (runAttributedSources trace quota capacity current)))
+      (leaseCapacity (admissionPool current)) :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (current : SourceAdmission) =>
+    equalTransport SourceAdmission
+      (fun (result : SourceAdmission) => AtMost (leaseOccupancy (admissionPool result)) (leaseCapacity (admissionPool current)))
+      (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+      (runAttributedSources trace quota capacity current)
+      (equalSymmetry SourceAdmission (runAttributedSources trace quota capacity current)
+        (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+        (attributedTraceExecution trace quota capacity current))
+      (sourceAdmissionTracePendingBound (attributedSourceAdmissions trace) quota capacity current)
+
+def attributedTraceQuotaBound : (trace : AttributedSourceTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) -> SourceQuotaBound quota (admissionSources current) ->
+    SourceQuotaBound quota (admissionSources (runAttributedSources trace quota capacity current)) :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (current : SourceAdmission)
+      (bound : SourceQuotaBound quota (admissionSources current)) =>
+    equalTransport SourceAdmission (fun (result : SourceAdmission) => SourceQuotaBound quota (admissionSources result))
+      (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+      (runAttributedSources trace quota capacity current)
+      (equalSymmetry SourceAdmission (runAttributedSources trace quota capacity current)
+        (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+        (attributedTraceExecution trace quota capacity current))
+      (sourceAdmissionTraceQuotaBound (attributedSourceAdmissions trace) quota capacity current bound)
+
+def attributedTraceSelectedDebtBound : (trace : AttributedSourceTrace) -> (quota : Count) ->
+    (capacity : Count) -> (address : SourceAddress) -> (current : SourceAdmission) ->
+    SourceQuotaBound quota (admissionSources current) ->
+    AtMost (sourceCellDebt (lookupSource (normalizedSourceKey address)
+      (admissionSources (runAttributedSources trace quota capacity current)))) quota :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (address : SourceAddress)
+      (current : SourceAdmission) (bound : SourceQuotaBound quota (admissionSources current)) =>
+    sourceLookupQuotaBound quota (normalizedSourceKey address)
+      (admissionSources (runAttributedSources trace quota capacity current))
+      (attributedTraceQuotaBound trace quota capacity current bound)
+
+def attributedTraceCreditBound : (trace : AttributedSourceTrace) -> (quota : Count) ->
+    (capacity : Count) -> (current : SourceAdmission) -> AtMost (admissionCredits current) capacity ->
+    AtMost (admissionCredits (runAttributedSources trace quota capacity current)) capacity :=
+  fun (trace : AttributedSourceTrace) (quota : Count) (capacity : Count) (current : SourceAdmission)
+      (bound : AtMost (admissionCredits current) capacity) =>
+    equalTransport SourceAdmission (fun (result : SourceAdmission) => AtMost (admissionCredits result) capacity)
+      (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+      (runAttributedSources trace quota capacity current)
+      (equalSymmetry SourceAdmission (runAttributedSources trace quota capacity current)
+        (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)
+        (attributedTraceExecution trace quota capacity current))
+      (sourceAdmissionTraceCreditBound (attributedSourceAdmissions trace) quota capacity current bound)

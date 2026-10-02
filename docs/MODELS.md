@@ -2299,8 +2299,8 @@ duplicated allocations, charge-resetting identity churn and work bypasses.
 
 ## Negative controls
 
-The checker rejects 1080 invalid variants: three direct checks of equality,
-ordering and termination, plus 1077 semantic mutations. Mutations exercise such
+The checker rejects 1109 invalid variants: three direct checks of equality,
+ordering and termination, plus 1106 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch
@@ -2425,3 +2425,37 @@ indexed updates and event execution. Every full mutant must fail with a proof
 type mismatch.
 Runtime routing, callback authority, destination validation, atomicity,
 fixed-width storage and nonwrapping generations remain E019 premises.
+
+## Normalized source attribution
+
+Module 82 models IPv4, mapped IPv4 and IPv6 addresses as supplied prefix/host
+components under one fixed policy. Native and mapped IPv4 share an even-key
+namespace; IPv6 uses an odd-key namespace. Comparison laws preserve each family's
+prefix distinctions, and actual normalized addresses remain disjoint across
+families. Host changes under a shared prefix retain the same accounting key.
+Runtime extraction and the selected prefix lengths remain E014 obligations.
+
+Attributed admission, registration, penalties, eviction and expiry select the
+normalized address key. Caller-selected keys and fresh identities cannot redirect
+an attempt. Unvalidated admission, registration and penalties preserve the full
+state. Receipt equations retain the normalized-key plan and selected pending slot;
+clock and completion equations retain issued credit and callback evidence.
+
+An independent recursive execution translates exactly to the existing admission
+trace for every finite attributed schedule. The shared pending bound follows for
+every initial state. Per-source debt at any normalized address and shared credit
+also remain bounded with their explicit initial-fit premises. Arbitrary schedules
+include all swarms, registration/eviction churn, penalties, expiry, clock issues
+and generation-owned completion. No identity receives a new copy of the bucket.
+
+The 29 controls test namespace stride and collisions, host/prefix substitution,
+mapped/native disagreement, caller-key/identity substitution, validation bypasses,
+wrong pending slots or swarms, maintenance keys, lost clock/callback evidence,
+omitted or duplicated execution and an inflated step quota or capacity. Every mutant must fail through a proof type
+mismatch. General namespace equations were added after a control exposed an
+unconstrained IPv6 normalization branch.
+
+M003 criterion 1 is witnessed; criterion 0 retains trusted-exemption and
+privileged-allowance provenance work. Fixed quota is distinct from M013's timed
+prefix rates. M009 owns multi-prefix overlap and restart/epoch security lifetimes.
+E014 and E013 retain runtime normalization, authority and pending refinement.

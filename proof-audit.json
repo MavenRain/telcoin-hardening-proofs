@@ -67,7 +67,8 @@
     "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1",
     "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e",
     "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686",
-    "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f"
+    "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f",
+    "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898"
   },
   "obligations": [
     {
@@ -1278,7 +1279,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The frozen required scope remains a model obligation in R03.",
+      "scope_review": "R03 turn 7 supplies normalized IPv4, IPv6 and mapped-IPv4 prefix keys; exact key selection for admission, registration, penalties, eviction, expiry and receipts; unvalidated complete-state refusal; and arbitrary attributed-trace selected source debt, credit and aggregate pending bounds. Criterion 1 is witnessed. Criterion 0 still lacks the composed trusted-exemption and privileged-allowance provenance model. E014 retains runtime parsing, prefix policy and validation authority; E013 retains runtime pending accounting.",
       "witnesses": [
         {
           "path": "proofs/27-source-table.mech",
@@ -1312,9 +1313,440 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. These local statements do not establish: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority. Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv4SharedPrefixAttribution",
+          "statement": "(prefix : Count) -> (left : Count) -> (right : Count) ->\n    Equal Count (normalizedSourceKey (ipv4SourceAddress prefix left))\n      (normalizedSourceKey (ipv4SourceAddress prefix right))",
+          "scope_kind": "general_transition",
+          "establishes": "Every IPv4 host under the same supplied prefix has the same accounting key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv6SharedPrefixAttribution",
+          "statement": "(prefix : Count) -> (left : Count) -> (right : Count) ->\n    Equal Count (normalizedSourceKey (ipv6SourceAddress prefix left))\n      (normalizedSourceKey (ipv6SourceAddress prefix right))",
+          "scope_kind": "general_transition",
+          "establishes": "Every IPv6 host under the same supplied prefix has the same accounting key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "mappedIpv4SharesNativeAttribution",
+          "statement": "(prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->\n    Equal Count (normalizedSourceKey (mappedIpv4SourceAddress prefix mappedHost))\n      (normalizedSourceKey (ipv4SourceAddress prefix nativeHost))",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 forms with the same prefix share one accounting key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "normalizedIpv4UsesPrefixNamespace",
+          "statement": "(prefix : Count) -> (host : Count) ->\n    Equal Count (normalizedSourceKey (ipv4SourceAddress prefix host)) (ipv4PrefixKey prefix)",
+          "scope_kind": "general_transition",
+          "establishes": "Native IPv4 normalization selects its even prefix namespace.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "normalizedIpv6UsesPrefixNamespace",
+          "statement": "(prefix : Count) -> (host : Count) ->\n    Equal Count (normalizedSourceKey (ipv6SourceAddress prefix host)) (ipv6PrefixKey prefix)",
+          "scope_kind": "general_transition",
+          "establishes": "IPv6 normalization selects its odd prefix namespace.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "normalizedMappedIpv4UsesPrefixNamespace",
+          "statement": "(prefix : Count) -> (host : Count) ->\n    Equal Count (normalizedSourceKey (mappedIpv4SourceAddress prefix host)) (ipv4PrefixKey prefix)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped IPv4 normalization selects the native IPv4 prefix namespace.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv4Ipv6PrefixNamespacesDisjoint",
+          "statement": "(left : Count) -> (right : Count) ->\n    Equal Flag (sameCount (ipv4PrefixKey left) (ipv6PrefixKey right)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every IPv4 prefix key compares unequal to every IPv6 prefix key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv6Ipv4PrefixNamespacesDisjoint",
+          "statement": "(left : Count) -> (right : Count) ->\n    Equal Flag (sameCount (ipv6PrefixKey left) (ipv4PrefixKey right)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Reverse comparison also rejects every cross-family prefix pair.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "normalizedAddressFamiliesDisjoint",
+          "statement": "(leftPrefix : Count) -> (rightPrefix : Count) ->\n    (leftHost : Count) -> (rightHost : Count) ->\n    Equal Flag (sameCount (normalizedSourceKey (ipv4SourceAddress leftPrefix leftHost))\n      (normalizedSourceKey (ipv6SourceAddress rightPrefix rightHost))) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every normalized native IPv4 address key compares unequal to every normalized native IPv6 address key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv4PrefixKeyComparison",
+          "statement": "(left : Count) -> (right : Count) ->\n    Equal Flag (sameCount (ipv4PrefixKey left) (ipv4PrefixKey right)) (sameCount left right)",
+          "scope_kind": "general_transition",
+          "establishes": "IPv4 key comparison equals original prefix comparison for every prefix pair.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "ipv6PrefixKeyComparison",
+          "statement": "(left : Count) -> (right : Count) ->\n    Equal Flag (sameCount (ipv6PrefixKey left) (ipv6PrefixKey right)) (sameCount left right)",
+          "scope_kind": "general_transition",
+          "establishes": "IPv6 key comparison equals original prefix comparison for every prefix pair.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedAttemptUsesNormalizedKey",
+          "statement": "(source : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) -> (index : Count) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceAttempt source address swarm identity claimedKey index))\n      (sourceAdmissionAttempt source swarm (normalizedSourceKey address) index)",
+          "scope_kind": "general_transition",
+          "establishes": "Admission selects the normalized address key and requested slot independently of caller-selected key and identity.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedRegistrationUsesNormalizedKey",
+          "statement": "(source : Reachability) -> (address : SourceAddress) -> (claimedKey : Count) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceRegistration source address claimedKey))\n      (sourceAdmissionMaintenance (maintainSourceChurn (sourceRegistration source (normalizedSourceKey address))))",
+          "scope_kind": "general_transition",
+          "establishes": "Registration selects the normalized address key and preserves supplied validation evidence.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedPenaltyUsesNormalizedKey",
+          "statement": "(address : SourceAddress) -> (claimedKey : Count) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourcePenalty validated address claimedKey))\n      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address)))",
+          "scope_kind": "general_transition",
+          "establishes": "A validated penalty selects the normalized address key independently of the caller-selected key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedEvictionUsesNormalizedKey",
+          "statement": "(address : SourceAddress) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceEviction address))\n      (sourceAdmissionMaintenance (maintainSourceChurn (sourceEviction (normalizedSourceKey address))))",
+          "scope_kind": "general_transition",
+          "establishes": "Internal eviction selects the normalized address key.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedExpiryUsesNormalizedKey",
+          "statement": "(address : SourceAddress) -> (expiry : SourceExpiry) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceExpiry address expiry))\n      (sourceAdmissionMaintenance (maintainSourceExpiry (normalizedSourceKey address) expiry))",
+          "scope_kind": "general_transition",
+          "establishes": "Internal expiry selects the normalized address key and preserves classified expiry evidence.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedAttemptIgnoresFreshIdentityAndClaim",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (source : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) ->\n    (leftIdentity : Count) -> (rightIdentity : Count) -> (leftClaim : Count) -> (rightClaim : Count) ->\n    (index : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (attributedSourceStep quota capacity\n      (attributedSourceAttempt source address swarm leftIdentity leftClaim index) current)\n      (attributedSourceStep quota capacity\n        (attributedSourceAttempt source address swarm rightIdentity rightClaim index) current)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing identity and caller-selected key preserves the complete admission result for every initial state.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "unvalidatedAttributedRegistrationIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (address : SourceAddress) -> (claimedKey : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (attributedSourceStep quota capacity\n      (attributedSourceRegistration unvalidated address claimedKey) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Unvalidated registration preserves the complete admission state for every address, claim and initial state.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "unvalidatedAttributedAttemptIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (address : SourceAddress) -> (swarm : SwarmClass) -> (identity : Count) ->\n    (claimedKey : Count) -> (index : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (attributedSourceStep quota capacity\n      (attributedSourceAttempt unvalidated address swarm identity claimedKey index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Unvalidated attempts preserve complete admission state for every address, identity, claim, swarm and slot.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "unvalidatedAttributedPenaltyIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (address : SourceAddress) -> (claimedKey : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (attributedSourceStep quota capacity\n      (attributedSourcePenalty unvalidated address claimedKey) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Unvalidated penalties preserve the complete admission state for every address, claim and initial state.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "mappedIpv4AdmissionSharesNativeState",
+          "statement": "(quota : Count) -> (capacity : Count) ->\n    (source : Reachability) -> (prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->\n    (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) -> (index : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (attributedSourceStep quota capacity\n      (attributedSourceAttempt source (mappedIpv4SourceAddress prefix mappedHost) swarm identity claimedKey index) current)\n      (attributedSourceStep quota capacity\n        (attributedSourceAttempt source (ipv4SourceAddress prefix nativeHost) swarm identity claimedKey index) current)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 forms with a common prefix have equal complete admission results.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedClockPreservesIssue",
+          "statement": "(issued : Count) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceClock issued))\n      (sourceAdmissionClock issued)",
+          "scope_kind": "general_transition",
+          "establishes": "Clock translation retains the exact supplied trusted-credit issue.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedFinishPreservesReceipt",
+          "statement": "(receipt : AdmissionReceipt) -> (reason : PendingEnd) ->\n    Equal SourceAdmissionEvent (attributedSourceEvent (attributedSourceFinish receipt reason))\n      (sourceAdmissionFinish receipt reason)",
+          "scope_kind": "general_transition",
+          "establishes": "Completion translation retains the exact supplied internal receipt and terminal reason.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedReceiptUsesNormalizedKey",
+          "statement": "(quota : Count) -> (source : Reachability) ->\n    (address : SourceAddress) -> (swarm : SwarmClass) -> (identity : Count) -> (claimedKey : Count) ->\n    (index : Count) -> (current : SourceAdmission) ->\n    Equal AdmissionReceipt (attributedAttemptReceipt quota\n      (attributedSourceAttempt source address swarm identity claimedKey index) current)\n      (sourceStartReceipt index (planSourceStart quota source (normalizedSourceKey address) index current))",
+          "scope_kind": "general_transition",
+          "establishes": "The attempt receipt comes from the normalized-key plan at the requested pending slot.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedTraceExecution",
+          "statement": "(trace : AttributedSourceTrace) -> (quota : Count) ->\n    (capacity : Count) -> (current : SourceAdmission) ->\n    Equal SourceAdmission (runAttributedSources trace quota capacity current)\n      (runSourceAdmissions (attributedSourceAdmissions trace) quota capacity current)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite attributed schedule executes exactly its translated admission schedule, including every head and suffix.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement.",
+            "All modeled events use the same finite serialized source table, shared credit balance and generation-owned pending pool; capacities and quota stay fixed during the schedule."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedTracePendingBound",
+          "statement": "(trace : AttributedSourceTrace) -> (quota : Count) ->\n    (capacity : Count) -> (current : SourceAdmission) ->\n    AtMost (leaseOccupancy (admissionPool (runAttributedSources trace quota capacity current)))\n      (leaseCapacity (admissionPool current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite attributed schedule bounds aggregate pending occupancy by the initial shared pool capacity.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement.",
+            "All modeled events use the same finite serialized source table, shared credit balance and generation-owned pending pool; capacities and quota stay fixed during the schedule."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedTraceSelectedDebtBound",
+          "statement": "(trace : AttributedSourceTrace) -> (quota : Count) ->\n    (capacity : Count) -> (address : SourceAddress) -> (current : SourceAdmission) ->\n    SourceQuotaBound quota (admissionSources current) ->\n    AtMost (sourceCellDebt (lookupSource (normalizedSourceKey address)\n      (admissionSources (runAttributedSources trace quota capacity current)))) quota",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite attributed schedule bounds debt at every selected normalized address by the fixed quota when all initial resident debts fit.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement.",
+            "Explicit proof argument: SourceQuotaBound quota (admissionSources current).",
+            "All modeled events use the same finite serialized source table, shared credit balance and generation-owned pending pool; capacities and quota stay fixed during the schedule."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/82-normalized-source-attribution.mech",
+          "name": "attributedTraceCreditBound",
+          "statement": "(trace : AttributedSourceTrace) -> (quota : Count) ->\n    (capacity : Count) -> (current : SourceAdmission) -> AtMost (admissionCredits current) capacity ->\n    AtMost (admissionCredits (runAttributedSources trace quota capacity current)) capacity",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite attributed schedule preserves the shared credit bound when it holds initially.",
+          "premises": [
+            "Address constructors contain prefix and host components supplied under one fixed normalization policy. Runtime parsing, validated-address evidence and internal event provenance require refinement.",
+            "Explicit proof argument: AtMost (admissionCredits current) capacity.",
+            "All modeled events use the same finite serialized source table, shared credit balance and generation-owned pending pool; capacities and quota stay fixed during the schedule."
+          ],
+          "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "attribution_key_drops_namespace_stride",
+          "sha256": "70491f8e184de7f2f06005cbabc90bafae0b6bde5eef08ecea1296f10eeaf5f9"
+        },
+        {
+          "name": "attribution_key_collapses_prefixes",
+          "sha256": "f30e1423e36faa46e422449c9621c87d56f1ef9d4a4ccef09dfaad2b72b3eb6e"
+        },
+        {
+          "name": "attribution_ipv4_uses_host",
+          "sha256": "8ba1cd3188123d714ff37c6cee7ebcb3d6f82fa7171006822495800190a64819"
+        },
+        {
+          "name": "attribution_ipv6_uses_host",
+          "sha256": "f091a01421fdb6ea5803fde08799ec6e25eb75f512af3d57868915b304315488"
+        },
+        {
+          "name": "attribution_mapped_uses_host",
+          "sha256": "944f86091167d2621c05fa35f8dfa494a4b69cc293c3c7a27757955669609fd7"
+        },
+        {
+          "name": "attribution_mapped_uses_ipv6_namespace",
+          "sha256": "45bbc6d3ea3c05c3e9d230f25be7000516d6e7e6e62e0662d7400de77321c151"
+        },
+        {
+          "name": "attribution_ipv6_aliases_ipv4",
+          "sha256": "0a0a39afbf0b76ef5ed1847bd81bd6961e3d455facfc1429dde2f659a0c7aee8"
+        },
+        {
+          "name": "attribution_attempt_uses_claim",
+          "sha256": "99dddc0cae1974129bf686303aa3a388ada0d1a5b0011b9f2709e3e33d8d0794"
+        },
+        {
+          "name": "attribution_attempt_uses_identity",
+          "sha256": "3721cd955a323311044abdd6c687e73cfbb001598c0bba98ae3af82a2afddb6e"
+        },
+        {
+          "name": "attribution_attempt_changes_slot",
+          "sha256": "1b4cc68ba303f96854fe30b023769dbab6b9c5199fc376b99213b1ae7f4d6b8a"
+        },
+        {
+          "name": "attribution_attempt_forces_validation",
+          "sha256": "56f351d14abe20313ca218354dc43c717ea934b9bb3e89798fc40cefb7ab3c82"
+        },
+        {
+          "name": "attribution_attempt_changes_swarm",
+          "sha256": "f2041d472d55da70a75771ed6d519905eded0ef84da1945e51fc363974588b34"
+        },
+        {
+          "name": "attribution_registration_uses_claim",
+          "sha256": "92d794660ba7f753f8ee154f50deaa2103bd44a9ca2c8f108d8b3da8ee4a63b3"
+        },
+        {
+          "name": "attribution_registration_forces_validation",
+          "sha256": "21a2204ff034f58744c326439f0bb95b876a6937cce4bf19e4cefbb8a2eff1e9"
+        },
+        {
+          "name": "attribution_penalty_uses_claim",
+          "sha256": "e82739461210b6936834bdd0c2d065cf1aafdaa77807cf944cbc90a52e71dce9"
+        },
+        {
+          "name": "attribution_penalty_bypasses_validation",
+          "sha256": "d996960dfb5e5af0bdf0573679f1b05154656eb664fe6b0a9816c115f9c189bc"
+        },
+        {
+          "name": "attribution_eviction_uses_zero_key",
+          "sha256": "1089e9b2a2b2881ce8d39d39a03bf38fa7a6e3e419a8430d7cf2d7dc3bb8044b"
+        },
+        {
+          "name": "attribution_expiry_uses_zero_key",
+          "sha256": "4a36d8adb8cd601898be102391cbeeca8966ea613c8e068adfbe10a6e3b523a8"
+        },
+        {
+          "name": "attribution_clock_drops_issue",
+          "sha256": "4283eb7ddbd8bdc3d14fafc29bc4acaab9f9b47df13f79e4a080806b1f304f39"
+        },
+        {
+          "name": "attribution_finish_drops_receipt",
+          "sha256": "b7887fe8e75f7e8e2d33838fa85d771f49b99041f9d5fb8a67a2b87d71396ef4"
+        },
+        {
+          "name": "attribution_finish_changes_reason",
+          "sha256": "7e8534980fec58f97d939018df562235855fa33d409ea407ee603eaf14ab0aa4"
+        },
+        {
+          "name": "attribution_projection_drops_head",
+          "sha256": "0cb170bed8d3f68e5a43bca1a599905924567721a09329ebef0794d80548f8ff"
+        },
+        {
+          "name": "attribution_projection_drops_tail",
+          "sha256": "b383ffc6b26124cb7e8bf322a5d5565a866d4363f33ace8531576ab82348b6a7"
+        },
+        {
+          "name": "attribution_execution_drops_head",
+          "sha256": "cef3b336bee92cba89e68e8df9e3f57b723220ddb0acdd638487e0baf8e2f1fd"
+        },
+        {
+          "name": "attribution_execution_drops_tail",
+          "sha256": "3609df2dad0d0e16a81c356430dafc0c04a40f07ec21a3a8592c0c7099eb6f8e"
+        },
+        {
+          "name": "attribution_execution_duplicates_head",
+          "sha256": "ba4bfd016e6fd6d44f0617dd8b4536b1256d9f00044d069dadf4859b9b2dde13"
+        },
+        {
+          "name": "attribution_receipt_uses_zero_key",
+          "sha256": "e6b6ad25ffbec0782ecb2bf30c79a3b49ae56806046029561066fe1650c3ff7e"
+        },
+        {
+          "name": "attribution_step_inflates_capacity",
+          "sha256": "7e1c8d9e23356de213681ff68a77941125ca568a6ce4e9460815853cb7f4bee8"
+        },
+        {
+          "name": "attribution_step_inflates_quota",
+          "sha256": "652db7b0199c815f37c82b7feb11c6efb6336810f5dafb4516389b8c81c11324"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
@@ -1322,21 +1754,50 @@
           "witnesses": [
             "proofs/27-source-table.mech#unvalidatedSourceRegistrationIsRefused",
             "proofs/29-source-system.mech#unvalidatedSourceTableChargeIsNoOp",
-            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege",
+            "proofs/82-normalized-source-attribution.mech#attributedAttemptUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedRegistrationUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedPenaltyUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedAttemptIgnoresFreshIdentityAndClaim",
+            "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedRegistrationIsNoOp",
+            "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedAttemptIsNoOp",
+            "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedPenaltyIsNoOp",
+            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey"
           ],
-          "rationale": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Prove validation authority gates source quota, key-targeted penalties and exemptions together; unvalidated caller-selected keys cannot acquire or spend victim authority."
+          "rationale": "Unvalidated normalized admission, registration and penalties preserve the complete state for arbitrary addresses and caller-selected keys; fresh identities cannot select another accounting key. These general witnesses cover quota and penalty authority, but trusted-exemption and privileged-allowance provenance remain missing at the frozen scope.",
+          "remaining": "R03: Compose trusted exemptions and classified identity/listing privilege with normalized source authority, proving that unvalidated victim-address claims cannot acquire or spend a victim privileged allowance."
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/27-source-table.mech#unvalidatedSourceRegistrationIsRefused",
-            "proofs/29-source-system.mech#unvalidatedSourceTableChargeIsNoOp",
-            "proofs/30-admission-and-service.mech#unverifiedIdentityNoPrivilege"
+            "proofs/82-normalized-source-attribution.mech#ipv4SharedPrefixAttribution",
+            "proofs/82-normalized-source-attribution.mech#ipv6SharedPrefixAttribution",
+            "proofs/82-normalized-source-attribution.mech#mappedIpv4SharesNativeAttribution",
+            "proofs/82-normalized-source-attribution.mech#normalizedIpv4UsesPrefixNamespace",
+            "proofs/82-normalized-source-attribution.mech#normalizedIpv6UsesPrefixNamespace",
+            "proofs/82-normalized-source-attribution.mech#normalizedMappedIpv4UsesPrefixNamespace",
+            "proofs/82-normalized-source-attribution.mech#ipv4Ipv6PrefixNamespacesDisjoint",
+            "proofs/82-normalized-source-attribution.mech#ipv6Ipv4PrefixNamespacesDisjoint",
+            "proofs/82-normalized-source-attribution.mech#normalizedAddressFamiliesDisjoint",
+            "proofs/82-normalized-source-attribution.mech#ipv4PrefixKeyComparison",
+            "proofs/82-normalized-source-attribution.mech#ipv6PrefixKeyComparison",
+            "proofs/82-normalized-source-attribution.mech#attributedEvictionUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedExpiryUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#mappedIpv4AdmissionSharesNativeState",
+            "proofs/82-normalized-source-attribution.mech#attributedClockPreservesIssue",
+            "proofs/82-normalized-source-attribution.mech#attributedFinishPreservesReceipt",
+            "proofs/82-normalized-source-attribution.mech#attributedTraceExecution",
+            "proofs/82-normalized-source-attribution.mech#attributedTracePendingBound",
+            "proofs/82-normalized-source-attribution.mech#attributedTraceSelectedDebtBound",
+            "proofs/82-normalized-source-attribution.mech#attributedTraceCreditBound",
+            "proofs/82-normalized-source-attribution.mech#attributedAttemptUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedRegistrationUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedPenaltyUsesNormalizedKey",
+            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey"
           ],
-          "rationale": "Unvalidated registration/charge are refused, but normalized attribution and penalty/exemption provenance are not composed. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Model IPv4/IPv6 normalization and shared-address attribution, and prove selected normalized-key consistency together with the aggregate pending invariant."
+          "rationale": "General normalization equations identify shared IPv4/IPv6 prefixes and mapped IPv4, preserve within-family prefix comparisons and separate address families. Exact event and receipt equations select the normalized key consistently. The arbitrary schedule execution bridge and shared pending bound compose this attribution with the aggregate pending invariant for every finite trace and initial state.",
+          "remaining": ""
         }
       ]
     },
