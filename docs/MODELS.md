@@ -2455,7 +2455,49 @@ omitted or duplicated execution and an inflated step quota or capacity. Every mu
 mismatch. General namespace equations were added after a control exposed an
 unconstrained IPv6 normalization branch.
 
-M003 criterion 1 is witnessed; criterion 0 retains trusted-exemption and
-privileged-allowance provenance work. Fixed quota is distinct from M013's timed
+Module 82 witnesses M003 criterion 1; module 83 supplies trusted-exemption and
+privileged-allowance provenance for criterion 0. Fixed quota is distinct from M013's timed
 prefix rates. M009 owns multi-prefix overlap and restart/epoch security lifetimes.
 E014 and E013 retain runtime normalization, authority and pending refinement.
+
+## Trusted source authority and allowance composition
+
+Module 83 composes one normalized-source admission state with a separately
+provisioned source-keyed allowance table. `trustedAuthorityAllowed` requires
+validated reachability, authenticated and listed identity, a captured normalized
+key matching the actual supplied address, and a captured identity matching the
+peer. `trustedRequestAllowed` also checks the selected allowance's fixed budget,
+residency and ban status. Caller-selected keys cannot select authority or debt.
+
+A permitted privileged request uses the ordinary source quota, credit and lease
+plan. `trustedAllowanceStep` debits only its actual pre-state admitted receipt,
+at that same normalized key. Complete-state refusal theorems cover unvalidated,
+unauthenticated, unlisted and mismatched authority and unavailable allowances.
+Resource admission refusal preserves the allowance table. Ordinary events and
+classified penalties cannot debit it. Mapped/native IPv4 share complete state.
+
+Classified load-pressure penalties consult the same authority gate; an exact
+validated/authenticated/listed binding is exempt. Validated protocol violations
+always select the normalized ban, and unvalidated penalties are complete-state
+no-ops. Authentication and listing inputs are supplied authority judgments, not
+caller claims. Authority minting and allowance provisioning remain runtime
+refinement premises. No privileged request bypasses source quota, global credit
+or pending limits; the exemption concerns load-pressure penalties.
+
+`trustedSourceAdmissions` computes the exact resource trace using the evolving
+combined state, independently of `runTrustedSources`. Their general execution
+bridge preserves arbitrary finite schedules. Trace bounds cover initial shared
+pending capacity without an initial-fit premise, and source debt, shared credit
+and every selected allowance key with their explicit initial-fit premises.
+`SourceQuotaBound` helper proofs are structural proof functions; the 36 counted
+new declarations are explicit equality/order statements.
+
+Thirty-seven registered controls each change one complete operational
+definition. They test validation/authentication/listing and key/identity binding
+bypasses, forged penalty reachability, allowance-gate and key substitution,
+denied admission, wrong slots/swarms/keys, forged load exemptions and protocol
+exemptions, dropped ordinary/penalty events, refused or fabricated receipts,
+missing or collateral allowance debits, changed shared capacity, and dropped or
+stale trace state. Every control must fail over quantified inputs. M003 is
+covered by modules 82 and 83 together. M009/M013 and E014/E029/E013 retain their
+security-lifetime, timed-rate and runtime authority/accounting boundaries.

@@ -1096,3 +1096,28 @@ normalization and authority refinement; E013 owns concrete pending refinement.
 All 43 external obligations remain open. Disposition, scope, audit and full
 qualification regressions preserve the frozen boundaries. Earlier receipts
 retain their original scopes and hashes.
+
+## R03 trusted source authority, turn 8
+
+`r03-trusted-source-authority-check.json` records the complete corpus and guard
+run: 66 modules, 1205 explicit equality/order proof declarations, 186 atomic
+obligations and 1146 rejected negative checks. Module 83 adds 36 counted proof
+declarations; structural quota-invariant helpers are additional proof functions.
+Thirty-seven new controls weaken complete operational definitions. Each is
+rejected by a general statement over quantified inputs.
+
+The model binds validated reachability, authenticated/listed identity and the
+normalized key before privileged admission or load-pressure exemption. Complete
+state refusal protects all allowances from unvalidated or mismatched requests.
+Admitted receipts alone debit normalized allowances. Exhaustion and resource
+refusal preserve allowances; ordinary events and penalties cannot spend them.
+Mapped/native IPv4 share state, and protocol violations retain normalized bans.
+An independent evolving-state execution bridge establishes arbitrary mixed-trace
+pending, source debt, shared credit and allowance bounds with explicit initial
+fit where required.
+
+M003 is covered. The ledger covers eight of 83 model obligations and retains
+75 gaps; M009, M012 and M013 remain in R03. R03 has used eight turns and remains
+active. All 43 external obligations remain open. E014, E029 and E013 retain
+runtime authority, listing, allowance provisioning and pending refinement.
+The prior R03 receipts retain their original counts and input hashes.

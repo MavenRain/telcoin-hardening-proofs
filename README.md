@@ -27,13 +27,13 @@ unaudited criteria. At R02 closure, M005 was covered and 82 obligations retained
 exact R03-R08 model gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records
 the completed batches.
 
-R03 turn 7 witnesses M003's normalized-attribution criterion. Native and mapped
-IPv4 share a prefix key, IPv6 uses a disjoint namespace, and attributed schedules
-preserve source debt, shared credit and aggregate pending bounds. Unvalidated
-attempts, registration and penalties preserve the complete state. M003's trusted
-exemptions and privileged-allowance provenance remain open. M001, M002, M004,
-M005, M007, M011 and M021 remain covered. Seven obligations are covered;
-76 retain model gaps, including four assigned to R03. See the
+R03 turn 8 closes M003 with trusted authority bound to validated reachability,
+authenticated/listed identity and the normalized source key. Unvalidated and
+mismatched requests preserve the entire resource and allowance state. Admitted
+receipts alone spend the selected allowance; trusted load exemptions retain
+protocol penalties. Arbitrary mixed schedules preserve aggregate pending,
+source debt, shared credit and allowance bounds. Eight obligations are covered;
+75 retain model gaps, including three assigned to R03. See the
 [admission boundary](docs/R03-ADMISSION.md).
 
 ## Run locally
@@ -54,7 +54,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 1109 deliberately invalid
+source hashes and coverage freshness, and requires 1146 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -97,7 +97,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1169 explicit equality and order proof declarations across 65 modules. This count
+1205 explicit equality and order proof declarations across 66 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -166,7 +166,8 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `79-unlocked-handshake-executor.mech` | Separate shared waiting and active banks bound arbitrary endpoint/swarm schedules without a mutex premise. Generation-owned transfers and terminal releases preserve ownership; arbitrary resource weights and charged finite traces compose within a host envelope. |
 | `80-shared-host-composition.mech` | Arbitrary finite participant populations and weighted resource coordinates share one host vector. Indexed ownership actions and identity churn preserve allocations and retained charges; clipped per-interval work demands include every participant. |
 | `81-endpoint-routing.mech` | One shared routing table gives each connection a slot/generation identifier across listener/dial endpoints and swarms. Validated matching migration preserves its owner, success retains established routing, and terminal cleanup advances the generation. Arbitrary schedules bound live and discarded state without fairness. |
-| `82-normalized-source-attribution.mech` | Fixed IPv4/IPv6 prefix normalization, shared mapped/native IPv4 attribution, caller-key and identity independence, unvalidated refusal, exact event and receipt key selection, and arbitrary attributed-schedule debt, credit and aggregate pending bounds. Trusted exemptions remain open. |
+| `82-normalized-source-attribution.mech` | Fixed IPv4/IPv6 prefix normalization, shared mapped/native IPv4 attribution, caller-key and identity independence, unvalidated refusal, exact event and receipt key selection, and arbitrary attributed-schedule debt, credit and aggregate pending bounds. Module 83 composes trusted authority. |
+| `83-trusted-source-authority.mech` | Validation, authentication, listing and source/identity binding gate privileged admission and load exemptions. Admitted receipts debit normalized allowances; protocol penalties remain active. Arbitrary mixed schedules preserve allowance, source debt, shared credit and aggregate pending bounds. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

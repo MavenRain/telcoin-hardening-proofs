@@ -541,9 +541,30 @@ authority assumptions. Source quota and shared credit bounds require their
 stated initial-fit witnesses; the aggregate pending bound holds for every initial
 pool. All attributed events route through one serialized shared admission state.
 
-These proofs witness M003's normalized-attribution criterion. They do not
-establish trusted-exemption or privileged-allowance provenance, so M003 remains
-partial. Multi-prefix overlap, restart/epoch security lifetimes and distinct
+Module 82 witnesses M003's normalized-attribution criterion. Module 83
+composes trusted-exemption and privileged-allowance provenance and closes the
+remaining model criterion. Multi-prefix overlap, restart/epoch security lifetimes and distinct
 timed prefix buckets remain M009/M013 work. E014 owns runtime normalization,
 validation, exemption and lifetime refinement. E013 owns concrete pending
 accounting, receipt authority, atomicity and storage dominance.
+
+## Trusted source authority refinement boundary
+
+Module 83 accepts classified reachability, authentication and listing judgments
+with captured normalized-key and identity bindings. Their construction must
+certify the actual address and authenticated peer. These supplied judgments are
+not cryptographic proofs or runtime certificate checks. E014 owns canonical
+address parsing, validation, captured authority bindings and exemption rules;
+E029 owns authentication/listing enforcement and runtime privilege provenance.
+The allowance table is provisioned independently, shares the canonical source
+namespace, and has a fixed supplied budget. Requests cannot register their own
+allowance entries. Runtime provisioning, unique keys and serialization remain
+refinement premises. Changing a caller-selected key confers no authority.
+
+The load-pressure exemption preserves validated protocol penalties. Privileged
+admission retains ordinary source quotas, shared credits and pending capacity;
+only admitted receipts debit an allowance. E013 owns atomic resource/allowance
+updates, receipt authority and concrete pending accounting. Initial-fit premises
+are explicit for source debt, credit and allowance trace bounds. Aggregate
+pending bounds hold for every initial pool. No timed prefix-rate or restart/epoch
+claim follows from fixed-budget allowance accounting; M009 and M013 remain open.

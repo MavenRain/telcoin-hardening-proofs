@@ -2404,6 +2404,116 @@ MUTATIONS += [("attribution_" + name, _ATTRIBUTION_STEP, _ATTRIBUTION_STEP.repla
     for name, before, after in [('step_inflates_capacity', 'sourceAdmissionStep quota capacity (attributedSourceEvent event) current', 'sourceAdmissionStep quota (next capacity) (attributedSourceEvent event) current'), ('step_inflates_quota', 'sourceAdmissionStep quota capacity (attributedSourceEvent event) current', 'sourceAdmissionStep (next quota) capacity (attributedSourceEvent event) current')]]
 
 
+# Trusted authority is bound to validation, identity, listing and normalized source.
+_TRUSTED_AUTHORITY_0 = 'def trustedAuthorityAllowed : TrustedSourceAuthority -> SourceAddress -> Count -> Flag :=\n  fun (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count) =>\n    case authority as evidence in TrustedSourceAuthority return Flag with\n    | trustedSourceAuthority source authenticated listed boundKey boundIdentity =>\n        case source as validation in Reachability return Flag with\n        | unvalidated => off\n        | validated => both (privileged authenticated listed)\n            (both (sameCount boundKey (normalizedSourceKey address)) (sameCount boundIdentity identity))\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_0, _TRUSTED_AUTHORITY_0.replace(before, after))
+    for name, before, after in [
+        ('validation_bypassed', '| unvalidated => off', '| unvalidated => on'),
+        ('authentication_bypassed', '(privileged authenticated listed)', 'listed'),
+        ('listing_bypassed', '(privileged authenticated listed)', 'authenticated'),
+        ('key_binding_bypassed', '(sameCount boundKey (normalizedSourceKey address))', 'on'),
+        ('identity_binding_bypassed', '(sameCount boundIdentity identity)', 'on'),
+        ('key_binding_uses_identity', '(sameCount boundKey (normalizedSourceKey address))', '(sameCount boundKey identity)'),
+        ('identity_binding_uses_key', '(sameCount boundIdentity identity)', '(sameCount boundIdentity boundKey)'),
+    ]]
+
+_TRUSTED_AUTHORITY_1 = 'def authorityReachability : TrustedSourceAuthority -> Reachability :=\n  fun (authority : TrustedSourceAuthority) =>\n    case authority as evidence in TrustedSourceAuthority return Reachability with\n    | trustedSourceAuthority source authenticated listed key identity => source\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_1, _TRUSTED_AUTHORITY_1.replace(before, after))
+    for name, before, after in [
+        ('penalty_validation_forged', '=> source', '=> validated'),
+    ]]
+
+_TRUSTED_AUTHORITY_2 = 'def trustedRequestAllowed : Count -> TrustedSourceAuthority -> SourceAddress -> Count -> SourceTable -> Flag :=\n  fun (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress)\n      (identity : Count) (allowances : SourceTable) =>\n    both (trustedAuthorityAllowed authority address identity)\n      (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances)\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_2, _TRUSTED_AUTHORITY_2.replace(before, after))
+    for name, before, after in [
+        ('allowance_guard_bypassed', '(sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances)', 'on'),
+        ('allowance_guard_wrong_key', '(normalizedSourceKey address)', 'zero'),
+        ('request_authority_bypassed', '(trustedAuthorityAllowed authority address identity)', 'on'),
+    ]]
+
+_TRUSTED_AUTHORITY_3 = 'def gatedTrustedAttempt : Flag -> SourceAddress -> SwarmClass -> Count -> SourceAdmissionEvent :=\n  fun (allowed : Flag) (address : SourceAddress) (swarm : SwarmClass) (index : Count) =>\n    case allowed as decision in Flag return SourceAdmissionEvent with\n    | off => sourceAdmissionFinish noAdmissionReceipt handshakeFailed\n    | on => sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_3, _TRUSTED_AUTHORITY_3.replace(before, after))
+    for name, before, after in [
+        ('denied_request_admitted', '| off => sourceAdmissionFinish noAdmissionReceipt handshakeFailed', '| off => sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index'),
+        ('admission_wrong_slot', 'swarm (normalizedSourceKey address) index', 'swarm (normalizedSourceKey address) zero'),
+        ('admission_wrong_swarm', 'validated swarm', 'validated primarySwarm'),
+        ('admission_wrong_key', '(normalizedSourceKey address)', 'zero'),
+        ('admission_drops_validation', 'sourceAdmissionAttempt validated', 'sourceAdmissionAttempt unvalidated'),
+    ]]
+
+_TRUSTED_AUTHORITY_4 = 'def gatedTrustedPenalty : Flag -> SourceAddress -> SourceAdmissionEvent :=\n  fun (penalized : Flag) (address : SourceAddress) =>\n    case penalized as decision in Flag return SourceAdmissionEvent with\n    | off => sourceAdmissionFinish noAdmissionReceipt handshakeFailed\n    | on => sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_4, _TRUSTED_AUTHORITY_4.replace(before, after))
+    for name, before, after in [
+        ('penalty_wrong_key', '(normalizedSourceKey address)', 'zero'),
+    ]]
+
+_TRUSTED_AUTHORITY_5 = 'def trustedPenaltyEvent : TrustedSourceAuthority -> SourceAddress -> Count -> PenaltyCause -> SourceAdmissionEvent :=\n  fun (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count) (cause : PenaltyCause) =>\n    case authorityReachability authority as source in Reachability return SourceAdmissionEvent with\n    | unvalidated => sourceAdmissionFinish noAdmissionReceipt handshakeFailed\n    | validated => gatedTrustedPenalty (ban cause (trustedAuthorityAllowed authority address identity)) address\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_5, _TRUSTED_AUTHORITY_5.replace(before, after))
+    for name, before, after in [
+        ('unvalidated_penalty_applied', '| unvalidated => sourceAdmissionFinish noAdmissionReceipt handshakeFailed', '| unvalidated => sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))'),
+        ('load_exemption_forged', '(trustedAuthorityAllowed authority address identity)', 'on'),
+        ('protocol_violation_exempted', '(ban cause ', '(ban loadPressure '),
+    ]]
+
+_TRUSTED_AUTHORITY_6 = 'def trustedResourceEvent : Count -> TrustedSourceEvent -> TrustedSourceState -> SourceAdmissionEvent :=\n  fun (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>\n    case event as action in TrustedSourceEvent return SourceAdmissionEvent with\n    | privilegedSourceAttempt authority address identity claimedKey swarm index =>\n        gatedTrustedAttempt (trustedRequestAllowed budget authority address identity (trustedAllowances current)) address swarm index\n    | classifiedSourcePenalty authority address identity claimedKey cause =>\n        trustedPenaltyEvent authority address identity cause\n    | ordinarySourceEvent ordinary => attributedSourceEvent ordinary\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_6, _TRUSTED_AUTHORITY_6.replace(before, after))
+    for name, before, after in [
+        ('classified_penalty_dropped', 'trustedPenaltyEvent authority address identity cause', 'sourceAdmissionFinish noAdmissionReceipt handshakeFailed'),
+        ('ordinary_event_dropped', '=> attributedSourceEvent ordinary', '=> sourceAdmissionFinish noAdmissionReceipt handshakeFailed'),
+    ]]
+
+_TRUSTED_AUTHORITY_7 = 'def chargeTrustedReceipt : Count -> Count -> AdmissionReceipt -> SourceTable -> SourceTable :=\n  fun (budget : Count) (key : Count) (receipt : AdmissionReceipt) (allowances : SourceTable) =>\n    case receipt as admission in AdmissionReceipt return SourceTable with\n    | noAdmissionReceipt => allowances\n    | pendingAdmissionReceipt index generation => restrictSource budget key (sourceChargeEvent validated) allowances\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_7, _TRUSTED_AUTHORITY_7.replace(before, after))
+    for name, before, after in [
+        ('refused_receipt_charged', '| noAdmissionReceipt => allowances', '| noAdmissionReceipt => restrictSource budget key (sourceChargeEvent validated) allowances'),
+        ('receipt_charge_dropped', '=> restrictSource budget key (sourceChargeEvent validated) allowances', '=> allowances'),
+        ('receipt_charge_wrong_key', 'restrictSource budget key ', 'restrictSource budget zero '),
+        ('receipt_charge_unvalidated', '(sourceChargeEvent validated)', '(sourceChargeEvent unvalidated)'),
+    ]]
+
+_TRUSTED_AUTHORITY_8 = 'def trustedAllowanceStep : Count -> Count -> TrustedSourceEvent -> TrustedSourceState -> SourceTable :=\n  fun (quota : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>\n    case event as action in TrustedSourceEvent return SourceTable with\n    | privilegedSourceAttempt authority address identity claimedKey swarm index =>\n        chargeTrustedReceipt budget (normalizedSourceKey address)\n          (admissionAttemptReceipt quota (trustedResourceEvent budget event current) (trustedResources current))\n          (trustedAllowances current)\n    | classifiedSourcePenalty authority address identity claimedKey cause => trustedAllowances current\n    | ordinarySourceEvent ordinary => trustedAllowances current\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_8, _TRUSTED_AUTHORITY_8.replace(before, after))
+    for name, before, after in [
+        ('allowance_uses_claim', 'chargeTrustedReceipt budget (normalizedSourceKey address)', 'chargeTrustedReceipt budget claimedKey'),
+        ('allowance_drops_receipt', '(admissionAttemptReceipt quota (trustedResourceEvent budget event current) (trustedResources current))', 'noAdmissionReceipt'),
+        ('allowance_forges_receipt', '(admissionAttemptReceipt quota (trustedResourceEvent budget event current) (trustedResources current))', '(pendingAdmissionReceipt index zero)'),
+        ('penalty_spends_allowance', '| classifiedSourcePenalty authority address identity claimedKey cause => trustedAllowances current', '| classifiedSourcePenalty authority address identity claimedKey cause => restrictSource budget (normalizedSourceKey address) (sourceChargeEvent validated) (trustedAllowances current)'),
+        ('ordinary_spends_allowance', '| ordinarySourceEvent ordinary => trustedAllowances current', '| ordinarySourceEvent ordinary => restrictSource budget zero (sourceChargeEvent validated) (trustedAllowances current)'),
+    ]]
+
+_TRUSTED_AUTHORITY_9 = 'def trustedSourceStep : Count -> Count -> Count -> TrustedSourceEvent -> TrustedSourceState -> TrustedSourceState :=\n  fun (quota : Count) (capacity : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>\n    trustedSourceState\n      (sourceAdmissionStep quota capacity (trustedResourceEvent budget event current) (trustedResources current))\n      (trustedAllowanceStep quota budget event current)\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_9, _TRUSTED_AUTHORITY_9.replace(before, after))
+    for name, before, after in [
+        ('resource_capacity_changed', 'sourceAdmissionStep quota capacity ', 'sourceAdmissionStep quota zero '),
+        ('state_drops_allowance_charge', '(trustedAllowanceStep quota budget event current)', '(trustedAllowances current)'),
+    ]]
+
+_TRUSTED_AUTHORITY_10 = 'def rec runTrustedSources : TrustedSourceTrace -> Count -> Count -> Count -> TrustedSourceState -> TrustedSourceState :=\n  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>\n    case trace as schedule in TrustedSourceTrace return TrustedSourceState with\n    | trustedSourcesDone => current\n    | trustedSourcesThen event rest => runTrustedSources rest quota capacity budget (trustedSourceStep quota capacity budget event current)\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_10, _TRUSTED_AUTHORITY_10.replace(before, after))
+    for name, before, after in [
+        ('trace_drops_head', '(trustedSourceStep quota capacity budget event current)', 'current'),
+        ('trace_changes_budget', 'runTrustedSources rest quota capacity budget ', 'runTrustedSources rest quota capacity zero '),
+    ]]
+
+_TRUSTED_AUTHORITY_11 = 'def rec trustedSourceAdmissions : TrustedSourceTrace -> Count -> Count -> Count -> TrustedSourceState -> SourceAdmissionTrace :=\n  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>\n    case trace as schedule in TrustedSourceTrace return SourceAdmissionTrace with\n    | trustedSourcesDone => sourceAdmissionsDone\n    | trustedSourcesThen event rest => sourceAdmissionsThen (trustedResourceEvent budget event current)\n        (trustedSourceAdmissions rest quota capacity budget (trustedSourceStep quota capacity budget event current))\n\n'
+
+MUTATIONS += [("trusted_authority_" + name, _TRUSTED_AUTHORITY_11, _TRUSTED_AUTHORITY_11.replace(before, after))
+    for name, before, after in [
+        ('execution_trace_drops_event', 'sourceAdmissionsThen (trustedResourceEvent budget event current)\n        ', ''),
+        ('execution_trace_stale_state', '(trustedSourceStep quota capacity budget event current)', 'current'),
+    ]]
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")

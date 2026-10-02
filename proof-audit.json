@@ -68,7 +68,8 @@
     "proofs/79-unlocked-handshake-executor.mech": "49bdc9aad98fc21847c39c2e49b0955d41dc50083cdc2a70c2f66d678408e56e",
     "proofs/80-shared-host-composition.mech": "edf5f3b0ce4d606e9cc0dc65d3c9ea07b938d8b926f19f026df0d63fa0320686",
     "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f",
-    "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898"
+    "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898",
+    "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744"
   },
   "obligations": [
     {
@@ -1278,8 +1279,8 @@
       "id": "M003",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "R03 turn 7 supplies normalized IPv4, IPv6 and mapped-IPv4 prefix keys; exact key selection for admission, registration, penalties, eviction, expiry and receipts; unvalidated complete-state refusal; and arbitrary attributed-trace selected source debt, credit and aggregate pending bounds. Criterion 1 is witnessed. Criterion 0 still lacks the composed trusted-exemption and privileged-allowance provenance model. E014 retains runtime parsing, prefix policy and validation authority; E013 retains runtime pending accounting.",
+      "scope_complete": true,
+      "scope_review": "R03 turn 8 composes normalized source attribution with validated, authenticated and listed authority bound to both source key and peer identity. Unvalidated, unauthenticated, unlisted and mismatched requests preserve the complete resource/allowance state. Missing or exhausted allowances refuse; admitted receipts alone debit the selected normalized allowance. Load-pressure exemptions require the same authority, while protocol violations retain normalized penalties. Arbitrary mixed schedules preserve aggregate pending, source debt, shared credit and selected allowance bounds. Both frozen M003 criteria are witnessed. Runtime authority, exemption, listing and pending refinement remain E014, E029 and E013; restart/epoch lifetimes and timed rate composition remain M009/M013.",
       "witnesses": [
         {
           "path": "proofs/27-source-table.mech",
@@ -1627,6 +1628,426 @@
             "All modeled events use the same finite serialized source table, shared credit balance and generation-owned pending pool; capacities and quota stay fixed during the schedule."
           ],
           "limits": "This statement concerns supplied prefix components and classified model events. It proves no runtime address parser, chosen prefix length, exemption or privileged-allowance provenance, restart/epoch security lifetime, timed per-prefix rate, storage/work dominance or scheduling fairness. E014 and E013 remain open."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unvalidatedAuthorityHasNoPrivilege",
+          "statement": "(authenticated : Flag) -> (listed : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity) address identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every unvalidated authority denies privilege, regardless of authentication, listing, captured bindings, address or claimed peer identity.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unauthenticatedAuthorityHasNoPrivilege",
+          "statement": "(source : Reachability) -> (listed : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority source off listed boundKey boundIdentity) address identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every unauthenticated identity denies privilege at either reachability classification.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unlistedAuthorityHasNoPrivilege",
+          "statement": "(source : Reachability) -> (authenticated : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority source authenticated off boundKey boundIdentity) address identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every unlisted identity denies privilege at either reachability classification.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedAuthorityRequiresBoundKey",
+          "statement": "(authenticated : Flag) -> (listed : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (sameCount boundKey (normalizedSourceKey address)) off ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A mismatched normalized source binding denies privilege for every identity and authentication/listing judgment.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedAuthorityRequiresBoundIdentity",
+          "statement": "(authenticated : Flag) -> (listed : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (sameCount boundIdentity identity) off ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A mismatched identity binding denies privilege for every address and authentication/listing judgment.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "boundAuthenticatedListedAuthorityIsAllowed",
+          "statement": "(address : SourceAddress) -> (identity : Count) ->\n    Equal Flag (trustedAuthorityAllowed\n      (trustedSourceAuthority validated on on (normalizedSourceKey address) identity) address identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Validated, authenticated and listed authority with the exact normalized key and peer identity grants the privilege classification.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "deniedTrustedRequestIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (resources : SourceAdmission) ->\n    (allowances : SourceTable) -> Equal Flag (trustedRequestAllowed budget authority address identity allowances) off ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) (trustedSourceState resources allowances))\n      (trustedSourceState resources allowances)",
+          "scope_kind": "general_transition",
+          "establishes": "A denied composed authority/allowance gate preserves the entire resource and allowance state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unvalidatedTrustedRequestIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)\n        address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Every unvalidated privileged request preserves the complete state, including every victim allowance, despite arbitrary captured bindings and caller claims.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedRequestIgnoresClaimedKey",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (leftClaim : Count) -> (rightClaim : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt authority address identity leftClaim swarm index) current)\n      (trustedSourceStep quota capacity budget\n        (privilegedSourceAttempt authority address identity rightClaim swarm index) current)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing a caller-selected key cannot change any privileged request result.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unvalidatedTrustedPenaltyIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (cause : PenaltyCause) ->\n    (current : TrustedSourceState) -> Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (classifiedSourcePenalty (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)\n        address identity claimedKey cause) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Every unvalidated classified penalty preserves the complete resource and allowance state for either penalty cause.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedProtocolViolationUsesNormalizedKey",
+          "statement": "(authenticated : Flag) -> (listed : Flag) ->\n    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->\n    Equal SourceAdmissionEvent (trustedPenaltyEvent\n      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity protocolViolation)\n      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every validated protocol violation selects the normalized source ban, including authenticated and listed authority.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "boundTrustedLoadPenaltyIsExempt",
+          "statement": "(address : SourceAddress) -> (identity : Count) ->\n    Equal SourceAdmissionEvent (trustedPenaltyEvent\n      (trustedSourceAuthority validated on on (normalizedSourceKey address) identity) address identity loadPressure)\n      (sourceAdmissionFinish noAdmissionReceipt handshakeFailed)",
+          "scope_kind": "general_transition",
+          "establishes": "Exactly bound validated, authenticated and listed authority receives the modeled load-pressure exemption.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedAllowanceChargesNormalizedKey",
+          "statement": "(budget : Count) -> (address : SourceAddress) ->\n    (index : Count) -> (generation : Count) -> (allowances : SourceTable) ->\n    Equal SourceTable (chargeTrustedReceipt budget (normalizedSourceKey address) (pendingAdmissionReceipt index generation) allowances)\n      (restrictSource budget (normalizedSourceKey address) (sourceChargeEvent validated) allowances)",
+          "scope_kind": "general_transition",
+          "establishes": "An admitted receipt charges the allowance at the same normalized address key with the supplied allowance budget.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "refusedTrustedReceiptDoesNotCharge",
+          "statement": "(budget : Count) -> (key : Count) -> (allowances : SourceTable) ->\n    Equal SourceTable (chargeTrustedReceipt budget key noAdmissionReceipt allowances) allowances",
+          "scope_kind": "general_transition",
+          "establishes": "An absent admission receipt never charges an allowance.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "deniedAuthorityRequestIsNoOp",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->\n    Equal Flag (trustedAuthorityAllowed authority address identity) off ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "Denial of authority alone preserves the entire state irrespective of available allowance or resource capacity.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "foreignIdentityCannotSpendTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) -> Equal Flag (sameCount boundIdentity identity) off ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt (trustedSourceAuthority validated authenticated listed boundKey boundIdentity)\n        address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "An identity mismatch cannot consume any allowance or alter resource state, even with validated reachability and arbitrary authentication/listing judgments.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "foreignSourceCannotSpendTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) -> Equal Flag (sameCount boundKey (normalizedSourceKey address)) off ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt (trustedSourceAuthority validated authenticated listed boundKey boundIdentity)\n        address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "A normalized source binding mismatch cannot consume any allowance or alter resource state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unauthenticatedRequestCannotSpendTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (source : Reachability) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt (trustedSourceAuthority source off listed boundKey boundIdentity)\n        address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "An unauthenticated privileged request preserves every resource and allowance entry.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "exhaustedTrustedAllowanceRefusesRequest",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (resources : SourceAdmission) ->\n    (allowances : SourceTable) -> Equal Flag (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances) off ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) (trustedSourceState resources allowances))\n      (trustedSourceState resources allowances)",
+          "scope_kind": "general_transition",
+          "establishes": "A missing, banned or exhausted selected allowance, expressed by a refused charge judgment, preserves the complete state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "refusedTrustedAdmissionPreservesAllowance",
+          "statement": "(quota : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->\n    Equal AdmissionReceipt (admissionAttemptReceipt quota (trustedResourceEvent budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current)) noAdmissionReceipt ->\n    Equal SourceTable (trustedAllowanceStep quota budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedAllowances current)",
+          "scope_kind": "general_transition",
+          "establishes": "Resource admission refusal leaves the complete allowance table unchanged, even when authority and the allowance gate permit the attempt.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedTraceExecution",
+          "statement": "(trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->\n    (budget : Count) -> (current : TrustedSourceState) -> Equal SourceAdmission\n    (trustedResources (runTrustedSources trace quota capacity budget current))\n    (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed privileged, classified-penalty and ordinary schedule translates exactly to shared admission execution using the evolving combined state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedTracePendingBound",
+          "statement": "(trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->\n    (budget : Count) -> (current : TrustedSourceState) ->\n    AtMost (leaseOccupancy (admissionPool (trustedResources (runTrustedSources trace quota capacity budget current))))\n      (leaseCapacity (admissionPool (trustedResources current)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed schedule retains the aggregate pending bound at the initial shared pool capacity for every initial combined state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedTraceSelectedAllowanceBound",
+          "statement": "(trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->\n    (budget : Count) -> (key : Count) -> (current : TrustedSourceState) -> SourceQuotaBound budget (trustedAllowances current) ->\n    AtMost (sourceCellDebt (lookupSource key (trustedAllowances (runTrustedSources trace quota capacity budget current)))) budget",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed schedule bounds debt at every selected allowance key by the fixed allowance budget, given an initially bounded allowance table.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "allowedTrustedRequestUsesNormalizedKey",
+          "statement": "(budget : Count) -> (authority : TrustedSourceAuthority) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) ->\n    Equal Flag (trustedRequestAllowed budget authority address identity (trustedAllowances current)) on ->\n    Equal SourceAdmissionEvent (trustedResourceEvent budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) current)\n      (sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index)",
+          "scope_kind": "general_transition",
+          "establishes": "Every permitted privileged request uses validated admission with the exact normalized key, swarm and selected pending slot.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedAllowanceStepUsesNormalizedKey",
+          "statement": "(quota : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->\n    Equal SourceTable (trustedAllowanceStep quota budget\n      (privilegedSourceAttempt authority address identity claimedKey swarm index) current)\n      (chargeTrustedReceipt budget (normalizedSourceKey address)\n        (admissionAttemptReceipt quota (trustedResourceEvent budget\n          (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current))\n        (trustedAllowances current))",
+          "scope_kind": "general_transition",
+          "establishes": "The allowance transition uses the normalized address key and the receipt from that same pre-state admission plan.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "ordinaryEventPreservesTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (event : AttributedSourceEvent) -> (current : TrustedSourceState) ->\n    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget (ordinarySourceEvent event) current))\n      (trustedAllowances current)",
+          "scope_kind": "general_transition",
+          "establishes": "Ordinary admission, registration, churn, expiry, clock and completion events never spend the privileged allowance table.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "penaltyPreservesTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->\n    (claimedKey : Count) -> (cause : PenaltyCause) -> (current : TrustedSourceState) ->\n    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget\n      (classifiedSourcePenalty authority address identity claimedKey cause) current)) (trustedAllowances current)",
+          "scope_kind": "general_transition",
+          "establishes": "Neither classified penalty cause spends the privileged allowance table.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "mappedTrustedRequestSharesNativeState",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (authority : TrustedSourceAuthority) -> (prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->\n    (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt authority (mappedIpv4SourceAddress prefix mappedHost) identity claimedKey swarm index) current)\n      (trustedSourceStep quota capacity budget\n        (privilegedSourceAttempt authority (ipv4SourceAddress prefix nativeHost) identity claimedKey swarm index) current)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 addresses with one supplied prefix produce identical complete privileged-request states despite different host components.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "unlistedRequestCannotSpendTrustedAllowance",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (source : Reachability) -> (authenticated : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->\n    (index : Count) -> (current : TrustedSourceState) ->\n    Equal TrustedSourceState (trustedSourceStep quota capacity budget\n      (privilegedSourceAttempt (trustedSourceAuthority source authenticated off boundKey boundIdentity)\n        address identity claimedKey swarm index) current) current",
+          "scope_kind": "general_transition",
+          "establishes": "An unlisted privileged request preserves every resource and allowance entry.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "deniedAuthorityLoadPenaltyUsesNormalizedKey",
+          "statement": "(authority : TrustedSourceAuthority) ->\n    (address : SourceAddress) -> (identity : Count) -> Equal Reachability (authorityReachability authority) validated ->\n    Equal Flag (trustedAuthorityAllowed authority address identity) off ->\n    Equal SourceAdmissionEvent (trustedPenaltyEvent authority address identity loadPressure)\n      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address)))",
+          "scope_kind": "general_transition",
+          "establishes": "Validated authority that lacks any required privilege binding receives the normalized load-pressure penalty rather than an exemption.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "classifiedPenaltyUsesAuthority",
+          "statement": "(budget : Count) -> (authority : TrustedSourceAuthority) ->\n    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (cause : PenaltyCause) ->\n    (current : TrustedSourceState) -> Equal SourceAdmissionEvent (trustedResourceEvent budget\n      (classifiedSourcePenalty authority address identity claimedKey cause) current)\n      (trustedPenaltyEvent authority address identity cause)",
+          "scope_kind": "general_transition",
+          "establishes": "The resource-event translation retains the supplied classified authority, address, identity and penalty cause and ignores caller-selected keys.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "ordinaryEventUsesAttributedStep",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (event : AttributedSourceEvent) -> (current : TrustedSourceState) ->\n    Equal SourceAdmission (trustedResources (trustedSourceStep quota capacity budget (ordinarySourceEvent event) current))\n      (attributedSourceStep quota capacity event (trustedResources current))",
+          "scope_kind": "general_transition",
+          "establishes": "Ordinary events retain the complete normalized-source resource transition in the combined state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedStepAllowanceExecution",
+          "statement": "(quota : Count) -> (capacity : Count) -> (budget : Count) ->\n    (event : TrustedSourceEvent) -> (current : TrustedSourceState) ->\n    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget event current))\n      (trustedAllowanceStep quota budget event current)",
+          "scope_kind": "general_transition",
+          "establishes": "The combined state stores exactly the computed allowance transition for every event and pre-state.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedTraceSelectedSourceDebtBound",
+          "statement": "(trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->\n    (budget : Count) -> (address : SourceAddress) -> (current : TrustedSourceState) ->\n    SourceQuotaBound quota (admissionSources (trustedResources current)) ->\n    AtMost (sourceCellDebt (lookupSource (normalizedSourceKey address)\n      (admissionSources (trustedResources (runTrustedSources trace quota capacity budget current))))) quota",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every mixed schedule bounds ordinary debt at every normalized address by the fixed source quota, given the initial source-quota invariant.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
+        },
+        {
+          "path": "proofs/83-trusted-source-authority.mech",
+          "name": "trustedTraceCreditBound",
+          "statement": "(trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->\n    (budget : Count) -> (current : TrustedSourceState) -> AtMost (admissionCredits (trustedResources current)) capacity ->\n    AtMost (admissionCredits (trustedResources (runTrustedSources trace quota capacity budget current))) capacity",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every mixed schedule bounds shared credits by the supplied capacity, given the explicit initial credit-fit premise.",
+          "premises": [
+            "Only the explicitly quantified inputs and equality/initial-fit premises in this statement are proof premises.",
+            "Reachability, authenticated identity, listing, captured key/identity bindings and initial allowance provisioning are supplied model judgments; E014 and E029 retain their runtime authority and provenance."
+          ],
+          "limits": "The exemption is for load-pressure penalties, not protocol violations or aggregate pending/source-quota/credit caps. E014 retains canonical address parsing, validation, authority binding and exemption refinement; E029 retains authentication/listing privilege enforcement; E013 retains runtime pending accounting, receipt authority and serialization. M009/M013 retain restart/epoch lifetimes and timed prefix/aggregate rate composition."
         }
       ],
       "controls": [
@@ -1745,12 +2166,160 @@
         {
           "name": "attribution_step_inflates_quota",
           "sha256": "652db7b0199c815f37c82b7feb11c6efb6336810f5dafb4516389b8c81c11324"
+        },
+        {
+          "name": "trusted_authority_validation_bypassed",
+          "sha256": "787abaae79734533d052bb2e38e442bd2ac04145019e08bac58e9e5b1062d458"
+        },
+        {
+          "name": "trusted_authority_authentication_bypassed",
+          "sha256": "4ee29911db36fbaaddea6c9bef01910d3b1ba84bec6b3a131b4e674a4c0597f5"
+        },
+        {
+          "name": "trusted_authority_listing_bypassed",
+          "sha256": "87ccee9c255045bc30da2621ba66955cb63773a698901af5043644a230ba8e27"
+        },
+        {
+          "name": "trusted_authority_key_binding_bypassed",
+          "sha256": "34de2a7a6cdaceff50beeb224a7b1d2936e993b5ada99da0a9522fefc62478b2"
+        },
+        {
+          "name": "trusted_authority_identity_binding_bypassed",
+          "sha256": "2ec0a823980cd2d711610e29f6e99dfce4ac234b3c3db45aab65896f1f39b58b"
+        },
+        {
+          "name": "trusted_authority_key_binding_uses_identity",
+          "sha256": "c3c7fae7aefc0b87e8c10b91290af1c5cba7dd228e614652c4eb757ec04cade1"
+        },
+        {
+          "name": "trusted_authority_identity_binding_uses_key",
+          "sha256": "0fd4843053f744c944cc68f464c7f348c54def0c96c6ec53157524fd8adaa23e"
+        },
+        {
+          "name": "trusted_authority_penalty_validation_forged",
+          "sha256": "dbb44909f60c38c39dcfab4080752eb3f1d98b7dabe01b97a30f22abb905e9c2"
+        },
+        {
+          "name": "trusted_authority_allowance_guard_bypassed",
+          "sha256": "2ff6b6a19cb2ac414723de50362d02f2ff594947ec5e4a3a1ce62041ac4dd37e"
+        },
+        {
+          "name": "trusted_authority_allowance_guard_wrong_key",
+          "sha256": "789bff311f90cec494206bd804d87023b4ccae1ceacfc90bfac4570afae813d9"
+        },
+        {
+          "name": "trusted_authority_request_authority_bypassed",
+          "sha256": "7d07815f18926d15edc8d352e2f8182fb72f5fb6cf214fb6fc500b92a2ed42b1"
+        },
+        {
+          "name": "trusted_authority_denied_request_admitted",
+          "sha256": "fc8fbe1fbf1af970e2afea6a52d098bdf0f192f5ea890568fa175f1a66823abe"
+        },
+        {
+          "name": "trusted_authority_admission_wrong_slot",
+          "sha256": "90ab894cc3a8b80abf5a979ff20372e408d122518b673999700b220fd905dc95"
+        },
+        {
+          "name": "trusted_authority_admission_wrong_swarm",
+          "sha256": "1e52361cd1668caf99105cd097f4767f477d1cce6711b19cede0b25e0f20f983"
+        },
+        {
+          "name": "trusted_authority_admission_wrong_key",
+          "sha256": "2bf8f304b8bd28d84bd31e6a5840f8cd232c9f0acf9027e3d0e635b895045897"
+        },
+        {
+          "name": "trusted_authority_admission_drops_validation",
+          "sha256": "f1609ff3876acbbd36643bb7ef659963f75bb5db7541c9a35e34b7c8c4d309b4"
+        },
+        {
+          "name": "trusted_authority_penalty_wrong_key",
+          "sha256": "cbcea56940c19b54055765803be2240f115d8ba83cdf9381229e642a9f74291d"
+        },
+        {
+          "name": "trusted_authority_unvalidated_penalty_applied",
+          "sha256": "b7b5baa5cbf2c1210d9795d2925c4b063d16b2c157ffea7a20d50e822b5ea384"
+        },
+        {
+          "name": "trusted_authority_load_exemption_forged",
+          "sha256": "d5c22dd111d93ee99637704fe9df58f8dcc33afac284c138a9f879abf652ac98"
+        },
+        {
+          "name": "trusted_authority_protocol_violation_exempted",
+          "sha256": "3ac4ac4ab89fa0a822f53921a5228c18d60a0583e0cd850e68678568ec3a41c8"
+        },
+        {
+          "name": "trusted_authority_classified_penalty_dropped",
+          "sha256": "985ba30b4245ffdd64eb4d549d5fd7a6a7c94d4e29f4ed2ec546818736a3057b"
+        },
+        {
+          "name": "trusted_authority_ordinary_event_dropped",
+          "sha256": "7e1a192fd59d25cba88fe8a426484f3a489829673f1738e0ab9ef695bc82d8c6"
+        },
+        {
+          "name": "trusted_authority_refused_receipt_charged",
+          "sha256": "d0e9d26584b4b1740dbad8307ea68fccc3c245d726e835e7bce5bbf6fa9192a1"
+        },
+        {
+          "name": "trusted_authority_receipt_charge_dropped",
+          "sha256": "7530e1757eb3b917099d194b63ee5019b32145fe56727e540fbf0c3c288192fc"
+        },
+        {
+          "name": "trusted_authority_receipt_charge_wrong_key",
+          "sha256": "afc8ef8ff88cff70fd46a7075c0e16be6175d98c70ad1ce49eaf2684fe3c8a92"
+        },
+        {
+          "name": "trusted_authority_receipt_charge_unvalidated",
+          "sha256": "1bd69f2e89d75ec78dc8a9299e6e4c47c4e03a95d3eb89fc4b7036db1ee72a13"
+        },
+        {
+          "name": "trusted_authority_allowance_uses_claim",
+          "sha256": "96ead89c985846e93bf7f04c1b7205941c9a52b8b1440a38eafab623c77bf77d"
+        },
+        {
+          "name": "trusted_authority_allowance_drops_receipt",
+          "sha256": "a570c81266dab8f9b47de5f213212fefc3420562add3a97571cf699f564f3082"
+        },
+        {
+          "name": "trusted_authority_allowance_forges_receipt",
+          "sha256": "d9c45d03946e2d4d56b5327b8dfdbe3a962bd7b6f2b4e25a0bfd06e6e5acc36b"
+        },
+        {
+          "name": "trusted_authority_penalty_spends_allowance",
+          "sha256": "af1faf060af35e51789a28637346b3480b67bf7cfb0cedb7bbaa9f54d54b5984"
+        },
+        {
+          "name": "trusted_authority_ordinary_spends_allowance",
+          "sha256": "3cee4a5fb3c88470d415b939402620f4a8e9a56cbce68dd933c5b83856cd7edf"
+        },
+        {
+          "name": "trusted_authority_resource_capacity_changed",
+          "sha256": "32b11e5b214c21afa1c330cc10c309955040af32928f5dbb0f7c220eeb5749d3"
+        },
+        {
+          "name": "trusted_authority_state_drops_allowance_charge",
+          "sha256": "796eefe9a20990edb172d424265f0d64be0f7cff79507a83d33001868e035b8d"
+        },
+        {
+          "name": "trusted_authority_trace_drops_head",
+          "sha256": "adea1b919e7b3170f5a4623f5a94360b941ee4b3796f90006f86cdbe5a495438"
+        },
+        {
+          "name": "trusted_authority_trace_changes_budget",
+          "sha256": "bcb2495e24b678850a7481d1c83194c03c1ed33e5536e910f0756496e5ee5a48"
+        },
+        {
+          "name": "trusted_authority_execution_trace_drops_event",
+          "sha256": "e80223cd98aa66d23fea436ec7d0341ef6d22a40a5279a7f3b554dfc69bb97e2"
+        },
+        {
+          "name": "trusted_authority_execution_trace_stale_state",
+          "sha256": "0d9d7772be30966bfbac75fca9459d3bec3fa5822b3db4f417585a44525e43d7"
         }
       ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/27-source-table.mech#unvalidatedSourceRegistrationIsRefused",
             "proofs/29-source-system.mech#unvalidatedSourceTableChargeIsNoOp",
@@ -1762,10 +2331,45 @@
             "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedRegistrationIsNoOp",
             "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedAttemptIsNoOp",
             "proofs/82-normalized-source-attribution.mech#unvalidatedAttributedPenaltyIsNoOp",
-            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey"
+            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#unvalidatedAuthorityHasNoPrivilege",
+            "proofs/83-trusted-source-authority.mech#unauthenticatedAuthorityHasNoPrivilege",
+            "proofs/83-trusted-source-authority.mech#unlistedAuthorityHasNoPrivilege",
+            "proofs/83-trusted-source-authority.mech#trustedAuthorityRequiresBoundKey",
+            "proofs/83-trusted-source-authority.mech#trustedAuthorityRequiresBoundIdentity",
+            "proofs/83-trusted-source-authority.mech#boundAuthenticatedListedAuthorityIsAllowed",
+            "proofs/83-trusted-source-authority.mech#deniedTrustedRequestIsNoOp",
+            "proofs/83-trusted-source-authority.mech#unvalidatedTrustedRequestIsNoOp",
+            "proofs/83-trusted-source-authority.mech#trustedRequestIgnoresClaimedKey",
+            "proofs/83-trusted-source-authority.mech#unvalidatedTrustedPenaltyIsNoOp",
+            "proofs/83-trusted-source-authority.mech#trustedProtocolViolationUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#boundTrustedLoadPenaltyIsExempt",
+            "proofs/83-trusted-source-authority.mech#trustedAllowanceChargesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#refusedTrustedReceiptDoesNotCharge",
+            "proofs/83-trusted-source-authority.mech#deniedAuthorityRequestIsNoOp",
+            "proofs/83-trusted-source-authority.mech#foreignIdentityCannotSpendTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#foreignSourceCannotSpendTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#unauthenticatedRequestCannotSpendTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#exhaustedTrustedAllowanceRefusesRequest",
+            "proofs/83-trusted-source-authority.mech#refusedTrustedAdmissionPreservesAllowance",
+            "proofs/83-trusted-source-authority.mech#trustedTraceExecution",
+            "proofs/83-trusted-source-authority.mech#trustedTracePendingBound",
+            "proofs/83-trusted-source-authority.mech#trustedTraceSelectedAllowanceBound",
+            "proofs/83-trusted-source-authority.mech#allowedTrustedRequestUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#trustedAllowanceStepUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#ordinaryEventPreservesTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#penaltyPreservesTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#mappedTrustedRequestSharesNativeState",
+            "proofs/83-trusted-source-authority.mech#unlistedRequestCannotSpendTrustedAllowance",
+            "proofs/83-trusted-source-authority.mech#deniedAuthorityLoadPenaltyUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#classifiedPenaltyUsesAuthority",
+            "proofs/83-trusted-source-authority.mech#ordinaryEventUsesAttributedStep",
+            "proofs/83-trusted-source-authority.mech#trustedStepAllowanceExecution",
+            "proofs/83-trusted-source-authority.mech#trustedTraceSelectedSourceDebtBound",
+            "proofs/83-trusted-source-authority.mech#trustedTraceCreditBound"
           ],
-          "rationale": "Unvalidated normalized admission, registration and penalties preserve the complete state for arbitrary addresses and caller-selected keys; fresh identities cannot select another accounting key. These general witnesses cover quota and penalty authority, but trusted-exemption and privileged-allowance provenance remain missing at the frozen scope.",
-          "remaining": "R03: Compose trusted exemptions and classified identity/listing privilege with normalized source authority, proving that unvalidated victim-address claims cannot acquire or spend a victim privileged allowance."
+          "rationale": "The existing ordinary normalized admission/registration/penalty refusals compose with complete-state privileged-request and classified-penalty refusals. Validation, authentication, listing, normalized-key binding and identity binding gate all privilege; caller-selected keys cannot redirect either resource admission or the admitted-receipt allowance debit. Trusted load exemptions use this same bound authority and never exempt validated protocol violations. Arbitrary mixed schedules preserve both source and allowance accounting bounds.",
+          "remaining": ""
         },
         {
           "index": 1,
@@ -1794,9 +2398,17 @@
             "proofs/82-normalized-source-attribution.mech#attributedAttemptUsesNormalizedKey",
             "proofs/82-normalized-source-attribution.mech#attributedRegistrationUsesNormalizedKey",
             "proofs/82-normalized-source-attribution.mech#attributedPenaltyUsesNormalizedKey",
-            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey"
+            "proofs/82-normalized-source-attribution.mech#attributedReceiptUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#allowedTrustedRequestUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#trustedAllowanceStepUsesNormalizedKey",
+            "proofs/83-trusted-source-authority.mech#mappedTrustedRequestSharesNativeState",
+            "proofs/83-trusted-source-authority.mech#trustedTraceExecution",
+            "proofs/83-trusted-source-authority.mech#trustedTracePendingBound",
+            "proofs/83-trusted-source-authority.mech#trustedTraceSelectedSourceDebtBound",
+            "proofs/83-trusted-source-authority.mech#trustedTraceSelectedAllowanceBound",
+            "proofs/83-trusted-source-authority.mech#trustedTraceCreditBound"
           ],
-          "rationale": "General normalization equations identify shared IPv4/IPv6 prefixes and mapped IPv4, preserve within-family prefix comparisons and separate address families. Exact event and receipt equations select the normalized key consistently. The arbitrary schedule execution bridge and shared pending bound compose this attribution with the aggregate pending invariant for every finite trace and initial state.",
+          "rationale": "General normalization equations identify shared IPv4/IPv6 prefixes and mapped IPv4, preserve within-family prefix comparisons and separate address families. Exact event and receipt equations select the normalized key consistently. The arbitrary schedule execution bridge and shared pending bound compose this attribution with the aggregate pending invariant for every finite trace and initial state. The trusted composition preserves the same normalized admission/allowance key and aggregate pending invariant, including mapped/native IPv4 equivalence, for every mixed schedule.",
           "remaining": ""
         }
       ]

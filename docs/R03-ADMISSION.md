@@ -1,14 +1,14 @@
-# R03 admission boundary, turn 7
+# R03 admission boundary, turn 8
 
-R03 is active after seven execution turns. Turn 1 closed M004, turn 2 closed
+R03 is active after eight execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
 population and resource/work composition. Turn 6 closes M021 with endpoint
 routing, migration ownership and finite discarded-state bounds. Turn 7 witnesses
-M003's normalized-attribution criterion while retaining its exemption-provenance
-gap. M005 was already covered by R02.
-The audit covers seven of 83 model obligations, retains 76 exact gaps, and leaves all 43 external obligations
+M003's normalized-attribution criterion. Turn 8 closes M003 with trusted exemption
+and privileged-allowance provenance. M005 was already covered by R02.
+The audit covers eight of 83 model obligations, retains 75 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
 obligations, packet assignments and qualification guards remain intact.
 
@@ -16,6 +16,7 @@ obligations, packet assignments and qualification guards remain intact.
 |---|---|---|
 | M001 | Existing general unvalidated Retry refusal; module 76's invalid-evidence complete-state no-op and unvalidated-address preservation; module 77's authentication grants and clearing, arbitrary mixed-trace erasure and authority projections, post-authentication reachability traces and privilege-gate preservation. | Correct classification of runtime address and identity evidence is granted. Cookies and signatures are token-validation and cryptographic premises. E008 and E020 own their runtime semantics, M014 to M017 own detailed protocol authentication, and E029 owns runtime listing and privilege enforcement. |
 | M002 | Module 78's arbitrary mixed-trace queue, retained-byte and transient-allocation bounds; exact packet/queue/parsing/token charges and arbitrary finite-fuel poll work bounds. | Finite shared allocation and enforced budgets are modeled. Runtime storage/work dominance, serialization, workspace lifetime and supplied outcome classifications remain external. E008 owns the transport queue, budget, serialization, workspace and outcome premises. E010 owns deployed storage and work dominance. Later pending and established caps supply no premise. |
+| M003 | Modules 82 and 83 compose normalized source attribution, complete-state unvalidated and mismatched privilege refusal, admitted-receipt allowance debits, trusted load exemptions, active protocol penalties and arbitrary mixed-trace accounting/pending bounds. | Classified reachability, authentication/listing, captured key/identity bindings and allowance provisioning are supplied judgments. E014, E029 and E013 retain runtime authority, privilege and pending refinement. Initial source/credit/allowance fit is explicit; pending bounds hold for every initial pool. |
 | M004 | Module 75's arbitrary-pool and arbitrary-index exhaustion bridge, composed complete-state admission refusal and receipt absence; existing arbitrary PoolTrace and SourceAdmissionTrace bounds, conservation and fixed structural capacity. | Exhaustion means zero total leaseAvailability, including empty pools and missing indices. Runtime receipt authority, stable indices, serialization, nonwrapping generations and storage dominance remain external. E013 owns them. |
 | M011 | Module 79's arbitrary endpoint/swarm trace bounds for separate waiting and active banks, conditional refused/permitted dispatch transitions, generation-owned terminal releases, shared weighted host allocation and charged work envelope. | All endpoint work routes through the same banks. Atomic transfer, internal callback provenance, nonwrapping generations, actual task termination on terminal release, and runtime resource/work dominance remain E019 premises. No mutex or fair scheduling is assumed. |
 | M007 | Module 80's arbitrary finite population and weighted-coordinate bounds, allocation preservation under mixed ownership/churn traces, retained charges on identity changes, and per-interval clipped work composition. | Every participant receives a separately owned slice whose sum fits the one supplied host vector. Connection and reconnect-burst parameters are member counts, bank weights and bank capacities in this arbitrary fleet. A burst in one interval is any finite trace of hostEvent and hostChurn steps over the fixed population. M013 owns burst-plus-rate budgets across intervals. Runtime routing, weight dominance, work-budget enforcement and production calibration remain external. E022 owns established-resource routing, weight dominance and work-budget enforcement. E013 owns runtime pending accounting. E010 owns production calibration and deployed storage and work dominance. Labels do not establish source normalization; specific established resource vectors remain M012 work. |
@@ -208,31 +209,67 @@ fixed-quota results; distinct timed prefix buckets remain M013 work.
 The module adds 28 explicit proofs and 29 semantic controls. All controls fail
 with proof type mismatches over variables, including wrong host/key selection,
 family aliasing, validation bypasses, altered clock/completion evidence,
-omitted or duplicated schedule events and an inflated step quota or capacity. The frozen M003 criterion 0 remains a
-gap because trusted exemptions and privileged-allowance provenance are absent.
+omitted or duplicated schedule events and an inflated step quota or capacity. Module 83 supplies the
+trusted exemption and privileged-allowance provenance composition for criterion 0.
 E014 owns runtime parsing, prefix-policy selection, validated-address evidence,
 key uniqueness, trusted exemptions and lifetime rules. E013 owns runtime pending
 refinement, receipt authority, serialization and storage dominance.
 
+## Trusted source authority and privileged allowances
+
+[83-trusted-source-authority.mech](../proofs/83-trusted-source-authority.mech)
+closes M003 criterion 0. The authority record carries classified reachability,
+authentication and listing judgments together with a captured normalized source
+key and peer identity. All five checks must permit a privileged request. Caller
+claims select neither binding nor accounting key. Unvalidated, unauthenticated,
+unlisted, foreign-key and foreign-identity requests preserve the entire combined
+resource and allowance state. Mapped and native IPv4 under one prefix produce
+the same complete request result.
+
+An independently provisioned allowance table supplies a fixed budget at each
+normalized key. Missing, banned or exhausted allowance entries refuse without
+resource work or a debit. A permitted request still uses the ordinary source
+quota, global credit and pending-slot plan. Its actual pre-state admission
+receipt determines the allowance debit, so refused resource admission consumes
+no allowance. Ordinary registration, churn, expiry, clock and completion events
+and both classified penalty causes preserve this table.
+
+Load-pressure exemption requires the same validated, authenticated, listed,
+key-bound and identity-bound authority. Every validated protocol violation still
+selects the normalized ban. Unvalidated penalties preserve the full state. The
+independent mixed-trace execution bridge composes every event with one evolving
+resource and allowance state. General trace proofs retain the shared pending
+bound for every initial pool and source debt, shared credit and selected
+allowance bounds under their explicit initial-fit premises.
+
+Thirty-seven controls weaken authority and allowance gates, bindings, normalized
+keys, selected slots and swarms, exemption rules, admission receipts, state
+updates and evolving trace execution. All are rejected by general proof
+statements. E014 retains runtime parsing, validated-address authority, captured
+bindings and exemption enforcement. E029 retains authentication and listing
+enforcement. E013 retains serialized admission, receipt authority and pending
+accounting. These classified inputs and allowance provisioning are supplied
+model judgments. Trusted authority does not bypass aggregate pending, source
+quota or shared credit caps. Timed prefix rates remain M013 work.
+
 ## Remaining R03 scope
 
-Four R03 obligations remain: M003, M009, M012 and M013.
+Three R03 obligations remain: M009, M012 and M013.
 Their exact per-criterion work remains in proof-audit.json. It includes
-trusted-exemption and privileged-allowance provenance, normalized source
-churn and restart/epoch lifetimes, established resource
+normalized source churn and restart/epoch lifetimes, established resource
 vectors and aggregate/source rate composition. R03 stays active until its three exit
 criteria close.
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-normalized-source-attribution-check.json](../evidence/r03-normalized-source-attribution-check.json).
-The corpus has 1169 explicit proof declarations in 65 modules. The full run
-includes 1109 negative checks (1106 registered mutations plus three generic
+[r03-trusted-source-authority-check.json](../evidence/r03-trusted-source-authority-check.json).
+The corpus has 1205 explicit proof declarations in 66 modules. The full run
+includes 1146 negative checks (1143 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-6 and R02 receipts retain their original counts
+open. The historical R03 turn-1 through turn-7 and R02 receipts retain their original counts
 and input hashes.

@@ -1,8 +1,8 @@
 # R02 existing proof audit, complete witness census
 
-This document records the R02 closure baseline. [R03 turn 7](R03-ADMISSION.md)
-subsequently witnesses M003's normalized-attribution criterion; the current ledger covers seven
-obligations and retains 76 gaps. The R02 receipt keeps its original corpus and
+This document records the R02 closure baseline. [R03 turn 8](R03-ADMISSION.md)
+subsequently closes M003 with normalized attribution and trusted authority; the current ledger covers eight
+obligations and retains 75 gaps. The R02 receipt keeps its original corpus and
 82-gap scope.
 
 R02 closes after five execution turns, within the user's five-turn cap.

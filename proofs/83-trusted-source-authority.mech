@@ -1,0 +1,572 @@
+-- Classified validation and identity/listing judgments are supplied authority.
+-- Caller claims select neither the authority binding nor the accounting key.
+mu TrustedSourceAuthority : Type 0 with
+| trustedSourceAuthority : Reachability -> Flag -> Flag -> Count -> Count -> TrustedSourceAuthority
+
+def authorityReachability : TrustedSourceAuthority -> Reachability :=
+  fun (authority : TrustedSourceAuthority) =>
+    case authority as evidence in TrustedSourceAuthority return Reachability with
+    | trustedSourceAuthority source authenticated listed key identity => source
+
+def trustedAuthorityAllowed : TrustedSourceAuthority -> SourceAddress -> Count -> Flag :=
+  fun (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count) =>
+    case authority as evidence in TrustedSourceAuthority return Flag with
+    | trustedSourceAuthority source authenticated listed boundKey boundIdentity =>
+        case source as validation in Reachability return Flag with
+        | unvalidated => off
+        | validated => both (privileged authenticated listed)
+            (both (sameCount boundKey (normalizedSourceKey address)) (sameCount boundIdentity identity))
+
+def unvalidatedAuthorityHasNoPrivilege : (authenticated : Flag) -> (listed : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity) address identity) off :=
+  fun (authenticated : Flag) (listed : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) => same
+
+def unauthenticatedAuthorityHasNoPrivilege : (source : Reachability) -> (listed : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority source off listed boundKey boundIdentity) address identity) off :=
+  fun (source : Reachability) (listed : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) =>
+    case source as validation in Reachability return Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority validation off listed boundKey boundIdentity) address identity) off with
+    | unvalidated => same
+    | validated => same
+
+def unlistedAuthorityHasNoPrivilege : (source : Reachability) -> (authenticated : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority source authenticated off boundKey boundIdentity) address identity) off :=
+  fun (source : Reachability) (authenticated : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) =>
+    case source as validation in Reachability return Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority validation authenticated off boundKey boundIdentity) address identity) off with
+    | unvalidated => same
+    | validated =>
+        case authenticated as verified in Flag return Equal Flag (trustedAuthorityAllowed
+          (trustedSourceAuthority validated verified off boundKey boundIdentity) address identity) off with
+        | off => same
+        | on => same
+
+def trustedAuthorityRequiresBoundKey : (authenticated : Flag) -> (listed : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (sameCount boundKey (normalizedSourceKey address)) off ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity) off :=
+  fun (authenticated : Flag) (listed : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) (mismatch : Equal Flag (sameCount boundKey (normalizedSourceKey address)) off) =>
+    case (equalSymmetry Flag (sameCount boundKey (normalizedSourceKey address)) off mismatch)
+      as witness in Equal matches return Equal Flag
+        (both (privileged authenticated listed) (both matches (sameCount boundIdentity identity))) off with
+    | same => bothRightOff (privileged authenticated listed)
+
+def authorityIdentityBindingOff : (verified : Flag) -> (keyMatches : Flag) ->
+    Equal Flag (both verified (both keyMatches off)) off :=
+  fun (verified : Flag) (keyMatches : Flag) =>
+    case keyMatches as matches in Flag return Equal Flag (both verified (both matches off)) off with
+    | off => bothRightOff verified
+    | on => bothRightOff verified
+
+def trustedAuthorityRequiresBoundIdentity : (authenticated : Flag) -> (listed : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (sameCount boundIdentity identity) off ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity) off :=
+  fun (authenticated : Flag) (listed : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) (mismatch : Equal Flag (sameCount boundIdentity identity) off) =>
+    case (equalSymmetry Flag (sameCount boundIdentity identity) off mismatch)
+      as witness in Equal matches return Equal Flag
+        (both (privileged authenticated listed) (both (sameCount boundKey (normalizedSourceKey address)) matches)) off with
+    | same => authorityIdentityBindingOff (privileged authenticated listed) (sameCount boundKey (normalizedSourceKey address))
+
+def boundAuthenticatedListedAuthorityIsAllowed : (address : SourceAddress) -> (identity : Count) ->
+    Equal Flag (trustedAuthorityAllowed
+      (trustedSourceAuthority validated on on (normalizedSourceKey address) identity) address identity) on :=
+  fun (address : SourceAddress) (identity : Count) =>
+    case (equalSymmetry Flag (sameCount (normalizedSourceKey address) (normalizedSourceKey address)) on
+      (sameCountReflexive (normalizedSourceKey address))) as witness in Equal matches
+      return Equal Flag (both matches (sameCount identity identity)) on with
+    | same => sameCountReflexive identity
+
+mu TrustedSourceState : Type 0 with
+| trustedSourceState : SourceAdmission -> SourceTable -> TrustedSourceState
+
+def trustedResources : TrustedSourceState -> SourceAdmission :=
+  fun (current : TrustedSourceState) =>
+    case current as state in TrustedSourceState return SourceAdmission with
+    | trustedSourceState resources allowances => resources
+
+def trustedAllowances : TrustedSourceState -> SourceTable :=
+  fun (current : TrustedSourceState) =>
+    case current as state in TrustedSourceState return SourceTable with
+    | trustedSourceState resources allowances => allowances
+
+mu TrustedSourceEvent : Type 0 with
+| privilegedSourceAttempt : TrustedSourceAuthority -> SourceAddress -> Count -> Count -> SwarmClass -> Count -> TrustedSourceEvent
+| classifiedSourcePenalty : TrustedSourceAuthority -> SourceAddress -> Count -> Count -> PenaltyCause -> TrustedSourceEvent
+| ordinarySourceEvent : AttributedSourceEvent -> TrustedSourceEvent
+
+def trustedRequestAllowed : Count -> TrustedSourceAuthority -> SourceAddress -> Count -> SourceTable -> Flag :=
+  fun (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress)
+      (identity : Count) (allowances : SourceTable) =>
+    both (trustedAuthorityAllowed authority address identity)
+      (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances)
+
+def gatedTrustedAttempt : Flag -> SourceAddress -> SwarmClass -> Count -> SourceAdmissionEvent :=
+  fun (allowed : Flag) (address : SourceAddress) (swarm : SwarmClass) (index : Count) =>
+    case allowed as decision in Flag return SourceAdmissionEvent with
+    | off => sourceAdmissionFinish noAdmissionReceipt handshakeFailed
+    | on => sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index
+
+def gatedTrustedPenalty : Flag -> SourceAddress -> SourceAdmissionEvent :=
+  fun (penalized : Flag) (address : SourceAddress) =>
+    case penalized as decision in Flag return SourceAdmissionEvent with
+    | off => sourceAdmissionFinish noAdmissionReceipt handshakeFailed
+    | on => sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))
+
+def trustedPenaltyEvent : TrustedSourceAuthority -> SourceAddress -> Count -> PenaltyCause -> SourceAdmissionEvent :=
+  fun (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count) (cause : PenaltyCause) =>
+    case authorityReachability authority as source in Reachability return SourceAdmissionEvent with
+    | unvalidated => sourceAdmissionFinish noAdmissionReceipt handshakeFailed
+    | validated => gatedTrustedPenalty (ban cause (trustedAuthorityAllowed authority address identity)) address
+
+def trustedResourceEvent : Count -> TrustedSourceEvent -> TrustedSourceState -> SourceAdmissionEvent :=
+  fun (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>
+    case event as action in TrustedSourceEvent return SourceAdmissionEvent with
+    | privilegedSourceAttempt authority address identity claimedKey swarm index =>
+        gatedTrustedAttempt (trustedRequestAllowed budget authority address identity (trustedAllowances current)) address swarm index
+    | classifiedSourcePenalty authority address identity claimedKey cause =>
+        trustedPenaltyEvent authority address identity cause
+    | ordinarySourceEvent ordinary => attributedSourceEvent ordinary
+
+def chargeTrustedReceipt : Count -> Count -> AdmissionReceipt -> SourceTable -> SourceTable :=
+  fun (budget : Count) (key : Count) (receipt : AdmissionReceipt) (allowances : SourceTable) =>
+    case receipt as admission in AdmissionReceipt return SourceTable with
+    | noAdmissionReceipt => allowances
+    | pendingAdmissionReceipt index generation => restrictSource budget key (sourceChargeEvent validated) allowances
+
+def trustedAllowanceStep : Count -> Count -> TrustedSourceEvent -> TrustedSourceState -> SourceTable :=
+  fun (quota : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>
+    case event as action in TrustedSourceEvent return SourceTable with
+    | privilegedSourceAttempt authority address identity claimedKey swarm index =>
+        chargeTrustedReceipt budget (normalizedSourceKey address)
+          (admissionAttemptReceipt quota (trustedResourceEvent budget event current) (trustedResources current))
+          (trustedAllowances current)
+    | classifiedSourcePenalty authority address identity claimedKey cause => trustedAllowances current
+    | ordinarySourceEvent ordinary => trustedAllowances current
+
+def trustedSourceStep : Count -> Count -> Count -> TrustedSourceEvent -> TrustedSourceState -> TrustedSourceState :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) =>
+    trustedSourceState
+      (sourceAdmissionStep quota capacity (trustedResourceEvent budget event current) (trustedResources current))
+      (trustedAllowanceStep quota budget event current)
+
+def deniedTrustedRequestIsNoOp : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (resources : SourceAdmission) ->
+    (allowances : SourceTable) -> Equal Flag (trustedRequestAllowed budget authority address identity allowances) off ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) (trustedSourceState resources allowances))
+      (trustedSourceState resources allowances) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (address : SourceAddress) (identity : Count) (claimedKey : Count) (swarm : SwarmClass) (index : Count)
+      (resources : SourceAdmission) (allowances : SourceTable)
+      (denied : Equal Flag (trustedRequestAllowed budget authority address identity allowances) off) =>
+    case (equalSymmetry Flag (trustedRequestAllowed budget authority address identity allowances) off denied)
+      as witness in Equal allowed return Equal TrustedSourceState
+        (trustedSourceState
+          (sourceAdmissionStep quota capacity (gatedTrustedAttempt allowed address swarm index) resources)
+          (chargeTrustedReceipt budget (normalizedSourceKey address)
+            (admissionAttemptReceipt quota (gatedTrustedAttempt allowed address swarm index) resources) allowances))
+        (trustedSourceState resources allowances) with
+    | same => same
+
+def unvalidatedTrustedRequestIsNoOp : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)
+        address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authenticated : Flag) (listed : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) =>
+    case current as state in TrustedSourceState return Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)
+        address identity claimedKey swarm index) state) state with
+    | trustedSourceState resources allowances => same
+
+def trustedRequestIgnoresClaimedKey : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (leftClaim : Count) -> (rightClaim : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority address identity leftClaim swarm index) current)
+      (trustedSourceStep quota capacity budget
+        (privilegedSourceAttempt authority address identity rightClaim swarm index) current) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (address : SourceAddress) (identity : Count) (leftClaim : Count) (rightClaim : Count)
+      (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) => same
+
+def unvalidatedTrustedPenaltyIsNoOp : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (cause : PenaltyCause) ->
+    (current : TrustedSourceState) -> Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (classifiedSourcePenalty (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)
+        address identity claimedKey cause) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authenticated : Flag) (listed : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (cause : PenaltyCause) (current : TrustedSourceState) =>
+    case current as state in TrustedSourceState return Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (classifiedSourcePenalty (trustedSourceAuthority unvalidated authenticated listed boundKey boundIdentity)
+        address identity claimedKey cause) state) state with
+    | trustedSourceState resources allowances => same
+
+def trustedProtocolViolationUsesNormalizedKey : (authenticated : Flag) -> (listed : Flag) ->
+    (boundKey : Count) -> (boundIdentity : Count) -> (address : SourceAddress) -> (identity : Count) ->
+    Equal SourceAdmissionEvent (trustedPenaltyEvent
+      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity protocolViolation)
+      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))) :=
+  fun (authenticated : Flag) (listed : Flag) (boundKey : Count) (boundIdentity : Count)
+      (address : SourceAddress) (identity : Count) => same
+
+def boundTrustedLoadPenaltyIsExempt : (address : SourceAddress) -> (identity : Count) ->
+    Equal SourceAdmissionEvent (trustedPenaltyEvent
+      (trustedSourceAuthority validated on on (normalizedSourceKey address) identity) address identity loadPressure)
+      (sourceAdmissionFinish noAdmissionReceipt handshakeFailed) :=
+  fun (address : SourceAddress) (identity : Count) =>
+    case (equalSymmetry Flag
+        (trustedAuthorityAllowed (trustedSourceAuthority validated on on (normalizedSourceKey address) identity) address identity) on
+        (boundAuthenticatedListedAuthorityIsAllowed address identity)) as witness in Equal allowed
+      return Equal SourceAdmissionEvent (gatedTrustedPenalty (ban loadPressure allowed) address)
+        (sourceAdmissionFinish noAdmissionReceipt handshakeFailed) with
+    | same => same
+
+def trustedAllowanceChargesNormalizedKey : (budget : Count) -> (address : SourceAddress) ->
+    (index : Count) -> (generation : Count) -> (allowances : SourceTable) ->
+    Equal SourceTable (chargeTrustedReceipt budget (normalizedSourceKey address) (pendingAdmissionReceipt index generation) allowances)
+      (restrictSource budget (normalizedSourceKey address) (sourceChargeEvent validated) allowances) :=
+  fun (budget : Count) (address : SourceAddress) (index : Count) (generation : Count) (allowances : SourceTable) => same
+
+def refusedTrustedReceiptDoesNotCharge : (budget : Count) -> (key : Count) -> (allowances : SourceTable) ->
+    Equal SourceTable (chargeTrustedReceipt budget key noAdmissionReceipt allowances) allowances :=
+  fun (budget : Count) (key : Count) (allowances : SourceTable) => same
+
+def trustedReceiptChargeQuotaBound : (budget : Count) -> (key : Count) -> (receipt : AdmissionReceipt) ->
+    (allowances : SourceTable) -> SourceQuotaBound budget allowances ->
+    SourceQuotaBound budget (chargeTrustedReceipt budget key receipt allowances) :=
+  fun (budget : Count) (key : Count) (receipt : AdmissionReceipt) (allowances : SourceTable)
+      (bounded : SourceQuotaBound budget allowances) =>
+    case receipt as admission in AdmissionReceipt return SourceQuotaBound budget (chargeTrustedReceipt budget key admission allowances) with
+    | noAdmissionReceipt => bounded
+    | pendingAdmissionReceipt index generation => restrictSourceQuotaBound budget key (sourceChargeEvent validated) allowances bounded
+
+def trustedAllowanceStepQuotaBound : (quota : Count) -> (capacity : Count) -> (budget : Count) -> (event : TrustedSourceEvent) ->
+    (current : TrustedSourceState) -> SourceQuotaBound budget (trustedAllowances current) ->
+    SourceQuotaBound budget (trustedAllowances (trustedSourceStep quota capacity budget event current)) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState)
+      (bounded : SourceQuotaBound budget (trustedAllowances current)) =>
+    case event as action in TrustedSourceEvent return SourceQuotaBound budget (trustedAllowanceStep quota budget action current) with
+    | privilegedSourceAttempt authority address identity claimedKey swarm index =>
+        trustedReceiptChargeQuotaBound budget (normalizedSourceKey address)
+          (admissionAttemptReceipt quota (trustedResourceEvent budget
+            (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current))
+          (trustedAllowances current) bounded
+    | classifiedSourcePenalty authority address identity claimedKey cause => bounded
+    | ordinarySourceEvent ordinary => bounded
+
+def deniedAuthorityRequestIsNoOp : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->
+    Equal Flag (trustedAuthorityAllowed authority address identity) off ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (address : SourceAddress) (identity : Count) (claimedKey : Count) (swarm : SwarmClass) (index : Count)
+      (current : TrustedSourceState) (denied : Equal Flag (trustedAuthorityAllowed authority address identity) off) =>
+    case current as state in TrustedSourceState return Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) state) state with
+    | trustedSourceState resources allowances =>
+        deniedTrustedRequestIsNoOp quota capacity budget authority address identity claimedKey swarm index resources allowances
+          (case (equalSymmetry Flag (trustedAuthorityAllowed authority address identity) off denied)
+            as witness in Equal allowed return Equal Flag
+              (both allowed (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances)) off with
+          | same => same)
+
+def foreignIdentityCannotSpendTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) -> Equal Flag (sameCount boundIdentity identity) off ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority validated authenticated listed boundKey boundIdentity)
+        address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authenticated : Flag) (listed : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState)
+      (mismatch : Equal Flag (sameCount boundIdentity identity) off) =>
+    deniedAuthorityRequestIsNoOp quota capacity budget
+      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity claimedKey swarm index current
+      (trustedAuthorityRequiresBoundIdentity authenticated listed boundKey boundIdentity address identity mismatch)
+
+def foreignSourceCannotSpendTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authenticated : Flag) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) -> Equal Flag (sameCount boundKey (normalizedSourceKey address)) off ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority validated authenticated listed boundKey boundIdentity)
+        address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authenticated : Flag) (listed : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState)
+      (mismatch : Equal Flag (sameCount boundKey (normalizedSourceKey address)) off) =>
+    deniedAuthorityRequestIsNoOp quota capacity budget
+      (trustedSourceAuthority validated authenticated listed boundKey boundIdentity) address identity claimedKey swarm index current
+      (trustedAuthorityRequiresBoundKey authenticated listed boundKey boundIdentity address identity mismatch)
+
+def unauthenticatedRequestCannotSpendTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (source : Reachability) -> (listed : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority source off listed boundKey boundIdentity)
+        address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (source : Reachability) (listed : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) =>
+    deniedAuthorityRequestIsNoOp quota capacity budget
+      (trustedSourceAuthority source off listed boundKey boundIdentity) address identity claimedKey swarm index current
+      (unauthenticatedAuthorityHasNoPrivilege source listed boundKey boundIdentity address identity)
+
+def exhaustedTrustedAllowanceRefusesRequest : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (resources : SourceAdmission) ->
+    (allowances : SourceTable) -> Equal Flag (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances) off ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) (trustedSourceState resources allowances))
+      (trustedSourceState resources allowances) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (address : SourceAddress) (identity : Count) (claimedKey : Count) (swarm : SwarmClass) (index : Count)
+      (resources : SourceAdmission) (allowances : SourceTable)
+      (exhausted : Equal Flag (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances) off) =>
+    deniedTrustedRequestIsNoOp quota capacity budget authority address identity claimedKey swarm index resources allowances
+      (case (equalSymmetry Flag (sourceTableChargeAllowed validated budget (normalizedSourceKey address) allowances) off exhausted)
+        as witness in Equal room return Equal Flag (both (trustedAuthorityAllowed authority address identity) room) off with
+      | same => bothRightOff (trustedAuthorityAllowed authority address identity))
+
+def refusedTrustedAdmissionPreservesAllowance : (quota : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->
+    Equal AdmissionReceipt (admissionAttemptReceipt quota (trustedResourceEvent budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current)) noAdmissionReceipt ->
+    Equal SourceTable (trustedAllowanceStep quota budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedAllowances current) :=
+  fun (quota : Count) (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress)
+      (identity : Count) (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState)
+      (refused : Equal AdmissionReceipt (admissionAttemptReceipt quota (trustedResourceEvent budget
+        (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current)) noAdmissionReceipt) =>
+    case (equalSymmetry AdmissionReceipt (admissionAttemptReceipt quota (trustedResourceEvent budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current)) noAdmissionReceipt refused)
+      as witness in Equal receipt return Equal SourceTable
+        (chargeTrustedReceipt budget (normalizedSourceKey address) receipt (trustedAllowances current)) (trustedAllowances current) with
+    | same => same
+
+mu TrustedSourceTrace : Type 0 with
+| trustedSourcesDone : TrustedSourceTrace
+| trustedSourcesThen : TrustedSourceEvent -> TrustedSourceTrace -> TrustedSourceTrace
+
+def rec runTrustedSources : TrustedSourceTrace -> Count -> Count -> Count -> TrustedSourceState -> TrustedSourceState :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>
+    case trace as schedule in TrustedSourceTrace return TrustedSourceState with
+    | trustedSourcesDone => current
+    | trustedSourcesThen event rest => runTrustedSources rest quota capacity budget (trustedSourceStep quota capacity budget event current)
+
+def rec trustedSourceAdmissions : TrustedSourceTrace -> Count -> Count -> Count -> TrustedSourceState -> SourceAdmissionTrace :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>
+    case trace as schedule in TrustedSourceTrace return SourceAdmissionTrace with
+    | trustedSourcesDone => sourceAdmissionsDone
+    | trustedSourcesThen event rest => sourceAdmissionsThen (trustedResourceEvent budget event current)
+        (trustedSourceAdmissions rest quota capacity budget (trustedSourceStep quota capacity budget event current))
+
+def rec trustedTraceExecution : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (current : TrustedSourceState) -> Equal SourceAdmission
+    (trustedResources (runTrustedSources trace quota capacity budget current))
+    (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current)) :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>
+    case trace as schedule in TrustedSourceTrace return Equal SourceAdmission
+      (trustedResources (runTrustedSources schedule quota capacity budget current))
+      (runSourceAdmissions (trustedSourceAdmissions schedule quota capacity budget current) quota capacity (trustedResources current)) with
+    | trustedSourcesDone => same
+    | trustedSourcesThen event rest => trustedTraceExecution rest quota capacity budget (trustedSourceStep quota capacity budget event current)
+
+def trustedTracePendingBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (current : TrustedSourceState) ->
+    AtMost (leaseOccupancy (admissionPool (trustedResources (runTrustedSources trace quota capacity budget current))))
+      (leaseCapacity (admissionPool (trustedResources current))) :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState) =>
+    equalTransport SourceAdmission
+      (fun (resources : SourceAdmission) => AtMost (leaseOccupancy (admissionPool resources)) (leaseCapacity (admissionPool (trustedResources current))))
+      (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))
+      (trustedResources (runTrustedSources trace quota capacity budget current))
+      (equalSymmetry SourceAdmission (trustedResources (runTrustedSources trace quota capacity budget current))
+        (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))
+        (trustedTraceExecution trace quota capacity budget current))
+      (sourceAdmissionTracePendingBound (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))
+
+def rec trustedTraceAllowanceQuotaBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (current : TrustedSourceState) -> SourceQuotaBound budget (trustedAllowances current) ->
+    SourceQuotaBound budget (trustedAllowances (runTrustedSources trace quota capacity budget current)) :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState)
+      (bounded : SourceQuotaBound budget (trustedAllowances current)) =>
+    case trace as schedule in TrustedSourceTrace return SourceQuotaBound budget
+      (trustedAllowances (runTrustedSources schedule quota capacity budget current)) with
+    | trustedSourcesDone => bounded
+    | trustedSourcesThen event rest => trustedTraceAllowanceQuotaBound rest quota capacity budget
+        (trustedSourceStep quota capacity budget event current) (trustedAllowanceStepQuotaBound quota capacity budget event current bounded)
+
+def trustedTraceSelectedAllowanceBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (key : Count) -> (current : TrustedSourceState) -> SourceQuotaBound budget (trustedAllowances current) ->
+    AtMost (sourceCellDebt (lookupSource key (trustedAllowances (runTrustedSources trace quota capacity budget current)))) budget :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (key : Count)
+      (current : TrustedSourceState) (bounded : SourceQuotaBound budget (trustedAllowances current)) =>
+    sourceLookupQuotaBound budget key (trustedAllowances (runTrustedSources trace quota capacity budget current))
+      (trustedTraceAllowanceQuotaBound trace quota capacity budget current bounded)
+
+def allowedTrustedRequestUsesNormalizedKey : (budget : Count) -> (authority : TrustedSourceAuthority) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) ->
+    Equal Flag (trustedRequestAllowed budget authority address identity (trustedAllowances current)) on ->
+    Equal SourceAdmissionEvent (trustedResourceEvent budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current)
+      (sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index) :=
+  fun (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState)
+      (allowed : Equal Flag (trustedRequestAllowed budget authority address identity (trustedAllowances current)) on) =>
+    case (equalSymmetry Flag (trustedRequestAllowed budget authority address identity (trustedAllowances current)) on allowed)
+      as witness in Equal decision return Equal SourceAdmissionEvent (gatedTrustedAttempt decision address swarm index)
+        (sourceAdmissionAttempt validated swarm (normalizedSourceKey address) index) with
+    | same => same
+
+def trustedAllowanceStepUsesNormalizedKey : (quota : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->
+    Equal SourceTable (trustedAllowanceStep quota budget
+      (privilegedSourceAttempt authority address identity claimedKey swarm index) current)
+      (chargeTrustedReceipt budget (normalizedSourceKey address)
+        (admissionAttemptReceipt quota (trustedResourceEvent budget
+          (privilegedSourceAttempt authority address identity claimedKey swarm index) current) (trustedResources current))
+        (trustedAllowances current)) :=
+  fun (quota : Count) (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress)
+      (identity : Count) (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) => same
+
+def ordinaryEventPreservesTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (event : AttributedSourceEvent) -> (current : TrustedSourceState) ->
+    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget (ordinarySourceEvent event) current))
+      (trustedAllowances current) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (event : AttributedSourceEvent) (current : TrustedSourceState) => same
+
+def penaltyPreservesTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (address : SourceAddress) -> (identity : Count) ->
+    (claimedKey : Count) -> (cause : PenaltyCause) -> (current : TrustedSourceState) ->
+    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget
+      (classifiedSourcePenalty authority address identity claimedKey cause) current)) (trustedAllowances current) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (address : SourceAddress) (identity : Count) (claimedKey : Count) (cause : PenaltyCause) (current : TrustedSourceState) => same
+
+def mappedTrustedRequestSharesNativeState : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (authority : TrustedSourceAuthority) -> (prefix : Count) -> (mappedHost : Count) -> (nativeHost : Count) ->
+    (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) -> (index : Count) -> (current : TrustedSourceState) ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt authority (mappedIpv4SourceAddress prefix mappedHost) identity claimedKey swarm index) current)
+      (trustedSourceStep quota capacity budget
+        (privilegedSourceAttempt authority (ipv4SourceAddress prefix nativeHost) identity claimedKey swarm index) current) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (authority : TrustedSourceAuthority)
+      (prefix : Count) (mappedHost : Count) (nativeHost : Count) (identity : Count) (claimedKey : Count)
+      (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) => same
+
+def trustedTraceSourceQuotaBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (current : TrustedSourceState) -> SourceQuotaBound quota (admissionSources (trustedResources current)) ->
+    SourceQuotaBound quota (admissionSources (trustedResources (runTrustedSources trace quota capacity budget current))) :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState)
+      (bounded : SourceQuotaBound quota (admissionSources (trustedResources current))) =>
+    case (equalSymmetry SourceAdmission (trustedResources (runTrustedSources trace quota capacity budget current))
+      (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))
+      (trustedTraceExecution trace quota capacity budget current)) as witness in Equal resources
+      return SourceQuotaBound quota (admissionSources resources) with
+    | same => sourceAdmissionTraceQuotaBound (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current) bounded
+
+def unlistedRequestCannotSpendTrustedAllowance : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (source : Reachability) -> (authenticated : Flag) -> (boundKey : Count) -> (boundIdentity : Count) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (swarm : SwarmClass) ->
+    (index : Count) -> (current : TrustedSourceState) ->
+    Equal TrustedSourceState (trustedSourceStep quota capacity budget
+      (privilegedSourceAttempt (trustedSourceAuthority source authenticated off boundKey boundIdentity)
+        address identity claimedKey swarm index) current) current :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (source : Reachability) (authenticated : Flag)
+      (boundKey : Count) (boundIdentity : Count) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (swarm : SwarmClass) (index : Count) (current : TrustedSourceState) =>
+    deniedAuthorityRequestIsNoOp quota capacity budget
+      (trustedSourceAuthority source authenticated off boundKey boundIdentity) address identity claimedKey swarm index current
+      (unlistedAuthorityHasNoPrivilege source authenticated boundKey boundIdentity address identity)
+
+def deniedAuthorityLoadPenaltyUsesNormalizedKey : (authority : TrustedSourceAuthority) ->
+    (address : SourceAddress) -> (identity : Count) -> Equal Reachability (authorityReachability authority) validated ->
+    Equal Flag (trustedAuthorityAllowed authority address identity) off ->
+    Equal SourceAdmissionEvent (trustedPenaltyEvent authority address identity loadPressure)
+      (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))) :=
+  fun (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count)
+      (validatedSource : Equal Reachability (authorityReachability authority) validated)
+      (denied : Equal Flag (trustedAuthorityAllowed authority address identity) off) =>
+    case (equalSymmetry Reachability (authorityReachability authority) validated validatedSource)
+      as witness in Equal source return Equal SourceAdmissionEvent
+        (case source as evidence in Reachability return SourceAdmissionEvent with
+        | unvalidated => sourceAdmissionFinish noAdmissionReceipt handshakeFailed
+        | validated => gatedTrustedPenalty (ban loadPressure (trustedAuthorityAllowed authority address identity)) address)
+        (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))) with
+    | same =>
+        case (equalSymmetry Flag (trustedAuthorityAllowed authority address identity) off denied)
+          as witness in Equal allowed return Equal SourceAdmissionEvent (gatedTrustedPenalty (ban loadPressure allowed) address)
+            (sourceAdmissionMaintenance (maintainSourceBan (normalizedSourceKey address))) with
+        | same => same
+
+def classifiedPenaltyUsesAuthority : (budget : Count) -> (authority : TrustedSourceAuthority) ->
+    (address : SourceAddress) -> (identity : Count) -> (claimedKey : Count) -> (cause : PenaltyCause) ->
+    (current : TrustedSourceState) -> Equal SourceAdmissionEvent (trustedResourceEvent budget
+      (classifiedSourcePenalty authority address identity claimedKey cause) current)
+      (trustedPenaltyEvent authority address identity cause) :=
+  fun (budget : Count) (authority : TrustedSourceAuthority) (address : SourceAddress) (identity : Count)
+      (claimedKey : Count) (cause : PenaltyCause) (current : TrustedSourceState) => same
+
+def ordinaryEventUsesAttributedStep : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (event : AttributedSourceEvent) -> (current : TrustedSourceState) ->
+    Equal SourceAdmission (trustedResources (trustedSourceStep quota capacity budget (ordinarySourceEvent event) current))
+      (attributedSourceStep quota capacity event (trustedResources current)) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (event : AttributedSourceEvent) (current : TrustedSourceState) => same
+
+def trustedStepAllowanceExecution : (quota : Count) -> (capacity : Count) -> (budget : Count) ->
+    (event : TrustedSourceEvent) -> (current : TrustedSourceState) ->
+    Equal SourceTable (trustedAllowances (trustedSourceStep quota capacity budget event current))
+      (trustedAllowanceStep quota budget event current) :=
+  fun (quota : Count) (capacity : Count) (budget : Count) (event : TrustedSourceEvent) (current : TrustedSourceState) => same
+
+def trustedTraceSelectedSourceDebtBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (address : SourceAddress) -> (current : TrustedSourceState) ->
+    SourceQuotaBound quota (admissionSources (trustedResources current)) ->
+    AtMost (sourceCellDebt (lookupSource (normalizedSourceKey address)
+      (admissionSources (trustedResources (runTrustedSources trace quota capacity budget current))))) quota :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (address : SourceAddress)
+      (current : TrustedSourceState) (bounded : SourceQuotaBound quota (admissionSources (trustedResources current))) =>
+    sourceLookupQuotaBound quota (normalizedSourceKey address)
+      (admissionSources (trustedResources (runTrustedSources trace quota capacity budget current)))
+      (trustedTraceSourceQuotaBound trace quota capacity budget current bounded)
+
+def trustedTraceCreditBound : (trace : TrustedSourceTrace) -> (quota : Count) -> (capacity : Count) ->
+    (budget : Count) -> (current : TrustedSourceState) -> AtMost (admissionCredits (trustedResources current)) capacity ->
+    AtMost (admissionCredits (trustedResources (runTrustedSources trace quota capacity budget current))) capacity :=
+  fun (trace : TrustedSourceTrace) (quota : Count) (capacity : Count) (budget : Count) (current : TrustedSourceState)
+      (bounded : AtMost (admissionCredits (trustedResources current)) capacity) =>
+    case (equalSymmetry SourceAdmission (trustedResources (runTrustedSources trace quota capacity budget current))
+      (runSourceAdmissions (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current))
+      (trustedTraceExecution trace quota capacity budget current)) as witness in Equal resources
+      return AtMost (admissionCredits resources) capacity with
+    | same => sourceAdmissionTraceCreditBound (trustedSourceAdmissions trace quota capacity budget current) quota capacity (trustedResources current) bounded
