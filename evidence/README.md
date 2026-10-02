@@ -973,3 +973,25 @@ obligations are covered, 80 retain exact gaps, and all 43 external obligations
 remain open. Evidence classification and runtime authentication, listing and
 privilege enforcement remain explicit external premises. The historical
 turn-1 receipt retains its original corpus and audit counts.
+
+## R03 pre-validation envelope, turn 3
+
+`r03-prevalidation-envelope-check.json` records the full pinned-compiler gate
+after module 78: 1054 proof declarations across 61 modules, empty axiom
+disclosure, and 1004 rejected negative checks (1001 semantic mutations and
+three generic controls). The new module contributes 33 general proofs and
+37 mutations. Each new mutation rejects with a semantic type mismatch.
+
+The witness audit closes both M002 criteria with eight arbitrary-trace and
+25 general-transition witnesses. Its finite shared queue and explicit
+metadata/payload/workspace allocations bound earlier transient state without
+using later pending or established caps. Packet capture, queue examination,
+parsing and token work remain charged on overflow and decisions without outer
+events. Finite trace and poll-fuel bounds leave runtime storage/work dominance,
+budget enforcement, serialization, workspace lifetimes and supplied outcome
+classifications external.
+
+R03 has spent three turns and remains active with seven obligations. The
+repository audit covers four of 83 model obligations, retains 79 exact gaps
+and leaves all 43 external obligations open. Full qualification remains guarded.
+Prior receipts retain their original input hashes and historical counts.

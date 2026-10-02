@@ -10,7 +10,7 @@ Some results follow by reduction of a pure decision function. Arithmetic
 composition, finite transition traces, generation-safe cleanup, committee
 deduplication and service-round bounds use structural induction. The checker
 rejects nontermination, unequal boolean endpoints and an impossible bound.
-The 964 additional semantic mutations must
+The 1001 additional semantic mutations must
 invalidate the corresponding proofs. These controls provide evidence that the
 intended definitions matter; they are not a soundness proof of the checker.
 
@@ -443,3 +443,22 @@ that the statements fully capture prose, that Rust executes the model, or that
 the network satisfies the environment assumptions. `--require-complete`
 therefore remains blocked. Simply adding a JSON status or a theorem name cannot
 promote a claim to implementation-proved or deployment-qualified.
+
+## Pre-validation allocation and cost boundary
+
+Module 78's pre-validation envelope assumes one finite queue shared by both
+swarms and at most one active ingress workspace. Queue shape counts allocated
+cells; occupied cells carry bounded packet payloads. `entryBytes` must dominate
+cell metadata, and `byteCap` must dominate copied payloads and the entire active
+packet/parsing/token workspace. The runtime must enforce packet, parsing, token
+and poll-fuel budgets and serialize the shared queue. Queue examination is
+charged at one abstract unit per cell; work units require runtime dominance.
+Decision outcomes and outer-event flags are supplied classifications.
+
+Arbitrary finite traces bound occupancy, retained payloads and explicit
+metadata/payload/workspace allocations independently of pending and established
+caps. All decision outcomes and silent paths receive parsing, token and queue
+charges, and overflow arrivals receive packet and queue charges. Per-trace and
+per-poll bounds do not establish wall-clock rate, eventual service, concrete
+allocator bounds, protocol verification or runtime scheduling. These external
+premises remain open in the sealed ledger after M002's model closure.

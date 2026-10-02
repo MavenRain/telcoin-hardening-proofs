@@ -2180,10 +2180,56 @@ these controls before module 74. Rejection must be a semantic type mismatch.
 Concrete runtime cost domination, serialization, resize authority, occurrence
 ownership, cleanup, bounded history storage and delivered service remain open.
 
+## Pre-validation queue, allocation and work envelope
+
+`proofs/78-prevalidation-envelope.mech` closes M002 at its sealed model scope.
+One finite queue serves both primary and worker ingress before address validation.
+Each cell is vacant or holds a packet payload with an explicit byte-capacity
+witness. Arrival fills the first vacancy with at most `byteCap` copied bytes;
+it discards overflow without allocating another cell. Decision cleanup searches
+past vacant cells and releases the first occupied payload for every Retry,
+Refuse, Ignore and Accept outcome, including Accept without an outer event.
+Queue shape represents allocated cells, so cleanup releases payloads while
+preserving the finite cell allocation. No pending or established cap appears
+in this model or its allocation and cost proofs.
+
+For every arbitrary finite trace, allocated cell count remains equal to its
+initial value `slots`. Occupancy is at most `slots` and retained payload bytes
+are at most `slots * byteCap`. Explicit transient allocation counts every
+allocated cell's metadata, actual retained payloads and one active ingress
+workspace. Its bound is `slots * entryBytes + slots * byteCap + byteCap`.
+`entryBytes` must dominate all cell metadata, and the workspace `byteCap` must
+dominate the entire active packet, parsing and token workspace. These storage
+dominance and single-workspace lifetime premises require runtime evidence.
+
+Arrival charges bounded packet capture and queue examination, even on overflow.
+Each decision charges queue examination, parsing and token processing whether
+or not it emits an outer event. Queue examination costs at most one abstract
+unit per allocated cell. Packet capture, parsing and token work stop at their
+supplied budgets. A trace with `events` incoming transitions therefore costs at
+most `events * (byteCap + slots + parseCap + tokenCap)`. A poll processes at most
+its finite `fuel` count and costs at most the same per-event envelope times
+`fuel`; zero fuel performs no work. This is a finite trace and poll envelope,
+not a wall-clock rate, fairness or eventual-service result.
+
+The module adds 33 general proof declarations: eight arbitrary-trace witnesses
+and 25 general-transition witnesses. Its 37 mutation controls cover overflow
+allocation, uncapped payloads, deep queue searches, packet release on each
+outcome and silent paths, worker admission, retained-byte and metadata/workspace
+accounting, missing or excessive packet/parsing/token/queue charges, understated
+budgets, skipped trace transitions and charges, and fuel-prefix errors. Every
+control must fail with a semantic type mismatch rather than a parse failure.
+
+Outcomes and event-emission flags are supplied classifications. Runtime queue
+sharing, serialization, allocation layout and lifetimes, cost dominance and
+enforcement of the byte, parsing, token and poll budgets remain external.
+The model does not verify evidence classification, protocol acceptance,
+cryptography, scheduling or actual object allocation.
+
 ## Negative controls
 
-The checker rejects 967 invalid variants: three direct checks of equality,
-ordering and termination, plus 964 semantic mutations. Mutations exercise such
+The checker rejects 1004 invalid variants: three direct checks of equality,
+ordering and termination, plus 1001 semantic mutations. Mutations exercise such
 faults as stale-owner release, skipped terminal cleanup, growing pool capacity,
 uncapped refill, forged or duplicated credits, lost poll backlog, missing
 wakeups, skipped service, unauthenticated committee records and stale epoch

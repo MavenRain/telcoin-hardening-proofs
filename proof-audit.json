@@ -63,7 +63,8 @@
     "proofs/74-policy-ingress-capacity-schedule-cost-compatibility.mech": "f2520312a58165d8d038a3f8090a5ad6e702cdb999cde7cc6a3098e1fada0dd3",
     "proofs/75-saturated-source-admission.mech": "7079d0c3f628df0199cbdd68b559d66a011fab6cdccff02974b781c97931a49a",
     "proofs/76-reachability-authority.mech": "ca708de9cd846d9a616f69f98162bc5e600405bec51304b5eab16647b426aee0",
-    "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc"
+    "proofs/77-authentication-reachability-composition.mech": "293ace8b7c25440508491b922aba5f52a6f00272a76d5f9416681edf232926cc",
+    "proofs/78-prevalidation-envelope.mech": "b2ddc057719ed9acbe06574b2c19e1778916694e06c8da53a2fcdc07d96277c1"
   },
   "obligations": [
     {
@@ -601,53 +602,671 @@
       "id": "M002",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The frozen required scope remains a model obligation in R03.",
+      "scope_complete": true,
+      "scope_review": "R03 turn 3 closes both sealed criteria with module 78. A finite shared queue stores budgeted packet payloads before validation and releases a packet on every Retry, Refuse, Ignore and Accept decision, including silent decisions. Arbitrary mixed traces preserve allocation capacity, bound occupancy and retained bytes, and admit an explicit cell-metadata/payload/active-workspace envelope. Packet, queue, parsing and token work are charged on arrival and decision paths, including overflow and paths without outer events. Arbitrary finite traces and fuel-limited poll prefixes have general cost bounds. Neither queue transitions nor their allocation and cost proofs refer to pending or established limits. Runtime storage/work dominance, enforced budgets, shared serialization and evidence classifications remain explicit external premises. External obligation E008 owns transport budget enforcement, shared-queue serialization, workspace lifetime and outcome classification. External obligation E010 owns deployed storage and work dominance.",
       "witnesses": [
         {
-          "path": "proofs/10-transport.mech",
-          "name": "everyOutcomeConsumesFuel",
-          "statement": "(outcome : Outcome) -> (rest : Events) -> (fuel : Count) ->\n    Equal Count (pollWork (next fuel) (event outcome rest)) (next (pollWork fuel rest))",
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationPushKeepsSlots",
+          "statement": "(byteCap : Count) -> (demand : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationSlots byteCap (prevalidationPush byteCap demand queue))\n      (prevalidationSlots byteCap queue)",
           "scope_kind": "general_transition",
-          "establishes": "Every outcome constructor consumes one unit of abstract poll fuel before the remaining events.",
+          "establishes": "Arrival preserves the allocated queue cell count for every queue and packet demand.",
           "premises": [
-            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
           ],
-          "limits": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. These local statements do not establish: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events. Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
         },
         {
-          "path": "proofs/10-transport.mech",
-          "name": "noFuelNoWork",
-          "statement": "(events : Events) -> Equal Count (pollWork zero events) zero",
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationPopKeepsSlots",
+          "statement": "(byteCap : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationSlots byteCap (prevalidationPop byteCap queue))\n      (prevalidationSlots byteCap queue)",
           "scope_kind": "general_transition",
-          "establishes": "An arbitrary Events value performs zero abstract poll work at zero fuel.",
+          "establishes": "Decision cleanup preserves the allocated queue cell count for every queue.",
           "premises": [
-            "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
           ],
-          "limits": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. These local statements do not establish: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events. Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationOverflowDropsPacket",
+          "statement": "(byteCap : Count) -> (demand : Count) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationPush byteCap demand (prevalidationEnd byteCap))\n      (prevalidationEnd byteCap)",
+          "scope_kind": "general_transition",
+          "establishes": "A terminal queue with no free cell discards the incoming packet without allocating a cell.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationVacancyStoresBoundedPacket",
+          "statement": "(byteCap : Count) -> (demand : Count) ->\n    (rest : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationPush byteCap demand (prevalidationVacant byteCap rest))\n      (prevalidationHeld byteCap (boundedWork byteCap demand) (workBound byteCap demand) rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Arrival fills the first vacancy with exactly the budgeted packet payload and preserves its suffix.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationDecisionReleasesPacket",
+          "statement": "(byteCap : Count) -> (bytes : Count) ->\n    (bound : AtMost bytes byteCap) -> (rest : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationPop byteCap (prevalidationHeld byteCap bytes bound rest))\n      (prevalidationVacant byteCap rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Decision cleanup converts the first occupied cell to a vacancy without retaining its payload.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationPushScansPastHeld",
+          "statement": "(byteCap : Count) -> (bytes : Count) ->\n    (bound : AtMost bytes byteCap) -> (demand : Count) -> (rest : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationPush byteCap demand (prevalidationHeld byteCap bytes bound rest))\n      (prevalidationHeld byteCap bytes bound (prevalidationPush byteCap demand rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Arrival preserves occupied cells and searches their suffix for a vacancy.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationPopScansPastVacant",
+          "statement": "(byteCap : Count) -> (rest : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationPop byteCap (prevalidationVacant byteCap rest))\n      (prevalidationVacant byteCap (prevalidationPop byteCap rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Decision cleanup preserves vacant cells and searches their suffix for an occupied cell.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationHeldRetainsBytes",
+          "statement": "(byteCap : Count) -> (bytes : Count) ->\n    (bound : AtMost bytes byteCap) -> (rest : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationRetainedBytes byteCap (prevalidationHeld byteCap bytes bound rest))\n      (add bytes (prevalidationRetainedBytes byteCap rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Each occupied cell contributes its explicit payload bytes to retained allocation accounting.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationSaturatedPushIsNoOp",
+          "statement": "(byteCap : Count) -> (demand : Count) ->\n    (queue : PrevalidationQueue byteCap) -> PrevalidationSaturated byteCap queue ->\n    Equal (PrevalidationQueue byteCap) (prevalidationPush byteCap demand queue) queue",
+          "scope_kind": "general_transition",
+          "establishes": "Arrival leaves every structurally saturated queue unchanged, including arbitrarily deep occupied suffixes.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationOccupancyBound",
+          "statement": "(byteCap : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationOccupancy byteCap queue) (prevalidationSlots byteCap queue)",
+          "scope_kind": "general_transition",
+          "establishes": "Occupancy of every typed queue is bounded by its allocated cell count.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationRetainedBytesBound",
+          "statement": "(byteCap : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationRetainedBytes byteCap queue)\n      (multiply (prevalidationSlots byteCap queue) byteCap)",
+          "scope_kind": "general_transition",
+          "establishes": "Retained payload bytes of every typed queue are bounded by cell count times per-packet byte capacity.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationStepKeepsSlots",
+          "statement": "(byteCap : Count) -> (event : PrevalidationEvent) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationSlots byteCap (prevalidationStep byteCap event queue))\n      (prevalidationSlots byteCap queue)",
+          "scope_kind": "general_transition",
+          "establishes": "Every modeled incoming or decision event preserves allocated cell count.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationEveryDecisionReleases",
+          "statement": "(byteCap : Count) -> (outcome : Outcome) ->\n    (emits : Flag) -> (parseDemand : Count) -> (tokenDemand : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationStep byteCap (prevalidationDecision outcome emits parseDemand tokenDemand) queue)\n      (prevalidationPop byteCap queue)",
+          "scope_kind": "general_transition",
+          "establishes": "All four decision outcomes release the current packet regardless of whether an outer event is emitted.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationAcceptWithoutEventReleases",
+          "statement": "(byteCap : Count) ->\n    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationStep byteCap (prevalidationDecision accept off parseDemand tokenDemand) queue)\n      (prevalidationPop byteCap queue)",
+          "scope_kind": "general_transition",
+          "establishes": "Accept without an outer connection event still performs pre-validation packet cleanup.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationBothSwarmsShareQueue",
+          "statement": "(byteCap : Count) -> (demand : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationStep byteCap (prevalidationArrival prevalidationPrimary demand) queue)\n      (prevalidationStep byteCap (prevalidationArrival prevalidationWorker demand) queue)",
+          "scope_kind": "general_transition",
+          "establishes": "Primary and worker arrivals use the same aggregate queue admission transition.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationSaturatedArrivalIsNoOp",
+          "statement": "(byteCap : Count) -> (swarm : PrevalidationSwarm) ->\n    (demand : Count) -> (queue : PrevalidationQueue byteCap) ->\n    PrevalidationSaturated byteCap queue ->\n    Equal (PrevalidationQueue byteCap)\n      (prevalidationStep byteCap (prevalidationArrival swarm demand) queue) queue",
+          "scope_kind": "general_transition",
+          "establishes": "Either swarm arriving at any saturated queue preserves the complete queue.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationStepSlotsBound",
+          "statement": "(byteCap : Count) -> (slotCap : Count) ->\n    (event : PrevalidationEvent) -> (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationSlots byteCap queue) slotCap ->\n    AtMost (prevalidationSlots byteCap (prevalidationStep byteCap event queue)) slotCap",
+          "scope_kind": "general_transition",
+          "establishes": "An explicit aggregate slot capacity remains valid after every event.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceConsumesHead",
+          "statement": "(byteCap : Count) -> (event : PrevalidationEvent) ->\n    (rest : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->\n    Equal (PrevalidationQueue byteCap)\n      (runPrevalidationTrace byteCap (prevalidationThen event rest) queue)\n      (runPrevalidationTrace byteCap rest (prevalidationStep byteCap event queue))",
+          "scope_kind": "general_transition",
+          "establishes": "Trace execution performs its first event before continuing with its arbitrary suffix.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceKeepsSlots",
+          "statement": "(byteCap : Count) -> (trace : PrevalidationTrace) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue))\n      (prevalidationSlots byteCap queue)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary finite mixed incoming trace preserves the initial allocated cell count.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceOccupancyBound",
+          "statement": "(byteCap : Count) -> (trace : PrevalidationTrace) ->\n    (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationOccupancy byteCap (runPrevalidationTrace byteCap trace queue))\n      (prevalidationSlots byteCap queue)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Occupancy after every arbitrary finite trace is bounded by the initial queue capacity.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceRetainedBytesBound",
+          "statement": "(byteCap : Count) -> (trace : PrevalidationTrace) ->\n    (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationRetainedBytes byteCap (runPrevalidationTrace byteCap trace queue))\n      (multiply (prevalidationSlots byteCap queue) byteCap)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Retained payload bytes after every arbitrary finite trace are bounded by initial queue capacity times byte capacity.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTransientCountsAllocations",
+          "statement": "(byteCap : Count) -> (entryBytes : Count) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationTransientBytes byteCap entryBytes queue)\n      (add (add (multiply (prevalidationSlots byteCap queue) entryBytes)\n        (prevalidationRetainedBytes byteCap queue)) byteCap)",
+          "scope_kind": "general_transition",
+          "establishes": "Transient allocation explicitly counts all cell metadata, retained payloads, and one active ingress workspace.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceTransientBytesBound",
+          "statement": "(byteCap : Count) -> (entryBytes : Count) ->\n    (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationTransientBytes byteCap entryBytes (runPrevalidationTrace byteCap trace queue))\n      (add (add (multiply (prevalidationSlots byteCap queue) entryBytes)\n        (multiply (prevalidationSlots byteCap queue) byteCap)) byteCap)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "For every arbitrary finite trace, explicit transient allocations are bounded by initial cell metadata and payload capacities plus one ingress workspace.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationArrivalChargesPacketAndQueue",
+          "statement": "(byteCap : Count) ->\n    (parseCap : Count) -> (tokenCap : Count) -> (swarm : PrevalidationSwarm) ->\n    (demand : Count) -> (queue : PrevalidationQueue byteCap) ->\n    Equal Count\n      (prevalidationStepWork byteCap parseCap tokenCap (prevalidationArrival swarm demand) queue)\n      (add (boundedWork byteCap demand) (add (prevalidationSlots byteCap queue)\n        (add (boundedWork parseCap zero) (boundedWork tokenCap zero))))",
+          "scope_kind": "general_transition",
+          "establishes": "Arrival charges budgeted packet capture and queue examination, including overflow arrivals.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationEveryDecisionChargesParsingAndToken",
+          "statement": "(byteCap : Count) ->\n    (parseCap : Count) -> (tokenCap : Count) -> (outcome : Outcome) -> (emits : Flag) ->\n    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->\n    Equal Count\n      (prevalidationStepWork byteCap parseCap tokenCap\n        (prevalidationDecision outcome emits parseDemand tokenDemand) queue)\n      (add (boundedWork byteCap zero) (add (prevalidationSlots byteCap queue)\n        (add (boundedWork parseCap parseDemand) (boundedWork tokenCap tokenDemand))))",
+          "scope_kind": "general_transition",
+          "establishes": "Every Retry, Refuse, Ignore or Accept decision charges queue examination, parsing and token work regardless of outer-event emission.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationSilentDecisionHasSameCost",
+          "statement": "(byteCap : Count) ->\n    (parseCap : Count) -> (tokenCap : Count) -> (outcome : Outcome) ->\n    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->\n    Equal Count\n      (prevalidationStepWork byteCap parseCap tokenCap\n        (prevalidationDecision outcome off parseDemand tokenDemand) queue)\n      (prevalidationStepWork byteCap parseCap tokenCap\n        (prevalidationDecision outcome on parseDemand tokenDemand) queue)",
+          "scope_kind": "general_transition",
+          "establishes": "Suppressing an outer event does not suppress any modeled decision work charge.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationStepWorkBound",
+          "statement": "(byteCap : Count) -> (slotCap : Count) ->\n    (parseCap : Count) -> (tokenCap : Count) -> (event : PrevalidationEvent) ->\n    (queue : PrevalidationQueue byteCap) -> AtMost (prevalidationSlots byteCap queue) slotCap ->\n    AtMost (prevalidationStepWork byteCap parseCap tokenCap event queue)\n      (prevalidationUnitBudget byteCap slotCap parseCap tokenCap)",
+          "scope_kind": "general_transition",
+          "establishes": "Every event has a finite packet, queue, parsing and token work envelope under an explicit slot capacity.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceChargesHead",
+          "statement": "(byteCap : Count) -> (parseCap : Count) ->\n    (tokenCap : Count) -> (event : PrevalidationEvent) -> (rest : PrevalidationTrace) ->\n    (queue : PrevalidationQueue byteCap) ->\n    Equal Count\n      (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationThen event rest) queue)\n      (add (prevalidationStepWork byteCap parseCap tokenCap event queue)\n        (prevalidationTraceWork byteCap parseCap tokenCap rest (prevalidationStep byteCap event queue)))",
+          "scope_kind": "general_transition",
+          "establishes": "Trace work charges the first event and all work in its arbitrary suffix.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTraceWorkBound",
+          "statement": "(byteCap : Count) -> (slotCap : Count) ->\n    (parseCap : Count) -> (tokenCap : Count) -> (trace : PrevalidationTrace) ->\n    (queue : PrevalidationQueue byteCap) -> AtMost (prevalidationSlots byteCap queue) slotCap ->\n    AtMost (prevalidationTraceWork byteCap parseCap tokenCap trace queue)\n      (multiply (prevalidationTraceLength trace) (prevalidationUnitBudget byteCap slotCap parseCap tokenCap))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary finite trace has aggregate work at most its event count times the explicit per-event envelope.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTakeKeepsHead",
+          "statement": "(fuel : Count) -> (event : PrevalidationEvent) ->\n    (rest : PrevalidationTrace) ->\n    Equal PrevalidationTrace (prevalidationTake (next fuel) (prevalidationThen event rest))\n      (prevalidationThen event (prevalidationTake fuel rest))",
+          "scope_kind": "general_transition",
+          "establishes": "A positive poll-fuel prefix retains its first incoming event and consumes one fuel unit.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationNoFuelNoWork",
+          "statement": "(byteCap : Count) -> (parseCap : Count) ->\n    (tokenCap : Count) -> (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->\n    Equal Count (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationTake zero trace) queue) zero",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "At zero poll fuel, arbitrary incoming traces perform no modeled work.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationTakeLengthBound",
+          "statement": "(fuel : Count) -> (trace : PrevalidationTrace) ->\n    AtMost (prevalidationTraceLength (prevalidationTake fuel trace)) fuel",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "The arbitrary trace prefix processed by a poll contains at most the supplied finite fuel count.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
+        },
+        {
+          "path": "proofs/78-prevalidation-envelope.mech",
+          "name": "prevalidationPollWorkBound",
+          "statement": "(byteCap : Count) -> (parseCap : Count) -> (tokenCap : Count) ->\n    (fuel : Count) -> (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->\n    AtMost (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationTake fuel trace) queue)\n      (multiply fuel (prevalidationUnitBudget byteCap (prevalidationSlots byteCap queue) parseCap tokenCap))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An arbitrary poll prefix has aggregate work bounded by fuel times the initial queue, packet, parsing and token envelope.",
+          "premises": [
+            "One finite allocated queue is shared by primary and worker ingress, with serialized pure transitions and at most one active packet workspace.",
+            "byteCap bounds copied packet payloads and dominates the entire active packet/parsing/token workspace; entryBytes dominates allocated cell metadata. These are finite abstract allocation units.",
+            "Packet capture, parsing and token processing stop at their supplied budgets; queue examination costs at most one abstract work unit per cell. Poll processing stops at its finite fuel budget.",
+            "Decision outcomes and outer-event flags are supplied classifications. This model does not establish their cryptographic or protocol correctness."
+          ],
+          "limits": "These are general model bounds and explicit allocation/charge identities. They use no pending or established cap. Actual allocator/object layout, work-unit dominance, budget enforcement, shared-queue serialization, workspace lifetime, evidence classification and scheduling remain external implementation/deployment obligations. The finite-trace result is a per-trace envelope, not an elapsed-time rate or progress guarantee."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "prevalidation_overflow_allocates_slot",
+          "sha256": "35f09baa25d9466ab8a1427f14524a57f9023fdfaed41e5c46d39a023829c6ef"
+        },
+        {
+          "name": "prevalidation_vacancy_drops_packet",
+          "sha256": "b1b1962871dfdea4577f2c3a70f8319280e1617c55f41235814b5658a609d30e"
+        },
+        {
+          "name": "prevalidation_packet_storage_uncapped",
+          "sha256": "e6722e6065195e725d5f6f17abae2bd4012c3e84f0d7fbb822ca5594f78d6087"
+        },
+        {
+          "name": "prevalidation_arrival_overwrites_held",
+          "sha256": "e0b1c75f5011400db5ece3763c094d3030225ca9216d0881bc769e20d222b70d"
+        },
+        {
+          "name": "prevalidation_arrival_skips_deep_vacancy",
+          "sha256": "61c8bdf4de4c3cb0633d0a4f86ea77e5bcd573095960bd53896bf4f354091740"
+        },
+        {
+          "name": "prevalidation_pop_skips_deep_packet",
+          "sha256": "c4900459330cea7afbc208244e48c3136f0dc9ebdfcec05e6805422d81ea830a"
+        },
+        {
+          "name": "prevalidation_decision_retains_packet",
+          "sha256": "01aefb47f8b2c40c656bddfc2944bcee580257a2d3e223b38d68bd16e606ab53"
+        },
+        {
+          "name": "prevalidation_decision_drops_capacity",
+          "sha256": "268ea05690ffbf694e67f3fe758cd601e87bbb92ac017a30ddd9de7f59d207e5"
+        },
+        {
+          "name": "prevalidation_worker_bypasses_shared_queue",
+          "sha256": "d97c2b4f9e288f681f8b720fd59f4a381f1de7358b0c3ad877585d3e59cc19f7"
+        },
+        {
+          "name": "prevalidation_retry_leaks_packet",
+          "sha256": "9b932bc8675efbdc4162d91f5b72ff536c7f8bd8afdf7e9f2b3b33241d4a11f6"
+        },
+        {
+          "name": "prevalidation_refuse_leaks_packet",
+          "sha256": "f529d0e50cb9a5efd90d59acef099b91dbaaf3c427ec18e542b9ec4b5d6cf0ca"
+        },
+        {
+          "name": "prevalidation_ignore_leaks_packet",
+          "sha256": "378f6a66c3afb88a3ce711a6d545cfc6b16be56ddcfc18e761e7100266b4cd1b"
+        },
+        {
+          "name": "prevalidation_accept_leaks_packet",
+          "sha256": "adb83c7d7e5142df448eed945c67bd8ed267868d8a828b52c714bda64630d71c"
+        },
+        {
+          "name": "prevalidation_silent_decision_leaks_packet",
+          "sha256": "77c1bd51b06d6282bc58d62c88e09fa6756f14c8cf772fc2bd5bb0f750892591"
+        },
+        {
+          "name": "prevalidation_retained_payload_not_counted",
+          "sha256": "8feffaba7900ce3fb1b41a93910855d6988c8add992894c1d59ec0a70f0f8a67"
+        },
+        {
+          "name": "prevalidation_held_occupancy_exceeds_slots",
+          "sha256": "cb0aa8d1b13162e5601e0fe9096e7feb8bd79e0bd80056a1ba00abab252ddc24"
+        },
+        {
+          "name": "prevalidation_metadata_allocation_not_counted",
+          "sha256": "d5b324339bd5617a39121437bb349d5d4bcf9ae2c8b7e9e5d530d04efba2f81b"
+        },
+        {
+          "name": "prevalidation_workspace_allocation_not_counted",
+          "sha256": "bb878f5122198c0d1138aae6f0d6f46d5d278707ac506de3b77dbb07b152b437"
+        },
+        {
+          "name": "prevalidation_arrival_packet_demand_not_charged",
+          "sha256": "3c81c5ec7df6034e4d00833f8203c13e2a2db2d28f96e2b62093d68414d5a0f4"
+        },
+        {
+          "name": "prevalidation_decision_parse_demand_not_charged",
+          "sha256": "c9625d12473be238388c957ca6c40e2dcfde89ac7d4cd53a668fe342233b30af"
+        },
+        {
+          "name": "prevalidation_decision_token_demand_not_charged",
+          "sha256": "86802bc28dfc5d4fbf30a1ffad48af98c3507b5b3e88254c3e36e82ac392fb24"
+        },
+        {
+          "name": "prevalidation_silent_parse_demand_not_charged",
+          "sha256": "a8a6c058bf3cb26df48ad5a17d1143f6ed03138b7831390f0d6fd3ea70f3f6f0"
+        },
+        {
+          "name": "prevalidation_packet_work_omitted",
+          "sha256": "cc26b59e6327b52703c502a9f45576a31d78356fba5f393e43706c966825bbef"
+        },
+        {
+          "name": "prevalidation_queue_scan_work_omitted",
+          "sha256": "4209585166403f9bfc9cf8069dfe86be4c2ca360982f94ccbcfea03af0bb7401"
+        },
+        {
+          "name": "prevalidation_parse_work_omitted",
+          "sha256": "fdc5ad4a730bdce7b4d24cfb6b9a29df60414102de094833e0c225978cd5cc7f"
+        },
+        {
+          "name": "prevalidation_token_work_omitted",
+          "sha256": "403d72bbb740cccf5f0d233dbefcfb0a70f83525b640290f321bf84ef25ccde0"
+        },
+        {
+          "name": "prevalidation_parse_work_exceeds_cap",
+          "sha256": "b0e27072116e1ed1c50f931ad0192d841ea370a73ba48e542c2e410f09a93c8b"
+        },
+        {
+          "name": "prevalidation_token_work_exceeds_cap",
+          "sha256": "e494edfac600e1a62b7fe86fc77bf3c10c5866651cda59d3473b3cfe62f717db"
+        },
+        {
+          "name": "prevalidation_bytecap_budget_omitted",
+          "sha256": "5db4ba16630f0f634b5adfed9b397b3a28e06f8a1facd1eff368d3138d002bf7"
+        },
+        {
+          "name": "prevalidation_slotcap_budget_omitted",
+          "sha256": "8e3a13c87acc4a839ba606f2dd1d85e3a5c73a867ec5cb2b114800c0cef1b67c"
+        },
+        {
+          "name": "prevalidation_parsecap_budget_omitted",
+          "sha256": "4a30482bd85c5a46585a7f8817ef67bda41ddc9021e5d7418f837adfb8090e5b"
+        },
+        {
+          "name": "prevalidation_tokencap_budget_omitted",
+          "sha256": "b551c028548ece7eca2b09692ef0f42c81ad74e924ced66599d9fa4b897e8e02"
+        },
+        {
+          "name": "prevalidation_trace_skips_transition",
+          "sha256": "999346f41799fb59bdedfd80a7a94f24e59dc48ff824bef12f2262c0fea64ef4"
+        },
+        {
+          "name": "prevalidation_trace_skips_head_charge",
+          "sha256": "0ff1d7f0a628ddc5e1fb42428fa89e21e05c97b7656198e8d5d227321f308d22"
+        },
+        {
+          "name": "prevalidation_trace_length_omits_head",
+          "sha256": "f1f0a795bc6be106fa3f4fa96201be34b5a88db5f9d00d95b05766cac2a16361"
+        },
+        {
+          "name": "prevalidation_zero_fuel_runs_trace",
+          "sha256": "e1e8a92e756cedba4e24453403825e19f788d2f13bd4001119311e4186d5098c"
+        },
+        {
+          "name": "prevalidation_fuel_prefix_skips_head",
+          "sha256": "2f12191dbb239628bb713e0a9cad2b8029f0526bf2f8666f4e5d2285ecca1792"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/10-transport.mech#everyOutcomeConsumesFuel",
-            "proofs/10-transport.mech#noFuelNoWork"
+            "proofs/78-prevalidation-envelope.mech#prevalidationPushKeepsSlots",
+            "proofs/78-prevalidation-envelope.mech#prevalidationPopKeepsSlots",
+            "proofs/78-prevalidation-envelope.mech#prevalidationOverflowDropsPacket",
+            "proofs/78-prevalidation-envelope.mech#prevalidationVacancyStoresBoundedPacket",
+            "proofs/78-prevalidation-envelope.mech#prevalidationDecisionReleasesPacket",
+            "proofs/78-prevalidation-envelope.mech#prevalidationPushScansPastHeld",
+            "proofs/78-prevalidation-envelope.mech#prevalidationPopScansPastVacant",
+            "proofs/78-prevalidation-envelope.mech#prevalidationSaturatedPushIsNoOp",
+            "proofs/78-prevalidation-envelope.mech#prevalidationOccupancyBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationStepKeepsSlots",
+            "proofs/78-prevalidation-envelope.mech#prevalidationEveryDecisionReleases",
+            "proofs/78-prevalidation-envelope.mech#prevalidationAcceptWithoutEventReleases",
+            "proofs/78-prevalidation-envelope.mech#prevalidationBothSwarmsShareQueue",
+            "proofs/78-prevalidation-envelope.mech#prevalidationSaturatedArrivalIsNoOp",
+            "proofs/78-prevalidation-envelope.mech#prevalidationStepSlotsBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceConsumesHead",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceKeepsSlots",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceOccupancyBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationArrivalChargesPacketAndQueue",
+            "proofs/78-prevalidation-envelope.mech#prevalidationEveryDecisionChargesParsingAndToken",
+            "proofs/78-prevalidation-envelope.mech#prevalidationSilentDecisionHasSameCost",
+            "proofs/78-prevalidation-envelope.mech#prevalidationStepWorkBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceChargesHead",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceWorkBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTakeKeepsHead",
+            "proofs/78-prevalidation-envelope.mech#prevalidationNoFuelNoWork",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTakeLengthBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationPollWorkBound"
           ],
-          "rationale": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Add a pre-validation queue/state invariant and a packet/parsing/token cost envelope for arbitrary Retry, Refuse, Ignore and Accept traces, including paths without outer events."
+          "rationale": "General queue transitions, arbitrary finite mixed traces and finite-fuel polls establish the earlier queue/state and packet/parsing/token/scan work envelopes for all incoming decision outcomes.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/10-transport.mech#everyOutcomeConsumesFuel",
-            "proofs/10-transport.mech#noFuelNoWork"
+            "proofs/78-prevalidation-envelope.mech#prevalidationHeldRetainsBytes",
+            "proofs/78-prevalidation-envelope.mech#prevalidationRetainedBytesBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceRetainedBytesBound",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTransientCountsAllocations",
+            "proofs/78-prevalidation-envelope.mech#prevalidationTraceTransientBytesBound"
           ],
-          "rationale": "Poll fuel bounds work units, but no pre-validation queue or retained-state machine is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Relate that earlier transient envelope to explicit allocations independently of the later pending and established caps."
+          "rationale": "Explicit retained payload and transient allocation identities compose with the arbitrary-trace capacity invariant. Their bounds depend on the allocated pre-validation queue and workspace alone, independently of later connection caps.",
+          "remaining": ""
         }
       ]
     },

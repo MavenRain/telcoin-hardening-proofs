@@ -1,0 +1,523 @@
+-- One shared pre-validation queue, before pending or established admission.
+-- Count values are abstract bytes/work units. Runtime dominance is external.
+mu PrevalidationQueue : (0 byteCap : Count) -> Type 0 with
+| prevalidationEnd : (byteCap : Count) -> PrevalidationQueue byteCap
+| prevalidationVacant : (byteCap : Count) -> PrevalidationQueue byteCap ->
+    PrevalidationQueue byteCap
+| prevalidationHeld : (byteCap : Count) -> (bytes : Count) -> AtMost bytes byteCap ->
+    PrevalidationQueue byteCap -> PrevalidationQueue byteCap
+
+def rec prevalidationSlots : (0 byteCap : Count) -> PrevalidationQueue byteCap -> Count :=
+  fun (0 byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return Count with
+    | prevalidationEnd cap => zero
+    | prevalidationVacant cap rest => next (prevalidationSlots cap rest)
+    | prevalidationHeld cap bytes bound rest => next (prevalidationSlots cap rest)
+
+def rec prevalidationOccupancy : (0 byteCap : Count) -> PrevalidationQueue byteCap -> Count :=
+  fun (0 byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return Count with
+    | prevalidationEnd cap => zero
+    | prevalidationVacant cap rest => prevalidationOccupancy cap rest
+    | prevalidationHeld cap bytes bound rest => next (prevalidationOccupancy cap rest)
+
+def rec prevalidationRetainedBytes : (0 byteCap : Count) -> PrevalidationQueue byteCap -> Count :=
+  fun (0 byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return Count with
+    | prevalidationEnd cap => zero
+    | prevalidationVacant cap rest => prevalidationRetainedBytes cap rest
+    | prevalidationHeld cap bytes bound rest => add bytes (prevalidationRetainedBytes cap rest)
+
+def rec prevalidationPush : (byteCap : Count) -> Count -> PrevalidationQueue byteCap ->
+    PrevalidationQueue byteCap :=
+  fun (byteCap : Count) (demand : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return PrevalidationQueue cap with
+    | prevalidationEnd cap => prevalidationEnd cap
+    | prevalidationVacant cap rest =>
+      prevalidationHeld cap (boundedWork cap demand) (workBound cap demand) rest
+    | prevalidationHeld cap bytes bound rest =>
+      prevalidationHeld cap bytes bound (prevalidationPush cap demand rest)
+
+def rec prevalidationPop : (byteCap : Count) -> PrevalidationQueue byteCap ->
+    PrevalidationQueue byteCap :=
+  fun (byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return PrevalidationQueue cap with
+    | prevalidationEnd cap => prevalidationEnd cap
+    | prevalidationVacant cap rest => prevalidationVacant cap (prevalidationPop cap rest)
+    | prevalidationHeld cap bytes bound rest => prevalidationVacant cap rest
+
+def rec prevalidationPushKeepsSlots : (byteCap : Count) -> (demand : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationSlots byteCap (prevalidationPush byteCap demand queue))
+      (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (demand : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return
+        Equal Count (prevalidationSlots cap (prevalidationPush cap demand self))
+          (prevalidationSlots cap self) with
+    | prevalidationEnd cap => same
+    | prevalidationVacant cap rest => same
+    | prevalidationHeld cap bytes bound rest =>
+      congruent Count Count (fun (n : Count) => next n) (prevalidationSlots cap (prevalidationPush cap demand rest))
+        (prevalidationSlots cap rest) (prevalidationPushKeepsSlots cap demand rest)
+
+def rec prevalidationPopKeepsSlots : (byteCap : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationSlots byteCap (prevalidationPop byteCap queue))
+      (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return
+        Equal Count (prevalidationSlots cap (prevalidationPop cap self))
+          (prevalidationSlots cap self) with
+    | prevalidationEnd cap => same
+    | prevalidationVacant cap rest =>
+      congruent Count Count (fun (n : Count) => next n) (prevalidationSlots cap (prevalidationPop cap rest))
+        (prevalidationSlots cap rest) (prevalidationPopKeepsSlots cap rest)
+    | prevalidationHeld cap bytes bound rest => same
+
+def prevalidationOverflowDropsPacket : (byteCap : Count) -> (demand : Count) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationPush byteCap demand (prevalidationEnd byteCap))
+      (prevalidationEnd byteCap) :=
+  fun (byteCap : Count) (demand : Count) => same
+
+def prevalidationVacancyStoresBoundedPacket : (byteCap : Count) -> (demand : Count) ->
+    (rest : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationPush byteCap demand (prevalidationVacant byteCap rest))
+      (prevalidationHeld byteCap (boundedWork byteCap demand) (workBound byteCap demand) rest) :=
+  fun (byteCap : Count) (demand : Count) (rest : PrevalidationQueue byteCap) => same
+
+def prevalidationDecisionReleasesPacket : (byteCap : Count) -> (bytes : Count) ->
+    (bound : AtMost bytes byteCap) -> (rest : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationPop byteCap (prevalidationHeld byteCap bytes bound rest))
+      (prevalidationVacant byteCap rest) :=
+  fun (byteCap : Count) (bytes : Count) (bound : AtMost bytes byteCap)
+      (rest : PrevalidationQueue byteCap) => same
+
+def prevalidationPushScansPastHeld : (byteCap : Count) -> (bytes : Count) ->
+    (bound : AtMost bytes byteCap) -> (demand : Count) -> (rest : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationPush byteCap demand (prevalidationHeld byteCap bytes bound rest))
+      (prevalidationHeld byteCap bytes bound (prevalidationPush byteCap demand rest)) :=
+  fun (byteCap : Count) (bytes : Count) (bound : AtMost bytes byteCap) (demand : Count)
+      (rest : PrevalidationQueue byteCap) => same
+
+def prevalidationPopScansPastVacant : (byteCap : Count) -> (rest : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationPop byteCap (prevalidationVacant byteCap rest))
+      (prevalidationVacant byteCap (prevalidationPop byteCap rest)) :=
+  fun (byteCap : Count) (rest : PrevalidationQueue byteCap) => same
+
+def prevalidationHeldRetainsBytes : (byteCap : Count) -> (bytes : Count) ->
+    (bound : AtMost bytes byteCap) -> (rest : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationRetainedBytes byteCap (prevalidationHeld byteCap bytes bound rest))
+      (add bytes (prevalidationRetainedBytes byteCap rest)) :=
+  fun (byteCap : Count) (bytes : Count) (bound : AtMost bytes byteCap)
+      (rest : PrevalidationQueue byteCap) => same
+
+mu PrevalidationSaturated : (0 byteCap : Count) ->
+    (0 queue : PrevalidationQueue byteCap) -> Type 0 with
+| prevalidationSaturatedEnd : (byteCap : Count) ->
+    PrevalidationSaturated byteCap (prevalidationEnd byteCap)
+| prevalidationSaturatedHeld : (byteCap : Count) -> (bytes : Count) ->
+    (bound : AtMost bytes byteCap) -> (rest : PrevalidationQueue byteCap) ->
+    PrevalidationSaturated byteCap rest ->
+    PrevalidationSaturated byteCap (prevalidationHeld byteCap bytes bound rest)
+
+def rec prevalidationSaturatedPushIsNoOp : (byteCap : Count) -> (demand : Count) ->
+    (queue : PrevalidationQueue byteCap) -> PrevalidationSaturated byteCap queue ->
+    Equal (PrevalidationQueue byteCap) (prevalidationPush byteCap demand queue) queue :=
+  fun (byteCap : Count) (demand : Count) (queue : PrevalidationQueue byteCap)
+      (full : PrevalidationSaturated byteCap queue) =>
+    case full as witness in PrevalidationSaturated cap cells return
+        Equal (PrevalidationQueue cap) (prevalidationPush cap demand cells) cells with
+    | prevalidationSaturatedEnd cap => same
+    | prevalidationSaturatedHeld cap bytes bound rest previous =>
+      congruent (PrevalidationQueue cap) (PrevalidationQueue cap)
+        (fun (tail : PrevalidationQueue cap) => prevalidationHeld cap bytes bound tail)
+        (prevalidationPush cap demand rest) rest
+        (prevalidationSaturatedPushIsNoOp cap demand rest previous)
+
+def rec prevalidationOccupancyBound : (byteCap : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationOccupancy byteCap queue) (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return
+        AtMost (prevalidationOccupancy cap self) (prevalidationSlots cap self) with
+    | prevalidationEnd cap => least zero
+    | prevalidationVacant cap rest =>
+      weakenBound (prevalidationOccupancy cap rest) (prevalidationSlots cap rest)
+        (prevalidationOccupancyBound cap rest)
+    | prevalidationHeld cap bytes bound rest =>
+      lift (prevalidationOccupancy cap rest) (prevalidationSlots cap rest)
+        (prevalidationOccupancyBound cap rest)
+
+def rec prevalidationRetainedBytesBound : (byteCap : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationRetainedBytes byteCap queue)
+      (multiply (prevalidationSlots byteCap queue) byteCap) :=
+  fun (byteCap : Count) (queue : PrevalidationQueue byteCap) =>
+    case queue as self in PrevalidationQueue cap return
+        AtMost (prevalidationRetainedBytes cap self) (multiply (prevalidationSlots cap self) cap) with
+    | prevalidationEnd cap => least zero
+    | prevalidationVacant cap rest =>
+      prefixBound cap (prevalidationRetainedBytes cap rest)
+        (multiply (prevalidationSlots cap rest) cap) (prevalidationRetainedBytesBound cap rest)
+    | prevalidationHeld cap bytes bound rest =>
+      addBounds bytes cap (prevalidationRetainedBytes cap rest)
+        (multiply (prevalidationSlots cap rest) cap) bound (prevalidationRetainedBytesBound cap rest)
+
+mu PrevalidationSwarm : Type 0 with
+| prevalidationPrimary : PrevalidationSwarm
+| prevalidationWorker : PrevalidationSwarm
+
+mu PrevalidationEvent : Type 0 with
+| prevalidationArrival : PrevalidationSwarm -> Count -> PrevalidationEvent
+| prevalidationDecision : Outcome -> Flag -> Count -> Count -> PrevalidationEvent
+
+def prevalidationStep : (byteCap : Count) -> PrevalidationEvent ->
+    PrevalidationQueue byteCap -> PrevalidationQueue byteCap :=
+  fun (byteCap : Count) (event : PrevalidationEvent) (queue : PrevalidationQueue byteCap) =>
+    case event as self in PrevalidationEvent return PrevalidationQueue byteCap with
+    | prevalidationArrival swarm demand => prevalidationPush byteCap demand queue
+    | prevalidationDecision outcome emits parseDemand tokenDemand => prevalidationPop byteCap queue
+
+def prevalidationStepKeepsSlots : (byteCap : Count) -> (event : PrevalidationEvent) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationSlots byteCap (prevalidationStep byteCap event queue))
+      (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (event : PrevalidationEvent) (queue : PrevalidationQueue byteCap) =>
+    case event as self in PrevalidationEvent return
+        Equal Count (prevalidationSlots byteCap (prevalidationStep byteCap self queue))
+          (prevalidationSlots byteCap queue) with
+    | prevalidationArrival swarm demand => prevalidationPushKeepsSlots byteCap demand queue
+    | prevalidationDecision outcome emits parseDemand tokenDemand => prevalidationPopKeepsSlots byteCap queue
+
+def prevalidationEveryDecisionReleases : (byteCap : Count) -> (outcome : Outcome) ->
+    (emits : Flag) -> (parseDemand : Count) -> (tokenDemand : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationStep byteCap (prevalidationDecision outcome emits parseDemand tokenDemand) queue)
+      (prevalidationPop byteCap queue) :=
+  fun (byteCap : Count) (outcome : Outcome) (emits : Flag)
+      (parseDemand : Count) (tokenDemand : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationAcceptWithoutEventReleases : (byteCap : Count) ->
+    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationStep byteCap (prevalidationDecision accept off parseDemand tokenDemand) queue)
+      (prevalidationPop byteCap queue) :=
+  fun (byteCap : Count) (parseDemand : Count) (tokenDemand : Count)
+      (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationBothSwarmsShareQueue : (byteCap : Count) -> (demand : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationStep byteCap (prevalidationArrival prevalidationPrimary demand) queue)
+      (prevalidationStep byteCap (prevalidationArrival prevalidationWorker demand) queue) :=
+  fun (byteCap : Count) (demand : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationSaturatedArrivalIsNoOp : (byteCap : Count) -> (swarm : PrevalidationSwarm) ->
+    (demand : Count) -> (queue : PrevalidationQueue byteCap) ->
+    PrevalidationSaturated byteCap queue ->
+    Equal (PrevalidationQueue byteCap)
+      (prevalidationStep byteCap (prevalidationArrival swarm demand) queue) queue :=
+  fun (byteCap : Count) (swarm : PrevalidationSwarm) (demand : Count)
+      (queue : PrevalidationQueue byteCap) (full : PrevalidationSaturated byteCap queue) =>
+    prevalidationSaturatedPushIsNoOp byteCap demand queue full
+
+def prevalidationStepSlotsBound : (byteCap : Count) -> (slotCap : Count) ->
+    (event : PrevalidationEvent) -> (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationSlots byteCap queue) slotCap ->
+    AtMost (prevalidationSlots byteCap (prevalidationStep byteCap event queue)) slotCap :=
+  fun (byteCap : Count) (slotCap : Count) (event : PrevalidationEvent)
+      (queue : PrevalidationQueue byteCap) (bound : AtMost (prevalidationSlots byteCap queue) slotCap) =>
+    equalTransport Count (fun (slots : Count) => AtMost slots slotCap)
+      (prevalidationSlots byteCap queue)
+      (prevalidationSlots byteCap (prevalidationStep byteCap event queue))
+      (equalSymmetry Count (prevalidationSlots byteCap (prevalidationStep byteCap event queue))
+        (prevalidationSlots byteCap queue) (prevalidationStepKeepsSlots byteCap event queue)) bound
+
+mu PrevalidationTrace : Type 0 with
+| prevalidationDone : PrevalidationTrace
+| prevalidationThen : PrevalidationEvent -> PrevalidationTrace -> PrevalidationTrace
+
+def rec runPrevalidationTrace : (byteCap : Count) -> PrevalidationTrace ->
+    PrevalidationQueue byteCap -> PrevalidationQueue byteCap :=
+  fun (byteCap : Count) (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap) =>
+    case trace as self in PrevalidationTrace return PrevalidationQueue byteCap with
+    | prevalidationDone => queue
+    | prevalidationThen event rest =>
+      runPrevalidationTrace byteCap rest (prevalidationStep byteCap event queue)
+
+def prevalidationTraceConsumesHead : (byteCap : Count) -> (event : PrevalidationEvent) ->
+    (rest : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->
+    Equal (PrevalidationQueue byteCap)
+      (runPrevalidationTrace byteCap (prevalidationThen event rest) queue)
+      (runPrevalidationTrace byteCap rest (prevalidationStep byteCap event queue)) :=
+  fun (byteCap : Count) (event : PrevalidationEvent) (rest : PrevalidationTrace)
+      (queue : PrevalidationQueue byteCap) => same
+
+def rec prevalidationTraceKeepsSlots : (byteCap : Count) -> (trace : PrevalidationTrace) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue))
+      (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap) =>
+    case trace as self in PrevalidationTrace return
+        Equal Count (prevalidationSlots byteCap (runPrevalidationTrace byteCap self queue))
+          (prevalidationSlots byteCap queue) with
+    | prevalidationDone => same
+    | prevalidationThen event rest =>
+      equalTransitivity Count
+        (prevalidationSlots byteCap (runPrevalidationTrace byteCap rest (prevalidationStep byteCap event queue)))
+        (prevalidationSlots byteCap (prevalidationStep byteCap event queue)) (prevalidationSlots byteCap queue)
+        (prevalidationTraceKeepsSlots byteCap rest (prevalidationStep byteCap event queue))
+        (prevalidationStepKeepsSlots byteCap event queue)
+
+def prevalidationTraceOccupancyBound : (byteCap : Count) -> (trace : PrevalidationTrace) ->
+    (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationOccupancy byteCap (runPrevalidationTrace byteCap trace queue))
+      (prevalidationSlots byteCap queue) :=
+  fun (byteCap : Count) (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap) =>
+    equalTransport Count
+      (fun (slots : Count) => AtMost (prevalidationOccupancy byteCap (runPrevalidationTrace byteCap trace queue)) slots)
+      (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) (prevalidationSlots byteCap queue)
+      (prevalidationTraceKeepsSlots byteCap trace queue)
+      (prevalidationOccupancyBound byteCap (runPrevalidationTrace byteCap trace queue))
+
+def prevalidationTraceRetainedBytesBound : (byteCap : Count) -> (trace : PrevalidationTrace) ->
+    (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationRetainedBytes byteCap (runPrevalidationTrace byteCap trace queue))
+      (multiply (prevalidationSlots byteCap queue) byteCap) :=
+  fun (byteCap : Count) (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap) =>
+    equalTransport Count
+      (fun (slots : Count) => AtMost (prevalidationRetainedBytes byteCap (runPrevalidationTrace byteCap trace queue))
+        (multiply slots byteCap))
+      (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) (prevalidationSlots byteCap queue)
+      (prevalidationTraceKeepsSlots byteCap trace queue)
+      (prevalidationRetainedBytesBound byteCap (runPrevalidationTrace byteCap trace queue))
+
+-- The allocated cell metadata and retained payloads coexist with one ingress buffer.
+def prevalidationTransientBytes : (byteCap : Count) -> Count -> PrevalidationQueue byteCap -> Count :=
+  fun (byteCap : Count) (entryBytes : Count) (queue : PrevalidationQueue byteCap) =>
+    add (add (multiply (prevalidationSlots byteCap queue) entryBytes)
+      (prevalidationRetainedBytes byteCap queue)) byteCap
+
+def prevalidationTransientCountsAllocations : (byteCap : Count) -> (entryBytes : Count) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationTransientBytes byteCap entryBytes queue)
+      (add (add (multiply (prevalidationSlots byteCap queue) entryBytes)
+        (prevalidationRetainedBytes byteCap queue)) byteCap) :=
+  fun (byteCap : Count) (entryBytes : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationTraceTransientBytesBound : (byteCap : Count) -> (entryBytes : Count) ->
+    (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationTransientBytes byteCap entryBytes (runPrevalidationTrace byteCap trace queue))
+      (add (add (multiply (prevalidationSlots byteCap queue) entryBytes)
+        (multiply (prevalidationSlots byteCap queue) byteCap)) byteCap) :=
+  fun (byteCap : Count) (entryBytes : Count) (trace : PrevalidationTrace)
+      (queue : PrevalidationQueue byteCap) =>
+    equalTransport Count
+      (fun (slots : Count) => AtMost
+        (prevalidationTransientBytes byteCap entryBytes (runPrevalidationTrace byteCap trace queue))
+        (add (add (multiply slots entryBytes) (multiply slots byteCap)) byteCap))
+      (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) (prevalidationSlots byteCap queue)
+      (prevalidationTraceKeepsSlots byteCap trace queue)
+      (addBounds
+        (add (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) entryBytes)
+          (prevalidationRetainedBytes byteCap (runPrevalidationTrace byteCap trace queue)))
+        (add (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) entryBytes)
+          (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) byteCap))
+        byteCap byteCap
+        (addBounds (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) entryBytes)
+          (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) entryBytes)
+          (prevalidationRetainedBytes byteCap (runPrevalidationTrace byteCap trace queue))
+          (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) byteCap)
+          (reflexiveBound (multiply (prevalidationSlots byteCap (runPrevalidationTrace byteCap trace queue)) entryBytes))
+          (prevalidationRetainedBytesBound byteCap (runPrevalidationTrace byteCap trace queue)))
+        (reflexiveBound byteCap))
+
+def prevalidationPacketDemand : PrevalidationEvent -> Count :=
+  fun (event : PrevalidationEvent) =>
+    case event as self in PrevalidationEvent return Count with
+    | prevalidationArrival swarm demand => demand
+    | prevalidationDecision outcome emits parseDemand tokenDemand => zero
+
+def prevalidationParseDemand : PrevalidationEvent -> Count :=
+  fun (event : PrevalidationEvent) =>
+    case event as self in PrevalidationEvent return Count with
+    | prevalidationArrival swarm demand => zero
+    | prevalidationDecision outcome emits parseDemand tokenDemand => parseDemand
+
+def prevalidationTokenDemand : PrevalidationEvent -> Count :=
+  fun (event : PrevalidationEvent) =>
+    case event as self in PrevalidationEvent return Count with
+    | prevalidationArrival swarm demand => zero
+    | prevalidationDecision outcome emits parseDemand tokenDemand => tokenDemand
+
+def prevalidationUnitBudget : Count -> Count -> Count -> Count -> Count :=
+  fun (byteCap : Count) (slotCap : Count) (parseCap : Count) (tokenCap : Count) =>
+    add byteCap (add slotCap (add parseCap tokenCap))
+
+def prevalidationStepWork : (byteCap : Count) -> Count -> Count -> PrevalidationEvent ->
+    PrevalidationQueue byteCap -> Count :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (event : PrevalidationEvent)
+      (queue : PrevalidationQueue byteCap) =>
+    add (boundedWork byteCap (prevalidationPacketDemand event))
+      (add (prevalidationSlots byteCap queue)
+        (add (boundedWork parseCap (prevalidationParseDemand event))
+          (boundedWork tokenCap (prevalidationTokenDemand event))))
+
+def prevalidationArrivalChargesPacketAndQueue : (byteCap : Count) ->
+    (parseCap : Count) -> (tokenCap : Count) -> (swarm : PrevalidationSwarm) ->
+    (demand : Count) -> (queue : PrevalidationQueue byteCap) ->
+    Equal Count
+      (prevalidationStepWork byteCap parseCap tokenCap (prevalidationArrival swarm demand) queue)
+      (add (boundedWork byteCap demand) (add (prevalidationSlots byteCap queue)
+        (add (boundedWork parseCap zero) (boundedWork tokenCap zero)))) :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (swarm : PrevalidationSwarm)
+      (demand : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationEveryDecisionChargesParsingAndToken : (byteCap : Count) ->
+    (parseCap : Count) -> (tokenCap : Count) -> (outcome : Outcome) -> (emits : Flag) ->
+    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->
+    Equal Count
+      (prevalidationStepWork byteCap parseCap tokenCap
+        (prevalidationDecision outcome emits parseDemand tokenDemand) queue)
+      (add (boundedWork byteCap zero) (add (prevalidationSlots byteCap queue)
+        (add (boundedWork parseCap parseDemand) (boundedWork tokenCap tokenDemand)))) :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (outcome : Outcome) (emits : Flag)
+      (parseDemand : Count) (tokenDemand : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationSilentDecisionHasSameCost : (byteCap : Count) ->
+    (parseCap : Count) -> (tokenCap : Count) -> (outcome : Outcome) ->
+    (parseDemand : Count) -> (tokenDemand : Count) -> (queue : PrevalidationQueue byteCap) ->
+    Equal Count
+      (prevalidationStepWork byteCap parseCap tokenCap
+        (prevalidationDecision outcome off parseDemand tokenDemand) queue)
+      (prevalidationStepWork byteCap parseCap tokenCap
+        (prevalidationDecision outcome on parseDemand tokenDemand) queue) :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (outcome : Outcome)
+      (parseDemand : Count) (tokenDemand : Count) (queue : PrevalidationQueue byteCap) => same
+
+def prevalidationStepWorkBound : (byteCap : Count) -> (slotCap : Count) ->
+    (parseCap : Count) -> (tokenCap : Count) -> (event : PrevalidationEvent) ->
+    (queue : PrevalidationQueue byteCap) -> AtMost (prevalidationSlots byteCap queue) slotCap ->
+    AtMost (prevalidationStepWork byteCap parseCap tokenCap event queue)
+      (prevalidationUnitBudget byteCap slotCap parseCap tokenCap) :=
+  fun (byteCap : Count) (slotCap : Count) (parseCap : Count) (tokenCap : Count)
+      (event : PrevalidationEvent) (queue : PrevalidationQueue byteCap)
+      (bound : AtMost (prevalidationSlots byteCap queue) slotCap) =>
+    addBounds (boundedWork byteCap (prevalidationPacketDemand event)) byteCap
+      (add (prevalidationSlots byteCap queue)
+        (add (boundedWork parseCap (prevalidationParseDemand event))
+          (boundedWork tokenCap (prevalidationTokenDemand event))))
+      (add slotCap (add parseCap tokenCap)) (workBound byteCap (prevalidationPacketDemand event))
+      (addBounds (prevalidationSlots byteCap queue) slotCap
+        (add (boundedWork parseCap (prevalidationParseDemand event))
+          (boundedWork tokenCap (prevalidationTokenDemand event)))
+        (add parseCap tokenCap) bound
+        (addBounds (boundedWork parseCap (prevalidationParseDemand event)) parseCap
+          (boundedWork tokenCap (prevalidationTokenDemand event)) tokenCap
+          (workBound parseCap (prevalidationParseDemand event))
+          (workBound tokenCap (prevalidationTokenDemand event))))
+
+def rec prevalidationTraceLength : PrevalidationTrace -> Count :=
+  fun (trace : PrevalidationTrace) =>
+    case trace as self in PrevalidationTrace return Count with
+    | prevalidationDone => zero
+    | prevalidationThen event rest => next (prevalidationTraceLength rest)
+
+def rec prevalidationTraceWork : (byteCap : Count) -> Count -> Count -> PrevalidationTrace ->
+    PrevalidationQueue byteCap -> Count :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (trace : PrevalidationTrace)
+      (queue : PrevalidationQueue byteCap) =>
+    case trace as self in PrevalidationTrace return Count with
+    | prevalidationDone => zero
+    | prevalidationThen event rest =>
+      add (prevalidationStepWork byteCap parseCap tokenCap event queue)
+        (prevalidationTraceWork byteCap parseCap tokenCap rest (prevalidationStep byteCap event queue))
+
+def prevalidationTraceChargesHead : (byteCap : Count) -> (parseCap : Count) ->
+    (tokenCap : Count) -> (event : PrevalidationEvent) -> (rest : PrevalidationTrace) ->
+    (queue : PrevalidationQueue byteCap) ->
+    Equal Count
+      (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationThen event rest) queue)
+      (add (prevalidationStepWork byteCap parseCap tokenCap event queue)
+        (prevalidationTraceWork byteCap parseCap tokenCap rest (prevalidationStep byteCap event queue))) :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (event : PrevalidationEvent)
+      (rest : PrevalidationTrace) (queue : PrevalidationQueue byteCap) => same
+
+def rec prevalidationTraceWorkBound : (byteCap : Count) -> (slotCap : Count) ->
+    (parseCap : Count) -> (tokenCap : Count) -> (trace : PrevalidationTrace) ->
+    (queue : PrevalidationQueue byteCap) -> AtMost (prevalidationSlots byteCap queue) slotCap ->
+    AtMost (prevalidationTraceWork byteCap parseCap tokenCap trace queue)
+      (multiply (prevalidationTraceLength trace) (prevalidationUnitBudget byteCap slotCap parseCap tokenCap)) :=
+  fun (byteCap : Count) (slotCap : Count) (parseCap : Count) (tokenCap : Count)
+      (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap)
+      (bound : AtMost (prevalidationSlots byteCap queue) slotCap) =>
+    case trace as self in PrevalidationTrace return
+        AtMost (prevalidationTraceWork byteCap parseCap tokenCap self queue)
+          (multiply (prevalidationTraceLength self) (prevalidationUnitBudget byteCap slotCap parseCap tokenCap)) with
+    | prevalidationDone => least zero
+    | prevalidationThen event rest =>
+      addBounds (prevalidationStepWork byteCap parseCap tokenCap event queue)
+        (prevalidationUnitBudget byteCap slotCap parseCap tokenCap)
+        (prevalidationTraceWork byteCap parseCap tokenCap rest (prevalidationStep byteCap event queue))
+        (multiply (prevalidationTraceLength rest) (prevalidationUnitBudget byteCap slotCap parseCap tokenCap))
+        (prevalidationStepWorkBound byteCap slotCap parseCap tokenCap event queue bound)
+        (prevalidationTraceWorkBound byteCap slotCap parseCap tokenCap rest
+          (prevalidationStep byteCap event queue) (prevalidationStepSlotsBound byteCap slotCap event queue bound))
+
+def rec prevalidationTake : Count -> PrevalidationTrace -> PrevalidationTrace :=
+  fun (fuel : Count) (trace : PrevalidationTrace) =>
+    case fuel as self in Count return PrevalidationTrace with
+    | zero => prevalidationDone
+    | next remaining =>
+      case trace as pending in PrevalidationTrace return PrevalidationTrace with
+      | prevalidationDone => prevalidationDone
+      | prevalidationThen event rest => prevalidationThen event (prevalidationTake remaining rest)
+
+def prevalidationTakeKeepsHead : (fuel : Count) -> (event : PrevalidationEvent) ->
+    (rest : PrevalidationTrace) ->
+    Equal PrevalidationTrace (prevalidationTake (next fuel) (prevalidationThen event rest))
+      (prevalidationThen event (prevalidationTake fuel rest)) :=
+  fun (fuel : Count) (event : PrevalidationEvent) (rest : PrevalidationTrace) => same
+
+def prevalidationNoFuelNoWork : (byteCap : Count) -> (parseCap : Count) ->
+    (tokenCap : Count) -> (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->
+    Equal Count (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationTake zero trace) queue) zero :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (trace : PrevalidationTrace)
+      (queue : PrevalidationQueue byteCap) => same
+
+def rec prevalidationTakeLengthBound : (fuel : Count) -> (trace : PrevalidationTrace) ->
+    AtMost (prevalidationTraceLength (prevalidationTake fuel trace)) fuel :=
+  fun (fuel : Count) (trace : PrevalidationTrace) =>
+    case fuel as self in Count return
+        AtMost (prevalidationTraceLength (prevalidationTake self trace)) self with
+    | zero => least zero
+    | next remaining =>
+      case trace as pending in PrevalidationTrace return
+          AtMost (prevalidationTraceLength (prevalidationTake (next remaining) pending)) (next remaining) with
+      | prevalidationDone => least (next remaining)
+      | prevalidationThen event rest =>
+        lift (prevalidationTraceLength (prevalidationTake remaining rest)) remaining
+          (prevalidationTakeLengthBound remaining rest)
+
+def prevalidationPollWorkBound : (byteCap : Count) -> (parseCap : Count) -> (tokenCap : Count) ->
+    (fuel : Count) -> (trace : PrevalidationTrace) -> (queue : PrevalidationQueue byteCap) ->
+    AtMost (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationTake fuel trace) queue)
+      (multiply fuel (prevalidationUnitBudget byteCap (prevalidationSlots byteCap queue) parseCap tokenCap)) :=
+  fun (byteCap : Count) (parseCap : Count) (tokenCap : Count) (fuel : Count)
+      (trace : PrevalidationTrace) (queue : PrevalidationQueue byteCap) =>
+    boundTransitive
+      (prevalidationTraceWork byteCap parseCap tokenCap (prevalidationTake fuel trace) queue)
+      (multiply (prevalidationTraceLength (prevalidationTake fuel trace))
+        (prevalidationUnitBudget byteCap (prevalidationSlots byteCap queue) parseCap tokenCap))
+      (multiply fuel (prevalidationUnitBudget byteCap (prevalidationSlots byteCap queue) parseCap tokenCap))
+      (prevalidationTraceWorkBound byteCap (prevalidationSlots byteCap queue) parseCap tokenCap
+        (prevalidationTake fuel trace) queue (reflexiveBound (prevalidationSlots byteCap queue)))
+      (multipliedBounds (prevalidationTraceLength (prevalidationTake fuel trace)) fuel
+        (prevalidationUnitBudget byteCap (prevalidationSlots byteCap queue) parseCap tokenCap)
+        (prevalidationTakeLengthBound fuel trace))
