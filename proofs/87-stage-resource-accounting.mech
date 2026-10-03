@@ -1,0 +1,506 @@
+-- One reservation follows a resource through pending, pre-accept and established.
+-- A phase-scoped receipt cannot release a later phase. Runtime atomicity, routing,
+-- generation provenance and phase-independent cost domination remain premises.
+
+mu ResourceStage : Type 0 with
+| resourcePending : ResourceStage
+| resourcePreaccept : ResourceStage
+| resourceEstablished : ResourceStage
+
+def resourceStageCode : ResourceStage -> Count :=
+  fun (stage : ResourceStage) =>
+    case stage as self in ResourceStage return Count with
+    | resourcePending => zero
+    | resourcePreaccept => next zero
+    | resourceEstablished => next (next zero)
+
+def resourceNextStage : ResourceStage -> ResourceStage :=
+  fun (stage : ResourceStage) =>
+    case stage as self in ResourceStage return ResourceStage with
+    | resourcePending => resourcePreaccept
+    | resourcePreaccept => resourceEstablished
+    | resourceEstablished => resourceEstablished
+
+mu StagedResource : Type 0 with
+| stagedResource : ResourceStage -> Lease -> StagedResource
+
+def stagedLease : StagedResource -> Lease :=
+  fun (slot : StagedResource) =>
+    case slot as self in StagedResource return Lease with
+    | stagedResource stage lease => lease
+
+def stagedReserve : StagedResource -> StagedResource :=
+  fun (slot : StagedResource) =>
+    case slot as self in StagedResource return StagedResource with
+    | stagedResource stage lease =>
+      case lease as owned in Lease return StagedResource with
+      | freeLease generation => stagedResource resourcePending (reserveLease (freeLease generation))
+      | heldLease generation => stagedResource stage (heldLease generation)
+
+def stagedTokenMatches : CompletionToken -> Lease -> Flag :=
+  fun (token : CompletionToken) (lease : Lease) =>
+    case token as receipt in CompletionToken return Flag with
+    | noOwnedLease => off
+    | ownedGeneration generation =>
+      case lease as owned in Lease return Flag with
+      | freeLease current => off
+      | heldLease current => sameCount generation current
+
+def stagedMoveDecision : ResourceStage -> Lease -> Flag -> StagedResource :=
+  fun (stage : ResourceStage) (lease : Lease) (matches : Flag) =>
+    case matches as self in Flag return StagedResource with
+    | off => stagedResource stage lease
+    | on => stagedResource (resourceNextStage stage) lease
+
+def stagedHandoff : ResourceStage -> CompletionToken -> StagedResource -> StagedResource :=
+  fun (expected : ResourceStage) (token : CompletionToken) (slot : StagedResource) =>
+    case slot as self in StagedResource return StagedResource with
+    | stagedResource stage lease => stagedMoveDecision stage lease
+      (both (sameCount (resourceStageCode expected) (resourceStageCode stage)) (stagedTokenMatches token lease))
+
+def stagedCloseDecision : Flag -> CompletionToken -> PendingEnd -> Lease -> Lease :=
+  fun (matches : Flag) (token : CompletionToken) (reason : PendingEnd) (lease : Lease) =>
+    case matches as self in Flag return Lease with
+    | off => lease
+    | on => pendingCompletion token reason lease
+
+def stagedComplete : ResourceStage -> CompletionToken -> PendingEnd -> StagedResource -> StagedResource :=
+  fun (expected : ResourceStage) (token : CompletionToken) (reason : PendingEnd) (slot : StagedResource) =>
+    case slot as self in StagedResource return StagedResource with
+    | stagedResource stage lease => stagedResource stage
+      (stagedCloseDecision (sameCount (resourceStageCode expected) (resourceStageCode stage)) token reason lease)
+
+mu StagedAction : Type 0 with
+| stagedAcquire : StagedAction
+| stagedTransfer : ResourceStage -> CompletionToken -> StagedAction
+| stagedTerminal : ResourceStage -> CompletionToken -> PendingEnd -> StagedAction
+
+def stagedAction : StagedAction -> StagedResource -> StagedResource :=
+  fun (action : StagedAction) (slot : StagedResource) =>
+    case action as self in StagedAction return StagedResource with
+    | stagedAcquire => stagedReserve slot
+    | stagedTransfer expected token => stagedHandoff expected token slot
+    | stagedTerminal expected token reason => stagedComplete expected token reason slot
+
+def stagedFreeReservation : (stage : ResourceStage) -> (generation : Count) ->
+    Equal StagedResource (stagedReserve (stagedResource stage (freeLease generation)))
+      (stagedResource resourcePending (heldLease generation)) :=
+  fun (stage : ResourceStage) (generation : Count) => same
+
+def stagedHeldReservation : (stage : ResourceStage) -> (generation : Count) ->
+    Equal StagedResource (stagedReserve (stagedResource stage (heldLease generation)))
+      (stagedResource stage (heldLease generation)) :=
+  fun (stage : ResourceStage) (generation : Count) => same
+
+def stagedMoveKeepsLease : (stage : ResourceStage) -> (lease : Lease) -> (matches : Flag) ->
+    Equal Lease (stagedLease (stagedMoveDecision stage lease matches)) lease :=
+  fun (stage : ResourceStage) (lease : Lease) (matches : Flag) =>
+    case matches as self in Flag return Equal Lease (stagedLease (stagedMoveDecision stage lease self)) lease with
+    | off => same
+    | on => same
+
+def stagedHandoffKeepsLease : (expected : ResourceStage) -> (token : CompletionToken) -> (slot : StagedResource) ->
+    Equal Lease (stagedLease (stagedHandoff expected token slot)) (stagedLease slot) :=
+  fun (expected : ResourceStage) (token : CompletionToken) (slot : StagedResource) =>
+    case slot as self in StagedResource return Equal Lease (stagedLease (stagedHandoff expected token self)) (stagedLease self) with
+    | stagedResource stage lease => stagedMoveKeepsLease stage lease
+      (both (sameCount (resourceStageCode expected) (resourceStageCode stage)) (stagedTokenMatches token lease))
+
+def stagedOwnedHandoff : (stage : ResourceStage) -> (generation : Count) ->
+    Equal StagedResource (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease generation)))
+      (stagedResource (resourceNextStage stage) (heldLease generation)) :=
+  fun (stage : ResourceStage) (generation : Count) =>
+    equalTransitivity StagedResource
+      (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease generation)))
+      (stagedMoveDecision stage (heldLease generation) (sameCount generation generation))
+      (stagedResource (resourceNextStage stage) (heldLease generation))
+      (congruent Flag StagedResource
+        (fun (matches : Flag) => stagedMoveDecision stage (heldLease generation) (both matches (sameCount generation generation)))
+        (sameCount (resourceStageCode stage) (resourceStageCode stage)) on (sameCountReflexive (resourceStageCode stage)))
+      (congruent Flag StagedResource (fun (matches : Flag) => stagedMoveDecision stage (heldLease generation) matches)
+        (sameCount generation generation) on (sameCountReflexive generation))
+
+def stagedUnownedHandoff : (expected : ResourceStage) -> (stage : ResourceStage) -> (lease : Lease) ->
+    Equal StagedResource (stagedHandoff expected noOwnedLease (stagedResource stage lease)) (stagedResource stage lease) :=
+  fun (expected : ResourceStage) (stage : ResourceStage) (lease : Lease) =>
+    case sameCount (resourceStageCode expected) (resourceStageCode stage) as matches in Flag return
+      Equal StagedResource (stagedMoveDecision stage lease (both matches off)) (stagedResource stage lease) with
+    | off => same
+    | on => same
+
+def stagedStaleHandoff : (stage : ResourceStage) -> (generation : Count) ->
+    Equal StagedResource (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease (next generation))))
+      (stagedResource stage (heldLease (next generation))) :=
+  fun (stage : ResourceStage) (generation : Count) =>
+    equalTransitivity StagedResource
+      (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease (next generation))))
+      (stagedMoveDecision stage (heldLease (next generation)) (sameCount generation (next generation)))
+      (stagedResource stage (heldLease (next generation)))
+      (congruent Flag StagedResource
+        (fun (matches : Flag) => stagedMoveDecision stage (heldLease (next generation)) (both matches (sameCount generation (next generation))))
+        (sameCount (resourceStageCode stage) (resourceStageCode stage)) on (sameCountReflexive (resourceStageCode stage)))
+      (congruent Flag StagedResource (fun (matches : Flag) => stagedMoveDecision stage (heldLease (next generation)) matches)
+        (sameCount generation (next generation)) off (sameCountSuccessorOff generation))
+
+def stagedOwnedCompletion : (stage : ResourceStage) -> (generation : Count) -> (reason : PendingEnd) ->
+    Equal StagedResource (stagedComplete stage (ownedGeneration generation) reason (stagedResource stage (heldLease generation)))
+      (stagedResource stage (freeLease (next generation))) :=
+  fun (stage : ResourceStage) (generation : Count) (reason : PendingEnd) =>
+    equalTransitivity StagedResource
+      (stagedComplete stage (ownedGeneration generation) reason (stagedResource stage (heldLease generation)))
+      (stagedResource stage (pendingCompletion (ownedGeneration generation) reason (heldLease generation)))
+      (stagedResource stage (freeLease (next generation)))
+      (congruent Flag StagedResource
+        (fun (matches : Flag) => stagedResource stage (stagedCloseDecision matches (ownedGeneration generation) reason (heldLease generation)))
+        (sameCount (resourceStageCode stage) (resourceStageCode stage)) on (sameCountReflexive (resourceStageCode stage)))
+      (congruent Lease StagedResource (fun (lease : Lease) => stagedResource stage lease)
+        (pendingCompletion (ownedGeneration generation) reason (heldLease generation)) (freeLease (next generation))
+        (everyTerminalReasonReleases generation reason))
+
+def stagedOldPendingReceipt : (token : CompletionToken) -> (reason : PendingEnd) -> (lease : Lease) ->
+    Equal StagedResource (stagedComplete resourcePending token reason (stagedResource resourcePreaccept lease))
+      (stagedResource resourcePreaccept lease) :=
+  fun (token : CompletionToken) (reason : PendingEnd) (lease : Lease) => same
+
+def stagedOldPreacceptReceipt : (token : CompletionToken) -> (reason : PendingEnd) -> (lease : Lease) ->
+    Equal StagedResource (stagedComplete resourcePreaccept token reason (stagedResource resourceEstablished lease))
+      (stagedResource resourceEstablished lease) :=
+  fun (token : CompletionToken) (reason : PendingEnd) (lease : Lease) => same
+
+def stagedWrongHandoff : (token : CompletionToken) -> (lease : Lease) ->
+    Equal StagedResource (stagedHandoff resourcePending token (stagedResource resourcePreaccept lease))
+      (stagedResource resourcePreaccept lease) :=
+  fun (token : CompletionToken) (lease : Lease) => same
+
+def stagedPendingToPreaccept : (generation : Count) ->
+    Equal StagedResource (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation)))
+      (stagedResource resourcePreaccept (heldLease generation)) :=
+  fun (generation : Count) => stagedOwnedHandoff resourcePending generation
+
+def stagedEstablishedHandoff : (generation : Count) ->
+    Equal StagedResource (stagedHandoff resourceEstablished (ownedGeneration generation) (stagedResource resourceEstablished (heldLease generation)))
+      (stagedResource resourceEstablished (heldLease generation)) :=
+  fun (generation : Count) => stagedOwnedHandoff resourceEstablished generation
+
+def stagedFreeHandoff : (expected : ResourceStage) -> (stage : ResourceStage) -> (token : CompletionToken) -> (generation : Count) ->
+    Equal StagedResource (stagedHandoff expected token (stagedResource stage (freeLease generation)))
+      (stagedResource stage (freeLease generation)) :=
+  fun (expected : ResourceStage) (stage : ResourceStage) (token : CompletionToken) (generation : Count) =>
+    case token as receipt in CompletionToken return
+      Equal StagedResource (stagedHandoff expected receipt (stagedResource stage (freeLease generation)))
+        (stagedResource stage (freeLease generation)) with
+    | noOwnedLease => stagedUnownedHandoff expected stage (freeLease generation)
+    | ownedGeneration owned =>
+      case sameCount (resourceStageCode expected) (resourceStageCode stage) as matches in Flag return
+        Equal StagedResource (stagedMoveDecision stage (freeLease generation) (both matches off))
+          (stagedResource stage (freeLease generation)) with
+      | off => same
+      | on => same
+
+def stagedCloseIdempotent : (matches : Flag) -> (token : CompletionToken) -> (first : PendingEnd) -> (second : PendingEnd) -> (lease : Lease) ->
+    Equal Lease (stagedCloseDecision matches token second (stagedCloseDecision matches token first lease))
+      (stagedCloseDecision matches token first lease) :=
+  fun (matches : Flag) (token : CompletionToken) (first : PendingEnd) (second : PendingEnd) (lease : Lease) =>
+    case matches as self in Flag return
+      Equal Lease (stagedCloseDecision self token second (stagedCloseDecision self token first lease))
+        (stagedCloseDecision self token first lease) with
+    | off => same
+    | on => repeatedTerminalReasonsIdempotent token first second lease
+
+def stagedCompletionIdempotent : (expected : ResourceStage) -> (token : CompletionToken) ->
+    (first : PendingEnd) -> (second : PendingEnd) -> (slot : StagedResource) ->
+    Equal StagedResource (stagedComplete expected token second (stagedComplete expected token first slot))
+      (stagedComplete expected token first slot) :=
+  fun (expected : ResourceStage) (token : CompletionToken) (first : PendingEnd) (second : PendingEnd) (slot : StagedResource) =>
+    case slot as self in StagedResource return
+      Equal StagedResource (stagedComplete expected token second (stagedComplete expected token first self))
+        (stagedComplete expected token first self) with
+    | stagedResource stage lease => congruent Lease StagedResource (fun (owned : Lease) => stagedResource stage owned)
+      (stagedCloseDecision (sameCount (resourceStageCode expected) (resourceStageCode stage)) token second
+        (stagedCloseDecision (sameCount (resourceStageCode expected) (resourceStageCode stage)) token first lease))
+      (stagedCloseDecision (sameCount (resourceStageCode expected) (resourceStageCode stage)) token first lease)
+      (stagedCloseIdempotent (sameCount (resourceStageCode expected) (resourceStageCode stage)) token first second lease)
+
+mu StagedLedger : Type 0 with
+| noStagedResources : StagedLedger
+| stagedCell : EstablishedKind -> EstablishedDirection -> EstablishedUnit -> StagedResource -> StagedLedger -> StagedLedger
+
+def rec stagedBanks : StagedLedger -> EstablishedBanks :=
+  fun (ledger : StagedLedger) =>
+    case ledger as self in StagedLedger return EstablishedBanks with
+    | noStagedResources => noEstablishedBanks
+    | stagedCell kind direction unit slot rest =>
+      establishedBank kind direction unit (leaseCell (stagedLease slot) emptyLeasePool) (stagedBanks rest)
+
+def stagedUse : EstablishedAxis -> StagedLedger -> Count :=
+  fun (axis : EstablishedAxis) (ledger : StagedLedger) => establishedBankUse axis (stagedBanks ledger)
+
+def stagedAllocation : EstablishedAxis -> StagedLedger -> Count :=
+  fun (axis : EstablishedAxis) (ledger : StagedLedger) => establishedBankAllocation axis (stagedBanks ledger)
+
+def stagedCharge : EstablishedAxis -> EstablishedKind -> EstablishedDirection -> EstablishedUnit -> StagedResource -> Count :=
+  fun (axis : EstablishedAxis) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) (slot : StagedResource) =>
+    multiply (leaseOccupancy (leaseCell (stagedLease slot) emptyLeasePool)) (establishedUnitValue axis kind direction unit)
+
+def stagedHandoffConservesCharge : (axis : EstablishedAxis) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (expected : ResourceStage) ->
+    (token : CompletionToken) -> (slot : StagedResource) ->
+    Equal Count (stagedCharge axis kind direction unit (stagedHandoff expected token slot)) (stagedCharge axis kind direction unit slot) :=
+  fun (axis : EstablishedAxis) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (expected : ResourceStage) (token : CompletionToken) (slot : StagedResource) =>
+    congruent Lease Count
+      (fun (lease : Lease) => multiply (leaseOccupancy (leaseCell lease emptyLeasePool)) (establishedUnitValue axis kind direction unit))
+      (stagedLease (stagedHandoff expected token slot)) (stagedLease slot) (stagedHandoffKeepsLease expected token slot)
+
+def rec stagedUpdate : Count -> (StagedResource -> StagedResource) -> StagedLedger -> StagedLedger :=
+  fun (index : Count) (change : StagedResource -> StagedResource) (ledger : StagedLedger) =>
+    case index as position in Count return StagedLedger with
+    | zero =>
+      (case ledger as self in StagedLedger return StagedLedger with
+      | noStagedResources => noStagedResources
+      | stagedCell kind direction unit slot rest => stagedCell kind direction unit (change slot) rest)
+    | next previous =>
+      case ledger as self in StagedLedger return StagedLedger with
+      | noStagedResources => noStagedResources
+      | stagedCell kind direction unit slot rest => stagedCell kind direction unit slot (stagedUpdate previous change rest)
+
+def rec stagedUpdateAllocation : (index : Count) -> (change : StagedResource -> StagedResource) ->
+    (ledger : StagedLedger) -> (axis : EstablishedAxis) ->
+    Equal Count (stagedAllocation axis (stagedUpdate index change ledger)) (stagedAllocation axis ledger) :=
+  fun (index : Count) (change : StagedResource -> StagedResource) (ledger : StagedLedger) (axis : EstablishedAxis) =>
+    case index as position in Count return
+      Equal Count (stagedAllocation axis (stagedUpdate position change ledger)) (stagedAllocation axis ledger) with
+    | zero =>
+      (case ledger as self in StagedLedger return
+        Equal Count (stagedAllocation axis (stagedUpdate zero change self)) (stagedAllocation axis self) with
+      | noStagedResources => same
+      | stagedCell kind direction unit slot rest => same)
+    | next previous =>
+      case ledger as self in StagedLedger return
+        Equal Count (stagedAllocation axis (stagedUpdate (next previous) change self)) (stagedAllocation axis self) with
+      | noStagedResources => same
+      | stagedCell kind direction unit slot rest => congruent Count Count
+        (fun (cost : Count) => add (multiply (next zero) (establishedUnitValue axis kind direction unit)) cost)
+        (stagedAllocation axis (stagedUpdate previous change rest)) (stagedAllocation axis rest)
+        (stagedUpdateAllocation previous change rest axis)
+
+mu StagedTrace : Type 0 with
+| stagedDone : StagedTrace
+| stagedEvent : Count -> StagedAction -> StagedTrace -> StagedTrace
+
+def rec runStagedLedger : StagedTrace -> StagedLedger -> StagedLedger :=
+  fun (trace : StagedTrace) (ledger : StagedLedger) =>
+    case trace as self in StagedTrace return StagedLedger with
+    | stagedDone => ledger
+    | stagedEvent index action rest => runStagedLedger rest (stagedUpdate index (stagedAction action) ledger)
+
+def rec stagedTraceAllocation : (trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->
+    Equal Count (stagedAllocation axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger) :=
+  fun (trace : StagedTrace) (ledger : StagedLedger) (axis : EstablishedAxis) =>
+    case trace as self in StagedTrace return
+      Equal Count (stagedAllocation axis (runStagedLedger self ledger)) (stagedAllocation axis ledger) with
+    | stagedDone => same
+    | stagedEvent index action rest => equalTransitivity Count
+      (stagedAllocation axis (runStagedLedger rest (stagedUpdate index (stagedAction action) ledger)))
+      (stagedAllocation axis (stagedUpdate index (stagedAction action) ledger)) (stagedAllocation axis ledger)
+      (stagedTraceAllocation rest (stagedUpdate index (stagedAction action) ledger) axis)
+      (stagedUpdateAllocation index (stagedAction action) ledger axis)
+
+def stagedTraceBound : (trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->
+    AtMost (stagedUse axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger) :=
+  fun (trace : StagedTrace) (ledger : StagedLedger) (axis : EstablishedAxis) =>
+    equalTransport Count (fun (allocation : Count) => AtMost (stagedUse axis (runStagedLedger trace ledger)) allocation)
+      (stagedAllocation axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger)
+      (stagedTraceAllocation trace ledger axis) (establishedBankBound axis (stagedBanks (runStagedLedger trace ledger)))
+
+def stagedProcessVectorBound : (trace : StagedTrace) -> (ledger : StagedLedger) -> (budget : EstablishedAxis -> Count) ->
+    ((axis : EstablishedAxis) -> AtMost (stagedAllocation axis ledger) (budget axis)) ->
+    (axis : EstablishedAxis) -> AtMost (stagedUse axis (runStagedLedger trace ledger)) (budget axis) :=
+  fun (trace : StagedTrace) (ledger : StagedLedger) (budget : EstablishedAxis -> Count)
+      (fits : (axis : EstablishedAxis) -> AtMost (stagedAllocation axis ledger) (budget axis)) (axis : EstablishedAxis) =>
+    boundTransitive (stagedUse axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger) (budget axis)
+      (stagedTraceBound trace ledger axis) (fits axis)
+
+def stagedSelectCharge : ResourceStage -> ResourceStage -> Count -> Count :=
+  fun (expected : ResourceStage) (stage : ResourceStage) (charge : Count) =>
+    case sameCount (resourceStageCode expected) (resourceStageCode stage) as matches in Flag return Count with
+    | off => zero
+    | on => charge
+
+def stagedSelectPartition : (stage : ResourceStage) -> (charge : Count) ->
+    Equal Count (add (stagedSelectCharge resourcePending stage charge)
+      (add (stagedSelectCharge resourcePreaccept stage charge) (stagedSelectCharge resourceEstablished stage charge))) charge :=
+  fun (stage : ResourceStage) (charge : Count) =>
+    case stage as self in ResourceStage return
+      Equal Count (add (stagedSelectCharge resourcePending self charge)
+        (add (stagedSelectCharge resourcePreaccept self charge) (stagedSelectCharge resourceEstablished self charge))) charge with
+    | resourcePending => addRightZero charge
+    | resourcePreaccept => addRightZero charge
+    | resourceEstablished => same
+
+def stagedPhaseCharge : ResourceStage -> StagedResource -> Count -> Count :=
+  fun (expected : ResourceStage) (slot : StagedResource) (charge : Count) =>
+    case slot as self in StagedResource return Count with
+    | stagedResource stage lease => stagedSelectCharge expected stage charge
+
+def stagedSlotPartition : (slot : StagedResource) -> (charge : Count) ->
+    Equal Count (add (stagedPhaseCharge resourcePending slot charge)
+      (add (stagedPhaseCharge resourcePreaccept slot charge) (stagedPhaseCharge resourceEstablished slot charge))) charge :=
+  fun (slot : StagedResource) (charge : Count) =>
+    case slot as self in StagedResource return
+      Equal Count (add (stagedPhaseCharge resourcePending self charge)
+        (add (stagedPhaseCharge resourcePreaccept self charge) (stagedPhaseCharge resourceEstablished self charge))) charge with
+    | stagedResource stage lease => stagedSelectPartition stage charge
+
+def rec stagedPhaseUse : EstablishedAxis -> ResourceStage -> StagedLedger -> Count :=
+  fun (axis : EstablishedAxis) (expected : ResourceStage) (ledger : StagedLedger) =>
+    case ledger as self in StagedLedger return Count with
+    | noStagedResources => zero
+    | stagedCell kind direction unit slot rest =>
+      add (stagedPhaseCharge expected slot (stagedCharge axis kind direction unit slot)) (stagedPhaseUse axis expected rest)
+
+def stagedPartitionSum : EstablishedAxis -> StagedLedger -> Count :=
+  fun (axis : EstablishedAxis) (ledger : StagedLedger) =>
+    add (stagedPhaseUse axis resourcePending ledger)
+      (add (stagedPhaseUse axis resourcePreaccept ledger) (stagedPhaseUse axis resourceEstablished ledger))
+
+def stagedSixCharges : (a : Count) -> (b : Count) -> (c : Count) -> (d : Count) -> (e : Count) -> (f : Count) ->
+    Equal Count (add (add a b) (add (add c d) (add e f))) (add (add a (add c e)) (add b (add d f))) :=
+  fun (a : Count) (b : Count) (c : Count) (d : Count) (e : Count) (f : Count) =>
+    equalTransitivity Count (add (add a b) (add (add c d) (add e f)))
+      (add (add a b) (add (add c e) (add d f))) (add (add a (add c e)) (add b (add d f)))
+      (congruent Count Count (fun (n : Count) => add (add a b) n)
+        (add (add c d) (add e f)) (add (add c e) (add d f)) (costAddInterchange c d e f))
+      (costAddInterchange a b (add c e) (add d f))
+
+def rec stagedLedgerPartition : (axis : EstablishedAxis) -> (ledger : StagedLedger) ->
+    Equal Count (stagedPartitionSum axis ledger) (stagedUse axis ledger) :=
+  fun (axis : EstablishedAxis) (ledger : StagedLedger) =>
+    case ledger as self in StagedLedger return Equal Count (stagedPartitionSum axis self) (stagedUse axis self) with
+    | noStagedResources => same
+    | stagedCell kind direction unit slot rest => equalTransitivity Count
+      (stagedPartitionSum axis (stagedCell kind direction unit slot rest))
+      (add (add (stagedPhaseCharge resourcePending slot (stagedCharge axis kind direction unit slot))
+        (add (stagedPhaseCharge resourcePreaccept slot (stagedCharge axis kind direction unit slot))
+          (stagedPhaseCharge resourceEstablished slot (stagedCharge axis kind direction unit slot)))) (stagedPartitionSum axis rest))
+      (stagedUse axis (stagedCell kind direction unit slot rest))
+      (stagedSixCharges
+        (stagedPhaseCharge resourcePending slot (stagedCharge axis kind direction unit slot)) (stagedPhaseUse axis resourcePending rest)
+        (stagedPhaseCharge resourcePreaccept slot (stagedCharge axis kind direction unit slot)) (stagedPhaseUse axis resourcePreaccept rest)
+        (stagedPhaseCharge resourceEstablished slot (stagedCharge axis kind direction unit slot)) (stagedPhaseUse axis resourceEstablished rest))
+      (equalTransitivity Count
+        (add (add (stagedPhaseCharge resourcePending slot (stagedCharge axis kind direction unit slot))
+          (add (stagedPhaseCharge resourcePreaccept slot (stagedCharge axis kind direction unit slot))
+            (stagedPhaseCharge resourceEstablished slot (stagedCharge axis kind direction unit slot)))) (stagedPartitionSum axis rest))
+        (add (stagedCharge axis kind direction unit slot) (stagedPartitionSum axis rest))
+        (stagedUse axis (stagedCell kind direction unit slot rest))
+        (congruent Count Count (fun (charge : Count) => add charge (stagedPartitionSum axis rest))
+          (add (stagedPhaseCharge resourcePending slot (stagedCharge axis kind direction unit slot))
+            (add (stagedPhaseCharge resourcePreaccept slot (stagedCharge axis kind direction unit slot))
+              (stagedPhaseCharge resourceEstablished slot (stagedCharge axis kind direction unit slot))))
+          (stagedCharge axis kind direction unit slot) (stagedSlotPartition slot (stagedCharge axis kind direction unit slot)))
+        (congruent Count Count (fun (charge : Count) => add (stagedCharge axis kind direction unit slot) charge)
+          (stagedPartitionSum axis rest) (stagedUse axis rest) (stagedLedgerPartition axis rest)))
+
+def stagedPartitionTraceBound : (trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->
+    AtMost (stagedPartitionSum axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger) :=
+  fun (trace : StagedTrace) (ledger : StagedLedger) (axis : EstablishedAxis) =>
+    equalTransport Count (fun (used : Count) => AtMost used (stagedAllocation axis ledger))
+      (stagedUse axis (runStagedLedger trace ledger)) (stagedPartitionSum axis (runStagedLedger trace ledger))
+      (equalSymmetry Count (stagedPartitionSum axis (runStagedLedger trace ledger)) (stagedUse axis (runStagedLedger trace ledger))
+        (stagedLedgerPartition axis (runStagedLedger trace ledger))) (stagedTraceBound trace ledger axis)
+
+def rec stagedHandoffBanks : (index : Count) -> (expected : ResourceStage) -> (token : CompletionToken) -> (ledger : StagedLedger) ->
+    Equal EstablishedBanks (stagedBanks (stagedUpdate index (stagedHandoff expected token) ledger)) (stagedBanks ledger) :=
+  fun (index : Count) (expected : ResourceStage) (token : CompletionToken) (ledger : StagedLedger) =>
+    case index as position in Count return
+      Equal EstablishedBanks (stagedBanks (stagedUpdate position (stagedHandoff expected token) ledger)) (stagedBanks ledger) with
+    | zero =>
+      (case ledger as self in StagedLedger return
+        Equal EstablishedBanks (stagedBanks (stagedUpdate zero (stagedHandoff expected token) self)) (stagedBanks self) with
+      | noStagedResources => same
+      | stagedCell kind direction unit slot rest => congruent Lease EstablishedBanks
+        (fun (lease : Lease) => establishedBank kind direction unit (leaseCell lease emptyLeasePool) (stagedBanks rest))
+        (stagedLease (stagedHandoff expected token slot)) (stagedLease slot) (stagedHandoffKeepsLease expected token slot))
+    | next previous =>
+      case ledger as self in StagedLedger return
+        Equal EstablishedBanks (stagedBanks (stagedUpdate (next previous) (stagedHandoff expected token) self)) (stagedBanks self) with
+      | noStagedResources => same
+      | stagedCell kind direction unit slot rest => congruent EstablishedBanks EstablishedBanks
+        (fun (banks : EstablishedBanks) => establishedBank kind direction unit (leaseCell (stagedLease slot) emptyLeasePool) banks)
+        (stagedBanks (stagedUpdate previous (stagedHandoff expected token) rest)) (stagedBanks rest)
+        (stagedHandoffBanks previous expected token rest)
+
+def rec appendStagedLedger : StagedLedger -> StagedLedger -> StagedLedger :=
+  fun (prefix : StagedLedger) (suffix : StagedLedger) =>
+    case prefix as self in StagedLedger return StagedLedger with
+    | noStagedResources => suffix
+    | stagedCell kind direction unit slot rest => stagedCell kind direction unit slot (appendStagedLedger rest suffix)
+
+def rec stagedWidth : StagedLedger -> Count :=
+  fun (ledger : StagedLedger) =>
+    case ledger as self in StagedLedger return Count with
+    | noStagedResources => zero
+    | stagedCell kind direction unit slot rest => next (stagedWidth rest)
+
+def rec stagedFocusedUpdate : (prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) -> (change : StagedResource -> StagedResource) ->
+    Equal StagedLedger
+      (stagedUpdate (stagedWidth prefix) change (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger prefix (stagedCell kind direction unit (change slot) suffix)) :=
+  fun (prefix : StagedLedger) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (slot : StagedResource) (suffix : StagedLedger) (change : StagedResource -> StagedResource) =>
+    case prefix as self in StagedLedger return Equal StagedLedger
+      (stagedUpdate (stagedWidth self) change (appendStagedLedger self (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger self (stagedCell kind direction unit (change slot) suffix)) with
+    | noStagedResources => same
+    | stagedCell headKind headDirection headUnit headSlot rest => congruent StagedLedger StagedLedger
+      (fun (tail : StagedLedger) => stagedCell headKind headDirection headUnit headSlot tail)
+      (stagedUpdate (stagedWidth rest) change (appendStagedLedger rest (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger rest (stagedCell kind direction unit (change slot) suffix))
+      (stagedFocusedUpdate rest kind direction unit slot suffix change)
+
+def stagedHandoffTwice : (generation : Count) ->
+    Equal StagedResource
+      (stagedHandoff resourcePreaccept (ownedGeneration generation)
+        (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation))))
+      (stagedResource resourceEstablished (heldLease generation)) :=
+  fun (generation : Count) => equalTransitivity StagedResource
+    (stagedHandoff resourcePreaccept (ownedGeneration generation)
+      (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation))))
+    (stagedHandoff resourcePreaccept (ownedGeneration generation) (stagedResource resourcePreaccept (heldLease generation)))
+    (stagedResource resourceEstablished (heldLease generation))
+    (congruent StagedResource StagedResource (stagedHandoff resourcePreaccept (ownedGeneration generation))
+      (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation)))
+      (stagedResource resourcePreaccept (heldLease generation)) (stagedOwnedHandoff resourcePending generation))
+    (stagedOwnedHandoff resourcePreaccept generation)
+
+def stagedTraceAcquisition : (prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) ->
+    Equal StagedLedger
+      (runStagedLedger (stagedEvent (stagedWidth prefix) stagedAcquire stagedDone)
+        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger prefix (stagedCell kind direction unit (stagedReserve slot) suffix)) :=
+  fun (prefix : StagedLedger) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (slot : StagedResource) (suffix : StagedLedger) => stagedFocusedUpdate prefix kind direction unit slot suffix stagedReserve
+
+def stagedTraceHandoff : (prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) -> (expected : ResourceStage) -> (token : CompletionToken) ->
+    Equal StagedLedger
+      (runStagedLedger (stagedEvent (stagedWidth prefix) (stagedTransfer expected token) stagedDone)
+        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger prefix (stagedCell kind direction unit (stagedHandoff expected token slot) suffix)) :=
+  fun (prefix : StagedLedger) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (slot : StagedResource) (suffix : StagedLedger) (expected : ResourceStage) (token : CompletionToken) =>
+    stagedFocusedUpdate prefix kind direction unit slot suffix (stagedHandoff expected token)
+
+def stagedTraceCompletion : (prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) ->
+    (expected : ResourceStage) -> (token : CompletionToken) -> (reason : PendingEnd) ->
+    Equal StagedLedger
+      (runStagedLedger (stagedEvent (stagedWidth prefix) (stagedTerminal expected token reason) stagedDone)
+        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))
+      (appendStagedLedger prefix (stagedCell kind direction unit (stagedComplete expected token reason slot) suffix)) :=
+  fun (prefix : StagedLedger) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (slot : StagedResource) (suffix : StagedLedger) (expected : ResourceStage) (token : CompletionToken) (reason : PendingEnd) =>
+    stagedFocusedUpdate prefix kind direction unit slot suffix (stagedComplete expected token reason)

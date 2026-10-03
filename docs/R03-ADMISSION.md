@@ -1,6 +1,6 @@
-# R03 admission boundary, turn 11
+# R03 admission boundary, turn 12
 
-R03 is active after eleven execution turns. Turn 1 closed M004, turn 2 closed
+R03 is active after twelve execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
@@ -11,9 +11,11 @@ and privileged-allowance provenance. Turn 9 closes M009 with normalized source
 churn, shared T4b/T8 security and explicit restart/epoch lifetimes. Turn 10
 closes M013 with joint aggregate and canonical-prefix timed rate envelopes.
 Turn 11 witnesses M012 criteria 0 and 3 with established resource vectors,
-owner-specific release and resident domination. Criterion 1 retains stage
-accounting between pending, pre-accept and established resources. Criterion 2 retains critical
-workload/scheduling service as its exact remaining gap.
+owner-specific release and resident domination. Turn 12 adds a unified
+reservation ledger with exact stage partitions and phase-scoped receipts.
+Criterion 1 retains the bridge to the existing separate stage pools, including
+exactly-once pending release on established admission. Criterion 2 retains
+critical workload/scheduling service as its exact remaining gap.
 M005 was already covered by R02.
 The audit covers ten of 83 model obligations, retains 73 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
@@ -375,11 +377,45 @@ costs and overhead, complete bank/peer sums, indexed update isolation, trust
 charging, churn retention, trace execution, receipt binding and pending/pre-accept
 field pass-through. Every control must fail with a semantic type mismatch over quantified inputs.
 
+## Unified reservation stage accounting
+
+Module 87 carries one reservation through pending, pre-accept and established
+phases. Each cell retains its protocol, direction, certified unit and
+generation-tagged lease. Acquisition starts a free cell in pending; acquiring a
+held cell preserves it. Handoff requires the expected phase and the current
+owned generation. Two adjacent successful handoffs reach established without
+changing the underlying lease or its resource charge.
+
+`stagedLedgerPartition` proves that the three stage totals equal the erased
+resource-vector charge for every finite population. `stagedPartitionTraceBound`
+and `stagedProcessVectorBound` bound arbitrary mixed traces. The latter requires
+the initial allocation to fit the supplied process budget. Handoff preserves
+the complete erased bank population, and arbitrary-prefix/suffix theorems bind
+acquisition, handoff and terminal dispatch to the selected cell.
+
+Completion requires the matching stage and generation, advances the free
+generation and is idempotent across terminal reasons. Old pending receipts do
+not release pre-accept resources, and old pre-accept receipts do not release
+established resources. Unowned, free and preceding-generation handoffs preserve
+their resources. The 25 controls test these operational rules, trace routing,
+ledger isolation and stage partitioning against general statements.
+
+This ledger moves one reservation between phases. It does not yet connect the
+existing pending pool, pre-accept executor and established fleet, or release a
+pending lease while granting a distinct established lease. M012 criterion 1
+therefore remains a gap. Runtime interpretation requires atomic transitions,
+correct receipt routing and cost bounds that dominate every phase. Advertised
+credit remains separate from resident bytes and tasks.
+
 ## Remaining R03 scope
 
 One R03 obligation remains: M012.
-Its remaining criterion-1 work in proof-audit.json is stage accounting between
-pending, pre-accept and established resources. Its remaining criterion-2 work
+Its remaining criterion-1 work in proof-audit.json is stage accounting in one
+coupled process. Every event other than promotion, including refusal and
+stale/repeated callbacks, must change only its own stage account. Promotion must
+change only the pending and established accounts: it grants the established slot
+and releases its pending generation exactly once.
+Its remaining criterion-2 work
 is critical-class service under explicit workload/scheduling premises. Finite process-vector composition
 already has general evidence. R03 stays active until its three exit criteria
 close, and all 43 external obligations remain open.
@@ -387,13 +423,13 @@ close, and all 43 external obligations remain open.
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-established-resource-vectors-check.json](../evidence/r03-established-resource-vectors-check.json).
-The corpus has 1313 explicit proof declarations in 69 modules. The full run
-includes 1242 negative checks (1239 registered mutations plus three generic
+[r03-stage-resource-accounting-check.json](../evidence/r03-stage-resource-accounting-check.json).
+The corpus has 1345 explicit proof declarations in 70 modules. The full run
+includes 1267 negative checks (1264 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-10 and R02 receipts retain their original counts
+open. The historical R03 turn-1 through turn-11 and R02 receipts retain their original counts
 and input hashes.

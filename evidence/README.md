@@ -1207,3 +1207,26 @@ external obligations remain open, and full qualification remains blocked.
 E022/E013/E010 retain runtime classification, routing, receipt, atomicity,
 termination, resident-cost domination and calibration refinement. Historical
 receipts retain their original counts and hashes.
+
+## R03 turn 12 stage resource accounting
+
+`r03-stage-resource-accounting-check.json` records the complete model check:
+70 modules, 1345 explicit proof declarations, 34 claim groups, 186 atomic
+obligations, 1383 source units and 1267 rejected negative checks. Module 87
+adds 32 counted declarations and 25 semantic controls. The focused run also
+checks the complete positive corpus and empty axiom disclosure, then rejects
+the 25 new controls and three standard invalid-proof controls.
+
+The new general statements establish a unified reservation's phase partition,
+generation/phase ownership, idempotent completion, exact selected-cell trace
+routing and resource-vector bounds over arbitrary mixed traces. Controls
+break adjacent handoffs, receipt authority, grant behavior, lease conservation,
+terminal refunds, trace dispatch, population isolation and partition totals.
+
+M012 criterion 1 remains open for coupling the existing separate pending pool,
+pre-accept executor and established fleet. Moving one reservation between
+phases does not prove pending-generation release when granting a distinct
+established slot. Critical service also remains open. Coverage stays at ten
+of 83 model obligations, with 73 retaining gaps and 43 external obligations
+open. R03 has used twelve turns against five planned. Runtime refinement and
+full qualification remain incomplete; historical receipts keep their hashes.

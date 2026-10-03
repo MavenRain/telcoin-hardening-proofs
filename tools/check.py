@@ -2750,6 +2750,86 @@ _ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE = 'def establishedTerminalTrace :
 MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE, _ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE.replace(before, after))
               for name, before, after in [('established_resource_closed_skips_release', '| establishedClosed => establishedOwnerTrace owner handshakeCancelled', '| establishedClosed => establishedDone'), ('established_resource_shedding_skips_release', '| establishedShed => establishedOwnerTrace owner handshakeCancelled', '| establishedShed => establishedDone')]]
 
+
+# Phase accounting controls bind the operational definitions and trace dispatch.
+
+_STAGE_RESOURCE_RESOURCENEXTSTAGE = 'def resourceNextStage : ResourceStage -> ResourceStage :=\n  fun (stage : ResourceStage) =>\n    case stage as self in ResourceStage return ResourceStage with\n    | resourcePending => resourcePreaccept\n    | resourcePreaccept => resourceEstablished\n    | resourceEstablished => resourceEstablished\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_RESOURCENEXTSTAGE, _STAGE_RESOURCE_RESOURCENEXTSTAGE.replace(before, after))
+              for name, before, after in [('stage_resource_skips_preaccept', '| resourcePending => resourcePreaccept', '| resourcePending => resourceEstablished'), ('stage_resource_regresses_established', '| resourcePreaccept => resourceEstablished', '| resourcePreaccept => resourcePending'), ('stage_resource_established_regresses', '| resourceEstablished => resourceEstablished', '| resourceEstablished => resourcePending')]]
+
+
+_STAGE_RESOURCE_STAGEDRESERVE = 'def stagedReserve : StagedResource -> StagedResource :=\n  fun (slot : StagedResource) =>\n    case slot as self in StagedResource return StagedResource with\n    | stagedResource stage lease =>\n      case lease as owned in Lease return StagedResource with\n      | freeLease generation => stagedResource resourcePending (reserveLease (freeLease generation))\n      | heldLease generation => stagedResource stage (heldLease generation)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDRESERVE, _STAGE_RESOURCE_STAGEDRESERVE.replace(before, after))
+              for name, before, after in [('stage_resource_free_grant_skips_pending', 'stagedResource resourcePending (reserveLease', 'stagedResource resourceEstablished (reserveLease'), ('stage_resource_held_grant_resets_stage', '| heldLease generation => stagedResource stage (heldLease generation)', '| heldLease generation => stagedResource resourcePending (heldLease generation)')]]
+
+
+_STAGE_RESOURCE_STAGEDTOKENMATCHES = 'def stagedTokenMatches : CompletionToken -> Lease -> Flag :=\n  fun (token : CompletionToken) (lease : Lease) =>\n    case token as receipt in CompletionToken return Flag with\n    | noOwnedLease => off\n    | ownedGeneration generation =>\n      case lease as owned in Lease return Flag with\n      | freeLease current => off\n      | heldLease current => sameCount generation current\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDTOKENMATCHES, _STAGE_RESOURCE_STAGEDTOKENMATCHES.replace(before, after))
+              for name, before, after in [('stage_resource_unowned_transfer', '| noOwnedLease => off', '| noOwnedLease => on'), ('stage_resource_free_transfer', '| freeLease current => off', '| freeLease current => on'), ('stage_resource_stale_transfer', 'sameCount generation current', 'on')]]
+
+
+_STAGE_RESOURCE_STAGEDMOVEDECISION = 'def stagedMoveDecision : ResourceStage -> Lease -> Flag -> StagedResource :=\n  fun (stage : ResourceStage) (lease : Lease) (matches : Flag) =>\n    case matches as self in Flag return StagedResource with\n    | off => stagedResource stage lease\n    | on => stagedResource (resourceNextStage stage) lease\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDMOVEDECISION, _STAGE_RESOURCE_STAGEDMOVEDECISION.replace(before, after))
+              for name, before, after in [('stage_resource_handoff_releases_lease', '| on => stagedResource (resourceNextStage stage) lease', '| on => stagedResource (resourceNextStage stage) (freeLease zero)')]]
+
+
+_STAGE_RESOURCE_STAGEDHANDOFF = 'def stagedHandoff : ResourceStage -> CompletionToken -> StagedResource -> StagedResource :=\n  fun (expected : ResourceStage) (token : CompletionToken) (slot : StagedResource) =>\n    case slot as self in StagedResource return StagedResource with\n    | stagedResource stage lease => stagedMoveDecision stage lease\n      (both (sameCount (resourceStageCode expected) (resourceStageCode stage)) (stagedTokenMatches token lease))\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDHANDOFF, _STAGE_RESOURCE_STAGEDHANDOFF.replace(before, after))
+              for name, before, after in [('stage_resource_transfer_ignores_phase', 'sameCount (resourceStageCode expected) (resourceStageCode stage)', 'on')]]
+
+
+_STAGE_RESOURCE_STAGEDCLOSEDECISION = 'def stagedCloseDecision : Flag -> CompletionToken -> PendingEnd -> Lease -> Lease :=\n  fun (matches : Flag) (token : CompletionToken) (reason : PendingEnd) (lease : Lease) =>\n    case matches as self in Flag return Lease with\n    | off => lease\n    | on => pendingCompletion token reason lease\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDCLOSEDECISION, _STAGE_RESOURCE_STAGEDCLOSEDECISION.replace(before, after))
+              for name, before, after in [('stage_resource_old_phase_refunds', '| off => lease', '| off => pendingCompletion token reason lease'), ('stage_resource_matching_phase_never_refunds', '| on => pendingCompletion token reason lease', '| on => lease')]]
+
+
+_STAGE_RESOURCE_STAGEDCOMPLETE = 'def stagedComplete : ResourceStage -> CompletionToken -> PendingEnd -> StagedResource -> StagedResource :=\n  fun (expected : ResourceStage) (token : CompletionToken) (reason : PendingEnd) (slot : StagedResource) =>\n    case slot as self in StagedResource return StagedResource with\n    | stagedResource stage lease => stagedResource stage\n      (stagedCloseDecision (sameCount (resourceStageCode expected) (resourceStageCode stage)) token reason lease)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDCOMPLETE, _STAGE_RESOURCE_STAGEDCOMPLETE.replace(before, after))
+              for name, before, after in [('stage_resource_completion_drops_owner', ') token reason lease)', ') noOwnedLease reason lease)')]]
+
+
+_STAGE_RESOURCE_STAGEDACTION = 'def stagedAction : StagedAction -> StagedResource -> StagedResource :=\n  fun (action : StagedAction) (slot : StagedResource) =>\n    case action as self in StagedAction return StagedResource with\n    | stagedAcquire => stagedReserve slot\n    | stagedTransfer expected token => stagedHandoff expected token slot\n    | stagedTerminal expected token reason => stagedComplete expected token reason slot\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDACTION, _STAGE_RESOURCE_STAGEDACTION.replace(before, after))
+              for name, before, after in [('stage_resource_acquire_dispatch_noop', '| stagedAcquire => stagedReserve slot', '| stagedAcquire => slot'), ('stage_resource_handoff_dispatch_noop', '| stagedTransfer expected token => stagedHandoff expected token slot', '| stagedTransfer expected token => slot'), ('stage_resource_terminal_dispatch_noop', '| stagedTerminal expected token reason => stagedComplete expected token reason slot', '| stagedTerminal expected token reason => slot')]]
+
+
+_STAGE_RESOURCE_STAGEDBANKS = 'def rec stagedBanks : StagedLedger -> EstablishedBanks :=\n  fun (ledger : StagedLedger) =>\n    case ledger as self in StagedLedger return EstablishedBanks with\n    | noStagedResources => noEstablishedBanks\n    | stagedCell kind direction unit slot rest =>\n      establishedBank kind direction unit (leaseCell (stagedLease slot) emptyLeasePool) (stagedBanks rest)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDBANKS, _STAGE_RESOURCE_STAGEDBANKS.replace(before, after))
+              for name, before, after in [('stage_resource_erasure_drops_tail', '(stagedBanks rest)', 'noEstablishedBanks')]]
+
+
+_STAGE_RESOURCE_STAGEDUPDATE = 'def rec stagedUpdate : Count -> (StagedResource -> StagedResource) -> StagedLedger -> StagedLedger :=\n  fun (index : Count) (change : StagedResource -> StagedResource) (ledger : StagedLedger) =>\n    case index as position in Count return StagedLedger with\n    | zero =>\n      (case ledger as self in StagedLedger return StagedLedger with\n      | noStagedResources => noStagedResources\n      | stagedCell kind direction unit slot rest => stagedCell kind direction unit (change slot) rest)\n    | next previous =>\n      case ledger as self in StagedLedger return StagedLedger with\n      | noStagedResources => noStagedResources\n      | stagedCell kind direction unit slot rest => stagedCell kind direction unit slot (stagedUpdate previous change rest)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDUPDATE, _STAGE_RESOURCE_STAGEDUPDATE.replace(before, after))
+              for name, before, after in [('stage_resource_update_skips_owner', 'stagedCell kind direction unit (change slot) rest)', 'stagedCell kind direction unit slot rest)'), ('stage_resource_update_changes_prefix', 'stagedCell kind direction unit slot (stagedUpdate previous change rest)', 'stagedCell kind direction unit (change slot) (stagedUpdate previous change rest)'), ('stage_resource_update_drops_suffix', 'stagedCell kind direction unit (change slot) rest)', 'stagedCell kind direction unit (change slot) noStagedResources)')]]
+
+
+_STAGE_RESOURCE_RUNSTAGEDLEDGER = 'def rec runStagedLedger : StagedTrace -> StagedLedger -> StagedLedger :=\n  fun (trace : StagedTrace) (ledger : StagedLedger) =>\n    case trace as self in StagedTrace return StagedLedger with\n    | stagedDone => ledger\n    | stagedEvent index action rest => runStagedLedger rest (stagedUpdate index (stagedAction action) ledger)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_RUNSTAGEDLEDGER, _STAGE_RESOURCE_RUNSTAGEDLEDGER.replace(before, after))
+              for name, before, after in [('stage_resource_trace_skips_event', 'runStagedLedger rest (stagedUpdate index (stagedAction action) ledger)', 'runStagedLedger rest ledger'), ('stage_resource_trace_drops_population', '| stagedDone => ledger', '| stagedDone => noStagedResources')]]
+
+
+_STAGE_RESOURCE_STAGEDSELECTCHARGE = 'def stagedSelectCharge : ResourceStage -> ResourceStage -> Count -> Count :=\n  fun (expected : ResourceStage) (stage : ResourceStage) (charge : Count) =>\n    case sameCount (resourceStageCode expected) (resourceStageCode stage) as matches in Flag return Count with\n    | off => zero\n    | on => charge\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDSELECTCHARGE, _STAGE_RESOURCE_STAGEDSELECTCHARGE.replace(before, after))
+              for name, before, after in [('stage_resource_partition_double_charges', '| off => zero', '| off => charge'), ('stage_resource_partition_omits_owner', '| on => charge', '| on => zero')]]
+
+
+_STAGE_RESOURCE_STAGEDPHASEUSE = 'def rec stagedPhaseUse : EstablishedAxis -> ResourceStage -> StagedLedger -> Count :=\n  fun (axis : EstablishedAxis) (expected : ResourceStage) (ledger : StagedLedger) =>\n    case ledger as self in StagedLedger return Count with\n    | noStagedResources => zero\n    | stagedCell kind direction unit slot rest =>\n      add (stagedPhaseCharge expected slot (stagedCharge axis kind direction unit slot)) (stagedPhaseUse axis expected rest)\n\n'
+
+MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDPHASEUSE, _STAGE_RESOURCE_STAGEDPHASEUSE.replace(before, after))
+              for name, before, after in [('stage_resource_phase_sum_drops_tail', '(stagedPhaseUse axis expected rest)', 'zero')]]
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")

@@ -72,7 +72,8 @@
     "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744",
     "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca",
     "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb",
-    "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b"
+    "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b",
+    "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7"
   },
   "obligations": [
     {
@@ -4633,7 +4634,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 11 witnesses M012 criteria 0 and 3. Module 86 derives all protocol/direction and resident coordinates from one finite owned population, composes its arbitrary mixed traces into one process vector, proves exact owner-specific release, and distinguishes advertised credit from certified resident byte/task costs. Criterion 2 has finite-vector evidence but retains critical-class workload/scheduling service as its precise R03 gap. Criterion 1 retains stage accounting between pending, pre-accept and established resources as its precise R03 gap. Runtime classification, routing, ownership and cost refinement remain external.",
+      "scope_review": "Turn 12 adds general stage-partition, phase-scoped ownership, focused trace routing and arbitrary mixed-trace vector evidence for criterion 1. It remains a gap because the unified reservation must be coupled to the existing separate pending, pre-accept and established states. Criteria 0 and 3 remain witnessed by turn 11. Criterion 2 retains critical-class workload/scheduling service. Runtime classification, routing, atomicity and phase-wide cost domination remain external.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -5168,6 +5169,357 @@
             "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
           ],
           "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedFreeReservation",
+          "statement": "(stage : ResourceStage) -> (generation : Count) ->\n    Equal StagedResource (stagedReserve (stagedResource stage (freeLease generation)))\n      (stagedResource resourcePending (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A free slot acquires one pending reservation without changing its generation.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedHeldReservation",
+          "statement": "(stage : ResourceStage) -> (generation : Count) ->\n    Equal StagedResource (stagedReserve (stagedResource stage (heldLease generation)))\n      (stagedResource stage (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "Reservation of a held slot preserves its phase and generation.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedHandoffKeepsLease",
+          "statement": "(expected : ResourceStage) -> (token : CompletionToken) -> (slot : StagedResource) ->\n    Equal Lease (stagedLease (stagedHandoff expected token slot)) (stagedLease slot)",
+          "scope_kind": "general_transition",
+          "establishes": "Every handoff preserves the complete underlying lease, including rejected handoffs.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedOwnedHandoff",
+          "statement": "(stage : ResourceStage) -> (generation : Count) ->\n    Equal StagedResource (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease generation)))\n      (stagedResource (resourceNextStage stage) (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A matching phase and generation move a held resource to resourceNextStage of its phase. At the established phase, the phase does not change.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedUnownedHandoff",
+          "statement": "(expected : ResourceStage) -> (stage : ResourceStage) -> (lease : Lease) ->\n    Equal StagedResource (stagedHandoff expected noOwnedLease (stagedResource stage lease)) (stagedResource stage lease)",
+          "scope_kind": "general_transition",
+          "establishes": "A handoff without an owned token preserves the resource.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedFreeHandoff",
+          "statement": "(expected : ResourceStage) -> (stage : ResourceStage) -> (token : CompletionToken) -> (generation : Count) ->\n    Equal StagedResource (stagedHandoff expected token (stagedResource stage (freeLease generation)))\n      (stagedResource stage (freeLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "No token can advance a free resource.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedStaleHandoff",
+          "statement": "(stage : ResourceStage) -> (generation : Count) ->\n    Equal StagedResource (stagedHandoff stage (ownedGeneration generation) (stagedResource stage (heldLease (next generation))))\n      (stagedResource stage (heldLease (next generation)))",
+          "scope_kind": "general_transition",
+          "establishes": "A preceding-generation handoff preserves the currently held resource.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedOwnedCompletion",
+          "statement": "(stage : ResourceStage) -> (generation : Count) -> (reason : PendingEnd) ->\n    Equal StagedResource (stagedComplete stage (ownedGeneration generation) reason (stagedResource stage (heldLease generation)))\n      (stagedResource stage (freeLease (next generation)))",
+          "scope_kind": "general_transition",
+          "establishes": "A matching stage and generation release the resource and advance the free generation for every terminal reason.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedOldPendingReceipt",
+          "statement": "(token : CompletionToken) -> (reason : PendingEnd) -> (lease : Lease) ->\n    Equal StagedResource (stagedComplete resourcePending token reason (stagedResource resourcePreaccept lease))\n      (stagedResource resourcePreaccept lease)",
+          "scope_kind": "general_transition",
+          "establishes": "A pending receipt cannot release a pre-accept resource.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedOldPreacceptReceipt",
+          "statement": "(token : CompletionToken) -> (reason : PendingEnd) -> (lease : Lease) ->\n    Equal StagedResource (stagedComplete resourcePreaccept token reason (stagedResource resourceEstablished lease))\n      (stagedResource resourceEstablished lease)",
+          "scope_kind": "general_transition",
+          "establishes": "A pre-accept receipt cannot release an established resource.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedWrongHandoff",
+          "statement": "(token : CompletionToken) -> (lease : Lease) ->\n    Equal StagedResource (stagedHandoff resourcePending token (stagedResource resourcePreaccept lease))\n      (stagedResource resourcePreaccept lease)",
+          "scope_kind": "general_transition",
+          "establishes": "A pending-stage handoff cannot advance a resource already in pre-accept.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedPendingToPreaccept",
+          "statement": "(generation : Count) ->\n    Equal StagedResource (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation)))\n      (stagedResource resourcePreaccept (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A successful pending handoff enters pre-accept without skipping the intermediate stage.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedEstablishedHandoff",
+          "statement": "(generation : Count) ->\n    Equal StagedResource (stagedHandoff resourceEstablished (ownedGeneration generation) (stagedResource resourceEstablished (heldLease generation)))\n      (stagedResource resourceEstablished (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "A matching handoff at the established phase keeps the held resource established with the same generation.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedCompletionIdempotent",
+          "statement": "(expected : ResourceStage) -> (token : CompletionToken) ->\n    (first : PendingEnd) -> (second : PendingEnd) -> (slot : StagedResource) ->\n    Equal StagedResource (stagedComplete expected token second (stagedComplete expected token first slot))\n      (stagedComplete expected token first slot)",
+          "scope_kind": "general_transition",
+          "establishes": "Repeated completion with the same phase-scoped token is idempotent across terminal reasons.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedHandoffConservesCharge",
+          "statement": "(axis : EstablishedAxis) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (expected : ResourceStage) ->\n    (token : CompletionToken) -> (slot : StagedResource) ->\n    Equal Count (stagedCharge axis kind direction unit (stagedHandoff expected token slot)) (stagedCharge axis kind direction unit slot)",
+          "scope_kind": "general_transition",
+          "establishes": "Handoff conserves every reserved resource coordinate for a slot.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedUpdateAllocation",
+          "statement": "(index : Count) -> (change : StagedResource -> StagedResource) ->\n    (ledger : StagedLedger) -> (axis : EstablishedAxis) ->\n    Equal Count (stagedAllocation axis (stagedUpdate index change ledger)) (stagedAllocation axis ledger)",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed resource update preserves the fixed resource-vector allocation.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedTraceAllocation",
+          "statement": "(trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->\n    Equal Count (stagedAllocation axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary acquisition, handoff and terminal trace preserves the finite allocation vector.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedTraceBound",
+          "statement": "(trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->\n    AtMost (stagedUse axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary mixed trace remains bounded by the initial allocation on every resource axis.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedProcessVectorBound",
+          "statement": "(trace : StagedTrace) -> (ledger : StagedLedger) -> (budget : EstablishedAxis -> Count) ->\n    ((axis : EstablishedAxis) -> AtMost (stagedAllocation axis ledger) (budget axis)) ->\n    (axis : EstablishedAxis) -> AtMost (stagedUse axis (runStagedLedger trace ledger)) (budget axis)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An initial vector-fit premise lifts arbitrary mixed traces into a shared process budget.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedLedgerPartition",
+          "statement": "(axis : EstablishedAxis) -> (ledger : StagedLedger) ->\n    Equal Count (stagedPartitionSum axis ledger) (stagedUse axis ledger)",
+          "scope_kind": "general_transition",
+          "establishes": "Pending, pre-accept and established coordinate totals sum exactly to the single ledger charge for every finite population.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedPartitionTraceBound",
+          "statement": "(trace : StagedTrace) -> (ledger : StagedLedger) -> (axis : EstablishedAxis) ->\n    AtMost (stagedPartitionSum axis (runStagedLedger trace ledger)) (stagedAllocation axis ledger)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "The sum of all three stage accounts remains bounded by the initial resource-vector allocation after every arbitrary mixed trace.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedHandoffBanks",
+          "statement": "(index : Count) -> (expected : ResourceStage) -> (token : CompletionToken) -> (ledger : StagedLedger) ->\n    Equal EstablishedBanks (stagedBanks (stagedUpdate index (stagedHandoff expected token) ledger)) (stagedBanks ledger)",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed handoff preserves the entire erased bank population, so no other resource is charged or refunded.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedFocusedUpdate",
+          "statement": "(prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) -> (change : StagedResource -> StagedResource) ->\n    Equal StagedLedger\n      (stagedUpdate (stagedWidth prefix) change (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))\n      (appendStagedLedger prefix (stagedCell kind direction unit (change slot) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "An indexed update changes only the selected resource between arbitrary prefix and suffix populations.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedHandoffTwice",
+          "statement": "(generation : Count) ->\n    Equal StagedResource\n      (stagedHandoff resourcePreaccept (ownedGeneration generation)\n        (stagedHandoff resourcePending (ownedGeneration generation) (stagedResource resourcePending (heldLease generation))))\n      (stagedResource resourceEstablished (heldLease generation))",
+          "scope_kind": "general_transition",
+          "establishes": "Two valid adjacent handoffs reach established with the original held generation.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedTraceAcquisition",
+          "statement": "(prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) ->\n    Equal StagedLedger\n      (runStagedLedger (stagedEvent (stagedWidth prefix) stagedAcquire stagedDone)\n        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))\n      (appendStagedLedger prefix (stagedCell kind direction unit (stagedReserve slot) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "The trace interpreter routes acquisition to precisely the selected resource between arbitrary populations.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedTraceHandoff",
+          "statement": "(prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) -> (expected : ResourceStage) -> (token : CompletionToken) ->\n    Equal StagedLedger\n      (runStagedLedger (stagedEvent (stagedWidth prefix) (stagedTransfer expected token) stagedDone)\n        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))\n      (appendStagedLedger prefix (stagedCell kind direction unit (stagedHandoff expected token slot) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "The trace interpreter routes phase-scoped handoff to precisely the selected resource between arbitrary populations.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/87-stage-resource-accounting.mech",
+          "name": "stagedTraceCompletion",
+          "statement": "(prefix : StagedLedger) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (unit : EstablishedUnit) -> (slot : StagedResource) -> (suffix : StagedLedger) ->\n    (expected : ResourceStage) -> (token : CompletionToken) -> (reason : PendingEnd) ->\n    Equal StagedLedger\n      (runStagedLedger (stagedEvent (stagedWidth prefix) (stagedTerminal expected token reason) stagedDone)\n        (appendStagedLedger prefix (stagedCell kind direction unit slot suffix)))\n      (appendStagedLedger prefix (stagedCell kind direction unit (stagedComplete expected token reason slot) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "The trace interpreter routes phase-scoped completion to precisely the selected resource between arbitrary populations.",
+          "premises": [
+            "A fixed finite ledger reserves one slot and one protocol/direction/unit classification for each resource lifetime. Every runtime event routes to its owning index; E022 retains runtime classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind ledger index, expected stage and nonwrapping generation. The modeled handoff carries one reservation between stages; E013 and E022 retain runtime atomicity, lifetime and stage-account refinement.",
+            "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
+          ],
+          "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
         }
       ],
       "controls": [
@@ -5314,6 +5666,106 @@
         {
           "name": "established_resource_shedding_skips_release",
           "sha256": "148b8a18cba99dbf782117412b164c9408e1f427d20f71407383a1bf42e86839"
+        },
+        {
+          "name": "stage_resource_skips_preaccept",
+          "sha256": "2e7f139fc8b9c72db5f74b98d49c0ce906d87eae11c5956e4f8c5b49f794ea4a"
+        },
+        {
+          "name": "stage_resource_regresses_established",
+          "sha256": "36dbdfd13c3f3cfb432d3dab0bc774eeeeea6457c8c406f8ce06da5cf3dbd173"
+        },
+        {
+          "name": "stage_resource_established_regresses",
+          "sha256": "8193ed3e71fd28ed4e176e1d0be33b94f8f8203231155a551531823a0a808437"
+        },
+        {
+          "name": "stage_resource_free_grant_skips_pending",
+          "sha256": "dfed2e0ea7060de0b626f39e4e559c86ed05fcbf452eaf5514073fc546ea47b2"
+        },
+        {
+          "name": "stage_resource_held_grant_resets_stage",
+          "sha256": "fb5aa6aa657619f443eeae4eed3e78ca25b6fda5067d44337154b953ba73dd9e"
+        },
+        {
+          "name": "stage_resource_unowned_transfer",
+          "sha256": "5ee7c847eac21357ad7d8c6eeb3c4f269940d0348e63ca429b5010805e3eaf5d"
+        },
+        {
+          "name": "stage_resource_free_transfer",
+          "sha256": "7218eab0531e0086f2ef6b0c87ee12fe03502783beb5befc7628e164eb7549c1"
+        },
+        {
+          "name": "stage_resource_stale_transfer",
+          "sha256": "1d79bc4a8821b9451c802fe67f10dd5c92b1061413a9b2e5fe26f3c4d1f00381"
+        },
+        {
+          "name": "stage_resource_handoff_releases_lease",
+          "sha256": "17dd898a6cd46de89699c19692bf2253827ab99cb16f942e52d9ad255893842e"
+        },
+        {
+          "name": "stage_resource_transfer_ignores_phase",
+          "sha256": "e021434d5df4ff8a90103ecee8b2d4142baca7670cf9d6d500ef5722f2dedab0"
+        },
+        {
+          "name": "stage_resource_old_phase_refunds",
+          "sha256": "e749593d22c22ede1e8ebaa2afd8a17841e593e91b3614eaad60af52f1b82bcb"
+        },
+        {
+          "name": "stage_resource_matching_phase_never_refunds",
+          "sha256": "52ad0a79eea33836853d3f00e946bafe547c51e2ca7d0b862570623b064075db"
+        },
+        {
+          "name": "stage_resource_completion_drops_owner",
+          "sha256": "044c7363ca65b2d145ba2721d8fb31605bca1e2199c9532f974c62f36c01f6c4"
+        },
+        {
+          "name": "stage_resource_acquire_dispatch_noop",
+          "sha256": "c8975211d592a9bcd601c7efb9dad654f4a64f88dc118714bad8e60ce07db4ef"
+        },
+        {
+          "name": "stage_resource_handoff_dispatch_noop",
+          "sha256": "c897946a52ab6b30e3bba1ad9eabb70ec214ec4d3a783f9f74bf8ab50843c9e4"
+        },
+        {
+          "name": "stage_resource_terminal_dispatch_noop",
+          "sha256": "ad7013311ddeb5bf2be43d6f9e1e61abb877040e16463a40b14ea9b6bd86a127"
+        },
+        {
+          "name": "stage_resource_erasure_drops_tail",
+          "sha256": "ca61e28b1afd2093060242fc9890e4e14b0582d5f61322661db0693aa917c4d2"
+        },
+        {
+          "name": "stage_resource_update_skips_owner",
+          "sha256": "56537e4748e6fd454186a15daefa63936c2e2b8a191de1af7ce26a529ab83395"
+        },
+        {
+          "name": "stage_resource_update_changes_prefix",
+          "sha256": "56d89a54bc1df7b5d2f4734bfb163bc88fc8df4995f75e5a5f4f9a93632775a4"
+        },
+        {
+          "name": "stage_resource_update_drops_suffix",
+          "sha256": "d1bdc17990f627759185c8fb97a33d3ba7f89d3965dab7262ef886b48351daa8"
+        },
+        {
+          "name": "stage_resource_trace_skips_event",
+          "sha256": "a3cbeaa45c0b5457f5410cce265479d7632a824311a38a7598f3333d4d183b7b"
+        },
+        {
+          "name": "stage_resource_trace_drops_population",
+          "sha256": "1795977268bd844cda92a237c83213c43a472d23ec272ab1346422f1a1b26fb6"
+        },
+        {
+          "name": "stage_resource_partition_double_charges",
+          "sha256": "bf28e276598a303ee5264eb121bc5d0afd9b59bf837a1e88862e514801754c8c"
+        },
+        {
+          "name": "stage_resource_partition_omits_owner",
+          "sha256": "0c849f29e676cef7d1ee5a262db1bc71a373c4ea01519b2a81bf42cd11665050"
+        },
+        {
+          "name": "stage_resource_phase_sum_drops_tail",
+          "sha256": "698183e4e34e6fa2890cc47117b5f2e9e5fc13a6356029b8d64cd7a3f8408208"
         }
       ],
       "criteria": [
@@ -5358,10 +5810,37 @@
             "proofs/86-established-resource-vectors.mech#establishedUnownedSlotRelease",
             "proofs/86-established-resource-vectors.mech#establishedStaleSlotRelease",
             "proofs/86-established-resource-vectors.mech#establishedTraceKeepsOtherPhases",
-            "proofs/86-established-resource-vectors.mech#establishedTerminalBindsOwner"
+            "proofs/86-established-resource-vectors.mech#establishedTerminalBindsOwner",
+            "proofs/87-stage-resource-accounting.mech#stagedFreeReservation",
+            "proofs/87-stage-resource-accounting.mech#stagedHeldReservation",
+            "proofs/87-stage-resource-accounting.mech#stagedHandoffKeepsLease",
+            "proofs/87-stage-resource-accounting.mech#stagedOwnedHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedUnownedHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedFreeHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedStaleHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedOwnedCompletion",
+            "proofs/87-stage-resource-accounting.mech#stagedOldPendingReceipt",
+            "proofs/87-stage-resource-accounting.mech#stagedOldPreacceptReceipt",
+            "proofs/87-stage-resource-accounting.mech#stagedWrongHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedPendingToPreaccept",
+            "proofs/87-stage-resource-accounting.mech#stagedEstablishedHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedCompletionIdempotent",
+            "proofs/87-stage-resource-accounting.mech#stagedHandoffConservesCharge",
+            "proofs/87-stage-resource-accounting.mech#stagedUpdateAllocation",
+            "proofs/87-stage-resource-accounting.mech#stagedTraceAllocation",
+            "proofs/87-stage-resource-accounting.mech#stagedTraceBound",
+            "proofs/87-stage-resource-accounting.mech#stagedProcessVectorBound",
+            "proofs/87-stage-resource-accounting.mech#stagedLedgerPartition",
+            "proofs/87-stage-resource-accounting.mech#stagedPartitionTraceBound",
+            "proofs/87-stage-resource-accounting.mech#stagedHandoffBanks",
+            "proofs/87-stage-resource-accounting.mech#stagedFocusedUpdate",
+            "proofs/87-stage-resource-accounting.mech#stagedHandoffTwice",
+            "proofs/87-stage-resource-accounting.mech#stagedTraceAcquisition",
+            "proofs/87-stage-resource-accounting.mech#stagedTraceHandoff",
+            "proofs/87-stage-resource-accounting.mech#stagedTraceCompletion"
           ],
-          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises.",
-          "remaining": "R03: Model pending-handshake and pre-accept events in the same process as established events, including a pending completion that grants an established slot, and prove that each event changes only its own stage account and that promotion releases its pending lease exactly once."
+          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises. Turn 12 adds module 87: one generation-owned reservation moves through pending, pre-accept and established phases. Stage charges partition its shared vector exactly; arbitrary mixed traces preserve allocation and bounds. Phase-scoped receipts, adjacent handoff reachability, idempotent completion and arbitrary-prefix/suffix routing constrain the operational definitions. This does not discharge coupled-process stage accounting or the separate-pool promotion bridge.",
+          "remaining": "R03: Couple the existing pending LeasePool, pre-accept executor and established fleet in one process transition. Prove that every event other than promotion, including refusal and stale/repeated callbacks, changes only its own stage account. Prove that successful pending completion changes only the pending and established accounts: it grants the distinct established slot and releases its pending generation exactly once. Module 87 carries one reservation across phases and does not establish these statements."
         },
         {
           "index": 2,

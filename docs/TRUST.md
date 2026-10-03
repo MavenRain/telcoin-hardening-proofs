@@ -648,3 +648,21 @@ All remain external. M012 criterion 1 still requires modeled stage accounting
 between pending, pre-accept and established resources. Criterion 2 still
 requires a modeled critical-service guarantee under explicit workload/scheduling
 premises, so R03 stays active.
+
+## R03 turn 12: stage-accounting boundary
+
+Module 87 assigns each modeled resource one phase-scoped, generation-owned
+reservation. A handoff conserves the reservation and moves its stage charge;
+completion requires the current stage and generation. The partition and trace
+bounds cover arbitrary finite ledgers. Their runtime interpretation requires
+unique event routing, serialized transitions, trusted receipt provenance and
+nonwrapping generations. Any resident-cost interpretation also requires the
+supplied unit certificate to dominate the resource throughout all three
+phases, including overlap or transient storage at a real handoff.
+
+One carried reservation is not a proof of release and acquisition between the
+existing distinct stage pools. M012 criterion 1 retains that model bridge,
+including exactly-once pending release and refusal/stale callback behavior.
+Criterion 2 retains scheduling service. E013, E022 and E010 continue to own
+runtime accounting, cost domination and calibration. No external obligation
+or qualification guard closes in this turn.

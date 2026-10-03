@@ -2626,3 +2626,31 @@ scheduling premises. E022/E013/E010 retain runtime classification, unique slot
 routing, atomicity, receipt authority, nonwrapping generations, actual resource
 termination, cost domination and production calibration. Symbolic costs and
 overhead certificates are supplied model evidence, with runtime refinement open.
+
+## R03 turn 12: unified reservation stage accounting
+
+`87-stage-resource-accounting.mech` adds 32 counted proof declarations. One
+finite ledger stores each resource's phase, lease, protocol, direction and
+certified unit. `stagedBanks` erases phase labels into module 86's resource
+banks. `stagedLedgerPartition` equates the sum of pending, pre-accept and
+established charges with that erased vector for every population and axis.
+`stagedPartitionTraceBound` bounds that sum after arbitrary acquisition,
+handoff and terminal traces. An initial-fit premise supplies a process budget.
+
+Handoffs require a held matching generation and expected phase. They conserve
+the underlying lease and all resource coordinates. The explicit pending to
+pre-accept theorem prevents skipping the intermediate stage; two handoffs
+reach established. A matching handoff at established keeps the resource
+established. Unowned, free and stale handoffs preserve the resource.
+Matching completions release and advance the generation; repeated completion
+is idempotent. Receipts from an earlier stage cannot release a later stage.
+Focused update and trace-dispatch statements preserve arbitrary surrounding
+populations. The 25 new controls cover these rules, missing trace events,
+wrong-cell updates and missing or duplicate stage charges.
+
+The phase ledger reserves the same unit throughout a resource lifetime. It
+does not establish separate pool admission, pending-generation refund on
+distinct established allocation, pre-accept execution coupling, or scheduling
+service. M012 criterion 1 retains coupled stage accounting and that promotion
+bridge, and criterion 2 retains critical service. Runtime receipt provenance, atomicity, routing and phase-wide
+cost domination remain external premises.
