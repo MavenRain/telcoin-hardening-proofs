@@ -2654,3 +2654,34 @@ distinct established allocation, pre-accept execution coupling, or scheduling
 service. M012 criterion 1 retains coupled stage accounting and that promotion
 bridge, and criterion 2 retains critical service. Runtime receipt provenance, atomicity, routing and phase-wide
 cost domination remain external premises.
+
+## R03 turn 13: coupled distinct stage process
+
+`88-coupled-stage-process.mech` adds 40 counted proof declarations. The process
+contains the existing pending lease pool, pre-accept executor and established
+fleet. Each nonpromotion event changes only its own account. Promotion checks
+pending generation ownership and the selected established vacancy before an
+atomic pending completion and distinct established grant. Refusal preserves
+the whole process; promotion preserves the executor. A raw successful
+pending callback preserves its lease and must use guarded promotion. Explicit
+routing witnesses retain failed completion and reservation effects.
+
+General generation-consumption and idempotence statements prevent the same
+promotion from releasing or allocating twice. A successful head witness pins
+independent pending and established generations, classifications and arbitrary
+surrounding suffixes. Free or preceding-generation pending owners, occupied
+destinations and a missing population refuse without changing accounts.
+Lookup-tail statements constrain peer and bank selection.
+
+Arbitrary mixed traces preserve all three stage allocations and their weighted
+sum for every established resource axis. Coordinate-wise initial fit supplies
+one finite process-vector bound. The 31 new controls constrain ownership,
+vacancy, coordinate routing, release/grant effects, other-stage isolation,
+trace dispatch and allocation accounting. They reject proof-term weakening;
+they do not validate runtime behavior.
+
+M012 criterion 1 retains successful promotion at arbitrary prefixes/suffixes
+and all absent-index operational refusal witnesses. Generic granted/refused
+statements assume their guard equality. Criterion 2 retains critical scheduling
+service. Runtime classification, routing, receipt provenance, serialized
+atomicity, actual termination and per-stage cost domination remain external.

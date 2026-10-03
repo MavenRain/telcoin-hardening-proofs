@@ -666,3 +666,24 @@ including exactly-once pending release and refusal/stale callback behavior.
 Criterion 2 retains scheduling service. E013, E022 and E010 continue to own
 runtime accounting, cost domination and calibration. No external obligation
 or qualification guard closes in this turn.
+
+## R03 turn 13: distinct-stage promotion boundary
+
+Module 88 couples the existing distinct pending, pre-accept and established
+states. A single serialized promotion checks pending generation ownership and
+established vacancy against the original state. Its model transition preserves
+pre-accept work, completes the pending lease and reserves the selected distinct
+established slot. Repeating the actual guarded promotion preserves the whole
+resulting state. Raw successful pending callbacks cannot release pending
+ownership independently; they must use the guarded promotion event.
+
+Runtime classification and routing must send every stage event through these
+accounts. Internal generation receipts, nonwrapping counters, atomic guard and
+update execution, actual resource termination and cost domination for supplied
+stage weights remain premises owned by E013, E019, E022 and E010. The model
+does not establish a runtime implementation bridge or calibration.
+
+Successful head promotion pins independent generations and arbitrary suffixes.
+Arbitrary-prefix/suffix promotion and all absent-index operational witnesses
+remain M012 criterion-1 gaps; critical workload/scheduling service remains
+criterion 2. No external obligation or qualification guard closes.

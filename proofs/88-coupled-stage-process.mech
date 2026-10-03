@@ -1,0 +1,592 @@
+-- R03: distinct pending, pre-accept and established accounts in one process.
+-- Promotion atomically checks pending ownership and established vacancy.
+mu CoupledProcess : Type 0 with
+| coupledProcess : LeasePool -> ExecutorBank -> EstablishedFleet -> CoupledProcess
+
+def coupledPending : CoupledProcess -> LeasePool :=
+  fun (process : CoupledProcess) =>
+    case process as self in CoupledProcess return LeasePool with
+    | coupledProcess pending executor fleet => pending
+
+def coupledExecutor : CoupledProcess -> ExecutorBank :=
+  fun (process : CoupledProcess) =>
+    case process as self in CoupledProcess return ExecutorBank with
+    | coupledProcess pending executor fleet => executor
+
+def coupledFleet : CoupledProcess -> EstablishedFleet :=
+  fun (process : CoupledProcess) =>
+    case process as self in CoupledProcess return EstablishedFleet with
+    | coupledProcess pending executor fleet => fleet
+
+def rec coupledBankPool : Count -> EstablishedBanks -> LeasePool :=
+  fun (index : Count) (banks : EstablishedBanks) =>
+    case index as selected in Count return LeasePool with
+    | zero =>
+      (case banks as self in EstablishedBanks return LeasePool with
+      | noEstablishedBanks => emptyLeasePool
+      | establishedBank kind direction unit pool rest => pool)
+    | next previous =>
+      case banks as self in EstablishedBanks return LeasePool with
+      | noEstablishedBanks => emptyLeasePool
+      | establishedBank kind direction unit pool rest => coupledBankPool previous rest
+
+def rec coupledFleetPool : Count -> Count -> EstablishedFleet -> LeasePool :=
+  fun (member : Count) (bank : Count) (fleet : EstablishedFleet) =>
+    case member as selected in Count return LeasePool with
+    | zero =>
+      (case fleet as self in EstablishedFleet return LeasePool with
+      | noEstablishedFleet => emptyLeasePool
+      | establishedMember trusted swarm identity banks rest => coupledBankPool bank banks)
+    | next previous =>
+      case fleet as self in EstablishedFleet return LeasePool with
+      | noEstablishedFleet => emptyLeasePool
+      | establishedMember trusted swarm identity banks rest => coupledFleetPool previous bank rest
+
+def coupledPromotionAllowed : Count -> Count -> Count -> Count -> Count -> CoupledProcess -> Flag :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    both (executorOwnedAt pendingIndex generation (coupledPending process))
+      (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process)))
+
+def coupledPromotionDecision : Flag -> Count -> Count -> Count -> Count -> Count -> CoupledProcess -> CoupledProcess :=
+  fun (allowed : Flag) (pendingIndex : Count) (generation : Count) (member : Count)
+      (bank : Count) (slot : Count) (process : CoupledProcess) =>
+    case allowed as decision in Flag return CoupledProcess with
+    | off => process
+    | on => coupledProcess
+        (poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process))
+        (coupledExecutor process)
+        (establishedFleetStep member bank (reserveAt slot) (coupledFleet process))
+
+def coupledPromote : Count -> Count -> Count -> Count -> Count -> CoupledProcess -> CoupledProcess :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    coupledPromotionDecision (coupledPromotionAllowed pendingIndex generation member bank slot process)
+      pendingIndex generation member bank slot process
+
+def coupledPromotionRefused : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) off ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess)
+      (denied : Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) off) =>
+    congruent Flag CoupledProcess
+      (fun (decision : Flag) => coupledPromotionDecision decision pendingIndex generation member bank slot process)
+      (coupledPromotionAllowed pendingIndex generation member bank slot process) off denied
+
+def coupledPromotionGranted : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) on ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process)
+      (coupledProcess
+        (poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process))
+        (coupledExecutor process)
+        (establishedFleetStep member bank (reserveAt slot) (coupledFleet process))) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess)
+      (allowed : Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) on) =>
+    congruent Flag CoupledProcess
+      (fun (decision : Flag) => coupledPromotionDecision decision pendingIndex generation member bank slot process)
+      (coupledPromotionAllowed pendingIndex generation member bank slot process) on allowed
+
+def coupledPromotionKeepsExecutor : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal ExecutorBank (coupledExecutor (coupledPromote pendingIndex generation member bank slot process))
+      (coupledExecutor process) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    case coupledPromotionAllowed pendingIndex generation member bank slot process as allowed in Flag return
+        Equal ExecutorBank
+          (coupledExecutor (coupledPromotionDecision allowed pendingIndex generation member bank slot process))
+          (coupledExecutor process) with
+    | off => same
+    | on => same
+
+def coupledLeaseOwned : Count -> Lease -> Flag :=
+  fun (token : Count) (lease : Lease) =>
+    case lease as self in Lease return Flag with
+    | freeLease generation => off
+    | heldLease generation => sameCount token generation
+
+def coupledReleasedOwnershipCase : (token : Count) -> (generation : Count) -> (matches : Flag) ->
+    Equal Flag (sameCount token generation) matches ->
+    Equal Flag (coupledLeaseOwned token (releaseDecision generation matches)) off :=
+  fun (token : Count) (generation : Count) (matches : Flag) =>
+    case matches as decision in Flag return Equal Flag (sameCount token generation) decision ->
+        Equal Flag (coupledLeaseOwned token (releaseDecision generation decision)) off with
+    | off => fun (denied : Equal Flag (sameCount token generation) off) => denied
+    | on => fun (allowed : Equal Flag (sameCount token generation) on) => same
+
+def coupledReleasedOwnership : (token : Count) -> (lease : Lease) ->
+    Equal Flag (coupledLeaseOwned token (releaseOwned token lease)) off :=
+  fun (token : Count) (lease : Lease) =>
+    case lease as self in Lease return Equal Flag (coupledLeaseOwned token (releaseOwned token self)) off with
+    | freeLease generation => same
+    | heldLease generation => coupledReleasedOwnershipCase token generation (sameCount token generation) same
+
+def rec coupledCompletionClearsOwnership : (index : Count) -> (generation : Count) -> (pool : LeasePool) ->
+    Equal Flag
+      (executorOwnedAt index generation (poolStep (completeAt index (ownedGeneration generation) connectionEstablished) pool)) off :=
+  fun (index : Count) (generation : Count) (pool : LeasePool) =>
+    case index as selected in Count return Equal Flag
+        (executorOwnedAt selected generation (poolStep (completeAt selected (ownedGeneration generation) connectionEstablished) pool)) off with
+    | zero =>
+      (case pool as self in LeasePool return Equal Flag
+          (executorOwnedAt zero generation (poolStep (completeAt zero (ownedGeneration generation) connectionEstablished) self)) off with
+      | emptyLeasePool => same
+      | leaseCell lease rest => coupledReleasedOwnership generation lease)
+    | next previous =>
+      case pool as self in LeasePool return Equal Flag
+          (executorOwnedAt (next previous) generation
+            (poolStep (completeAt (next previous) (ownedGeneration generation) connectionEstablished) self)) off with
+      | emptyLeasePool => same
+      | leaseCell lease rest => coupledCompletionClearsOwnership previous generation rest
+
+def coupledPromotionConsumed : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot
+      (coupledPromotionDecision on pendingIndex generation member bank slot process)) off :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    congruent Flag Flag
+      (fun (owned : Flag) => both owned
+        (executorVacantAt slot (coupledFleetPool member bank
+          (establishedFleetStep member bank (reserveAt slot) (coupledFleet process)))))
+      (executorOwnedAt pendingIndex generation
+        (poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process)))
+      off (coupledCompletionClearsOwnership pendingIndex generation (coupledPending process))
+
+def coupledGrantedPromotionCannotReplay : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal CoupledProcess
+      (coupledPromote pendingIndex generation member bank slot
+        (coupledPromotionDecision on pendingIndex generation member bank slot process))
+      (coupledPromotionDecision on pendingIndex generation member bank slot process) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    coupledPromotionRefused pendingIndex generation member bank slot
+      (coupledPromotionDecision on pendingIndex generation member bank slot process)
+      (coupledPromotionConsumed pendingIndex generation member bank slot process)
+
+-- A successful pending callback must use guarded promotion to release its lease.
+def coupledPendingNext : PoolAction -> LeasePool -> LeasePool :=
+  fun (action : PoolAction) (pool : LeasePool) =>
+    case action as self in PoolAction return LeasePool with
+    | reserveAt index => poolStep (reserveAt index) pool
+    | completeAt index token reason =>
+      case reason as terminal in PendingEnd return LeasePool with
+      | handshakeFailed => poolStep (completeAt index token handshakeFailed) pool
+      | connectionEstablished => pool
+      | establishedHookRefused => poolStep (completeAt index token establishedHookRefused) pool
+      | handshakeTimedOut => poolStep (completeAt index token handshakeTimedOut) pool
+      | handshakeCancelled => poolStep (completeAt index token handshakeCancelled) pool
+
+def coupledPendingNextCapacity : (action : PoolAction) -> (pool : LeasePool) ->
+    Equal Count (leaseCapacity (coupledPendingNext action pool)) (leaseCapacity pool) :=
+  fun (action : PoolAction) (pool : LeasePool) =>
+    case action as self in PoolAction return
+        Equal Count (leaseCapacity (coupledPendingNext self pool)) (leaseCapacity pool) with
+    | reserveAt index => poolStepCapacity (reserveAt index) pool
+    | completeAt index token reason =>
+      case reason as terminal in PendingEnd return
+          Equal Count (leaseCapacity (coupledPendingNext (completeAt index token terminal) pool)) (leaseCapacity pool) with
+      | handshakeFailed => poolStepCapacity (completeAt index token handshakeFailed) pool
+      | connectionEstablished => same
+      | establishedHookRefused => poolStepCapacity (completeAt index token establishedHookRefused) pool
+      | handshakeTimedOut => poolStepCapacity (completeAt index token handshakeTimedOut) pool
+      | handshakeCancelled => poolStepCapacity (completeAt index token handshakeCancelled) pool
+
+mu CoupledEvent : Type 0 with
+| coupledPendingEvent : PoolAction -> CoupledEvent
+| coupledExecutorEvent : ExecutorEvent -> CoupledEvent
+| coupledEstablishedEvent : Count -> Count -> PoolAction -> CoupledEvent
+| coupledPromotionEvent : Count -> Count -> Count -> Count -> Count -> CoupledEvent
+
+def coupledStep : CoupledEvent -> CoupledProcess -> CoupledProcess :=
+  fun (event : CoupledEvent) (process : CoupledProcess) =>
+    case event as self in CoupledEvent return CoupledProcess with
+    | coupledPendingEvent action => coupledProcess
+        (coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process)
+    | coupledExecutorEvent action => coupledProcess
+        (coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process)
+    | coupledEstablishedEvent member bank action => coupledProcess
+        (coupledPending process) (coupledExecutor process) (establishedFleetStep member bank action (coupledFleet process))
+    | coupledPromotionEvent pendingIndex generation member bank slot =>
+        coupledPromote pendingIndex generation member bank slot process
+
+def coupledPendingIsolation : (action : PoolAction) -> (process : CoupledProcess) ->
+    Equal CoupledProcess (coupledStep (coupledPendingEvent action) process)
+      (coupledProcess (coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process)) :=
+  fun (action : PoolAction) (process : CoupledProcess) => same
+
+def coupledExecutorIsolation : (action : ExecutorEvent) -> (process : CoupledProcess) ->
+    Equal CoupledProcess (coupledStep (coupledExecutorEvent action) process)
+      (coupledProcess (coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process)) :=
+  fun (action : ExecutorEvent) (process : CoupledProcess) => same
+
+def coupledEstablishedIsolation : (member : Count) -> (bank : Count) -> (action : PoolAction) -> (process : CoupledProcess) ->
+    Equal CoupledProcess (coupledStep (coupledEstablishedEvent member bank action) process)
+      (coupledProcess (coupledPending process) (coupledExecutor process)
+        (establishedFleetStep member bank action (coupledFleet process))) :=
+  fun (member : Count) (bank : Count) (action : PoolAction) (process : CoupledProcess) => same
+
+mu CoupledTrace : Type 0 with
+| coupledDone : CoupledTrace
+| coupledEvent : CoupledEvent -> CoupledTrace -> CoupledTrace
+
+def rec runCoupled : CoupledTrace -> CoupledProcess -> CoupledProcess :=
+  fun (trace : CoupledTrace) (process : CoupledProcess) =>
+    case trace as self in CoupledTrace return CoupledProcess with
+    | coupledDone => process
+    | coupledEvent event rest => runCoupled rest (coupledStep event process)
+
+def coupledTraceStep : (event : CoupledEvent) -> (rest : CoupledTrace) -> (process : CoupledProcess) ->
+    Equal CoupledProcess (runCoupled (coupledEvent event rest) process) (runCoupled rest (coupledStep event process)) :=
+  fun (event : CoupledEvent) (rest : CoupledTrace) (process : CoupledProcess) => same
+
+def coupledPromotionPendingAllocation : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (coupledPending (coupledPromote pendingIndex generation member bank slot process))) (leaseCapacity (coupledPending process)) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    case coupledPromotionAllowed pendingIndex generation member bank slot process as allowed in Flag return
+        Equal Count (leaseCapacity (coupledPending (coupledPromotionDecision allowed pendingIndex generation member bank slot process)))
+          (leaseCapacity (coupledPending process)) with
+    | off => same
+    | on => poolStepCapacity (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process)
+
+def coupledStepPendingAllocation : (event : CoupledEvent) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (coupledPending (coupledStep event process))) (leaseCapacity (coupledPending process)) :=
+  fun (event : CoupledEvent) (process : CoupledProcess) =>
+    case event as self in CoupledEvent return Equal Count (leaseCapacity (coupledPending (coupledStep self process))) (leaseCapacity (coupledPending process)) with
+    | coupledPendingEvent action => coupledPendingNextCapacity action (coupledPending process)
+    | coupledExecutorEvent action => same
+    | coupledEstablishedEvent member bank action => same
+    | coupledPromotionEvent pendingIndex generation member bank slot =>
+        coupledPromotionPendingAllocation pendingIndex generation member bank slot process
+
+def rec coupledTracePendingAllocation : (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (coupledPending (runCoupled trace process))) (leaseCapacity (coupledPending process)) :=
+  fun (trace : CoupledTrace) (process : CoupledProcess) =>
+    case trace as self in CoupledTrace return Equal Count (leaseCapacity (coupledPending (runCoupled self process))) (leaseCapacity (coupledPending process)) with
+    | coupledDone => same
+    | coupledEvent event rest => equalTransitivity Count
+        (leaseCapacity (coupledPending (runCoupled rest (coupledStep event process))))
+        (leaseCapacity (coupledPending (coupledStep event process))) (leaseCapacity (coupledPending process))
+        (coupledTracePendingAllocation rest (coupledStep event process))
+        (coupledStepPendingAllocation event process)
+
+def coupledPromotionExecutorAllocation : (active : Flag) -> (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledPromote pendingIndex generation member bank slot process)))) (leaseCapacity (executorLane active (coupledExecutor process))) :=
+  fun (active : Flag) (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    case coupledPromotionAllowed pendingIndex generation member bank slot process as allowed in Flag return
+        Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledPromotionDecision allowed pendingIndex generation member bank slot process))))
+          (leaseCapacity (executorLane active (coupledExecutor process))) with
+    | off => same
+    | on => same
+
+def coupledStepExecutorAllocation : (active : Flag) -> (event : CoupledEvent) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledStep event process)))) (leaseCapacity (executorLane active (coupledExecutor process))) :=
+  fun (active : Flag) (event : CoupledEvent) (process : CoupledProcess) =>
+    case event as self in CoupledEvent return Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledStep self process)))) (leaseCapacity (executorLane active (coupledExecutor process))) with
+    | coupledPendingEvent action => same
+    | coupledExecutorEvent action => executorStepCapacity active action (coupledExecutor process)
+    | coupledEstablishedEvent member bank action => same
+    | coupledPromotionEvent pendingIndex generation member bank slot =>
+        coupledPromotionExecutorAllocation active pendingIndex generation member bank slot process
+
+def rec coupledTraceExecutorAllocation : (active : Flag) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    Equal Count (leaseCapacity (executorLane active (coupledExecutor (runCoupled trace process)))) (leaseCapacity (executorLane active (coupledExecutor process))) :=
+  fun (active : Flag) (trace : CoupledTrace) (process : CoupledProcess) =>
+    case trace as self in CoupledTrace return Equal Count (leaseCapacity (executorLane active (coupledExecutor (runCoupled self process)))) (leaseCapacity (executorLane active (coupledExecutor process))) with
+    | coupledDone => same
+    | coupledEvent event rest => equalTransitivity Count
+        (leaseCapacity (executorLane active (coupledExecutor (runCoupled rest (coupledStep event process)))))
+        (leaseCapacity (executorLane active (coupledExecutor (coupledStep event process)))) (leaseCapacity (executorLane active (coupledExecutor process)))
+        (coupledTraceExecutorAllocation active rest (coupledStep event process))
+        (coupledStepExecutorAllocation active event process)
+
+def coupledPromotionFleetAllocation : (axis : EstablishedAxis) -> (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Count (establishedFleetAllocation axis (coupledFleet (coupledPromote pendingIndex generation member bank slot process))) (establishedFleetAllocation axis (coupledFleet process)) :=
+  fun (axis : EstablishedAxis) (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    case coupledPromotionAllowed pendingIndex generation member bank slot process as allowed in Flag return
+        Equal Count (establishedFleetAllocation axis (coupledFleet (coupledPromotionDecision allowed pendingIndex generation member bank slot process)))
+          (establishedFleetAllocation axis (coupledFleet process)) with
+    | off => same
+    | on => establishedFleetStepAllocation member bank (reserveAt slot) (coupledFleet process) axis
+
+def coupledStepFleetAllocation : (axis : EstablishedAxis) -> (event : CoupledEvent) -> (process : CoupledProcess) ->
+    Equal Count (establishedFleetAllocation axis (coupledFleet (coupledStep event process))) (establishedFleetAllocation axis (coupledFleet process)) :=
+  fun (axis : EstablishedAxis) (event : CoupledEvent) (process : CoupledProcess) =>
+    case event as self in CoupledEvent return Equal Count (establishedFleetAllocation axis (coupledFleet (coupledStep self process))) (establishedFleetAllocation axis (coupledFleet process)) with
+    | coupledPendingEvent action => same
+    | coupledExecutorEvent action => same
+    | coupledEstablishedEvent member bank action => establishedFleetStepAllocation member bank action (coupledFleet process) axis
+    | coupledPromotionEvent pendingIndex generation member bank slot =>
+        coupledPromotionFleetAllocation axis pendingIndex generation member bank slot process
+
+def rec coupledTraceFleetAllocation : (axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    Equal Count (establishedFleetAllocation axis (coupledFleet (runCoupled trace process))) (establishedFleetAllocation axis (coupledFleet process)) :=
+  fun (axis : EstablishedAxis) (trace : CoupledTrace) (process : CoupledProcess) =>
+    case trace as self in CoupledTrace return Equal Count (establishedFleetAllocation axis (coupledFleet (runCoupled self process))) (establishedFleetAllocation axis (coupledFleet process)) with
+    | coupledDone => same
+    | coupledEvent event rest => equalTransitivity Count
+        (establishedFleetAllocation axis (coupledFleet (runCoupled rest (coupledStep event process))))
+        (establishedFleetAllocation axis (coupledFleet (coupledStep event process))) (establishedFleetAllocation axis (coupledFleet process))
+        (coupledTraceFleetAllocation axis rest (coupledStep event process))
+        (coupledStepFleetAllocation axis event process)
+
+def coupledTracePendingBound : (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    AtMost (leaseOccupancy (coupledPending (runCoupled trace process))) (leaseCapacity (coupledPending process)) :=
+  fun (trace : CoupledTrace) (process : CoupledProcess) =>
+    equalTransport Count
+      (fun (capacity : Count) => AtMost (leaseOccupancy (coupledPending (runCoupled trace process))) capacity)
+      (leaseCapacity (coupledPending (runCoupled trace process))) (leaseCapacity (coupledPending process))
+      (coupledTracePendingAllocation trace process) (leasePoolBound (coupledPending (runCoupled trace process)))
+
+def coupledTraceExecutorBound : (active : Flag) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    AtMost (leaseOccupancy (executorLane active (coupledExecutor (runCoupled trace process))))
+      (leaseCapacity (executorLane active (coupledExecutor process))) :=
+  fun (active : Flag) (trace : CoupledTrace) (process : CoupledProcess) =>
+    equalTransport Count
+      (fun (capacity : Count) => AtMost (leaseOccupancy (executorLane active (coupledExecutor (runCoupled trace process)))) capacity)
+      (leaseCapacity (executorLane active (coupledExecutor (runCoupled trace process))))
+      (leaseCapacity (executorLane active (coupledExecutor process)))
+      (coupledTraceExecutorAllocation active trace process)
+      (leasePoolBound (executorLane active (coupledExecutor (runCoupled trace process))))
+
+def coupledTraceFleetBound : (axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    AtMost (establishedFleetUse axis (coupledFleet (runCoupled trace process)))
+      (establishedFleetAllocation axis (coupledFleet process)) :=
+  fun (axis : EstablishedAxis) (trace : CoupledTrace) (process : CoupledProcess) =>
+    equalTransport Count
+      (fun (allocation : Count) => AtMost (establishedFleetUse axis (coupledFleet (runCoupled trace process))) allocation)
+      (establishedFleetAllocation axis (coupledFleet (runCoupled trace process)))
+      (establishedFleetAllocation axis (coupledFleet process))
+      (coupledTraceFleetAllocation axis trace process)
+      (establishedFleetBound axis (coupledFleet (runCoupled trace process)))
+
+def coupledFocusedPromotion : (generation : Count) -> (destinationGeneration : Count) -> (pendingRest : LeasePool) ->
+    (executor : ExecutorBank) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->
+    (destinationRest : LeasePool) -> (otherBanks : EstablishedBanks) -> (otherPeers : EstablishedFleet) ->
+    Equal CoupledProcess (coupledPromote zero generation zero zero zero (coupledProcess (leaseCell (heldLease generation) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (freeLease destinationGeneration) destinationRest) otherBanks) otherPeers)))
+      (coupledProcess (leaseCell (freeLease (next generation)) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers)) :=
+  fun (generation : Count) (destinationGeneration : Count) (pendingRest : LeasePool)
+      (executor : ExecutorBank) (trusted : Flag) (swarm : Count) (identity : Count)
+      (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (destinationRest : LeasePool) (otherBanks : EstablishedBanks) (otherPeers : EstablishedFleet) =>
+    equalTransitivity CoupledProcess
+      (coupledPromote zero generation zero zero zero (coupledProcess (leaseCell (heldLease generation) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (freeLease destinationGeneration) destinationRest) otherBanks) otherPeers)))
+      (coupledPromotionDecision on zero generation zero zero zero (coupledProcess (leaseCell (heldLease generation) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (freeLease destinationGeneration) destinationRest) otherBanks) otherPeers)))
+      (coupledProcess (leaseCell (freeLease (next generation)) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers))
+      (coupledPromotionGranted zero generation zero zero zero (coupledProcess (leaseCell (heldLease generation) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (freeLease destinationGeneration) destinationRest) otherBanks) otherPeers))
+        (congruent Flag Flag (fun (owned : Flag) => both owned on)
+          (sameCount generation generation) on (sameCountReflexive generation)))
+      (congruent Lease CoupledProcess
+        (fun (lease : Lease) => coupledProcess (leaseCell lease pendingRest) executor
+          (establishedMember trusted swarm identity
+            (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers))
+        (releaseOwned generation (heldLease generation)) (freeLease (next generation))
+        (matchingGenerationReleased generation))
+
+def coupledFreePendingRefuses : (generation : Count) -> (current : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (pendingRest : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledPromote zero generation member bank slot (coupledProcess (leaseCell (freeLease current) pendingRest) executor fleet))
+      (coupledProcess (leaseCell (freeLease current) pendingRest) executor fleet) :=
+  fun (generation : Count) (current : Count) (member : Count) (bank : Count) (slot : Count)
+      (pendingRest : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) => same
+
+def coupledStalePendingRefuses : (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) ->
+    (pendingRest : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledPromote zero generation member bank slot (coupledProcess (leaseCell (heldLease (next generation)) pendingRest) executor fleet))
+      (coupledProcess (leaseCell (heldLease (next generation)) pendingRest) executor fleet) :=
+  fun (generation : Count) (member : Count) (bank : Count) (slot : Count)
+      (pendingRest : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) =>
+    coupledPromotionRefused zero generation member bank slot
+      (coupledProcess (leaseCell (heldLease (next generation)) pendingRest) executor fleet)
+      (congruent Flag Flag (fun (owned : Flag) => both owned (executorVacantAt slot (coupledFleetPool member bank fleet)))
+        (sameCount generation (next generation)) off (sameCountSuccessorOff generation))
+
+def coupledOccupiedDestinationRefuses : (generation : Count) -> (destinationGeneration : Count) -> (pending : LeasePool) ->
+    (executor : ExecutorBank) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->
+    (destinationRest : LeasePool) -> (otherBanks : EstablishedBanks) -> (otherPeers : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledPromote zero generation zero zero zero
+        (coupledProcess pending executor (establishedMember trusted swarm identity
+          (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers)))
+      (coupledProcess pending executor (establishedMember trusted swarm identity
+        (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers)) :=
+  fun (generation : Count) (destinationGeneration : Count) (pending : LeasePool)
+      (executor : ExecutorBank) (trusted : Flag) (swarm : Count) (identity : Count)
+      (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (destinationRest : LeasePool) (otherBanks : EstablishedBanks) (otherPeers : EstablishedFleet) =>
+    coupledPromotionRefused zero generation zero zero zero
+      (coupledProcess pending executor (establishedMember trusted swarm identity
+        (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers))
+      (executorBothOffRight (executorOwnedAt zero generation pending))
+
+def coupledMissingDestinationRefuses : (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) ->
+    Equal CoupledProcess
+      (coupledPromote zero generation zero zero zero (coupledProcess pending executor noEstablishedFleet))
+      (coupledProcess pending executor noEstablishedFleet) :=
+  fun (generation : Count) (pending : LeasePool) (executor : ExecutorBank) =>
+    coupledPromotionRefused zero generation zero zero zero (coupledProcess pending executor noEstablishedFleet)
+      (executorBothOffRight (executorOwnedAt zero generation pending))
+
+def coupledBankLookupTail : (index : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (unit : EstablishedUnit) -> (pool : LeasePool) -> (rest : EstablishedBanks) ->
+    Equal LeasePool (coupledBankPool (next index) (establishedBank kind direction unit pool rest))
+      (coupledBankPool index rest) :=
+  fun (index : Count) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (unit : EstablishedUnit) (pool : LeasePool) (rest : EstablishedBanks) => same
+
+def coupledFleetLookupTail : (member : Count) -> (bank : Count) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banks : EstablishedBanks) -> (rest : EstablishedFleet) ->
+    Equal LeasePool (coupledFleetPool (next member) bank (establishedMember trusted swarm identity banks rest))
+      (coupledFleetPool member bank rest) :=
+  fun (member : Count) (bank : Count) (trusted : Flag) (swarm : Count)
+      (identity : Count) (banks : EstablishedBanks) (rest : EstablishedFleet) => same
+
+def coupledUse : Count -> Count -> Count -> EstablishedAxis -> CoupledProcess -> Count :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis) (process : CoupledProcess) =>
+    add (multiply (leaseOccupancy (coupledPending process)) pendingWeight)
+      (add (executorResource waitingWeight activeWeight (coupledExecutor process)) (establishedFleetUse axis (coupledFleet process)))
+
+def coupledAllocation : Count -> Count -> Count -> EstablishedAxis -> CoupledProcess -> Count :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis) (process : CoupledProcess) =>
+    add (multiply (leaseCapacity (coupledPending process)) pendingWeight)
+      (add (executorAllocation waitingWeight activeWeight (coupledExecutor process)) (establishedFleetAllocation axis (coupledFleet process)))
+
+def coupledMixedTraceBound : (pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->
+    (axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    AtMost (coupledUse pendingWeight waitingWeight activeWeight axis (runCoupled trace process))
+      (coupledAllocation pendingWeight waitingWeight activeWeight axis process) :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count)
+      (axis : EstablishedAxis) (trace : CoupledTrace) (process : CoupledProcess) =>
+    addBounds
+      (multiply (leaseOccupancy (coupledPending (runCoupled trace process))) pendingWeight)
+      (multiply (leaseCapacity (coupledPending process)) pendingWeight)
+      (add (executorResource waitingWeight activeWeight (coupledExecutor (runCoupled trace process)))
+        (establishedFleetUse axis (coupledFleet (runCoupled trace process))))
+      (add (executorAllocation waitingWeight activeWeight (coupledExecutor process))
+        (establishedFleetAllocation axis (coupledFleet process)))
+      (multipliedBounds (leaseOccupancy (coupledPending (runCoupled trace process)))
+        (leaseCapacity (coupledPending process)) pendingWeight (coupledTracePendingBound trace process))
+      (addBounds
+        (executorResource waitingWeight activeWeight (coupledExecutor (runCoupled trace process)))
+        (executorAllocation waitingWeight activeWeight (coupledExecutor process))
+        (establishedFleetUse axis (coupledFleet (runCoupled trace process)))
+        (establishedFleetAllocation axis (coupledFleet process))
+        (addBounds
+          (multiply (leaseOccupancy (executorLane off (coupledExecutor (runCoupled trace process)))) waitingWeight)
+          (multiply (leaseCapacity (executorLane off (coupledExecutor process))) waitingWeight)
+          (multiply (leaseOccupancy (executorLane on (coupledExecutor (runCoupled trace process)))) activeWeight)
+          (multiply (leaseCapacity (executorLane on (coupledExecutor process))) activeWeight)
+          (multipliedBounds (leaseOccupancy (executorLane off (coupledExecutor (runCoupled trace process))))
+            (leaseCapacity (executorLane off (coupledExecutor process))) waitingWeight (coupledTraceExecutorBound off trace process))
+          (multipliedBounds (leaseOccupancy (executorLane on (coupledExecutor (runCoupled trace process))))
+            (leaseCapacity (executorLane on (coupledExecutor process))) activeWeight (coupledTraceExecutorBound on trace process)))
+        (coupledTraceFleetBound axis trace process))
+
+def coupledProcessVectorBound : (pendingWeight : EstablishedAxis -> Count) -> (waitingWeight : EstablishedAxis -> Count) ->
+    (activeWeight : EstablishedAxis -> Count) -> (processAllocation : EstablishedAxis -> Count) ->
+    (trace : CoupledTrace) -> (process : CoupledProcess) ->
+    ((axis : EstablishedAxis) -> AtMost
+      (coupledAllocation (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis process) (processAllocation axis)) ->
+    (axis : EstablishedAxis) -> AtMost
+      (coupledUse (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis (runCoupled trace process))
+      (processAllocation axis) :=
+  fun (pendingWeight : EstablishedAxis -> Count) (waitingWeight : EstablishedAxis -> Count)
+      (activeWeight : EstablishedAxis -> Count) (processAllocation : EstablishedAxis -> Count)
+      (trace : CoupledTrace) (process : CoupledProcess)
+      (fits : (axis : EstablishedAxis) -> AtMost
+        (coupledAllocation (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis process) (processAllocation axis))
+      (axis : EstablishedAxis) =>
+    boundTransitive
+      (coupledUse (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis (runCoupled trace process))
+      (coupledAllocation (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis process) (processAllocation axis)
+      (coupledMixedTraceBound (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis trace process) (fits axis)
+
+def coupledPromotionRouting : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal CoupledProcess (coupledStep (coupledPromotionEvent pendingIndex generation member bank slot) process)
+      (coupledPromote pendingIndex generation member bank slot process) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) => same
+
+def coupledSuccessfulCompletionNeedsPromotion : (index : Count) -> (token : CompletionToken) ->
+    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledStep (coupledPendingEvent (completeAt index token connectionEstablished)) (coupledProcess pending executor fleet))
+      (coupledProcess pending executor fleet) :=
+  fun (index : Count) (token : CompletionToken) (pending : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) => same
+
+def coupledFailedCompletionRouting : (index : Count) -> (token : CompletionToken) ->
+    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledStep (coupledPendingEvent (completeAt index token handshakeFailed)) (coupledProcess pending executor fleet))
+      (coupledProcess (poolStep (completeAt index token handshakeFailed) pending) executor fleet) :=
+  fun (index : Count) (token : CompletionToken) (pending : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) => same
+
+def coupledPendingReservationRouting : (index : Count) ->
+    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess
+      (coupledStep (coupledPendingEvent (reserveAt index)) (coupledProcess pending executor fleet))
+      (coupledProcess (poolStep (reserveAt index) pending) executor fleet) :=
+  fun (index : Count) (pending : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) => same
+
+def coupledPromotionReplayCase : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) -> (decision : Flag) ->
+    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) decision ->
+    Equal CoupledProcess
+      (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))
+      (coupledPromote pendingIndex generation member bank slot process) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) (decision : Flag) =>
+    case decision as allowed in Flag return
+        Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) allowed ->
+        Equal CoupledProcess
+          (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))
+          (coupledPromote pendingIndex generation member bank slot process) with
+    | off => fun (denied : Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) off) =>
+        congruent CoupledProcess CoupledProcess
+          (fun (current : CoupledProcess) => coupledPromote pendingIndex generation member bank slot current)
+          (coupledPromote pendingIndex generation member bank slot process) process
+          (coupledPromotionRefused pendingIndex generation member bank slot process denied)
+    | on => fun (granted : Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) on) =>
+        equalTransitivity CoupledProcess
+          (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))
+          (coupledPromote pendingIndex generation member bank slot (coupledPromotionDecision on pendingIndex generation member bank slot process))
+          (coupledPromote pendingIndex generation member bank slot process)
+          (congruent CoupledProcess CoupledProcess
+            (fun (current : CoupledProcess) => coupledPromote pendingIndex generation member bank slot current)
+            (coupledPromote pendingIndex generation member bank slot process)
+            (coupledPromotionDecision on pendingIndex generation member bank slot process)
+            (coupledPromotionGranted pendingIndex generation member bank slot process granted))
+          (equalTransitivity CoupledProcess
+            (coupledPromote pendingIndex generation member bank slot (coupledPromotionDecision on pendingIndex generation member bank slot process))
+            (coupledPromotionDecision on pendingIndex generation member bank slot process)
+            (coupledPromote pendingIndex generation member bank slot process)
+            (coupledGrantedPromotionCannotReplay pendingIndex generation member bank slot process)
+            (equalSymmetry CoupledProcess (coupledPromote pendingIndex generation member bank slot process)
+              (coupledPromotionDecision on pendingIndex generation member bank slot process)
+              (coupledPromotionGranted pendingIndex generation member bank slot process granted)))
+
+def coupledPromotionIdempotent : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal CoupledProcess
+      (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))
+      (coupledPromote pendingIndex generation member bank slot process) :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess) =>
+    coupledPromotionReplayCase pendingIndex generation member bank slot process
+      (coupledPromotionAllowed pendingIndex generation member bank slot process) same

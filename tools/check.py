@@ -2830,6 +2830,79 @@ _STAGE_RESOURCE_STAGEDPHASEUSE = 'def rec stagedPhaseUse : EstablishedAxis -> Re
 MUTATIONS += [(name, _STAGE_RESOURCE_STAGEDPHASEUSE, _STAGE_RESOURCE_STAGEDPHASEUSE.replace(before, after))
               for name, before, after in [('stage_resource_phase_sum_drops_tail', '(stagedPhaseUse axis expected rest)', 'zero')]]
 
+
+# Coupled stage ownership, atomic promotion and mixed-trace accounting controls.
+_COUPLED_STAGE_COUPLEDPROMOTIONALLOWED = "def coupledPromotionAllowed : Count -> Count -> Count -> Count -> Count -> CoupledProcess -> Flag :=\n  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)\n      (slot : Count) (process : CoupledProcess) =>\n    both (executorOwnedAt pendingIndex generation (coupledPending process))\n      (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process)))\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDPROMOTIONALLOWED, _COUPLED_STAGE_COUPLEDPROMOTIONALLOWED.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_guard_skips_pending_owner", "both (executorOwnedAt pendingIndex generation (coupledPending process))", "both on"),
+                  ("coupled_stage_guard_skips_vacancy", "(executorVacantAt slot (coupledFleetPool member bank (coupledFleet process)))", "on"),
+                  ("coupled_stage_guard_uses_wrong_pending_slot", "executorOwnedAt pendingIndex generation", "executorOwnedAt (next pendingIndex) generation"),
+                  ("coupled_stage_guard_uses_wrong_generation", "executorOwnedAt pendingIndex generation", "executorOwnedAt pendingIndex (next generation)"),
+                  ("coupled_stage_guard_uses_wrong_destination_slot", "executorVacantAt slot", "executorVacantAt (next slot)")]]
+
+_COUPLED_STAGE_COUPLEDPROMOTIONDECISION = "def coupledPromotionDecision : Flag -> Count -> Count -> Count -> Count -> Count -> CoupledProcess -> CoupledProcess :=\n  fun (allowed : Flag) (pendingIndex : Count) (generation : Count) (member : Count)\n      (bank : Count) (slot : Count) (process : CoupledProcess) =>\n    case allowed as decision in Flag return CoupledProcess with\n    | off => process\n    | on => coupledProcess\n        (poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process))\n        (coupledExecutor process)\n        (establishedFleetStep member bank (reserveAt slot) (coupledFleet process))\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDPROMOTIONDECISION, _COUPLED_STAGE_COUPLEDPROMOTIONDECISION.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_refusal_discards_pending", "| off => process", "| off => coupledProcess emptyLeasePool (coupledExecutor process) (coupledFleet process)"),
+                  ("coupled_stage_promotion_skips_pending_release", "(poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process))", "(coupledPending process)"),
+                  ("coupled_stage_promotion_releases_wrong_slot", "completeAt pendingIndex (ownedGeneration generation)", "completeAt (next pendingIndex) (ownedGeneration generation)"),
+                  ("coupled_stage_promotion_releases_wrong_generation", "completeAt pendingIndex (ownedGeneration generation)", "completeAt pendingIndex (ownedGeneration (next generation))"),
+                  ("coupled_stage_promotion_discards_executor", "(coupledExecutor process)", "(executorBank emptyLeasePool emptyLeasePool)"),
+                  ("coupled_stage_promotion_skips_established_grant", "(establishedFleetStep member bank (reserveAt slot) (coupledFleet process))", "(coupledFleet process)"),
+                  ("coupled_stage_promotion_grants_wrong_slot", "reserveAt slot", "reserveAt (next slot)")]]
+
+_COUPLED_STAGE_COUPLEDBANKPOOL = "def rec coupledBankPool : Count -> EstablishedBanks -> LeasePool :=\n  fun (index : Count) (banks : EstablishedBanks) =>\n    case index as selected in Count return LeasePool with\n    | zero =>\n      (case banks as self in EstablishedBanks return LeasePool with\n      | noEstablishedBanks => emptyLeasePool\n      | establishedBank kind direction unit pool rest => pool)\n    | next previous =>\n      case banks as self in EstablishedBanks return LeasePool with\n      | noEstablishedBanks => emptyLeasePool\n      | establishedBank kind direction unit pool rest => coupledBankPool previous rest\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDBANKPOOL, _COUPLED_STAGE_COUPLEDBANKPOOL.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_bank_lookup_discards_head", "| establishedBank kind direction unit pool rest => pool)", "| establishedBank kind direction unit pool rest => emptyLeasePool)"),
+                  ("coupled_stage_bank_lookup_tail_uses_head", "coupledBankPool previous rest", "pool")]]
+
+_COUPLED_STAGE_COUPLEDFLEETPOOL = "def rec coupledFleetPool : Count -> Count -> EstablishedFleet -> LeasePool :=\n  fun (member : Count) (bank : Count) (fleet : EstablishedFleet) =>\n    case member as selected in Count return LeasePool with\n    | zero =>\n      (case fleet as self in EstablishedFleet return LeasePool with\n      | noEstablishedFleet => emptyLeasePool\n      | establishedMember trusted swarm identity banks rest => coupledBankPool bank banks)\n    | next previous =>\n      case fleet as self in EstablishedFleet return LeasePool with\n      | noEstablishedFleet => emptyLeasePool\n      | establishedMember trusted swarm identity banks rest => coupledFleetPool previous bank rest\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDFLEETPOOL, _COUPLED_STAGE_COUPLEDFLEETPOOL.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_fleet_lookup_tail_uses_head", "coupledFleetPool previous bank rest", "coupledBankPool bank banks"),
+                  ("coupled_stage_fleet_lookup_uses_wrong_bank", "coupledBankPool bank banks", "coupledBankPool (next bank) banks")]]
+
+_COUPLED_STAGE_COUPLEDSTEP = "def coupledStep : CoupledEvent -> CoupledProcess -> CoupledProcess :=\n  fun (event : CoupledEvent) (process : CoupledProcess) =>\n    case event as self in CoupledEvent return CoupledProcess with\n    | coupledPendingEvent action => coupledProcess\n        (coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process)\n    | coupledExecutorEvent action => coupledProcess\n        (coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process)\n    | coupledEstablishedEvent member bank action => coupledProcess\n        (coupledPending process) (coupledExecutor process) (establishedFleetStep member bank action (coupledFleet process))\n    | coupledPromotionEvent pendingIndex generation member bank slot =>\n        coupledPromote pendingIndex generation member bank slot process\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDSTEP, _COUPLED_STAGE_COUPLEDSTEP.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_pending_changes_executor", "(coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process)", "(coupledPendingNext action (coupledPending process)) (executorBank emptyLeasePool emptyLeasePool) (coupledFleet process)"),
+                  ("coupled_stage_pending_changes_fleet", "(coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process)", "(coupledPendingNext action (coupledPending process)) (coupledExecutor process) noEstablishedFleet"),
+                  ("coupled_stage_executor_changes_pending", "(coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process)", "emptyLeasePool (executorStep action (coupledExecutor process)) (coupledFleet process)"),
+                  ("coupled_stage_executor_changes_fleet", "(coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process)", "(coupledPending process) (executorStep action (coupledExecutor process)) noEstablishedFleet"),
+                  ("coupled_stage_established_changes_pending", "(coupledPending process) (coupledExecutor process) (establishedFleetStep member bank action (coupledFleet process))", "emptyLeasePool (coupledExecutor process) (establishedFleetStep member bank action (coupledFleet process))"),
+                  ("coupled_stage_established_changes_executor", "(coupledPending process) (coupledExecutor process) (establishedFleetStep member bank action (coupledFleet process))", "(coupledPending process) (executorBank emptyLeasePool emptyLeasePool) (establishedFleetStep member bank action (coupledFleet process))"),
+                  ("coupled_stage_step_skips_promotion", "coupledPromote pendingIndex generation member bank slot process", "process")]]
+
+_COUPLED_STAGE_RUNCOUPLED = "def rec runCoupled : CoupledTrace -> CoupledProcess -> CoupledProcess :=\n  fun (trace : CoupledTrace) (process : CoupledProcess) =>\n    case trace as self in CoupledTrace return CoupledProcess with\n    | coupledDone => process\n    | coupledEvent event rest => runCoupled rest (coupledStep event process)\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_RUNCOUPLED, _COUPLED_STAGE_RUNCOUPLED.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_trace_discards_final_process", "| coupledDone => process", "| coupledDone => coupledProcess emptyLeasePool (executorBank emptyLeasePool emptyLeasePool) noEstablishedFleet"),
+                  ("coupled_stage_trace_skips_event", "runCoupled rest (coupledStep event process)", "runCoupled rest process")]]
+
+_COUPLED_STAGE_COUPLEDALLOCATION = "def coupledAllocation : Count -> Count -> Count -> EstablishedAxis -> CoupledProcess -> Count :=\n  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis) (process : CoupledProcess) =>\n    add (multiply (leaseCapacity (coupledPending process)) pendingWeight)\n      (add (executorAllocation waitingWeight activeWeight (coupledExecutor process)) (establishedFleetAllocation axis (coupledFleet process)))\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDALLOCATION, _COUPLED_STAGE_COUPLEDALLOCATION.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_allocation_counts_pending_occupancy", "leaseCapacity (coupledPending process)", "leaseOccupancy (coupledPending process)"),
+                  ("coupled_stage_allocation_omits_executor", "executorAllocation waitingWeight activeWeight (coupledExecutor process)", "zero"),
+                  ("coupled_stage_allocation_omits_established", "establishedFleetAllocation axis (coupledFleet process)", "zero")]]
+
+_COUPLED_STAGE_COUPLEDPENDINGNEXT = "def coupledPendingNext : PoolAction -> LeasePool -> LeasePool :=\n  fun (action : PoolAction) (pool : LeasePool) =>\n    case action as self in PoolAction return LeasePool with\n    | reserveAt index => poolStep (reserveAt index) pool\n    | completeAt index token reason =>\n      case reason as terminal in PendingEnd return LeasePool with\n      | handshakeFailed => poolStep (completeAt index token handshakeFailed) pool\n      | connectionEstablished => pool\n      | establishedHookRefused => poolStep (completeAt index token establishedHookRefused) pool\n      | handshakeTimedOut => poolStep (completeAt index token handshakeTimedOut) pool\n      | handshakeCancelled => poolStep (completeAt index token handshakeCancelled) pool\n\n"
+
+MUTATIONS += [(name, _COUPLED_STAGE_COUPLEDPENDINGNEXT, _COUPLED_STAGE_COUPLEDPENDINGNEXT.replace(before, after))
+              for name, before, after in [
+                  ("coupled_stage_success_callback_bypasses_promotion", "| connectionEstablished => pool", "| connectionEstablished => poolStep (completeAt index token connectionEstablished) pool"),
+                  ("coupled_stage_failed_callback_not_released", "| handshakeFailed => poolStep (completeAt index token handshakeFailed) pool", "| handshakeFailed => pool"),
+                  ("coupled_stage_pending_reservation_skipped", "| reserveAt index => poolStep (reserveAt index) pool", "| reserveAt index => pool")]]
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")

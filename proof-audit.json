@@ -73,7 +73,8 @@
     "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca",
     "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb",
     "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b",
-    "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7"
+    "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7",
+    "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a"
   },
   "obligations": [
     {
@@ -4634,7 +4635,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 12 adds general stage-partition, phase-scoped ownership, focused trace routing and arbitrary mixed-trace vector evidence for criterion 1. It remains a gap because the unified reservation must be coupled to the existing separate pending, pre-accept and established states. Criteria 0 and 3 remain witnessed by turn 11. Criterion 2 retains critical-class workload/scheduling service. Runtime classification, routing, atomicity and phase-wide cost domination remain external.",
+      "scope_review": "Turn 13 couples the existing pending LeasePool, pre-accept ExecutorBank and established fleet. General stage isolation, mixed-trace allocation bounds, guarded refusal and promotion idempotence are witnessed; a successful head promotion pins pending release and distinct established acquisition. Criterion 1 retains arbitrary-prefix/suffix successful-promotion and absent-index operational witnesses. Criteria 0 and 3 remain witnessed; criterion 2 retains critical workload/scheduling service. Runtime classification, routing, atomicity, receipt authority and per-stage cost domination remain external. E013, E019, E022 and E010 own their refinement.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -5520,6 +5521,526 @@
             "EstablishedUnit supplies symbolic coordinate weights. Any runtime resident interpretation requires the same certified cost bounds to dominate the resource in every phase; advertised credit remains a separate coordinate. E022 retains actual cost and storage domination."
           ],
           "limits": "This is a unified reservation model. It does not yet couple the existing separate pending LeasePool, pre-accept execution state and established fleet, nor prove pending-generation release exactly once when granting a distinct established slot. It proves neither scheduling service nor runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionRefused",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) off ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process",
+          "scope_kind": "general_transition",
+          "establishes": "A refused promotion preserves the complete coupled process under its explicit denied-guard premise.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionGranted",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) on ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process)\n      (coupledProcess\n        (poolStep (completeAt pendingIndex (ownedGeneration generation) connectionEstablished) (coupledPending process))\n        (coupledExecutor process)\n        (establishedFleetStep member bank (reserveAt slot) (coupledFleet process)))",
+          "scope_kind": "general_transition",
+          "establishes": "An allowed promotion releases its pending generation, reserves the selected established slot and preserves the pre-accept executor.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionKeepsExecutor",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal ExecutorBank (coupledExecutor (coupledPromote pendingIndex generation member bank slot process))\n      (coupledExecutor process)",
+          "scope_kind": "general_transition",
+          "establishes": "Every guarded promotion preserves the complete pre-accept executor, for both guard outcomes.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledReleasedOwnershipCase",
+          "statement": "(token : Count) -> (generation : Count) -> (matches : Flag) ->\n    Equal Flag (sameCount token generation) matches ->\n    Equal Flag (coupledLeaseOwned token (releaseDecision generation matches)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Either release-decision branch leaves the supplied token without ownership of the resulting lease.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledReleasedOwnership",
+          "statement": "(token : Count) -> (lease : Lease) ->\n    Equal Flag (coupledLeaseOwned token (releaseOwned token lease)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Releasing any lease with a supplied generation clears that generation ownership test.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledCompletionClearsOwnership",
+          "statement": "(index : Count) -> (generation : Count) -> (pool : LeasePool) ->\n    Equal Flag\n      (executorOwnedAt index generation (poolStep (completeAt index (ownedGeneration generation) connectionEstablished) pool)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Completion at an arbitrary pending index clears the supplied generation ownership test, including missing and stale owners.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionConsumed",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot\n      (coupledPromotionDecision on pendingIndex generation member bank slot process)) off",
+          "scope_kind": "general_transition",
+          "establishes": "The granted transition cannot retain pending ownership required to consume the same promotion again.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledGrantedPromotionCannotReplay",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal CoupledProcess\n      (coupledPromote pendingIndex generation member bank slot\n        (coupledPromotionDecision on pendingIndex generation member bank slot process))\n      (coupledPromotionDecision on pendingIndex generation member bank slot process)",
+          "scope_kind": "general_transition",
+          "establishes": "Replaying a receipt after its granted transition preserves the entire resulting process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPendingNextCapacity",
+          "statement": "(action : PoolAction) -> (pool : LeasePool) ->\n    Equal Count (leaseCapacity (coupledPendingNext action pool)) (leaseCapacity pool)",
+          "scope_kind": "general_transition",
+          "establishes": "Every routed pending action preserves pending capacity, including deferred successful completions.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPendingIsolation",
+          "statement": "(action : PoolAction) -> (process : CoupledProcess) ->\n    Equal CoupledProcess (coupledStep (coupledPendingEvent action) process)\n      (coupledProcess (coupledPendingNext action (coupledPending process)) (coupledExecutor process) (coupledFleet process))",
+          "scope_kind": "general_transition",
+          "establishes": "Every nonpromotion pending event preserves pre-accept and established accounts; a raw successful completion must wait for promotion.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledExecutorIsolation",
+          "statement": "(action : ExecutorEvent) -> (process : CoupledProcess) ->\n    Equal CoupledProcess (coupledStep (coupledExecutorEvent action) process)\n      (coupledProcess (coupledPending process) (executorStep action (coupledExecutor process)) (coupledFleet process))",
+          "scope_kind": "general_transition",
+          "establishes": "Every pre-accept executor event changes only the pre-accept account.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledEstablishedIsolation",
+          "statement": "(member : Count) -> (bank : Count) -> (action : PoolAction) -> (process : CoupledProcess) ->\n    Equal CoupledProcess (coupledStep (coupledEstablishedEvent member bank action) process)\n      (coupledProcess (coupledPending process) (coupledExecutor process)\n        (establishedFleetStep member bank action (coupledFleet process)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every established action changes only the selected established account and preserves pending and pre-accept accounts.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTraceStep",
+          "statement": "(event : CoupledEvent) -> (rest : CoupledTrace) -> (process : CoupledProcess) ->\n    Equal CoupledProcess (runCoupled (coupledEvent event rest) process) (runCoupled rest (coupledStep event process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An arbitrary trace continuation starts from exactly the first coupled event result.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionPendingAllocation",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (coupledPending (coupledPromote pendingIndex generation member bank slot process))) (leaseCapacity (coupledPending process))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the pending allocation under guarded promotion.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledStepPendingAllocation",
+          "statement": "(event : CoupledEvent) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (coupledPending (coupledStep event process))) (leaseCapacity (coupledPending process))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the pending allocation under every coupled event.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTracePendingAllocation",
+          "statement": "(trace : CoupledTrace) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (coupledPending (runCoupled trace process))) (leaseCapacity (coupledPending process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Preserves the pending allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionExecutorAllocation",
+          "statement": "(active : Flag) -> (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledPromote pendingIndex generation member bank slot process)))) (leaseCapacity (executorLane active (coupledExecutor process)))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the executor allocation under guarded promotion.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledStepExecutorAllocation",
+          "statement": "(active : Flag) -> (event : CoupledEvent) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (executorLane active (coupledExecutor (coupledStep event process)))) (leaseCapacity (executorLane active (coupledExecutor process)))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the executor allocation under every coupled event.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTraceExecutorAllocation",
+          "statement": "(active : Flag) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    Equal Count (leaseCapacity (executorLane active (coupledExecutor (runCoupled trace process)))) (leaseCapacity (executorLane active (coupledExecutor process)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Preserves the executor allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionFleetAllocation",
+          "statement": "(axis : EstablishedAxis) -> (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Count (establishedFleetAllocation axis (coupledFleet (coupledPromote pendingIndex generation member bank slot process))) (establishedFleetAllocation axis (coupledFleet process))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the fleet allocation under guarded promotion.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledStepFleetAllocation",
+          "statement": "(axis : EstablishedAxis) -> (event : CoupledEvent) -> (process : CoupledProcess) ->\n    Equal Count (establishedFleetAllocation axis (coupledFleet (coupledStep event process))) (establishedFleetAllocation axis (coupledFleet process))",
+          "scope_kind": "general_transition",
+          "establishes": "Preserves the fleet allocation under every coupled event.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTraceFleetAllocation",
+          "statement": "(axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    Equal Count (establishedFleetAllocation axis (coupledFleet (runCoupled trace process))) (establishedFleetAllocation axis (coupledFleet process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Preserves the fleet allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTracePendingBound",
+          "statement": "(trace : CoupledTrace) -> (process : CoupledProcess) ->\n    AtMost (leaseOccupancy (coupledPending (runCoupled trace process))) (leaseCapacity (coupledPending process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Bounds pending occupancy/use by its original allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTraceExecutorBound",
+          "statement": "(active : Flag) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    AtMost (leaseOccupancy (executorLane active (coupledExecutor (runCoupled trace process))))\n      (leaseCapacity (executorLane active (coupledExecutor process)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Bounds executor occupancy/use by its original allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledTraceFleetBound",
+          "statement": "(axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    AtMost (establishedFleetUse axis (coupledFleet (runCoupled trace process)))\n      (establishedFleetAllocation axis (coupledFleet process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Bounds fleet occupancy/use by its original allocation under arbitrary mixed traces.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledFocusedPromotion",
+          "statement": "(generation : Count) -> (destinationGeneration : Count) -> (pendingRest : LeasePool) ->\n    (executor : ExecutorBank) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->\n    (destinationRest : LeasePool) -> (otherBanks : EstablishedBanks) -> (otherPeers : EstablishedFleet) ->\n    Equal CoupledProcess (coupledPromote zero generation zero zero zero (coupledProcess (leaseCell (heldLease generation) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (freeLease destinationGeneration) destinationRest) otherBanks) otherPeers)))\n      (coupledProcess (leaseCell (freeLease (next generation)) pendingRest) executor (establishedMember trusted swarm identity (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers))",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary head owners and surrounding suffixes, promotion frees the pending generation once and grants the distinct established generation while preserving every suffix and executor.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledFreePendingRefuses",
+          "statement": "(generation : Count) -> (current : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (pendingRest : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledPromote zero generation member bank slot (coupledProcess (leaseCell (freeLease current) pendingRest) executor fleet))\n      (coupledProcess (leaseCell (freeLease current) pendingRest) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A free pending head cannot authorize promotion, regardless of destination or other accounts.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledStalePendingRefuses",
+          "statement": "(generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) ->\n    (pendingRest : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledPromote zero generation member bank slot (coupledProcess (leaseCell (heldLease (next generation)) pendingRest) executor fleet))\n      (coupledProcess (leaseCell (heldLease (next generation)) pendingRest) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A previous-generation pending receipt preserves the whole coupled process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledOccupiedDestinationRefuses",
+          "statement": "(generation : Count) -> (destinationGeneration : Count) -> (pending : LeasePool) ->\n    (executor : ExecutorBank) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->\n    (destinationRest : LeasePool) -> (otherBanks : EstablishedBanks) -> (otherPeers : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledPromote zero generation zero zero zero\n        (coupledProcess pending executor (establishedMember trusted swarm identity\n          (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers)))\n      (coupledProcess pending executor (establishedMember trusted swarm identity\n        (establishedBank kind direction unit (leaseCell (heldLease destinationGeneration) destinationRest) otherBanks) otherPeers))",
+          "scope_kind": "general_transition",
+          "establishes": "An occupied established destination refuses promotion without releasing pending state.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledMissingDestinationRefuses",
+          "statement": "(generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) ->\n    Equal CoupledProcess\n      (coupledPromote zero generation zero zero zero (coupledProcess pending executor noEstablishedFleet))\n      (coupledProcess pending executor noEstablishedFleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A missing established population refuses promotion without changing any account.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledBankLookupTail",
+          "statement": "(index : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (unit : EstablishedUnit) -> (pool : LeasePool) -> (rest : EstablishedBanks) ->\n    Equal LeasePool (coupledBankPool (next index) (establishedBank kind direction unit pool rest))\n      (coupledBankPool index rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Looking past a bank head uses the selected tail bank without aliasing the head.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledFleetLookupTail",
+          "statement": "(member : Count) -> (bank : Count) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banks : EstablishedBanks) -> (rest : EstablishedFleet) ->\n    Equal LeasePool (coupledFleetPool (next member) bank (establishedMember trusted swarm identity banks rest))\n      (coupledFleetPool member bank rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Looking past a peer head uses the selected tail peer without aliasing the head.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledMixedTraceBound",
+          "statement": "(pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->\n    (axis : EstablishedAxis) -> (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    AtMost (coupledUse pendingWeight waitingWeight activeWeight axis (runCoupled trace process))\n      (coupledAllocation pendingWeight waitingWeight activeWeight axis process)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Arbitrary mixed pending, executor, established and promotion traces fit the sum of the original three weighted stage allocations.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledProcessVectorBound",
+          "statement": "(pendingWeight : EstablishedAxis -> Count) -> (waitingWeight : EstablishedAxis -> Count) ->\n    (activeWeight : EstablishedAxis -> Count) -> (processAllocation : EstablishedAxis -> Count) ->\n    (trace : CoupledTrace) -> (process : CoupledProcess) ->\n    ((axis : EstablishedAxis) -> AtMost\n      (coupledAllocation (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis process) (processAllocation axis)) ->\n    (axis : EstablishedAxis) -> AtMost\n      (coupledUse (pendingWeight axis) (waitingWeight axis) (activeWeight axis) axis (runCoupled trace process))\n      (processAllocation axis)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "With explicit coordinate-wise initial fit, every arbitrary mixed trace fits one finite process allocation vector.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionRouting",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal CoupledProcess (coupledStep (coupledPromotionEvent pendingIndex generation member bank slot) process)\n      (coupledPromote pendingIndex generation member bank slot process)",
+          "scope_kind": "general_transition",
+          "establishes": "The promotion event dispatches exactly the guarded coupled promotion with all receipt coordinates intact.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledSuccessfulCompletionNeedsPromotion",
+          "statement": "(index : Count) -> (token : CompletionToken) ->\n    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledStep (coupledPendingEvent (completeAt index token connectionEstablished)) (coupledProcess pending executor fleet))\n      (coupledProcess pending executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A raw successful pending callback preserves the entire process instead of releasing pending ownership without a distinct established grant.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledFailedCompletionRouting",
+          "statement": "(index : Count) -> (token : CompletionToken) ->\n    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledStep (coupledPendingEvent (completeAt index token handshakeFailed)) (coupledProcess pending executor fleet))\n      (coupledProcess (poolStep (completeAt index token handshakeFailed) pending) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A failed pending callback applies the original generation-owned pending completion and preserves the other accounts.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPendingReservationRouting",
+          "statement": "(index : Count) ->\n    (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess\n      (coupledStep (coupledPendingEvent (reserveAt index)) (coupledProcess pending executor fleet))\n      (coupledProcess (poolStep (reserveAt index) pending) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A pending reservation applies the original indexed reservation and preserves the other accounts.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionReplayCase",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) -> (decision : Flag) ->\n    Equal Flag (coupledPromotionAllowed pendingIndex generation member bank slot process) decision ->\n    Equal CoupledProcess\n      (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))\n      (coupledPromote pendingIndex generation member bank slot process)",
+          "scope_kind": "general_transition",
+          "establishes": "Either initial guard outcome makes a second guarded promotion with the same receipt a complete-state no-op.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/88-coupled-stage-process.mech",
+          "name": "coupledPromotionIdempotent",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal CoupledProcess\n      (coupledPromote pendingIndex generation member bank slot (coupledPromote pendingIndex generation member bank slot process))\n      (coupledPromote pendingIndex generation member bank slot process)",
+          "scope_kind": "general_transition",
+          "establishes": "For arbitrary process states and receipt coordinates, guarded promotion is idempotent.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
         }
       ],
       "controls": [
@@ -5766,6 +6287,130 @@
         {
           "name": "stage_resource_phase_sum_drops_tail",
           "sha256": "698183e4e34e6fa2890cc47117b5f2e9e5fc13a6356029b8d64cd7a3f8408208"
+        },
+        {
+          "name": "coupled_stage_guard_skips_pending_owner",
+          "sha256": "c64d0cfddd8beeaf7e624ac94bd9459b8cc5ee6268c7babc29971cdb74480472"
+        },
+        {
+          "name": "coupled_stage_guard_skips_vacancy",
+          "sha256": "a9eabfc8a52c3e180a3aa1816900cf59881a026c21352004ae432cf527771497"
+        },
+        {
+          "name": "coupled_stage_guard_uses_wrong_pending_slot",
+          "sha256": "f130c29da0c05358b0c4c3b309133be39912fd2374216f4677601ad09ec806ab"
+        },
+        {
+          "name": "coupled_stage_guard_uses_wrong_generation",
+          "sha256": "42979ab082724a688f30469a7eb7094c4db50283cdb0e0869bd3747a19e65972"
+        },
+        {
+          "name": "coupled_stage_guard_uses_wrong_destination_slot",
+          "sha256": "29972e4e8b0e418ea669649f244d93a51b820f205a859067e734c3581321d2a3"
+        },
+        {
+          "name": "coupled_stage_refusal_discards_pending",
+          "sha256": "5bc84d94e698462db5f76006c0b3bd79ceba0ce69f7482f0cfcd4c8d722bde3b"
+        },
+        {
+          "name": "coupled_stage_promotion_skips_pending_release",
+          "sha256": "22b0144a6e3c53e7df372eeb3708d0c59be7ce41520e4af9bb3e3befbdc2ac91"
+        },
+        {
+          "name": "coupled_stage_promotion_releases_wrong_slot",
+          "sha256": "a76d99f6858fde49f3609a1e003ec78c3053c221fd7bde0eb57456d689bcf619"
+        },
+        {
+          "name": "coupled_stage_promotion_releases_wrong_generation",
+          "sha256": "67a48d5781ca2f3b22237f51754cfb52198cb8ac62dd48a7c2bbde824f3233bd"
+        },
+        {
+          "name": "coupled_stage_promotion_discards_executor",
+          "sha256": "26723730013ca4a42916b127816e52bdb7873d56d3531e1f53b991e776bd0559"
+        },
+        {
+          "name": "coupled_stage_promotion_skips_established_grant",
+          "sha256": "9302ef279fb288ac0b0203df5b291f857f01dda562e763537d985a2055fc1ddd"
+        },
+        {
+          "name": "coupled_stage_promotion_grants_wrong_slot",
+          "sha256": "3908683f4771016ec7f77049749d9c484e05f8ba9e5fc6ff69d596ca8e5e82fe"
+        },
+        {
+          "name": "coupled_stage_bank_lookup_discards_head",
+          "sha256": "4d24a83b9280d50e68e2b06383f3caa4a33e815fc39aa2379086f67e07ba9345"
+        },
+        {
+          "name": "coupled_stage_bank_lookup_tail_uses_head",
+          "sha256": "7df90ea0225483d7b99f877dcc54f34be9b45efa0f9dc72bade3cc1b4b67efc5"
+        },
+        {
+          "name": "coupled_stage_fleet_lookup_tail_uses_head",
+          "sha256": "a0442556ee7b82bbd7f5f3d7a799fee73f0169d92ef161552d6f7f3a0d4c5298"
+        },
+        {
+          "name": "coupled_stage_fleet_lookup_uses_wrong_bank",
+          "sha256": "dab75996ae75b71f34942bc0cbbd3fdaa3ca475b873da35cbc5fa0db04b607f9"
+        },
+        {
+          "name": "coupled_stage_pending_changes_executor",
+          "sha256": "ec35c2fb2c6f6a6fe693fe5a419f30eafda539f39b950971205412393dfba0bb"
+        },
+        {
+          "name": "coupled_stage_pending_changes_fleet",
+          "sha256": "d0e6458f624fdfef0bf7ffa85c93a70130520f88da6705908c176cca77387388"
+        },
+        {
+          "name": "coupled_stage_executor_changes_pending",
+          "sha256": "b57f8eb01246e54ec168e944bb01a5d2094f2be58271bd085fa608feebce77a1"
+        },
+        {
+          "name": "coupled_stage_executor_changes_fleet",
+          "sha256": "7c285f6681675112e789c6c399119c69c5606ccb6052365d4a4fdb44dcebc829"
+        },
+        {
+          "name": "coupled_stage_established_changes_pending",
+          "sha256": "9fae809331d993733e9421c8866a58212cb3a4ff3ea18c84d784b10571c3c5de"
+        },
+        {
+          "name": "coupled_stage_established_changes_executor",
+          "sha256": "5dab9e5fb77e730d2048611f2d4bf45088499fc33fe1a8e656f2b43d627bf1f7"
+        },
+        {
+          "name": "coupled_stage_step_skips_promotion",
+          "sha256": "7ed42fc5850950e2538b148a8ed5c7d32573b8077f564dd7b0cdc7568355a604"
+        },
+        {
+          "name": "coupled_stage_trace_discards_final_process",
+          "sha256": "040f6e06c46ac5259ae152c939b41c457cde3950a582ba4cb822f7966dd33b86"
+        },
+        {
+          "name": "coupled_stage_trace_skips_event",
+          "sha256": "4fcf9cb8d19af351bf168e4adad4bf84d01dc2284a9e4f524fdf936fa8bab806"
+        },
+        {
+          "name": "coupled_stage_allocation_counts_pending_occupancy",
+          "sha256": "ae2fd319e8a8f4845fbe73a194265ad7016e1f0dddf6240537f4ab75fbeb6df1"
+        },
+        {
+          "name": "coupled_stage_allocation_omits_executor",
+          "sha256": "300807bed600c5c65302ec6dce39be9c46f7c3eb83f8643ede01d1afc1a78011"
+        },
+        {
+          "name": "coupled_stage_allocation_omits_established",
+          "sha256": "9685db379039e81ab7a0cbfd8adf369874a27502e9d75a23b9bda57738bf2aea"
+        },
+        {
+          "name": "coupled_stage_success_callback_bypasses_promotion",
+          "sha256": "c5adbefb755d98397c842e279d0ca443fc4505721794519488a13706fe0fdc10"
+        },
+        {
+          "name": "coupled_stage_failed_callback_not_released",
+          "sha256": "4922b8b66a9b2322e06faecbbcdda0a027ab268c67cfd0fa9022b51dbbc2d14f"
+        },
+        {
+          "name": "coupled_stage_pending_reservation_skipped",
+          "sha256": "fdbe479624b97c53bce4ab6cc6d112112d60282113f554f4b948ef1d1fc4b0c2"
         }
       ],
       "criteria": [
@@ -5837,10 +6482,50 @@
             "proofs/87-stage-resource-accounting.mech#stagedHandoffTwice",
             "proofs/87-stage-resource-accounting.mech#stagedTraceAcquisition",
             "proofs/87-stage-resource-accounting.mech#stagedTraceHandoff",
-            "proofs/87-stage-resource-accounting.mech#stagedTraceCompletion"
+            "proofs/87-stage-resource-accounting.mech#stagedTraceCompletion",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionRefused",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionGranted",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionKeepsExecutor",
+            "proofs/88-coupled-stage-process.mech#coupledReleasedOwnershipCase",
+            "proofs/88-coupled-stage-process.mech#coupledReleasedOwnership",
+            "proofs/88-coupled-stage-process.mech#coupledCompletionClearsOwnership",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionConsumed",
+            "proofs/88-coupled-stage-process.mech#coupledGrantedPromotionCannotReplay",
+            "proofs/88-coupled-stage-process.mech#coupledPendingNextCapacity",
+            "proofs/88-coupled-stage-process.mech#coupledPendingIsolation",
+            "proofs/88-coupled-stage-process.mech#coupledExecutorIsolation",
+            "proofs/88-coupled-stage-process.mech#coupledEstablishedIsolation",
+            "proofs/88-coupled-stage-process.mech#coupledTraceStep",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionPendingAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledStepPendingAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledTracePendingAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionExecutorAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledStepExecutorAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledTraceExecutorAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionFleetAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledStepFleetAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledTraceFleetAllocation",
+            "proofs/88-coupled-stage-process.mech#coupledTracePendingBound",
+            "proofs/88-coupled-stage-process.mech#coupledTraceExecutorBound",
+            "proofs/88-coupled-stage-process.mech#coupledTraceFleetBound",
+            "proofs/88-coupled-stage-process.mech#coupledFocusedPromotion",
+            "proofs/88-coupled-stage-process.mech#coupledFreePendingRefuses",
+            "proofs/88-coupled-stage-process.mech#coupledStalePendingRefuses",
+            "proofs/88-coupled-stage-process.mech#coupledOccupiedDestinationRefuses",
+            "proofs/88-coupled-stage-process.mech#coupledMissingDestinationRefuses",
+            "proofs/88-coupled-stage-process.mech#coupledBankLookupTail",
+            "proofs/88-coupled-stage-process.mech#coupledFleetLookupTail",
+            "proofs/88-coupled-stage-process.mech#coupledMixedTraceBound",
+            "proofs/88-coupled-stage-process.mech#coupledProcessVectorBound",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionRouting",
+            "proofs/88-coupled-stage-process.mech#coupledSuccessfulCompletionNeedsPromotion",
+            "proofs/88-coupled-stage-process.mech#coupledFailedCompletionRouting",
+            "proofs/88-coupled-stage-process.mech#coupledPendingReservationRouting",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionReplayCase",
+            "proofs/88-coupled-stage-process.mech#coupledPromotionIdempotent"
           ],
-          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises. Turn 12 adds module 87: one generation-owned reservation moves through pending, pre-accept and established phases. Stage charges partition its shared vector exactly; arbitrary mixed traces preserve allocation and bounds. Phase-scoped receipts, adjacent handoff reachability, idempotent completion and arbitrary-prefix/suffix routing constrain the operational definitions. This does not discharge coupled-process stage accounting or the separate-pool promotion bridge.",
-          "remaining": "R03: Couple the existing pending LeasePool, pre-accept executor and established fleet in one process transition. Prove that every event other than promotion, including refusal and stale/repeated callbacks, changes only its own stage account. Prove that successful pending completion changes only the pending and established accounts: it grants the distinct established slot and releases its pending generation exactly once. Module 87 carries one reservation across phases and does not establish these statements."
+          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises. Turn 12 adds module 87: one generation-owned reservation moves through pending, pre-accept and established phases. Stage charges partition its shared vector exactly; arbitrary mixed traces preserve allocation and bounds. Phase-scoped receipts, adjacent handoff reachability, idempotent completion and arbitrary-prefix/suffix routing constrain the operational definitions. This does not discharge coupled-process stage accounting or the separate-pool promotion bridge. Turn 13 supplies distinct stage accounts in one process, general nonpromotion isolation, complete-state guarded refusal, exact head promotion, generation consumption and guarded promotion idempotence. Arbitrary mixed traces retain each stage allocation and their composed weighted vector.",
+          "remaining": "R03: Generalize successful promotion to arbitrary pending, peer, bank and slot prefixes/suffixes, and pin promotion refusal at every absent member/bank/slot index. Module 88 proves general stage isolation, guarded complete-state refusal and idempotence, but its unconditional successful-promotion witness selects head slots. The generic promotion statements still take the allowed/refused guard equality as a premise."
         },
         {
           "index": 2,

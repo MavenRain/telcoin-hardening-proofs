@@ -1230,3 +1230,31 @@ established slot. Critical service also remains open. Coverage stays at ten
 of 83 model obligations, with 73 retaining gaps and 43 external obligations
 open. R03 has used twelve turns against five planned. Runtime refinement and
 full qualification remain incomplete; historical receipts keep their hashes.
+
+## R03 turn 13 coupled stage process
+
+`r03-coupled-stage-process-check.json` records the complete model check:
+71 modules, 1385 explicit proof declarations, 34 claim groups, 186 atomic
+obligations, 1383 source units and 1298 rejected negative checks. Module 88
+adds 40 counted proofs and 31 `coupled_stage_*` controls. The receipt pins
+103 input files and the locked compiler, with empty axiom disclosure.
+
+The new witnesses cover general stage isolation, guard-conditional promotion
+and refusal, generation consumption, complete-state promotion idempotence,
+focused successful head promotion and arbitrary mixed-trace allocation bounds.
+Controls constrain ownership and vacancy checks, selected coordinates,
+pending release, established grants, executor preservation, lookup tails,
+event dispatch and all stage allocations. Three controls also pin successful
+pending callback deferral, failed completion and reservation routing. They require type/termination
+rejections; parser errors, crashes and timeouts do not count.
+
+M012 remains partial. Criterion 1 retains arbitrary-prefix/suffix successful
+promotion and all absent-index operational refusal witnesses. Criterion 2
+retains critical scheduling service. Ten model obligations are covered,
+73 remain partial and all 43 external obligations remain open. The existing
+turn-12 receipt retains its historical counts and hashes.
+
+The complete mutation suite ran with two workers. The blocked-qualification
+branch then reused that completed rejection set after verifying the compiler,
+checked source, checker and every candidate. Positive and axiom checks ran
+again, and the original qualification-guard assertions confirmed exit 2.

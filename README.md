@@ -27,17 +27,18 @@ unaudited criteria. At R02 closure, M005 was covered and 82 obligations retained
 exact R03-R08 model gaps. The [five-turn R02 plan](docs/R02-BATCHES.md) records
 the completed batches.
 
-R03 turn 12 adds stage accounting for one reservation carried through pending,
-pre-accept and established phases. The three stage accounts partition every
-resource coordinate exactly; mixed acquisition, handoff and terminal traces
-preserve the shared allocation bound. Phase-scoped receipts prevent old-stage
-callbacks from releasing later-stage resources. Ten obligations are covered;
-73 retain model gaps. M012 still needs the bridge to the existing separate
-pending pool, pre-accept executor and established fleet, including
-exactly-once pending release when granting an established slot, and
-critical-class service under explicit
-workload/scheduling premises. Runtime refinement and production calibration
-remain external. See the [admission boundary](docs/R03-ADMISSION.md).
+R03 turn 13 couples the existing pending pool, pre-accept executor and
+established fleet in one process. Nonpromotion events preserve the other stage
+accounts. A raw successful pending callback waits for promotion.
+Guarded promotion checks pending ownership and destination vacancy,
+releases pending state, grants a distinct established slot and preserves the
+executor. General promotion idempotence and mixed-trace resource bounds hold;
+a focused successful promotion pins both generations and all surrounding
+suffixes. Ten obligations are covered; 73 retain model gaps. M012 still needs
+arbitrary-prefix/suffix promotion and all absent-index operational witnesses,
+plus critical-class service under explicit workload/scheduling premises.
+Runtime refinement and production calibration remain external.
+See the [admission boundary](docs/R03-ADMISSION.md).
 
 ## Run locally
 
@@ -57,7 +58,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 1267 deliberately invalid
+source hashes and coverage freshness, and requires 1298 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -100,7 +101,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1345 explicit equality and order proof declarations across 70 modules. This count
+1385 explicit equality and order proof declarations across 71 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -174,7 +175,8 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `84-source-security-lifetimes.mech` | Normalized registration and eviction, exact shared T4b/T8 debt/ban lookup, and explicit restart/epoch transitions preserve protected source security and finite table width across arbitrary mixed traces. Runtime restart restoration and authorized debt service/expiry remain external. |
 | `85-composed-source-rates.mech` | Distinct aggregate and canonical IPv4/IPv6 prefix burst-plus-trusted-ticks envelopes over arbitrary shared-state traces. Paired receipts/debits, trust/identity independence, complete refusal/terminal no-ops and capped refills close M013 under explicit runtime and initial-fit premises. |
 | `86-established-resource-vectors.mech` | One finite owned population supplies both-direction protocol counts, resident byte/task weights and independent advertised receive credit. Arbitrary resource/churn traces retain vector bounds, exact releases preserve other owners and phases, and resident domination includes separately reserved fixed overhead. M012 critical scheduling remains open. |
-| `87-stage-resource-accounting.mech` | One finite ledger moves generation-owned reservations through pending, pre-accept and established phases. Handoffs and completions act only on a matching phase and generation; stale, wrong and repeated callbacks are no-ops. Phase charges partition one shared resource vector. Arbitrary mixed traces preserve allocations and vector bounds, and an initial-fit premise gives a process budget bound. The bridge between the separate pending pool, pre-accept executor and established fleet remains open. |
+| `87-stage-resource-accounting.mech` | One finite ledger moves generation-owned reservations through pending, pre-accept and established phases. Handoffs and completions act only on a matching phase and generation; stale, wrong and repeated callbacks are no-ops. Phase charges partition one shared resource vector. Arbitrary mixed traces preserve allocations and vector bounds, and an initial-fit premise gives a process budget bound. Module 88 adds distinct stage accounts; arbitrary-position promotion witnesses remain open. |
+| `88-coupled-stage-process.mech` | Existing pending leases, pre-accept executor banks and established fleet share one process transition. Other-stage accounts survive every nonpromotion event. Guarded promotion is atomic and idempotent; focused successful promotion releases pending ownership and grants the distinct established slot. Arbitrary mixed traces preserve each allocation and the composed vector. Arbitrary-prefix/suffix promotion and critical scheduling remain open. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system
