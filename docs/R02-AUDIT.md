@@ -1,8 +1,8 @@
 # R02 existing proof audit, complete witness census
 
-This document records the R02 closure baseline. [R03 turn 9](R03-ADMISSION.md)
-subsequently closes M009 with normalized source security lifetimes; the current ledger covers nine
-obligations and retains 74 gaps. The R02 receipt keeps its original corpus and
+This document records the R02 closure baseline. [R03 turn 10](R03-ADMISSION.md)
+subsequently closes M013 with joint aggregate/source timed rate envelopes; the current ledger covers ten
+obligations and retains 73 gaps. The R02 receipt keeps its original corpus and
 82-gap scope.
 
 R02 closes after five execution turns, within the user's five-turn cap.

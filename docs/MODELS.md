@@ -2499,9 +2499,8 @@ denied admission, wrong slots/swarms/keys, forged load exemptions and protocol
 exemptions, dropped ordinary/penalty events, refused or fabricated receipts,
 missing or collateral allowance debits, changed shared capacity, and dropped or
 stale trace state. Every control must fail over quantified inputs. M003 is
-covered by modules 82 and 83 together. Module 84 later covers M009. M013 and
-E014/E029/E013 retain their timed-rate and runtime authority/accounting
-boundaries.
+covered by modules 82 and 83 together. Module 84 later covers M009, and module 85 covers M013 timed rates.
+E014/E029/E013 retain their runtime authority/accounting boundaries.
 
 ## Normalized source security lifetimes (module 84)
 
@@ -2529,5 +2528,47 @@ does not establish rate fairness or a concrete implementation.
 Thirty-one counted proof declarations and 26 semantic controls cover this
 slice. Controls include same-width security erasure, shared-state separation,
 wrong keys, incorrect restriction selection and skipped/replayed trace steps.
-M009 is covered; M012 and M013 remain in R03. E014 and E029 retain the runtime
+M009 is covered; module 85 later covers M013, leaving M012 in R03. E014 and E029 retain the runtime
 prefix, storage-restoration, lifetime-counter and release-authority refinements.
+
+## Joint normalized-source rate envelopes (module 85)
+
+`ComposedRateState` stores one aggregate balance and one finite canonical-key
+array of source balances, shared across both swarms and all trusted/untrusted
+and fresh-identity metadata. IPv4, mapped IPv4 and IPv6 addresses reuse module
+82's disjoint normalized prefix namespace. A missing slot denies admission.
+Allocation and burst/rate policy parameters stay fixed throughout a trace.
+
+An attempt uses validated reachability, supplied eligibility, aggregate credit
+and its actual canonical-prefix credit. Each successful receipt removes exactly
+one credit from both buckets. `composedAttemptSelectedChargeEqualsAggregate`
+connects the selected-prefix count to the aggregate receipt. Generic selected
+debit and continuation bounds compose these counts over every finite mixed
+trace. `composedBurstRateEnvelope` proves the distinct burst-plus-trusted-ticks
+rate envelopes for the aggregate and every selected prefix, under their explicit
+initial-fit premises. The source and aggregate rates need not be equal.
+
+Unvalidated claims, supplied denials, empty aggregate balances, missing slots and
+selected zero-credit slots preserve the complete rate state. The zero-source
+theorem quantifies over any prefix/suffix around its selected cell and states
+the necessary normalized-key/index equality. The allocation-miss theorem
+locates any key at or beyond array width and preserves every counter. Changing
+swarm, trust, identity,
+caller key or host within one supplied prefix cannot alter a transition.
+Completion and failure events preserve spent credits. Claimed clock values do
+not refill or advance trusted time. Trusted ticks alone refill capped balances.
+
+There are 42 counted proof declarations and 34 semantic controls. Controls
+weaken source/global debits, receipt counts, canonical attribution, eligibility,
+trust/identity independence, refill caps/rates, terminal paths and trace state.
+One control debits a neighboring prefix on a zero-credit refusal and is rejected
+by the whole-state zero-source witness. One control appends a slot when a debit
+misses the allocation. Every new rejection occurs in a module
+whose proof statements quantify over inputs; it has no closed example proofs.
+
+M013 is covered. Sparse runtime indexing, address validation, persistent prefix
+identity, eligibility refinement, serialization/atomic admission, trusted clock
+authority and production burst/rate calibration remain explicit premises.
+E014/E013/E010 retain runtime source/accounting/calibration work. These proofs
+bound admitted-start counts, not resident-resource allocations, CPU costs,
+continuous-time scheduling fairness or critical-class service. M012 remains open.

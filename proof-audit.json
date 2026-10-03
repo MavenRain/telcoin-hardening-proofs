@@ -70,7 +70,8 @@
     "proofs/81-endpoint-routing.mech": "ccfcc66c8774c397cfa7604ccf1e2f54042d124cf1c9769d5fd4130bba8c3b6f",
     "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898",
     "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744",
-    "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca"
+    "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca",
+    "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb"
   },
   "obligations": [
     {
@@ -4729,8 +4730,8 @@
       "id": "M013",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 completes the aggregate rate audit. The general envelope counts starts against one aggregate balance and trusted ticks; the two-swarm witness remains a finite example. No distinct timed source/prefix bucket or IPv4/IPv6/fresh-identity attribution composition is present. Those remain R03 model gaps.",
+      "scope_complete": true,
+      "scope_review": "Turn 10 closes both frozen M013 criteria. Module 85 composes distinct capped aggregate and normalized-prefix rate buckets over arbitrary mixed traces and shared metadata-independent state. Only trusted ticks refill; all refusal and terminal branches retain their rate semantics. Initial-fit and runtime refinement premises remain explicit; established resource vectors and critical scheduling remain M012 work.",
       "witnesses": [
         {
           "path": "proofs/38-source-admission-rate.mech",
@@ -4754,33 +4755,619 @@
             "The exact closed admissionRateReuseTrace, admissionExampleReady state and unit quota/capacity/rate are fixed."
           ],
           "limits": "No arbitrary state, trace, prefix or swarm-allocation quantifier occurs in this statement."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedBurstRateEnvelope",
+          "statement": "(view : RateView) -> (trace : ComposedRateTrace) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (state : ComposedRateState) -> AtMost (rateBalance view state)\n      (rateViewParameter view aggregateBurst sourceBurst) -> AtMost\n      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)\n      (add (rateViewParameter view aggregateBurst sourceBurst)\n        (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "For either the aggregate view or any selected normalized prefix, every arbitrary trace has starts bounded by its supplied burst plus trusted ticks times its distinct rate, under its explicit initial-fit premise.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedRateCreditConservation",
+          "statement": "(view : RateView) -> (trace : ComposedRateTrace) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (state : ComposedRateState) -> AtMost\n      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)\n      (add (rateBalance view state) (composedRateAllowance view trace aggregateRate sourceRate))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every arbitrary mixed trace conserves counted starts against the selected initial credit and trusted issuance.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedRateStepBound",
+          "statement": "(view : RateView) -> (event : ComposedRateEvent) -> (state : ComposedRateState) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    AtMost (add (composedRateCharge view event state)\n      (rateBalance view (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state)))\n      (add (rateBalance view state) (composedRateIssued view aggregateRate sourceRate event))",
+          "scope_kind": "general_transition",
+          "establishes": "Every event, including every conditional admission and terminal branch, preserves the local start-plus-remaining-credit inequality for either view.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedRateUniformIssuance",
+          "statement": "(view : RateView) -> (trace : ComposedRateTrace) ->\n    (aggregateRate : Count) -> (sourceRate : Count) -> Equal Count\n      (composedRateAllowance view trace aggregateRate sourceRate)\n      (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Only trusted ticks issue rate allowance; claimed ticks, attempts and terminal events issue none.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedAggregateRefillCap",
+          "statement": "(aggregateBurst : Count) -> (aggregateRate : Count) ->\n    (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    AtMost (rateBalance aggregateRateView\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick state)) aggregateBurst",
+          "scope_kind": "general_transition",
+          "establishes": "Each aggregate refill fits its supplied aggregate burst cap, for every initial rate state.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedSourceRefillCap",
+          "statement": "(key : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) ->\n    (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    AtMost (rateBalance (sourceRateView key)\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick state)) sourceBurst",
+          "scope_kind": "general_transition",
+          "establishes": "Each selected-prefix refill fits its supplied source burst cap, including missing buckets.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedAttemptChargeUsesCanonicalKey",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregate : Count) -> (buckets : RateBuckets) -> Equal Count\n      (composedRateCharge aggregateRateView (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)\n        (composedRateState aggregate buckets))\n      (rateStartCount (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n        (rateBucketCredit (normalizedSourceKey address) buckets))",
+          "scope_kind": "general_transition",
+          "establishes": "The aggregate receipt count checks the actual normalized-prefix counter and the validated eligibility/aggregate gate.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedAttemptSelectedChargeEqualsAggregate",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregate : Count) -> (buckets : RateBuckets) -> Equal Count\n      (composedRateCharge (sourceRateView (normalizedSourceKey address))\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))\n      (composedRateCharge aggregateRateView\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))",
+          "scope_kind": "general_transition",
+          "establishes": "For every attempt the actual normalized-prefix receipt count equals the aggregate receipt count.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedAttemptMetadataIndependent",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (leftSwarm : SwarmClass) -> (rightSwarm : SwarmClass) -> (leftTrusted : Flag) -> (rightTrusted : Flag) ->\n    (leftIdentity : Count) -> (rightIdentity : Count) -> (leftClaimed : Count) -> (rightClaimed : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (state : ComposedRateState) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address leftSwarm leftTrusted leftIdentity leftClaimed eligible) state)\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address rightSwarm rightTrusted rightIdentity rightClaimed eligible) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Changing swarm, trusted classification, peer identity or caller-selected key leaves the admission rate state transition unchanged.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateNonemptyCountsOne",
+          "statement": "(remaining : Count) -> Equal Count (rateNonempty (next remaining)) (next zero)",
+          "scope_kind": "general_transition",
+          "establishes": "A nonempty source counter emits exactly one modeled start when enabled.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateDebitSelectedExactly",
+          "statement": "(buckets : RateBuckets) -> (key : Count) ->\n    Equal Count (rateBucketCredit key (debitRateBucket key buckets)) (predecessor (rateBucketCredit key buckets))",
+          "scope_kind": "general_transition",
+          "establishes": "A selected source debit removes exactly one available credit, at every finite-array index.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateSelectedCountAtKey",
+          "statement": "(enabled : Flag) -> (key : Count) -> (buckets : RateBuckets) ->\n    Equal Count (rateSelectedCount enabled key key buckets)\n      (rateStartCount enabled (rateBucketCredit key buckets))",
+          "scope_kind": "general_transition",
+          "establishes": "The selected-key counter agrees exactly with the enabled start receipt at that key.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateSelectedDebitBound",
+          "statement": "(buckets : RateBuckets) -> (key : Count) -> (watched : Count) ->\n    AtMost (add (rateSelectedCount on key watched buckets)\n      (rateBucketCredit watched (debitRateBucket key buckets))) (rateBucketCredit watched buckets)",
+          "scope_kind": "general_transition",
+          "establishes": "A counted start and the remaining selected-prefix credit fit the original counter for every table and both arbitrary indices.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateSourceSpendBound",
+          "statement": "(enabled : Flag) -> (key : Count) -> (watched : Count) ->\n    (buckets : RateBuckets) -> AtMost (add (rateSelectedCount enabled key watched buckets)\n      (rateBucketCredit watched (rateSourceSpend enabled key buckets))) (rateBucketCredit watched buckets)",
+          "scope_kind": "general_transition",
+          "establishes": "Enabled and disabled source branches preserve start-plus-credit conservation for every selected prefix.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateAggregateSpendBound",
+          "statement": "(eligible : Flag) -> (credits : Count) -> (sourceCredits : Count) ->\n    AtMost (add (rateStartCount (rateAggregateGate eligible credits) sourceCredits)\n      (rateAggregateSpend (rateAggregateGate eligible credits) credits sourceCredits)) credits",
+          "scope_kind": "general_transition",
+          "establishes": "Every aggregate gate and source-availability branch preserves aggregate start-plus-credit conservation.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateRefillAtBound",
+          "statement": "(buckets : RateBuckets) -> (key : Count) -> (burst : Count) -> (rate : Count) ->\n    AtMost (rateBucketCredit key (refillRateBuckets burst rate buckets))\n      (add (rateBucketCredit key buckets) rate)",
+          "scope_kind": "general_transition",
+          "establishes": "A selected-prefix refill never issues more than its supplied per-tick source rate.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "rateRefillAtCap",
+          "statement": "(buckets : RateBuckets) -> (key : Count) -> (burst : Count) -> (rate : Count) ->\n    AtMost (rateBucketCredit key (refillRateBuckets burst rate buckets)) burst",
+          "scope_kind": "general_transition",
+          "establishes": "All finite-array source refill positions fit their supplied burst cap.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedValidatedAttemptUsesCanonicalKey",
+          "statement": "(address : SourceAddress) -> (swarm : SwarmClass) ->\n    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (aggregate : Count) -> (buckets : RateBuckets) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt validated address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))\n      (composedRateState\n        (rateAggregateSpend (rateAggregateGate eligible aggregate) aggregate (rateBucketCredit (normalizedSourceKey address) buckets))\n        (rateSourceSpend (rateAggregateGate eligible aggregate) (normalizedSourceKey address) buckets))",
+          "scope_kind": "general_transition",
+          "establishes": "A validated attempt computes both its source-credit check and source debit from the normalized actual address, independently of a claimed victim key.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedUnvalidatedAttemptNoOp",
+          "statement": "(address : SourceAddress) -> (swarm : SwarmClass) ->\n    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (state : ComposedRateState) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt unvalidated address swarm trusted identity claimedKey eligible) state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Every unvalidated address claim leaves the complete aggregate/source rate state unchanged.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedZeroAggregateNoOp",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) ->\n    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (buckets : RateBuckets) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState zero buckets))\n      (composedRateState zero buckets)",
+          "scope_kind": "general_transition",
+          "establishes": "An exhausted aggregate counter refuses every attempt without changing any source counter.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedMissingBucketNoOp",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (aggregate : Count) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)\n        (composedRateState aggregate rateBucketsEnd)) (composedRateState aggregate rateBucketsEnd)",
+          "scope_kind": "general_transition",
+          "establishes": "Every attempt against a completely empty source-rate array preserves aggregate credits and that empty array.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open. This witness fixes RateBucketsEnd."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedZeroSourceBoundaryNoOp",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (aggregate : Count) -> (prefix : RateBuckets) -> (suffix : RateBuckets) ->\n    Equal Count (normalizedSourceKey address) (rateBucketWidth prefix) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)\n        (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))))\n      (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix)))",
+          "scope_kind": "general_transition",
+          "establishes": "A normalized-key equality locates a depleted counter after any prefix and before any suffix; its attempted debit preserves the whole state and every neighboring prefix.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedIneligibleAttemptNoOp",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address swarm trusted identity claimedKey off) state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Any supplied admission denial, regardless of reachability or metadata, leaves all rate credits unchanged.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedIpv4SharedPrefix",
+          "statement": "(prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (ipv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Different IPv4 hosts with one supplied prefix take identical rate transitions.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedIpv6SharedPrefix",
+          "statement": "(prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (ipv6SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (ipv6SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Different IPv6 hosts with one supplied fixed prefix take identical rate transitions.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedMappedIpv4SharesNative",
+          "statement": "(prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (mappedIpv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state)",
+          "scope_kind": "general_transition",
+          "establishes": "Mapped and native IPv4 addresses with one supplied prefix take identical rate transitions.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedClaimedTickNoOp",
+          "statement": "(claimed : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateClaimedTick claimed) state) state",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary claimed timestamp cannot issue aggregate or source credits.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedFinishNoOp",
+          "statement": "(receipt : AdmissionReceipt) -> (reason : PendingEnd) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateFinish receipt reason) state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Every completion receipt and pending-end reason preserve all spent rate credits.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedFailureNoOp",
+          "statement": "(outcome : Outcome) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->\n    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateFailure outcome) state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Every downstream failure outcome preserves all spent rate credits.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
+        },
+        {
+          "path": "proofs/85-composed-source-rates.mech",
+          "name": "composedBeyondAllocationNoOp",
+          "statement": "(reachability : Reachability) -> (address : SourceAddress) ->\n    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->\n    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->\n    (aggregate : Count) -> (buckets : RateBuckets) -> (offset : Count) ->\n    Equal Count (normalizedSourceKey address) (add (rateBucketWidth buckets) offset) -> Equal ComposedRateState\n      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate\n        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))\n      (composedRateState aggregate buckets)",
+          "scope_kind": "general_transition",
+          "establishes": "For every finite source array and every nonnegative offset, an attempt at a canonical key equal to array width plus that offset preserves aggregate credits and every existing source counter.",
+          "premises": [
+            "One fixed finite RateBuckets array uses module-82 canonical prefix keys and is shared by all swarms, trust classifications and identities; absent slots deny admission.",
+            "SourceAddress and Reachability supply correct runtime fixed-prefix parsing and validation. Eligibility is the supplied result of the other admission guards.",
+            "Events are serialized. Only a trusted tick refills capped aggregate/source budgets; completion and failure cannot refund start credits.",
+            "The burst/rate parameters are supplied. Each selected-view envelope requires its explicit initial-credit fit; the zero-source boundary theorem additionally requires its stated normalized-key/index equality.",
+            "The stated normalized-key equality locates the attempted source at or beyond the finite allocation."
+          ],
+          "limits": "Runtime parsing/validation, sparse-index refinement, persistent prefix-bucket identity, eligibility, atomic shared updates and trusted tick authority remain explicit refinement premises. E014, E013 and E010 retain source, accounting and production-calibration work. These are admitted-start count envelopes, not CPU, resident-resource, continuous-time fairness or scheduler-service bounds; M012 stays open."
         }
       ],
       "controls": [
         {
           "name": "admission_rate_tick_overissues",
           "sha256": "a91f24fb0f97b30f9f5c821adbced5832975acc59a08caa52542c6cd4752a9d8"
+        },
+        {
+          "name": "composed_rate_aggregate_debit_skipped",
+          "sha256": "a40a8908e6bf3d9b3b59d94e004a3c67251da5a81fcb53291391e68d22c5e15b"
+        },
+        {
+          "name": "composed_rate_aggregate_receipt_dropped",
+          "sha256": "7c48a4431f3209d03e09a5e572b93dffcf5ce01484689f26cf1f965973f85b06"
+        },
+        {
+          "name": "composed_rate_aggregate_refill_uncapped",
+          "sha256": "c84340225db1a001afec30684059465f370297ad49cb71a24d0cb21618194cc4"
+        },
+        {
+          "name": "composed_rate_claimed_tick_advances_time",
+          "sha256": "57598075d2eec76e1192de15be8c01bda0767b0ed9b75355686de57855746702"
+        },
+        {
+          "name": "composed_rate_claimed_tick_mints_credit",
+          "sha256": "41330430e42e03b3957fe459dbf890e4f386c43ba2a0414853336dd08f4782f7"
+        },
+        {
+          "name": "composed_rate_claimed_victim_key_charged",
+          "sha256": "b4f33fe2af5cd70702d91774018b445858518bb6f39cd66518cb7f6450c31e73"
+        },
+        {
+          "name": "composed_rate_completion_advances_time",
+          "sha256": "26208d90cc946661595c2da70385156b01cfc4b4f53459062a686269976bf5a1"
+        },
+        {
+          "name": "composed_rate_completion_refunds_credit",
+          "sha256": "5feab42031bc5217bc04944a4e514f65933b7f5696a5dc4f7e2376e34be9022e"
+        },
+        {
+          "name": "composed_rate_debit_allocates_missing_bucket",
+          "sha256": "12c6ab02c89c6383999b791ddf8c5457517fe3554d4b83fe00adfcb29b8e3d34"
+        },
+        {
+          "name": "composed_rate_denied_attempt_debits_source",
+          "sha256": "777d922a3b5e633bcd3529c51409e4924aee721b57a02d592741ff0857f7ecf2"
+        },
+        {
+          "name": "composed_rate_distant_source_debit_skipped",
+          "sha256": "785a87b1d3071fca2f8cb006d77d852769d725af6d305e81f8a4fb6102974238"
+        },
+        {
+          "name": "composed_rate_eligibility_bypassed",
+          "sha256": "7846c2d9a0aeefab8d9b1f5bc2d0b66e49d819f2fd127a42b4fc2fd9ed04a0dc"
+        },
+        {
+          "name": "composed_rate_empty_aggregate_grants",
+          "sha256": "029770a4b50aafde0f2d1b4b8bbca72a8a208ec213d8b8d0627d7375754fa026"
+        },
+        {
+          "name": "composed_rate_empty_source_grants",
+          "sha256": "7fe6450bb6c7536e3f64865ea61b3e5688c2c11c1fc642dee50c377eed632ce5"
+        },
+        {
+          "name": "composed_rate_empty_source_spends_aggregate",
+          "sha256": "0430a681c5e9f89a9c25968609cc7e37ace5c87bd31570f3872547120b92337f"
+        },
+        {
+          "name": "composed_rate_failure_advances_time",
+          "sha256": "2eb6798ac18ec4a1f0bcd382c7106b835d7d1d71da9c9eedce6a1056ab808e47"
+        },
+        {
+          "name": "composed_rate_failure_refunds_credit",
+          "sha256": "a2d1f853b8c2fcabe964083bef0dfbec7549a1003f688bbb0a4c3fb45e202ce9"
+        },
+        {
+          "name": "composed_rate_fresh_identity_selects_bucket",
+          "sha256": "75517ef61d53edbc17139cc05361ddab182b0c24d3d35087257ce6760a3b9bde"
+        },
+        {
+          "name": "composed_rate_missing_bucket_grants",
+          "sha256": "20ec98fba04924a34c07e5d4e6f62c1ce38addd3be97991383011e53b5078d8a"
+        },
+        {
+          "name": "composed_rate_refill_allocates_missing_bucket",
+          "sha256": "11e8a6f947fd39c868b5b6f4209d51392978f7737911e422bdfb7a97c20c8064"
+        },
+        {
+          "name": "composed_rate_refused_source_debits_neighbor",
+          "sha256": "aea1575a70b1d689cf7c34871efaa93f82284ade708a11b65c899107d2a73d33"
+        },
+        {
+          "name": "composed_rate_selected_receipt_charges_victim",
+          "sha256": "756414512c62e036321b5c86e9080b9462f45f2aa9e11ee23da66a816b0e922b"
+        },
+        {
+          "name": "composed_rate_source_debit_skipped",
+          "sha256": "54434f722ef7033a00a11271d297cc417cd7db7347c5104181d2bf9728c915d5"
+        },
+        {
+          "name": "composed_rate_source_debit_twice",
+          "sha256": "bd7675322613d4634617a5950d3e3d084a0e15129f20a3a996fdfc0ab755113e"
+        },
+        {
+          "name": "composed_rate_source_grant_without_debit",
+          "sha256": "bf89aaa80ff50726bc8e7e9dc31ea0d0d010433d2375d3e8da3e4c46b5d711fb"
+        },
+        {
+          "name": "composed_rate_source_refill_overissues",
+          "sha256": "d780095f36edfff8596a4b10118366a05000e09312102d7eec88d141b46daa67"
+        },
+        {
+          "name": "composed_rate_source_refill_uncapped",
+          "sha256": "7e76dc976793c40e6d787e2d8237e976756ce5a8c7fc5482afbf87f4dbd42f89"
+        },
+        {
+          "name": "composed_rate_source_uses_aggregate_rate",
+          "sha256": "ba89633931d199ea3ef88958c665d729300e0bff34c425da3a7ab6b509712ba7"
+        },
+        {
+          "name": "composed_rate_successful_start_not_counted",
+          "sha256": "f8f6e5030629b5e6621498cb3ed70e6cbfa52fdb587d58cba1bd20ab4123e5ca"
+        },
+        {
+          "name": "composed_rate_trace_reuses_predebit_state",
+          "sha256": "c9608c32d5f41ba45e2ae2436407883a53402f9518bf837c104ffc15186d2718"
+        },
+        {
+          "name": "composed_rate_trusted_flag_selects_eligibility",
+          "sha256": "90e4229fea9b6e683b1cc23f964d11fa5bd0f99044aba6c61316d34b8dfd2aa6"
+        },
+        {
+          "name": "composed_rate_unrelated_prefix_counted",
+          "sha256": "fe9564e77cc9a71d301728ce8ed3664d6ea912b5d1225d7eb9763843ad33226e"
+        },
+        {
+          "name": "composed_rate_unvalidated_source_grants",
+          "sha256": "dcbca4497145bfd6c05fe66e613bc23c65ca10724fa2856e4b3b5c0f659c2dd0"
+        },
+        {
+          "name": "composed_rate_validated_denial_bypassed",
+          "sha256": "c8d1eb88234d36600e5cd10b68828aa8fc0d9c0f88dc633826448e39e39fed53"
         }
       ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope",
-            "proofs/38-source-admission-rate.mech#admissionRateCountsBothSwarms"
+            "proofs/38-source-admission-rate.mech#admissionRateCountsBothSwarms",
+            "proofs/85-composed-source-rates.mech#composedBurstRateEnvelope",
+            "proofs/85-composed-source-rates.mech#composedRateCreditConservation",
+            "proofs/85-composed-source-rates.mech#composedRateStepBound",
+            "proofs/85-composed-source-rates.mech#composedRateUniformIssuance",
+            "proofs/85-composed-source-rates.mech#composedAggregateRefillCap",
+            "proofs/85-composed-source-rates.mech#composedSourceRefillCap",
+            "proofs/85-composed-source-rates.mech#composedAttemptChargeUsesCanonicalKey",
+            "proofs/85-composed-source-rates.mech#composedAttemptSelectedChargeEqualsAggregate",
+            "proofs/85-composed-source-rates.mech#composedAttemptMetadataIndependent",
+            "proofs/85-composed-source-rates.mech#rateNonemptyCountsOne",
+            "proofs/85-composed-source-rates.mech#rateDebitSelectedExactly",
+            "proofs/85-composed-source-rates.mech#rateSelectedCountAtKey",
+            "proofs/85-composed-source-rates.mech#rateSelectedDebitBound",
+            "proofs/85-composed-source-rates.mech#rateSourceSpendBound",
+            "proofs/85-composed-source-rates.mech#rateAggregateSpendBound",
+            "proofs/85-composed-source-rates.mech#rateRefillAtBound",
+            "proofs/85-composed-source-rates.mech#rateRefillAtCap"
           ],
-          "rationale": "The general aggregate envelope and its initial-credit/trusted-tick premises are retained. The corpus lacks a distinct per-source/prefix timed envelope and its validated normalized-attribution composition; a closed two-swarm example cannot supply that scope.",
-          "remaining": "R03: Compose distinct source/prefix and aggregate timed burst-plus-rate buckets for arbitrary admitted starts, all swarms, trusted traffic and fresh identities."
+          "rationale": "Module 85 supplies arbitrary-trace aggregate and per-prefix envelopes on one operational state, including both swarms, trusted traffic and fresh identities.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/38-source-admission-rate.mech#sourceAdmissionBurstRateEnvelope"
+            "proofs/85-composed-source-rates.mech#composedValidatedAttemptUsesCanonicalKey",
+            "proofs/85-composed-source-rates.mech#composedUnvalidatedAttemptNoOp",
+            "proofs/85-composed-source-rates.mech#composedZeroAggregateNoOp",
+            "proofs/85-composed-source-rates.mech#composedMissingBucketNoOp",
+            "proofs/85-composed-source-rates.mech#composedZeroSourceBoundaryNoOp",
+            "proofs/85-composed-source-rates.mech#composedIneligibleAttemptNoOp",
+            "proofs/85-composed-source-rates.mech#composedIpv4SharedPrefix",
+            "proofs/85-composed-source-rates.mech#composedIpv6SharedPrefix",
+            "proofs/85-composed-source-rates.mech#composedMappedIpv4SharesNative",
+            "proofs/85-composed-source-rates.mech#composedClaimedTickNoOp",
+            "proofs/85-composed-source-rates.mech#composedFinishNoOp",
+            "proofs/85-composed-source-rates.mech#composedFailureNoOp",
+            "proofs/85-composed-source-rates.mech#composedBeyondAllocationNoOp"
           ],
-          "rationale": "The general aggregate envelope and its initial-credit/trusted-tick premises are retained. The corpus lacks a distinct per-source/prefix timed envelope and its validated normalized-attribution composition; a closed two-swarm example cannot supply that scope.",
-          "remaining": "R03: Prove the timed-bucket composition uses validated IPv4/IPv6/shared-prefix keys, rejects unvalidated victim-address charging, and preserves every conditional/failure branch."
+          "rationale": "Module 85 binds debit and receipt selection to module-82 normalized IPv4/IPv6/shared-prefix keys and witnesses unvalidated, denied, exhausted, missing, completion, failure and forged-time branches. The allocation-miss witness covers arbitrary nonempty arrays with its explicit key/width/offset equality.",
+          "remaining": ""
         }
       ]
     },

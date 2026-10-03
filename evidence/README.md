@@ -1143,3 +1143,30 @@ The ledger covers nine of 83 model obligations and retains 74 gaps; M012 and
 M013 remain in R03. R03 has used nine turns and remains active. All 43 external
 obligations remain open. E014 and E029 retain runtime source and peer lifecycle
 refinements. Historical R03 receipts retain their original counts and hashes.
+
+## R03 turn 10 joint aggregate/source timed rates
+
+`r03-composed-source-rates-check.json` records the complete final proof/mutation
+run: 68 modules, 1278 explicit equality/order proof declarations, 186 atomic
+model obligations, 34 claim groups and all 1383 sealed source units. All 1206
+negative checks reject (1203 registered controls plus three generic controls),
+with empty axiom disclosure and pinned compiler provenance.
+
+Module 85 adds 42 proof declarations and 34 general-input semantic controls.
+Its arbitrary-trace theorem uses separate capped aggregate/source budgets,
+shared canonical IPv4/IPv6 prefix counters, all swarms and trust/identity
+metadata, validated eligibility and trusted ticks. Whole-state witnesses retain
+the refusal, missing/zero source, forged-time, completion and failure branches.
+The zero-source refusal witness preserves neighbors after any finite prefix.
+The allocation-miss witness preserves every counter for any beyond-width key
+located by its explicit normalized-key/width/offset equality.
+The targeted pre-ledger run rejected 33 new controls and three generic ones.
+The full run also rejects composed_rate_debit_allocates_missing_bucket.
+
+M013's two frozen criteria are witnessed. The current audit covers 10 of 83
+model obligations and keeps 73 partial; M012 is the only remaining R03 work.
+R03 has used ten turns against five planned and remains active. All 43 external
+obligations remain open. Runtime source/index/clock/atomicity refinement and
+production calibration remain premises; these start-count envelopes do not
+close established resource vectors, resident-byte/task domination or critical
+scheduling. Historical receipts retain their original counts and hashes.

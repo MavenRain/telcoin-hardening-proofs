@@ -498,7 +498,7 @@ own units and supplied host allocations. The model's per-interval work bound
 does not prove cumulative rate or scheduling fairness. Supplied source labels
 do not prove IP/prefix normalization. Concrete resource vectors, shared
 runtime routing, calibration and deployment guarantees remain external or
-separately open model obligations, including M012 and M013.
+separately open model obligations, including M012. Module 85 separately covers M013 timed rate counts.
 E022 owns established-resource routing and work-budget enforcement. E013 owns
 runtime pending accounting. E010 owns calibration and deployment guarantees.
 
@@ -544,7 +544,7 @@ pool. All attributed events route through one serialized shared admission state.
 Module 82 witnesses M003's normalized-attribution criterion. Module 83
 composes trusted-exemption and privileged-allowance provenance and closes the
 remaining model criterion. Module 84 closes M009 with multi-prefix overlap and restart/epoch security
-lifetimes. Distinct timed prefix buckets remain M013 work. E014 owns runtime normalization,
+lifetimes. Module 85 covers the distinct timed prefix buckets of M013. E014 owns runtime normalization,
 validation, exemption and lifetime refinement. E013 owns concrete pending
 accounting, receipt authority, atomicity and storage dominance.
 
@@ -567,7 +567,7 @@ only admitted receipts debit an allowance. E013 owns atomic resource/allowance
 updates, receipt authority and concrete pending accounting. Initial-fit premises
 are explicit for source debt, credit and allowance trace bounds. Aggregate
 pending bounds hold for every initial pool. No timed prefix-rate or restart/epoch
-claim follows from fixed-budget allowance accounting. Module 84 closes M009; M013 remains open.
+claim follows from fixed-budget allowance accounting. Module 84 closes M009; module 85 later covers M013.
 
 ## Source security lifetimes
 
@@ -588,3 +588,29 @@ the lifetime proof neither defines wall-clock expiry nor grants release to
 untrusted callers. The initial protected cells and payloads may be arbitrary.
 Correctly restoring their projection is necessary for the proved persistence.
 Rate fairness and production limits remain separate model/external work.
+
+## Joint source-rate refinement boundary
+
+Module 85 supplies distinct aggregate and per-canonical-prefix start-count
+envelopes for arbitrary serialized traces, shared across both swarms, trusted
+traffic and fresh identities. Each view requires its stated initial-credit fit.
+Burst/rate policy and the finite source-slot allocation stay fixed in a trace.
+The zero-source refusal theorem explicitly locates the selected slot using a
+normalized-key/index equality. An allocation-miss theorem locates any absent
+key through a normalized-key equality with array width plus an offset.
+Source-slot misses deny rather than allocate.
+
+`SourceAddress` and `Reachability` must certify actual fixed-prefix parsing and
+validation. The runtime's sparse ledger must refine the mathematical canonical
+array's lookup, debit and capped refill. Prefix-bucket identities and spent
+credits must survive churn; replacing a slot or process epoch cannot create
+unmodeled credit. Only actual trusted ticks may issue the supplied per-tick
+allowances. Untrusted timestamps, completion and failure cannot issue credit.
+The runtime must preserve the other admission guards represented by eligibility
+and commit the aggregate/source debit atomically with its admitted receipt.
+
+E014/E013/E010 retain their source, accounting and calibration refinements.
+Clock authority, serialization and initial fits are explicit premises, not
+validated deployment evidence. The bounds count admitted starts; pre-accept
+work, resident bytes/tasks, real-time fairness and critical scheduling have
+separate resource/refinement obligations. M012 remains the open R03 model work.

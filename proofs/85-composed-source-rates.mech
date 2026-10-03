@@ -1,0 +1,865 @@
+-- Normalized source buckets and the aggregate bucket are debited together.
+-- The finite bucket array is indexed by the canonical prefix key from module 82.
+mu RateBuckets : Type 0 with
+| rateBucketsEnd : RateBuckets
+| rateBucket : Count -> RateBuckets -> RateBuckets
+
+def rec rateBucketCreditCore : RateBuckets -> Count -> Count :=
+  fun (buckets : RateBuckets) (key : Count) =>
+    case buckets as table in RateBuckets return Count with
+    | rateBucketsEnd => zero
+    | rateBucket credits rest =>
+      case key as index in Count return Count with
+      | zero => credits
+      | next tail => rateBucketCreditCore rest tail
+
+def rateBucketCredit : Count -> RateBuckets -> Count :=
+  fun (key : Count) (buckets : RateBuckets) => rateBucketCreditCore buckets key
+
+def rec debitRateBucketCore : RateBuckets -> Count -> RateBuckets :=
+  fun (buckets : RateBuckets) (key : Count) =>
+    case buckets as table in RateBuckets return RateBuckets with
+    | rateBucketsEnd => rateBucketsEnd
+    | rateBucket credits rest =>
+      case key as index in Count return RateBuckets with
+      | zero => rateBucket (predecessor credits) rest
+      | next tail => rateBucket credits (debitRateBucketCore rest tail)
+
+def debitRateBucket : Count -> RateBuckets -> RateBuckets :=
+  fun (key : Count) (buckets : RateBuckets) => debitRateBucketCore buckets key
+
+def rec refillRateBucketsCore : RateBuckets -> Count -> Count -> RateBuckets :=
+  fun (buckets : RateBuckets) (burst : Count) (rate : Count) =>
+    case buckets as table in RateBuckets return RateBuckets with
+    | rateBucketsEnd => rateBucketsEnd
+    | rateBucket credits rest =>
+        rateBucket (boundedWork burst (add credits rate)) (refillRateBucketsCore rest burst rate)
+
+def refillRateBuckets : Count -> Count -> RateBuckets -> RateBuckets :=
+  fun (burst : Count) (rate : Count) (buckets : RateBuckets) => refillRateBucketsCore buckets burst rate
+
+def rateNonempty : Count -> Count :=
+  fun (credits : Count) =>
+    case credits as balance in Count return Count with
+    | zero => zero
+    | next rest => next zero
+
+def rateValidatedEligibility : Reachability -> Flag -> Flag :=
+  fun (source : Reachability) (eligible : Flag) =>
+    case source as reachability in Reachability return Flag with
+    | unvalidated => off
+    | validated => eligible
+
+def rateAggregateGate : Flag -> Count -> Flag :=
+  fun (eligible : Flag) (credits : Count) =>
+    case credits as balance in Count return Flag with
+    | zero => off
+    | next rest => eligible
+
+def rateStartCount : Flag -> Count -> Count :=
+  fun (enabled : Flag) (sourceCredits : Count) =>
+    case enabled as allowed in Flag return Count with
+    | off => zero
+    | on => rateNonempty sourceCredits
+
+def rateSelectedCount : Flag -> Count -> Count -> RateBuckets -> Count :=
+  fun (enabled : Flag) (key : Count) (watched : Count) (buckets : RateBuckets) =>
+    case enabled as allowed in Flag return Count with
+    | off => zero
+    | on =>
+      case sameCount key watched as selected in Flag return Count with
+      | off => zero
+      | on => rateNonempty (rateBucketCredit key buckets)
+
+def rateAggregateSpend : Flag -> Count -> Count -> Count :=
+  fun (enabled : Flag) (credits : Count) (sourceCredits : Count) =>
+    case enabled as allowed in Flag return Count with
+    | off => credits
+    | on =>
+      case sourceCredits as sourceBalance in Count return Count with
+      | zero => credits
+      | next rest => predecessor credits
+
+def rateSourceSpend : Flag -> Count -> RateBuckets -> RateBuckets :=
+  fun (enabled : Flag) (key : Count) (buckets : RateBuckets) =>
+    case enabled as allowed in Flag return RateBuckets with
+    | off => buckets
+    | on => debitRateBucket key buckets
+
+def rec rateSelectedDebitBound : (buckets : RateBuckets) -> (key : Count) -> (watched : Count) ->
+    AtMost (add (rateSelectedCount on key watched buckets)
+      (rateBucketCredit watched (debitRateBucket key buckets))) (rateBucketCredit watched buckets) :=
+  fun (buckets : RateBuckets) (key : Count) (watched : Count) =>
+    case buckets as table in RateBuckets return
+        AtMost (add (rateSelectedCount on key watched table)
+          (rateBucketCredit watched (debitRateBucket key table))) (rateBucketCredit watched table) with
+    | rateBucketsEnd =>
+        (case sameCount key watched as matches in Flag return
+            AtMost (add (case matches as result in Flag return Count with
+              | off => zero | on => zero) zero) zero with
+        | off => reflexiveBound zero
+        | on => reflexiveBound zero)
+    | rateBucket credits rest =>
+        case key as requested in Count return
+            AtMost (add (rateSelectedCount on requested watched (rateBucket credits rest))
+              (rateBucketCredit watched (debitRateBucket requested (rateBucket credits rest))))
+              (rateBucketCredit watched (rateBucket credits rest)) with
+        | zero =>
+            (case watched as watchedKey in Count return
+                AtMost (add (rateSelectedCount on zero watchedKey (rateBucket credits rest))
+                  (rateBucketCredit watchedKey (debitRateBucket zero (rateBucket credits rest))))
+                  (rateBucketCredit watchedKey (rateBucket credits rest)) with
+            | zero =>
+              (case credits as balance in Count return AtMost (add (rateNonempty balance)
+                  (predecessor balance)) balance with
+              | zero => reflexiveBound zero
+              | next remaining => reflexiveBound (next remaining))
+            | next tail => reflexiveBound (rateBucketCredit tail rest))
+        | next tail =>
+            case watched as watchedKey in Count return
+                AtMost (add (rateSelectedCount on (next tail) watchedKey (rateBucket credits rest))
+                  (rateBucketCredit watchedKey (debitRateBucket (next tail) (rateBucket credits rest))))
+                  (rateBucketCredit watchedKey (rateBucket credits rest)) with
+            | zero => reflexiveBound credits
+            | next watchedTail => rateSelectedDebitBound rest tail watchedTail
+
+def rateSourceSpendBound : (enabled : Flag) -> (key : Count) -> (watched : Count) ->
+    (buckets : RateBuckets) -> AtMost (add (rateSelectedCount enabled key watched buckets)
+      (rateBucketCredit watched (rateSourceSpend enabled key buckets))) (rateBucketCredit watched buckets) :=
+  fun (enabled : Flag) (key : Count) (watched : Count) (buckets : RateBuckets) =>
+    case enabled as allowed in Flag return AtMost (add (rateSelectedCount allowed key watched buckets)
+        (rateBucketCredit watched (rateSourceSpend allowed key buckets))) (rateBucketCredit watched buckets) with
+    | off => reflexiveBound (rateBucketCredit watched buckets)
+    | on => rateSelectedDebitBound buckets key watched
+
+def rateAggregateSpendBound : (eligible : Flag) -> (credits : Count) -> (sourceCredits : Count) ->
+    AtMost (add (rateStartCount (rateAggregateGate eligible credits) sourceCredits)
+      (rateAggregateSpend (rateAggregateGate eligible credits) credits sourceCredits)) credits :=
+  fun (eligible : Flag) (credits : Count) (sourceCredits : Count) =>
+    case credits as balance in Count return AtMost
+        (add (rateStartCount (rateAggregateGate eligible balance) sourceCredits)
+          (rateAggregateSpend (rateAggregateGate eligible balance) balance sourceCredits)) balance with
+    | zero => reflexiveBound zero
+    | next rest =>
+      case eligible as allowed in Flag return AtMost
+          (add (rateStartCount (rateAggregateGate allowed (next rest)) sourceCredits)
+            (rateAggregateSpend (rateAggregateGate allowed (next rest)) (next rest) sourceCredits)) (next rest) with
+      | off => reflexiveBound (next rest)
+      | on =>
+        case sourceCredits as sourceBalance in Count return AtMost
+            (add (rateStartCount on sourceBalance) (rateAggregateSpend on (next rest) sourceBalance)) (next rest) with
+        | zero => reflexiveBound (next rest)
+        | next sourceRest => reflexiveBound (next rest)
+
+def rec rateRefillAtBound : (buckets : RateBuckets) -> (key : Count) -> (burst : Count) -> (rate : Count) ->
+    AtMost (rateBucketCredit key (refillRateBuckets burst rate buckets))
+      (add (rateBucketCredit key buckets) rate) :=
+  fun (buckets : RateBuckets) (key : Count) (burst : Count) (rate : Count) =>
+    case buckets as table in RateBuckets return
+        AtMost (rateBucketCredit key (refillRateBuckets burst rate table))
+          (add (rateBucketCredit key table) rate) with
+    | rateBucketsEnd => least rate
+    | rateBucket credits rest =>
+        case key as selected in Count return
+            AtMost (rateBucketCredit selected (refillRateBuckets burst rate (rateBucket credits rest)))
+              (add (rateBucketCredit selected (rateBucket credits rest)) rate) with
+        | zero => boundedWorkRightBound burst (add credits rate)
+        | next tail => rateRefillAtBound rest tail burst rate
+
+mu ComposedRateState : Type 0 with
+| composedRateState : Count -> RateBuckets -> ComposedRateState
+
+mu RateView : Type 0 with
+| aggregateRateView : RateView
+| sourceRateView : Count -> RateView
+
+def rateBalance : RateView -> ComposedRateState -> Count :=
+  fun (view : RateView) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return Count with
+    | composedRateState aggregate buckets =>
+      case view as selected in RateView return Count with
+      | aggregateRateView => aggregate
+      | sourceRateView key => rateBucketCredit key buckets
+
+def rateViewParameter : RateView -> Count -> Count -> Count :=
+  fun (view : RateView) (aggregate : Count) (source : Count) =>
+    case view as selected in RateView return Count with
+    | aggregateRateView => aggregate
+    | sourceRateView key => source
+
+mu ComposedRateEvent : Type 0 with
+| composedRateAttempt : Reachability -> SourceAddress -> SwarmClass -> Flag -> Count -> Count -> Flag -> ComposedRateEvent
+| composedRateTrustedTick : ComposedRateEvent
+| composedRateClaimedTick : Count -> ComposedRateEvent
+| composedRateFinish : AdmissionReceipt -> PendingEnd -> ComposedRateEvent
+| composedRateFailure : Outcome -> ComposedRateEvent
+
+def composedRateStep : Count -> Count -> Count -> Count -> ComposedRateEvent -> ComposedRateState -> ComposedRateState :=
+  fun (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count)
+      (event : ComposedRateEvent) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return ComposedRateState with
+    | composedRateState aggregate buckets =>
+      case event as action in ComposedRateEvent return ComposedRateState with
+      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>
+          composedRateState
+            (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+              aggregate (rateBucketCredit (normalizedSourceKey address) buckets))
+            (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+              (normalizedSourceKey address) buckets)
+      | composedRateTrustedTick => composedRateState (boundedWork aggregateBurst (add aggregate aggregateRate))
+          (refillRateBuckets sourceBurst sourceRate buckets)
+      | composedRateClaimedTick claimed => composedRateState aggregate buckets
+      | composedRateFinish receipt reason => composedRateState aggregate buckets
+      | composedRateFailure outcome => composedRateState aggregate buckets
+
+def composedRateCharge : RateView -> ComposedRateEvent -> ComposedRateState -> Count :=
+  fun (view : RateView) (event : ComposedRateEvent) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return Count with
+    | composedRateState aggregate buckets =>
+      case event as action in ComposedRateEvent return Count with
+      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>
+        (case view as selected in RateView return Count with
+        | aggregateRateView => rateStartCount
+            (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+            (rateBucketCredit (normalizedSourceKey address) buckets)
+        | sourceRateView key => rateSelectedCount
+            (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+            (normalizedSourceKey address) key buckets)
+      | composedRateTrustedTick => zero
+      | composedRateClaimedTick claimed => zero
+      | composedRateFinish receipt reason => zero
+      | composedRateFailure outcome => zero
+
+def composedRateIssued : RateView -> Count -> Count -> ComposedRateEvent -> Count :=
+  fun (view : RateView) (aggregateRate : Count) (sourceRate : Count) (event : ComposedRateEvent) =>
+    case event as action in ComposedRateEvent return Count with
+    | composedRateAttempt reachability address swarm trusted identity claimedKey eligible => zero
+    | composedRateTrustedTick => rateViewParameter view aggregateRate sourceRate
+    | composedRateClaimedTick claimed => zero
+    | composedRateFinish receipt reason => zero
+    | composedRateFailure outcome => zero
+
+def rateUnchangedBound : (balance : Count) -> AtMost balance (add balance zero) :=
+  fun (balance : Count) => equalTransport Count (fun (limit : Count) => AtMost balance limit)
+    balance (add balance zero) (equalSymmetry Count (add balance zero) balance (addRightZero balance))
+    (reflexiveBound balance)
+
+def composedRateStepBound : (view : RateView) -> (event : ComposedRateEvent) -> (state : ComposedRateState) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    AtMost (add (composedRateCharge view event state)
+      (rateBalance view (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state)))
+      (add (rateBalance view state) (composedRateIssued view aggregateRate sourceRate event)) :=
+  fun (view : RateView) (event : ComposedRateEvent) (state : ComposedRateState)
+      (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) =>
+    case state as current in ComposedRateState return
+        AtMost (add (composedRateCharge view event current)
+          (rateBalance view (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event current)))
+          (add (rateBalance view current) (composedRateIssued view aggregateRate sourceRate event)) with
+    | composedRateState aggregate buckets =>
+      case event as action in ComposedRateEvent return
+          AtMost (add (composedRateCharge view action (composedRateState aggregate buckets))
+            (rateBalance view (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate action
+              (composedRateState aggregate buckets))))
+            (add (rateBalance view (composedRateState aggregate buckets))
+              (composedRateIssued view aggregateRate sourceRate action)) with
+      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>
+        (case view as selected in RateView return
+            AtMost (add (composedRateCharge selected
+              (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+              (composedRateState aggregate buckets))
+              (rateBalance selected (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+                (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+                (composedRateState aggregate buckets))))
+              (add (rateBalance selected (composedRateState aggregate buckets)) zero) with
+        | aggregateRateView => equalTransport Count
+            (fun (limit : Count) => AtMost (add
+              (rateStartCount (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+                (rateBucketCredit (normalizedSourceKey address) buckets))
+              (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+                aggregate (rateBucketCredit (normalizedSourceKey address) buckets))) limit)
+            aggregate (add aggregate zero) (equalSymmetry Count (add aggregate zero) aggregate (addRightZero aggregate))
+            (rateAggregateSpendBound (rateValidatedEligibility reachability eligible) aggregate
+              (rateBucketCredit (normalizedSourceKey address) buckets))
+        | sourceRateView key => equalTransport Count
+            (fun (limit : Count) => AtMost (add
+              (rateSelectedCount (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+                (normalizedSourceKey address) key buckets)
+              (rateBucketCredit key (rateSourceSpend
+                (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+                (normalizedSourceKey address) buckets))) limit)
+            (rateBucketCredit key buckets) (add (rateBucketCredit key buckets) zero)
+            (equalSymmetry Count (add (rateBucketCredit key buckets) zero) (rateBucketCredit key buckets)
+              (addRightZero (rateBucketCredit key buckets)))
+            (rateSourceSpendBound (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+              (normalizedSourceKey address) key buckets))
+      | composedRateTrustedTick =>
+        (case view as selected in RateView return
+            AtMost (rateBalance selected (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+              composedRateTrustedTick (composedRateState aggregate buckets)))
+              (add (rateBalance selected (composedRateState aggregate buckets))
+                (rateViewParameter selected aggregateRate sourceRate)) with
+        | aggregateRateView => boundedWorkRightBound aggregateBurst (add aggregate aggregateRate)
+        | sourceRateView key => rateRefillAtBound buckets key sourceBurst sourceRate)
+      | composedRateClaimedTick claimed => rateUnchangedBound (rateBalance view (composedRateState aggregate buckets))
+      | composedRateFinish receipt reason => rateUnchangedBound (rateBalance view (composedRateState aggregate buckets))
+      | composedRateFailure outcome => rateUnchangedBound (rateBalance view (composedRateState aggregate buckets))
+
+mu ComposedRateTrace : Type 0 with
+| composedRatesDone : ComposedRateTrace
+| composedRatesThen : ComposedRateEvent -> ComposedRateTrace -> ComposedRateTrace
+
+def rec composedRateStartsCore : ComposedRateTrace -> RateView -> Count -> Count -> Count -> Count -> ComposedRateState -> Count :=
+  fun (trace : ComposedRateTrace) (view : RateView) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case trace as history in ComposedRateTrace return Count with
+    | composedRatesDone => zero
+    | composedRatesThen event rest => add (composedRateCharge view event state)
+        (composedRateStartsCore rest view aggregateBurst aggregateRate sourceBurst sourceRate
+          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state))
+
+def composedRateStarts : RateView -> ComposedRateTrace -> Count -> Count -> Count -> Count -> ComposedRateState -> Count :=
+  fun (view : RateView) (trace : ComposedRateTrace) => composedRateStartsCore trace view
+
+def rec composedRateAllowanceCore : ComposedRateTrace -> RateView -> Count -> Count -> Count :=
+  fun (trace : ComposedRateTrace) (view : RateView) (aggregateRate : Count) (sourceRate : Count) =>
+    case trace as history in ComposedRateTrace return Count with
+    | composedRatesDone => zero
+    | composedRatesThen event rest => add (composedRateIssued view aggregateRate sourceRate event)
+        (composedRateAllowanceCore rest view aggregateRate sourceRate)
+
+def composedRateAllowance : RateView -> ComposedRateTrace -> Count -> Count -> Count :=
+  fun (view : RateView) (trace : ComposedRateTrace) => composedRateAllowanceCore trace view
+
+def rec composedRateTrustedTicks : ComposedRateTrace -> Count :=
+  fun (trace : ComposedRateTrace) =>
+    case trace as history in ComposedRateTrace return Count with
+    | composedRatesDone => zero
+    | composedRatesThen event rest =>
+      case event as action in ComposedRateEvent return Count with
+      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible => composedRateTrustedTicks rest
+      | composedRateTrustedTick => next (composedRateTrustedTicks rest)
+      | composedRateClaimedTick claimed => composedRateTrustedTicks rest
+      | composedRateFinish receipt reason => composedRateTrustedTicks rest
+      | composedRateFailure outcome => composedRateTrustedTicks rest
+
+def rateContinuationBound : (charge : Count) -> (before : Count) -> (after : Count) ->
+    (allowance : Count) -> (future : Count) -> AtMost (add charge after) before ->
+    AtMost future (add after allowance) -> AtMost (add charge future) (add before allowance) :=
+  fun (charge : Count) (before : Count) (after : Count) (allowance : Count) (future : Count)
+      (local : AtMost (add charge after) before) (continuation : AtMost future (add after allowance)) =>
+    boundTransitive (add charge future) (add (add charge after) allowance) (add before allowance)
+      (equalTransport Count (fun (limit : Count) => AtMost (add charge future) limit)
+        (add charge (add after allowance)) (add (add charge after) allowance)
+        (equalSymmetry Count (add (add charge after) allowance) (add charge (add after allowance))
+          (addAssociative charge after allowance))
+        (addBounds charge charge future (add after allowance) (reflexiveBound charge) continuation))
+      (addBounds (add charge after) before allowance allowance local (reflexiveBound allowance))
+
+def rec composedRateCreditConservationCore : (trace : ComposedRateTrace) -> (view : RateView) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (state : ComposedRateState) -> AtMost
+      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+      (add (rateBalance view state) (composedRateAllowance view trace aggregateRate sourceRate)) :=
+  fun (trace : ComposedRateTrace) (view : RateView) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case trace as history in ComposedRateTrace return AtMost
+        (composedRateStarts view history aggregateBurst aggregateRate sourceBurst sourceRate state)
+        (add (rateBalance view state) (composedRateAllowance view history aggregateRate sourceRate)) with
+    | composedRatesDone => least (add (rateBalance view state) zero)
+    | composedRatesThen event rest =>
+      equalTransport Count
+        (fun (limit : Count) => AtMost
+          (composedRateStarts view (composedRatesThen event rest) aggregateBurst aggregateRate sourceBurst sourceRate state) limit)
+        (add (add (rateBalance view state) (composedRateIssued view aggregateRate sourceRate event))
+          (composedRateAllowance view rest aggregateRate sourceRate))
+        (add (rateBalance view state) (add (composedRateIssued view aggregateRate sourceRate event)
+          (composedRateAllowance view rest aggregateRate sourceRate)))
+        (addAssociative (rateBalance view state) (composedRateIssued view aggregateRate sourceRate event)
+          (composedRateAllowance view rest aggregateRate sourceRate))
+        (rateContinuationBound (composedRateCharge view event state)
+          (add (rateBalance view state) (composedRateIssued view aggregateRate sourceRate event))
+          (rateBalance view (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state))
+          (composedRateAllowance view rest aggregateRate sourceRate)
+          (composedRateStarts view rest aggregateBurst aggregateRate sourceBurst sourceRate
+            (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state))
+          (composedRateStepBound view event state aggregateBurst aggregateRate sourceBurst sourceRate)
+          (composedRateCreditConservationCore rest view aggregateBurst aggregateRate sourceBurst sourceRate
+            (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state)))
+
+def composedRateCreditConservation : (view : RateView) -> (trace : ComposedRateTrace) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (state : ComposedRateState) -> AtMost
+      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+      (add (rateBalance view state) (composedRateAllowance view trace aggregateRate sourceRate)) :=
+  fun (view : RateView) (trace : ComposedRateTrace) => composedRateCreditConservationCore trace view
+
+def rec composedRateUniformIssuanceCore : (trace : ComposedRateTrace) -> (view : RateView) ->
+    (aggregateRate : Count) -> (sourceRate : Count) -> Equal Count
+      (composedRateAllowance view trace aggregateRate sourceRate)
+      (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate)) :=
+  fun (trace : ComposedRateTrace) (view : RateView) (aggregateRate : Count) (sourceRate : Count) =>
+    case trace as history in ComposedRateTrace return Equal Count
+        (composedRateAllowance view history aggregateRate sourceRate)
+        (multiply (composedRateTrustedTicks history) (rateViewParameter view aggregateRate sourceRate)) with
+    | composedRatesDone => same
+    | composedRatesThen event rest =>
+      case event as action in ComposedRateEvent return Equal Count
+          (composedRateAllowance view (composedRatesThen action rest) aggregateRate sourceRate)
+          (multiply (composedRateTrustedTicks (composedRatesThen action rest)) (rateViewParameter view aggregateRate sourceRate)) with
+      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>
+          composedRateUniformIssuanceCore rest view aggregateRate sourceRate
+      | composedRateTrustedTick => congruent Count Count
+          (fun (issued : Count) => add (rateViewParameter view aggregateRate sourceRate) issued)
+          (composedRateAllowance view rest aggregateRate sourceRate)
+          (multiply (composedRateTrustedTicks rest) (rateViewParameter view aggregateRate sourceRate))
+          (composedRateUniformIssuanceCore rest view aggregateRate sourceRate)
+      | composedRateClaimedTick claimed => composedRateUniformIssuanceCore rest view aggregateRate sourceRate
+      | composedRateFinish receipt reason => composedRateUniformIssuanceCore rest view aggregateRate sourceRate
+      | composedRateFailure outcome => composedRateUniformIssuanceCore rest view aggregateRate sourceRate
+
+def composedRateUniformIssuance : (view : RateView) -> (trace : ComposedRateTrace) ->
+    (aggregateRate : Count) -> (sourceRate : Count) -> Equal Count
+      (composedRateAllowance view trace aggregateRate sourceRate)
+      (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate)) :=
+  fun (view : RateView) (trace : ComposedRateTrace) => composedRateUniformIssuanceCore trace view
+
+def composedBurstRateEnvelope : (view : RateView) -> (trace : ComposedRateTrace) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (state : ComposedRateState) -> AtMost (rateBalance view state)
+      (rateViewParameter view aggregateBurst sourceBurst) -> AtMost
+      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+      (add (rateViewParameter view aggregateBurst sourceBurst)
+        (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate))) :=
+  fun (view : RateView) (trace : ComposedRateTrace) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState)
+      (initial : AtMost (rateBalance view state) (rateViewParameter view aggregateBurst sourceBurst)) =>
+    equalTransport Count (fun (issued : Count) => AtMost
+      (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+      (add (rateViewParameter view aggregateBurst sourceBurst) issued))
+      (composedRateAllowance view trace aggregateRate sourceRate)
+      (multiply (composedRateTrustedTicks trace) (rateViewParameter view aggregateRate sourceRate))
+      (composedRateUniformIssuance view trace aggregateRate sourceRate)
+      (boundTransitive
+        (composedRateStarts view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+        (add (rateBalance view state) (composedRateAllowance view trace aggregateRate sourceRate))
+        (add (rateViewParameter view aggregateBurst sourceBurst) (composedRateAllowance view trace aggregateRate sourceRate))
+        (composedRateCreditConservation view trace aggregateBurst aggregateRate sourceBurst sourceRate state)
+        (addBounds (rateBalance view state) (rateViewParameter view aggregateBurst sourceBurst)
+          (composedRateAllowance view trace aggregateRate sourceRate) (composedRateAllowance view trace aggregateRate sourceRate)
+          initial (reflexiveBound (composedRateAllowance view trace aggregateRate sourceRate))))
+
+def rateSelectedCountAtKey : (enabled : Flag) -> (key : Count) -> (buckets : RateBuckets) ->
+    Equal Count (rateSelectedCount enabled key key buckets)
+      (rateStartCount enabled (rateBucketCredit key buckets)) :=
+  fun (enabled : Flag) (key : Count) (buckets : RateBuckets) =>
+    case enabled as allowed in Flag return Equal Count (rateSelectedCount allowed key key buckets)
+        (rateStartCount allowed (rateBucketCredit key buckets)) with
+    | off => same
+    | on => congruent Flag Count
+        (fun (matches : Flag) => case matches as selected in Flag return Count with
+          | off => zero | on => rateNonempty (rateBucketCredit key buckets))
+        (sameCount key key) on (sameCountReflexive key)
+
+def rec rateRefillAtCap : (buckets : RateBuckets) -> (key : Count) -> (burst : Count) -> (rate : Count) ->
+    AtMost (rateBucketCredit key (refillRateBuckets burst rate buckets)) burst :=
+  fun (buckets : RateBuckets) (key : Count) (burst : Count) (rate : Count) =>
+    case buckets as table in RateBuckets return AtMost (rateBucketCredit key (refillRateBuckets burst rate table)) burst with
+    | rateBucketsEnd => least burst
+    | rateBucket credits rest =>
+      case key as index in Count return AtMost
+          (rateBucketCredit index (refillRateBuckets burst rate (rateBucket credits rest))) burst with
+      | zero => workBound burst (add credits rate)
+      | next tail => rateRefillAtCap rest tail burst rate
+
+def composedAggregateRefillCap : (aggregateBurst : Count) -> (aggregateRate : Count) ->
+    (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    AtMost (rateBalance aggregateRateView
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick state)) aggregateBurst :=
+  fun (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return AtMost (rateBalance aggregateRateView
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick current)) aggregateBurst with
+    | composedRateState aggregate buckets => workBound aggregateBurst (add aggregate aggregateRate)
+
+def composedSourceRefillCap : (key : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) ->
+    (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    AtMost (rateBalance (sourceRateView key)
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick state)) sourceBurst :=
+  fun (key : Count) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count)
+      (state : ComposedRateState) =>
+    case state as current in ComposedRateState return AtMost (rateBalance (sourceRateView key)
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate composedRateTrustedTick current)) sourceBurst with
+    | composedRateState aggregate buckets => rateRefillAtCap buckets key sourceBurst sourceRate
+
+def composedValidatedAttemptUsesCanonicalKey : (address : SourceAddress) -> (swarm : SwarmClass) ->
+    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (aggregate : Count) -> (buckets : RateBuckets) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt validated address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))
+      (composedRateState
+        (rateAggregateSpend (rateAggregateGate eligible aggregate) aggregate (rateBucketCredit (normalizedSourceKey address) buckets))
+        (rateSourceSpend (rateAggregateGate eligible aggregate) (normalizedSourceKey address) buckets)) :=
+  fun (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count)
+      (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count)
+      (aggregate : Count) (buckets : RateBuckets) => same
+
+def composedUnvalidatedAttemptNoOp : (address : SourceAddress) -> (swarm : SwarmClass) ->
+    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (state : ComposedRateState) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt unvalidated address swarm trusted identity claimedKey eligible) state) state :=
+  fun (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count)
+      (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count)
+      (state : ComposedRateState) =>
+    case state as current in ComposedRateState return Equal ComposedRateState
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+          (composedRateAttempt unvalidated address swarm trusted identity claimedKey eligible) current) current with
+    | composedRateState aggregate buckets =>
+      case aggregate as balance in Count return Equal ComposedRateState
+          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+            (composedRateAttempt unvalidated address swarm trusted identity claimedKey eligible) (composedRateState balance buckets))
+          (composedRateState balance buckets) with
+      | zero => same
+      | next rest => same
+
+def composedZeroAggregateNoOp : (reachability : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) ->
+    (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (buckets : RateBuckets) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState zero buckets))
+      (composedRateState zero buckets) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag) (identity : Count)
+      (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count)
+      (sourceRate : Count) (buckets : RateBuckets) => same
+
+def composedAttemptMetadataIndependent : (reachability : Reachability) -> (address : SourceAddress) ->
+    (leftSwarm : SwarmClass) -> (rightSwarm : SwarmClass) -> (leftTrusted : Flag) -> (rightTrusted : Flag) ->
+    (leftIdentity : Count) -> (rightIdentity : Count) -> (leftClaimed : Count) -> (rightClaimed : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (state : ComposedRateState) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address leftSwarm leftTrusted leftIdentity leftClaimed eligible) state)
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address rightSwarm rightTrusted rightIdentity rightClaimed eligible) state) :=
+  fun (reachability : Reachability) (address : SourceAddress) (leftSwarm : SwarmClass) (rightSwarm : SwarmClass)
+      (leftTrusted : Flag) (rightTrusted : Flag) (leftIdentity : Count) (rightIdentity : Count)
+      (leftClaimed : Count) (rightClaimed : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return Equal ComposedRateState
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+          (composedRateAttempt reachability address leftSwarm leftTrusted leftIdentity leftClaimed eligible) current)
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+          (composedRateAttempt reachability address rightSwarm rightTrusted rightIdentity rightClaimed eligible) current) with
+    | composedRateState aggregate buckets => same
+
+def rateMissingBucketCannotGrant : (enabled : Flag) -> (key : Count) ->
+    Equal Count (rateStartCount enabled (rateBucketCredit key rateBucketsEnd)) zero :=
+  fun (enabled : Flag) (key : Count) =>
+    case enabled as allowed in Flag return Equal Count (rateStartCount allowed (rateBucketCredit key rateBucketsEnd)) zero with
+    | off => same
+    | on => same
+
+def rateNonemptyCountsOne : (remaining : Count) -> Equal Count (rateNonempty (next remaining)) (next zero) :=
+  fun (remaining : Count) => same
+
+def rec rateBucketWidth : RateBuckets -> Count :=
+  fun (buckets : RateBuckets) =>
+    case buckets as table in RateBuckets return Count with
+    | rateBucketsEnd => zero
+    | rateBucket credits rest => next (rateBucketWidth rest)
+
+def rec appendRateBuckets : RateBuckets -> RateBuckets -> RateBuckets :=
+  fun (prefix : RateBuckets) (suffix : RateBuckets) =>
+    case prefix as table in RateBuckets return RateBuckets with
+    | rateBucketsEnd => suffix
+    | rateBucket credits rest => rateBucket credits (appendRateBuckets rest suffix)
+
+def rec rateBoundaryCreditZero : (prefix : RateBuckets) -> (suffix : RateBuckets) -> Equal Count
+    (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))) zero :=
+  fun (prefix : RateBuckets) (suffix : RateBuckets) =>
+    case prefix as table in RateBuckets return Equal Count
+        (rateBucketCredit (rateBucketWidth table) (appendRateBuckets table (rateBucket zero suffix))) zero with
+    | rateBucketsEnd => same
+    | rateBucket credits rest => rateBoundaryCreditZero rest suffix
+
+def rec rateBoundaryZeroDebitNoOp : (prefix : RateBuckets) -> (suffix : RateBuckets) -> Equal RateBuckets
+    (debitRateBucket (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix)))
+    (appendRateBuckets prefix (rateBucket zero suffix)) :=
+  fun (prefix : RateBuckets) (suffix : RateBuckets) =>
+    case prefix as table in RateBuckets return Equal RateBuckets
+        (debitRateBucket (rateBucketWidth table) (appendRateBuckets table (rateBucket zero suffix)))
+        (appendRateBuckets table (rateBucket zero suffix)) with
+    | rateBucketsEnd => same
+    | rateBucket credits rest => congruent RateBuckets RateBuckets (fun (after : RateBuckets) => rateBucket credits after)
+        (debitRateBucket (rateBucketWidth rest) (appendRateBuckets rest (rateBucket zero suffix)))
+        (appendRateBuckets rest (rateBucket zero suffix)) (rateBoundaryZeroDebitNoOp rest suffix)
+
+def rateZeroBoundaryAttemptStable : (enabled : Flag) -> (aggregate : Count) -> (prefix : RateBuckets) -> (suffix : RateBuckets) ->
+    Equal ComposedRateState (composedRateState
+      (rateAggregateSpend enabled aggregate
+        (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+      (rateSourceSpend enabled (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+      (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))) :=
+  fun (enabled : Flag) (aggregate : Count) (prefix : RateBuckets) (suffix : RateBuckets) =>
+    case enabled as allowed in Flag return Equal ComposedRateState (composedRateState
+        (rateAggregateSpend allowed aggregate
+          (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+        (rateSourceSpend allowed (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+        (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))) with
+    | off => same
+    | on => equalTransitivity ComposedRateState
+        (composedRateState (rateAggregateSpend on aggregate
+          (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+          (debitRateBucket (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+        (composedRateState aggregate (debitRateBucket (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+        (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix)))
+        (congruent Count ComposedRateState (fun (credits : Count) => composedRateState
+          (rateAggregateSpend on aggregate credits)
+          (debitRateBucket (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+          (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))) zero
+          (rateBoundaryCreditZero prefix suffix))
+        (congruent RateBuckets ComposedRateState (fun (after : RateBuckets) => composedRateState aggregate after)
+          (debitRateBucket (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix)))
+          (appendRateBuckets prefix (rateBucket zero suffix)) (rateBoundaryZeroDebitNoOp prefix suffix))
+
+def composedZeroSourceBoundaryNoOp : (reachability : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (aggregate : Count) -> (prefix : RateBuckets) -> (suffix : RateBuckets) ->
+    Equal Count (normalizedSourceKey address) (rateBucketWidth prefix) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+        (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))))
+      (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag)
+      (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (aggregate : Count) (prefix : RateBuckets) (suffix : RateBuckets)
+      (selected : Equal Count (normalizedSourceKey address) (rateBucketWidth prefix)) =>
+    equalTransitivity ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+        (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix))))
+      (composedRateState
+        (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) aggregate
+          (rateBucketCredit (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+        (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+          (rateBucketWidth prefix) (appendRateBuckets prefix (rateBucket zero suffix))))
+      (composedRateState aggregate (appendRateBuckets prefix (rateBucket zero suffix)))
+      (congruent Count ComposedRateState (fun (key : Count) => composedRateState
+        (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) aggregate
+          (rateBucketCredit key (appendRateBuckets prefix (rateBucket zero suffix))))
+        (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) key
+          (appendRateBuckets prefix (rateBucket zero suffix))))
+        (normalizedSourceKey address) (rateBucketWidth prefix) selected)
+      (rateZeroBoundaryAttemptStable (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+        aggregate prefix suffix)
+
+def rateEmptyAttemptStable : (enabled : Flag) -> (aggregate : Count) -> (key : Count) -> Equal ComposedRateState
+    (composedRateState (rateAggregateSpend enabled aggregate zero) (rateSourceSpend enabled key rateBucketsEnd))
+    (composedRateState aggregate rateBucketsEnd) :=
+  fun (enabled : Flag) (aggregate : Count) (key : Count) =>
+    case enabled as allowed in Flag return Equal ComposedRateState
+        (composedRateState (rateAggregateSpend allowed aggregate zero) (rateSourceSpend allowed key rateBucketsEnd))
+        (composedRateState aggregate rateBucketsEnd) with
+    | off => same
+    | on => same
+
+def composedMissingBucketNoOp : (reachability : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (aggregate : Count) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+        (composedRateState aggregate rateBucketsEnd)) (composedRateState aggregate rateBucketsEnd) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag)
+      (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (aggregate : Count) =>
+    rateEmptyAttemptStable (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+      aggregate (normalizedSourceKey address)
+
+def rec rateDebitSelectedExactly : (buckets : RateBuckets) -> (key : Count) ->
+    Equal Count (rateBucketCredit key (debitRateBucket key buckets)) (predecessor (rateBucketCredit key buckets)) :=
+  fun (buckets : RateBuckets) (key : Count) =>
+    case buckets as table in RateBuckets return Equal Count
+        (rateBucketCredit key (debitRateBucket key table)) (predecessor (rateBucketCredit key table)) with
+    | rateBucketsEnd => same
+    | rateBucket credits rest =>
+      case key as index in Count return Equal Count
+          (rateBucketCredit index (debitRateBucket index (rateBucket credits rest)))
+          (predecessor (rateBucketCredit index (rateBucket credits rest))) with
+      | zero => same
+      | next tail => rateDebitSelectedExactly rest tail
+
+def composedAttemptChargeUsesCanonicalKey : (reachability : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregate : Count) -> (buckets : RateBuckets) -> Equal Count
+      (composedRateCharge aggregateRateView (composedRateAttempt reachability address swarm trusted identity claimedKey eligible)
+        (composedRateState aggregate buckets))
+      (rateStartCount (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+        (rateBucketCredit (normalizedSourceKey address) buckets)) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag)
+      (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregate : Count) (buckets : RateBuckets) => same
+
+def composedAttemptSelectedChargeEqualsAggregate : (reachability : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregate : Count) -> (buckets : RateBuckets) -> Equal Count
+      (composedRateCharge (sourceRateView (normalizedSourceKey address))
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))
+      (composedRateCharge aggregateRateView
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets)) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag)
+      (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregate : Count) (buckets : RateBuckets) =>
+    rateSelectedCountAtKey (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+      (normalizedSourceKey address) buckets
+
+def composedIpv4SharedPrefix : (prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state) :=
+  fun (prefix : Count) (leftHost : Count) (rightHost : Count) (reachability : Reachability) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) current) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) current) with
+    | composedRateState aggregate buckets => same
+
+def composedIpv6SharedPrefix : (prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv6SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv6SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state) :=
+  fun (prefix : Count) (leftHost : Count) (rightHost : Count) (reachability : Reachability) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv6SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) current) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv6SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) current) with
+    | composedRateState aggregate buckets => same
+
+def composedMappedIpv4SharesNative : (prefix : Count) -> (leftHost : Count) -> (rightHost : Count) -> (reachability : Reachability) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (mappedIpv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) state) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) state) :=
+  fun (prefix : Count) (leftHost : Count) (rightHost : Count) (reachability : Reachability) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (mappedIpv4SourceAddress prefix leftHost) swarm trusted identity claimedKey eligible) current) (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability (ipv4SourceAddress prefix rightHost) swarm trusted identity claimedKey eligible) current) with
+    | composedRateState aggregate buckets => same
+
+def composedClaimedTickNoOp : (claimed : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateClaimedTick claimed) state) state :=
+  fun (claimed : Count) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateClaimedTick claimed) current) current with
+    | composedRateState aggregate buckets => same
+
+def composedFinishNoOp : (receipt : AdmissionReceipt) -> (reason : PendingEnd) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateFinish receipt reason) state) state :=
+  fun (receipt : AdmissionReceipt) (reason : PendingEnd) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateFinish receipt reason) current) current with
+    | composedRateState aggregate buckets => same
+
+def composedFailureNoOp : (outcome : Outcome) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateFailure outcome) state) state :=
+  fun (outcome : Outcome) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return
+        Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateFailure outcome) current) current with
+    | composedRateState aggregate buckets => same
+
+def composedIneligibleAttemptNoOp : (reachability : Reachability) -> (address : SourceAddress) -> (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) -> (state : ComposedRateState) ->
+    Equal ComposedRateState (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey off) state) state :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag) (identity : Count) (claimedKey : Count) (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>
+    case state as current in ComposedRateState return Equal ComposedRateState
+        (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey off) current) current with
+    | composedRateState aggregate buckets =>
+      case reachability as source in Reachability return Equal ComposedRateState
+          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt source address swarm trusted identity claimedKey off) (composedRateState aggregate buckets))
+          (composedRateState aggregate buckets) with
+      | unvalidated => (case aggregate as balance in Count return Equal ComposedRateState
+          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt unvalidated address swarm trusted identity claimedKey off) (composedRateState balance buckets))
+          (composedRateState balance buckets) with
+        | zero => same
+        | next rest => same)
+      | validated => (case aggregate as balance in Count return Equal ComposedRateState
+          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt validated address swarm trusted identity claimedKey off) (composedRateState balance buckets))
+          (composedRateState balance buckets) with
+        | zero => same
+        | next rest => same)
+
+def rec rateBeyondAllocationCreditZero : (buckets : RateBuckets) -> (offset : Count) -> Equal Count
+    (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets) zero :=
+  fun (buckets : RateBuckets) (offset : Count) =>
+    case buckets as table in RateBuckets return Equal Count
+        (rateBucketCredit (add (rateBucketWidth table) offset) table) zero with
+    | rateBucketsEnd => same
+    | rateBucket credits rest => rateBeyondAllocationCreditZero rest offset
+
+def rec rateBeyondAllocationDebitNoOp : (buckets : RateBuckets) -> (offset : Count) -> Equal RateBuckets
+    (debitRateBucket (add (rateBucketWidth buckets) offset) buckets) buckets :=
+  fun (buckets : RateBuckets) (offset : Count) =>
+    case buckets as table in RateBuckets return Equal RateBuckets
+        (debitRateBucket (add (rateBucketWidth table) offset) table) table with
+    | rateBucketsEnd => same
+    | rateBucket credits rest => congruent RateBuckets RateBuckets (fun (after : RateBuckets) => rateBucket credits after)
+        (debitRateBucket (add (rateBucketWidth rest) offset) rest) rest (rateBeyondAllocationDebitNoOp rest offset)
+
+def rateBeyondAllocationAttemptStable : (enabled : Flag) -> (aggregate : Count) -> (buckets : RateBuckets) -> (offset : Count) ->
+    Equal ComposedRateState (composedRateState
+      (rateAggregateSpend enabled aggregate (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets))
+      (rateSourceSpend enabled (add (rateBucketWidth buckets) offset) buckets)) (composedRateState aggregate buckets) :=
+  fun (enabled : Flag) (aggregate : Count) (buckets : RateBuckets) (offset : Count) =>
+    case enabled as allowed in Flag return Equal ComposedRateState (composedRateState
+        (rateAggregateSpend allowed aggregate (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets))
+        (rateSourceSpend allowed (add (rateBucketWidth buckets) offset) buckets)) (composedRateState aggregate buckets) with
+    | off => same
+    | on => equalTransitivity ComposedRateState
+        (composedRateState (rateAggregateSpend on aggregate (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets))
+          (debitRateBucket (add (rateBucketWidth buckets) offset) buckets))
+        (composedRateState aggregate (debitRateBucket (add (rateBucketWidth buckets) offset) buckets))
+        (composedRateState aggregate buckets)
+        (congruent Count ComposedRateState (fun (credits : Count) => composedRateState (rateAggregateSpend on aggregate credits)
+          (debitRateBucket (add (rateBucketWidth buckets) offset) buckets))
+          (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets) zero (rateBeyondAllocationCreditZero buckets offset))
+        (congruent RateBuckets ComposedRateState (fun (after : RateBuckets) => composedRateState aggregate after)
+          (debitRateBucket (add (rateBucketWidth buckets) offset) buckets) buckets (rateBeyondAllocationDebitNoOp buckets offset))
+
+def composedBeyondAllocationNoOp : (reachability : Reachability) -> (address : SourceAddress) ->
+    (swarm : SwarmClass) -> (trusted : Flag) -> (identity : Count) -> (claimedKey : Count) -> (eligible : Flag) ->
+    (aggregateBurst : Count) -> (aggregateRate : Count) -> (sourceBurst : Count) -> (sourceRate : Count) ->
+    (aggregate : Count) -> (buckets : RateBuckets) -> (offset : Count) ->
+    Equal Count (normalizedSourceKey address) (add (rateBucketWidth buckets) offset) -> Equal ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))
+      (composedRateState aggregate buckets) :=
+  fun (reachability : Reachability) (address : SourceAddress) (swarm : SwarmClass) (trusted : Flag)
+      (identity : Count) (claimedKey : Count) (eligible : Flag) (aggregateBurst : Count) (aggregateRate : Count)
+      (sourceBurst : Count) (sourceRate : Count) (aggregate : Count) (buckets : RateBuckets) (offset : Count)
+      (selected : Equal Count (normalizedSourceKey address) (add (rateBucketWidth buckets) offset)) =>
+    equalTransitivity ComposedRateState
+      (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate
+        (composedRateAttempt reachability address swarm trusted identity claimedKey eligible) (composedRateState aggregate buckets))
+      (composedRateState (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) aggregate
+        (rateBucketCredit (add (rateBucketWidth buckets) offset) buckets))
+        (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+          (add (rateBucketWidth buckets) offset) buckets))
+      (composedRateState aggregate buckets)
+      (congruent Count ComposedRateState (fun (key : Count) => composedRateState
+        (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) aggregate
+          (rateBucketCredit key buckets))
+        (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate) key buckets))
+        (normalizedSourceKey address) (add (rateBucketWidth buckets) offset) selected)
+      (rateBeyondAllocationAttemptStable (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)
+        aggregate buckets offset)

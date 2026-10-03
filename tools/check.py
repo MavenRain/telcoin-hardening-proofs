@@ -2567,6 +2567,86 @@ MUTATIONS += [
 ]
 
 
+# R03: joint aggregate and normalized-prefix rate controls.
+
+_COMPOSED_RATE_RATE_BUCKET_CREDIT_CORE = 'def rec rateBucketCreditCore : RateBuckets -> Count -> Count :=\n  fun (buckets : RateBuckets) (key : Count) =>\n    case buckets as table in RateBuckets return Count with\n    | rateBucketsEnd => zero\n    | rateBucket credits rest =>\n      case key as index in Count return Count with\n      | zero => credits\n      | next tail => rateBucketCreditCore rest tail\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_BUCKET_CREDIT_CORE, _COMPOSED_RATE_RATE_BUCKET_CREDIT_CORE.replace(before, after))
+              for name, before, after in [('composed_rate_missing_bucket_grants', '| rateBucketsEnd => zero', '| rateBucketsEnd => next zero')]]
+
+
+_COMPOSED_RATE_DEBIT_RATE_BUCKET_CORE = 'def rec debitRateBucketCore : RateBuckets -> Count -> RateBuckets :=\n  fun (buckets : RateBuckets) (key : Count) =>\n    case buckets as table in RateBuckets return RateBuckets with\n    | rateBucketsEnd => rateBucketsEnd\n    | rateBucket credits rest =>\n      case key as index in Count return RateBuckets with\n      | zero => rateBucket (predecessor credits) rest\n      | next tail => rateBucket credits (debitRateBucketCore rest tail)\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_DEBIT_RATE_BUCKET_CORE, _COMPOSED_RATE_DEBIT_RATE_BUCKET_CORE.replace(before, after))
+              for name, before, after in [('composed_rate_source_debit_skipped', 'rateBucket (predecessor credits) rest', 'rateBucket credits rest'), ('composed_rate_source_debit_twice', 'rateBucket (predecessor credits) rest', 'rateBucket (predecessor (predecessor credits)) rest'), ('composed_rate_refused_source_debits_neighbor', 'rateBucket (predecessor credits) rest', 'rateBucket (predecessor credits) (debitRateBucketCore rest zero)'), ('composed_rate_distant_source_debit_skipped', 'rateBucket credits (debitRateBucketCore rest tail)', 'rateBucket credits rest'), ('composed_rate_debit_allocates_missing_bucket', '| rateBucketsEnd => rateBucketsEnd', '| rateBucketsEnd => rateBucket zero rateBucketsEnd')]]
+
+
+_COMPOSED_RATE_REFILL_RATE_BUCKETS_CORE = 'def rec refillRateBucketsCore : RateBuckets -> Count -> Count -> RateBuckets :=\n  fun (buckets : RateBuckets) (burst : Count) (rate : Count) =>\n    case buckets as table in RateBuckets return RateBuckets with\n    | rateBucketsEnd => rateBucketsEnd\n    | rateBucket credits rest =>\n        rateBucket (boundedWork burst (add credits rate)) (refillRateBucketsCore rest burst rate)\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_REFILL_RATE_BUCKETS_CORE, _COMPOSED_RATE_REFILL_RATE_BUCKETS_CORE.replace(before, after))
+              for name, before, after in [('composed_rate_source_refill_overissues', 'add credits rate', 'add credits (next rate)'), ('composed_rate_source_refill_uncapped', 'boundedWork burst (add credits rate)', 'add credits rate'), ('composed_rate_refill_allocates_missing_bucket', '| rateBucketsEnd => rateBucketsEnd', '| rateBucketsEnd => rateBucket rate rateBucketsEnd')]]
+
+
+_COMPOSED_RATE_RATE_NONEMPTY = 'def rateNonempty : Count -> Count :=\n  fun (credits : Count) =>\n    case credits as balance in Count return Count with\n    | zero => zero\n    | next rest => next zero\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_NONEMPTY, _COMPOSED_RATE_RATE_NONEMPTY.replace(before, after))
+              for name, before, after in [('composed_rate_empty_source_grants', '| zero => zero', '| zero => next zero'), ('composed_rate_successful_start_not_counted', '| next rest => next zero', '| next rest => zero')]]
+
+
+_COMPOSED_RATE_RATE_VALIDATED_ELIGIBILITY = 'def rateValidatedEligibility : Reachability -> Flag -> Flag :=\n  fun (source : Reachability) (eligible : Flag) =>\n    case source as reachability in Reachability return Flag with\n    | unvalidated => off\n    | validated => eligible\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_VALIDATED_ELIGIBILITY, _COMPOSED_RATE_RATE_VALIDATED_ELIGIBILITY.replace(before, after))
+              for name, before, after in [('composed_rate_unvalidated_source_grants', '| unvalidated => off', '| unvalidated => eligible'), ('composed_rate_validated_denial_bypassed', '| validated => eligible', '| validated => on')]]
+
+
+_COMPOSED_RATE_RATE_AGGREGATE_GATE = 'def rateAggregateGate : Flag -> Count -> Flag :=\n  fun (eligible : Flag) (credits : Count) =>\n    case credits as balance in Count return Flag with\n    | zero => off\n    | next rest => eligible\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_AGGREGATE_GATE, _COMPOSED_RATE_RATE_AGGREGATE_GATE.replace(before, after))
+              for name, before, after in [('composed_rate_empty_aggregate_grants', '| zero => off', '| zero => eligible'), ('composed_rate_eligibility_bypassed', '| next rest => eligible', '| next rest => on')]]
+
+
+_COMPOSED_RATE_RATE_AGGREGATE_SPEND = 'def rateAggregateSpend : Flag -> Count -> Count -> Count :=\n  fun (enabled : Flag) (credits : Count) (sourceCredits : Count) =>\n    case enabled as allowed in Flag return Count with\n    | off => credits\n    | on =>\n      case sourceCredits as sourceBalance in Count return Count with\n      | zero => credits\n      | next rest => predecessor credits\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_AGGREGATE_SPEND, _COMPOSED_RATE_RATE_AGGREGATE_SPEND.replace(before, after))
+              for name, before, after in [('composed_rate_aggregate_debit_skipped', '| next rest => predecessor credits', '| next rest => credits'), ('composed_rate_empty_source_spends_aggregate', '| zero => credits', '| zero => predecessor credits')]]
+
+
+_COMPOSED_RATE_RATE_SOURCE_SPEND = 'def rateSourceSpend : Flag -> Count -> RateBuckets -> RateBuckets :=\n  fun (enabled : Flag) (key : Count) (buckets : RateBuckets) =>\n    case enabled as allowed in Flag return RateBuckets with\n    | off => buckets\n    | on => debitRateBucket key buckets\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_SOURCE_SPEND, _COMPOSED_RATE_RATE_SOURCE_SPEND.replace(before, after))
+              for name, before, after in [('composed_rate_source_grant_without_debit', '| on => debitRateBucket key buckets', '| on => buckets'), ('composed_rate_denied_attempt_debits_source', '| off => buckets', '| off => debitRateBucket key buckets')]]
+
+
+_COMPOSED_RATE_COMPOSED_RATE_STEP = 'def composedRateStep : Count -> Count -> Count -> Count -> ComposedRateEvent -> ComposedRateState -> ComposedRateState :=\n  fun (aggregateBurst : Count) (aggregateRate : Count) (sourceBurst : Count) (sourceRate : Count)\n      (event : ComposedRateEvent) (state : ComposedRateState) =>\n    case state as current in ComposedRateState return ComposedRateState with\n    | composedRateState aggregate buckets =>\n      case event as action in ComposedRateEvent return ComposedRateState with\n      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>\n          composedRateState\n            (rateAggregateSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n              aggregate (rateBucketCredit (normalizedSourceKey address) buckets))\n            (rateSourceSpend (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n              (normalizedSourceKey address) buckets)\n      | composedRateTrustedTick => composedRateState (boundedWork aggregateBurst (add aggregate aggregateRate))\n          (refillRateBuckets sourceBurst sourceRate buckets)\n      | composedRateClaimedTick claimed => composedRateState aggregate buckets\n      | composedRateFinish receipt reason => composedRateState aggregate buckets\n      | composedRateFailure outcome => composedRateState aggregate buckets\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_COMPOSED_RATE_STEP, _COMPOSED_RATE_COMPOSED_RATE_STEP.replace(before, after))
+              for name, before, after in [('composed_rate_claimed_victim_key_charged', 'normalizedSourceKey address', 'claimedKey'), ('composed_rate_fresh_identity_selects_bucket', 'normalizedSourceKey address', 'identity'), ('composed_rate_trusted_flag_selects_eligibility', 'rateValidatedEligibility reachability eligible', 'rateValidatedEligibility reachability trusted'), ('composed_rate_aggregate_refill_uncapped', 'boundedWork aggregateBurst (add aggregate aggregateRate)', 'add aggregate aggregateRate'), ('composed_rate_source_uses_aggregate_rate', 'refillRateBuckets sourceBurst sourceRate buckets', 'refillRateBuckets sourceBurst aggregateRate buckets'), ('composed_rate_claimed_tick_mints_credit', '| composedRateClaimedTick claimed => composedRateState aggregate buckets', '| composedRateClaimedTick claimed => composedRateState (add aggregate claimed) buckets'), ('composed_rate_completion_refunds_credit', '| composedRateFinish receipt reason => composedRateState aggregate buckets', '| composedRateFinish receipt reason => composedRateState (next aggregate) buckets'), ('composed_rate_failure_refunds_credit', '| composedRateFailure outcome => composedRateState aggregate buckets', '| composedRateFailure outcome => composedRateState (next aggregate) buckets')]]
+
+
+_COMPOSED_RATE_COMPOSED_RATE_CHARGE = 'def composedRateCharge : RateView -> ComposedRateEvent -> ComposedRateState -> Count :=\n  fun (view : RateView) (event : ComposedRateEvent) (state : ComposedRateState) =>\n    case state as current in ComposedRateState return Count with\n    | composedRateState aggregate buckets =>\n      case event as action in ComposedRateEvent return Count with\n      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible =>\n        (case view as selected in RateView return Count with\n        | aggregateRateView => rateStartCount\n            (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n            (rateBucketCredit (normalizedSourceKey address) buckets)\n        | sourceRateView key => rateSelectedCount\n            (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n            (normalizedSourceKey address) key buckets)\n      | composedRateTrustedTick => zero\n      | composedRateClaimedTick claimed => zero\n      | composedRateFinish receipt reason => zero\n      | composedRateFailure outcome => zero\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_COMPOSED_RATE_CHARGE, _COMPOSED_RATE_COMPOSED_RATE_CHARGE.replace(before, after))
+              for name, before, after in [('composed_rate_aggregate_receipt_dropped', '| aggregateRateView => rateStartCount\n            (rateAggregateGate (rateValidatedEligibility reachability eligible) aggregate)\n            (rateBucketCredit (normalizedSourceKey address) buckets)', '| aggregateRateView => zero'), ('composed_rate_selected_receipt_charges_victim', '(normalizedSourceKey address) key buckets', 'claimedKey key buckets')]]
+
+
+_COMPOSED_RATE_RATE_SELECTED_COUNT = 'def rateSelectedCount : Flag -> Count -> Count -> RateBuckets -> Count :=\n  fun (enabled : Flag) (key : Count) (watched : Count) (buckets : RateBuckets) =>\n    case enabled as allowed in Flag return Count with\n    | off => zero\n    | on =>\n      case sameCount key watched as selected in Flag return Count with\n      | off => zero\n      | on => rateNonempty (rateBucketCredit key buckets)\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_RATE_SELECTED_COUNT, _COMPOSED_RATE_RATE_SELECTED_COUNT.replace(before, after))
+              for name, before, after in [('composed_rate_unrelated_prefix_counted', '| off => zero\n      | on => rateNonempty', '| off => next zero\n      | on => rateNonempty')]]
+
+
+_COMPOSED_RATE_COMPOSED_RATE_TRUSTED_TICKS = 'def rec composedRateTrustedTicks : ComposedRateTrace -> Count :=\n  fun (trace : ComposedRateTrace) =>\n    case trace as history in ComposedRateTrace return Count with\n    | composedRatesDone => zero\n    | composedRatesThen event rest =>\n      case event as action in ComposedRateEvent return Count with\n      | composedRateAttempt reachability address swarm trusted identity claimedKey eligible => composedRateTrustedTicks rest\n      | composedRateTrustedTick => next (composedRateTrustedTicks rest)\n      | composedRateClaimedTick claimed => composedRateTrustedTicks rest\n      | composedRateFinish receipt reason => composedRateTrustedTicks rest\n      | composedRateFailure outcome => composedRateTrustedTicks rest\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_COMPOSED_RATE_TRUSTED_TICKS, _COMPOSED_RATE_COMPOSED_RATE_TRUSTED_TICKS.replace(before, after))
+              for name, before, after in [('composed_rate_claimed_tick_advances_time', '| composedRateClaimedTick claimed => composedRateTrustedTicks rest', '| composedRateClaimedTick claimed => next (composedRateTrustedTicks rest)'), ('composed_rate_completion_advances_time', '| composedRateFinish receipt reason => composedRateTrustedTicks rest', '| composedRateFinish receipt reason => next (composedRateTrustedTicks rest)'), ('composed_rate_failure_advances_time', '| composedRateFailure outcome => composedRateTrustedTicks rest', '| composedRateFailure outcome => next (composedRateTrustedTicks rest)')]]
+
+
+_COMPOSED_RATE_COMPOSED_RATE_STARTS_CORE = 'def rec composedRateStartsCore : ComposedRateTrace -> RateView -> Count -> Count -> Count -> Count -> ComposedRateState -> Count :=\n  fun (trace : ComposedRateTrace) (view : RateView) (aggregateBurst : Count) (aggregateRate : Count)\n      (sourceBurst : Count) (sourceRate : Count) (state : ComposedRateState) =>\n    case trace as history in ComposedRateTrace return Count with\n    | composedRatesDone => zero\n    | composedRatesThen event rest => add (composedRateCharge view event state)\n        (composedRateStartsCore rest view aggregateBurst aggregateRate sourceBurst sourceRate\n          (composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state))\n\n'
+
+MUTATIONS += [(name, _COMPOSED_RATE_COMPOSED_RATE_STARTS_CORE, _COMPOSED_RATE_COMPOSED_RATE_STARTS_CORE.replace(before, after))
+              for name, before, after in [('composed_rate_trace_reuses_predebit_state', '(composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state)', 'state')]]
+
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")
