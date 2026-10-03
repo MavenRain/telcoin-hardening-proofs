@@ -1,0 +1,845 @@
+-- One finite established population supplies every resource coordinate.
+-- Runtime routing, atomic updates, generation provenance and unit-cost
+-- domination are refinement premises. Advertised credit is a separate axis.
+
+mu EstablishedKind : Type 0 with
+| establishedConnection : EstablishedKind
+| establishedQuicStream : EstablishedKind
+| establishedRequestResponse : EstablishedKind
+| establishedNegotiating : EstablishedKind
+| establishedKademlia : EstablishedKind
+
+mu EstablishedDirection : Type 0 with
+| establishedIncoming : EstablishedDirection
+| establishedOutgoing : EstablishedDirection
+
+mu EstablishedAxis : Type 0 with
+| establishedSlots : EstablishedKind -> EstablishedDirection -> EstablishedAxis
+| establishedBytes : EstablishedAxis
+| establishedTasks : EstablishedAxis
+| establishedAdvertisedCredit : EstablishedAxis
+
+mu EstablishedResidentAxis : Type 0 with
+| residentBytes : EstablishedResidentAxis
+| residentTasks : EstablishedResidentAxis
+
+-- Actual per-slot resident costs are symbolic supplied upper bounds. The
+-- constructor requires their domination by the reserved byte/task weights.
+mu EstablishedUnit : Type 0 with
+| establishedUnit : (bytes : Count) -> (tasks : Count) -> (advertised : Count) ->
+    (actualBytes : Count) -> (actualTasks : Count) ->
+    AtMost actualBytes bytes -> AtMost actualTasks tasks -> EstablishedUnit
+
+def establishedKindCode : EstablishedKind -> Count :=
+  fun (kind : EstablishedKind) =>
+    case kind as self in EstablishedKind return Count with
+    | establishedConnection => zero
+    | establishedQuicStream => next zero
+    | establishedRequestResponse => next (next zero)
+    | establishedNegotiating => next (next (next zero))
+    | establishedKademlia => next (next (next (next zero)))
+
+def establishedDirectionCode : EstablishedDirection -> Count :=
+  fun (direction : EstablishedDirection) =>
+    case direction as self in EstablishedDirection return Count with
+    | establishedIncoming => zero
+    | establishedOutgoing => next zero
+
+def establishedKindFromCode : Count -> EstablishedKind :=
+  fun (code : Count) =>
+    case code as self in Count return EstablishedKind with
+    | zero => establishedConnection
+    | next afterConnection =>
+      case afterConnection as stream in Count return EstablishedKind with
+      | zero => establishedQuicStream
+      | next afterStream =>
+        case afterStream as request in Count return EstablishedKind with
+        | zero => establishedRequestResponse
+        | next afterRequest =>
+          case afterRequest as substream in Count return EstablishedKind with
+          | zero => establishedNegotiating
+          | next remaining => establishedKademlia
+
+def establishedKindCodeRoundtrip : (kind : EstablishedKind) ->
+    Equal EstablishedKind (establishedKindFromCode (establishedKindCode kind)) kind :=
+  fun (kind : EstablishedKind) =>
+    case kind as self in EstablishedKind return
+        Equal EstablishedKind (establishedKindFromCode (establishedKindCode self)) self with
+    | establishedConnection => same
+    | establishedQuicStream => same
+    | establishedRequestResponse => same
+    | establishedNegotiating => same
+    | establishedKademlia => same
+
+def establishedDirectionFromCode : Count -> EstablishedDirection :=
+  fun (code : Count) =>
+    case code as self in Count return EstablishedDirection with
+    | zero => establishedIncoming
+    | next remaining => establishedOutgoing
+
+def establishedDirectionCodeRoundtrip : (direction : EstablishedDirection) ->
+    Equal EstablishedDirection (establishedDirectionFromCode (establishedDirectionCode direction)) direction :=
+  fun (direction : EstablishedDirection) =>
+    case direction as self in EstablishedDirection return
+        Equal EstablishedDirection (establishedDirectionFromCode (establishedDirectionCode self)) self with
+    | establishedIncoming => same
+    | establishedOutgoing => same
+
+def establishedFlagCount : Flag -> Count :=
+  fun (flag : Flag) =>
+    case flag as self in Flag return Count with
+    | off => zero
+    | on => next zero
+
+def establishedUnitValue : EstablishedAxis -> EstablishedKind -> EstablishedDirection -> EstablishedUnit -> Count :=
+  fun (axis : EstablishedAxis) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) =>
+    case axis as self in EstablishedAxis return Count with
+    | establishedSlots selectedKind selectedDirection => establishedFlagCount
+        (both (sameCount (establishedKindCode kind) (establishedKindCode selectedKind))
+          (sameCount (establishedDirectionCode direction) (establishedDirectionCode selectedDirection)))
+    | establishedBytes =>
+      (case unit as weight in EstablishedUnit return Count with
+      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => bytes)
+    | establishedTasks =>
+      (case unit as weight in EstablishedUnit return Count with
+      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => tasks)
+    | establishedAdvertisedCredit =>
+      case unit as weight in EstablishedUnit return Count with
+      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => advertised
+
+def establishedResidentCoordinate : EstablishedResidentAxis -> EstablishedAxis :=
+  fun (axis : EstablishedResidentAxis) =>
+    case axis as self in EstablishedResidentAxis return EstablishedAxis with
+    | residentBytes => establishedBytes
+    | residentTasks => establishedTasks
+
+def establishedActualUnit : EstablishedResidentAxis -> EstablishedUnit -> Count :=
+  fun (axis : EstablishedResidentAxis) (unit : EstablishedUnit) =>
+    case unit as weight in EstablishedUnit return Count with
+    | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits =>
+      case axis as self in EstablishedResidentAxis return Count with
+      | residentBytes => actualBytes
+      | residentTasks => actualTasks
+
+def establishedUnitDominance : (axis : EstablishedResidentAxis) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->
+    AtMost (establishedActualUnit axis unit)
+      (establishedUnitValue (establishedResidentCoordinate axis) kind direction unit) :=
+  fun (axis : EstablishedResidentAxis) (kind : EstablishedKind)
+      (direction : EstablishedDirection) (unit : EstablishedUnit) =>
+    case unit as weight in EstablishedUnit return
+        AtMost (establishedActualUnit axis weight)
+          (establishedUnitValue (establishedResidentCoordinate axis) kind direction weight) with
+    | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits =>
+      case axis as self in EstablishedResidentAxis return
+          AtMost (establishedActualUnit self
+            (establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits))
+            (establishedUnitValue (establishedResidentCoordinate self) kind direction
+              (establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits)) with
+      | residentBytes => byteFits
+      | residentTasks => taskFits
+
+def rec establishedMultiplyUnitBound : (slots : Count) -> (actual : Count) -> (reserved : Count) ->
+    AtMost actual reserved -> AtMost (multiply slots actual) (multiply slots reserved) :=
+  fun (slots : Count) (actual : Count) (reserved : Count) (fits : AtMost actual reserved) =>
+    case slots as self in Count return AtMost (multiply self actual) (multiply self reserved) with
+    | zero => least zero
+    | next previous => addBounds actual reserved (multiply previous actual) (multiply previous reserved)
+        fits (establishedMultiplyUnitBound previous actual reserved fits)
+
+mu EstablishedBanks : Type 0 with
+| noEstablishedBanks : EstablishedBanks
+| establishedBank : EstablishedKind -> EstablishedDirection -> EstablishedUnit ->
+    LeasePool -> EstablishedBanks -> EstablishedBanks
+
+def rec establishedBankUse : EstablishedAxis -> EstablishedBanks -> Count :=
+  fun (axis : EstablishedAxis) (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return Count with
+    | noEstablishedBanks => zero
+    | establishedBank kind direction unit pool rest =>
+      add (multiply (leaseOccupancy pool) (establishedUnitValue axis kind direction unit))
+        (establishedBankUse axis rest)
+
+def rec establishedBankAllocation : EstablishedAxis -> EstablishedBanks -> Count :=
+  fun (axis : EstablishedAxis) (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return Count with
+    | noEstablishedBanks => zero
+    | establishedBank kind direction unit pool rest =>
+      add (multiply (leaseCapacity pool) (establishedUnitValue axis kind direction unit))
+        (establishedBankAllocation axis rest)
+
+def rec establishedActualBankUse : EstablishedResidentAxis -> EstablishedBanks -> Count :=
+  fun (axis : EstablishedResidentAxis) (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return Count with
+    | noEstablishedBanks => zero
+    | establishedBank kind direction unit pool rest =>
+      add (multiply (leaseOccupancy pool) (establishedActualUnit axis unit))
+        (establishedActualBankUse axis rest)
+
+def rec establishedBankBound : (axis : EstablishedAxis) -> (banks : EstablishedBanks) ->
+    AtMost (establishedBankUse axis banks) (establishedBankAllocation axis banks) :=
+  fun (axis : EstablishedAxis) (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return
+        AtMost (establishedBankUse axis self) (establishedBankAllocation axis self) with
+    | noEstablishedBanks => least zero
+    | establishedBank kind direction unit pool rest => addBounds
+        (multiply (leaseOccupancy pool) (establishedUnitValue axis kind direction unit))
+        (multiply (leaseCapacity pool) (establishedUnitValue axis kind direction unit))
+        (establishedBankUse axis rest) (establishedBankAllocation axis rest)
+        (multipliedBounds (leaseOccupancy pool) (leaseCapacity pool)
+          (establishedUnitValue axis kind direction unit) (leasePoolBound pool))
+        (establishedBankBound axis rest)
+
+def rec establishedBankResidentDominance : (axis : EstablishedResidentAxis) -> (banks : EstablishedBanks) ->
+    AtMost (establishedActualBankUse axis banks)
+      (establishedBankUse (establishedResidentCoordinate axis) banks) :=
+  fun (axis : EstablishedResidentAxis) (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return
+        AtMost (establishedActualBankUse axis self)
+          (establishedBankUse (establishedResidentCoordinate axis) self) with
+    | noEstablishedBanks => least zero
+    | establishedBank kind direction unit pool rest => addBounds
+        (multiply (leaseOccupancy pool) (establishedActualUnit axis unit))
+        (multiply (leaseOccupancy pool) (establishedUnitValue (establishedResidentCoordinate axis) kind direction unit))
+        (establishedActualBankUse axis rest) (establishedBankUse (establishedResidentCoordinate axis) rest)
+        (establishedMultiplyUnitBound (leaseOccupancy pool) (establishedActualUnit axis unit)
+          (establishedUnitValue (establishedResidentCoordinate axis) kind direction unit)
+          (establishedUnitDominance axis kind direction unit))
+        (establishedBankResidentDominance axis rest)
+
+def rec establishedBankStep : Count -> PoolAction -> EstablishedBanks -> EstablishedBanks :=
+  fun (index : Count) (action : PoolAction) (banks : EstablishedBanks) =>
+    case index as selected in Count return EstablishedBanks with
+    | zero =>
+      (case banks as self in EstablishedBanks return EstablishedBanks with
+      | noEstablishedBanks => noEstablishedBanks
+      | establishedBank kind direction unit pool rest =>
+        establishedBank kind direction unit (poolStep action pool) rest)
+    | next previous =>
+      case banks as self in EstablishedBanks return EstablishedBanks with
+      | noEstablishedBanks => noEstablishedBanks
+      | establishedBank kind direction unit pool rest =>
+        establishedBank kind direction unit pool (establishedBankStep previous action rest)
+
+def rec establishedBankStepAllocation : (index : Count) -> (action : PoolAction) ->
+    (banks : EstablishedBanks) -> (axis : EstablishedAxis) ->
+    Equal Count (establishedBankAllocation axis (establishedBankStep index action banks))
+      (establishedBankAllocation axis banks) :=
+  fun (index : Count) (action : PoolAction) (banks : EstablishedBanks) (axis : EstablishedAxis) =>
+    case index as selected in Count return
+        Equal Count (establishedBankAllocation axis (establishedBankStep selected action banks))
+          (establishedBankAllocation axis banks) with
+    | zero =>
+      (case banks as self in EstablishedBanks return
+          Equal Count (establishedBankAllocation axis (establishedBankStep zero action self))
+            (establishedBankAllocation axis self) with
+      | noEstablishedBanks => same
+      | establishedBank kind direction unit pool rest => congruent Count Count
+          (fun (capacity : Count) => add (multiply capacity (establishedUnitValue axis kind direction unit))
+            (establishedBankAllocation axis rest))
+          (leaseCapacity (poolStep action pool)) (leaseCapacity pool) (poolStepCapacity action pool))
+    | next previous =>
+      case banks as self in EstablishedBanks return
+          Equal Count (establishedBankAllocation axis (establishedBankStep (next previous) action self))
+            (establishedBankAllocation axis self) with
+      | noEstablishedBanks => same
+      | establishedBank kind direction unit pool rest => congruent Count Count
+          (fun (allocation : Count) => add
+            (multiply (leaseCapacity pool) (establishedUnitValue axis kind direction unit)) allocation)
+          (establishedBankAllocation axis (establishedBankStep previous action rest))
+          (establishedBankAllocation axis rest) (establishedBankStepAllocation previous action rest axis)
+
+mu EstablishedFleet : Type 0 with
+| noEstablishedFleet : EstablishedFleet
+| establishedMember : Flag -> Count -> Count -> EstablishedBanks -> EstablishedFleet -> EstablishedFleet
+
+def rec establishedFleetUse : EstablishedAxis -> EstablishedFleet -> Count :=
+  fun (axis : EstablishedAxis) (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return Count with
+    | noEstablishedFleet => zero
+    | establishedMember trusted swarm identity banks rest =>
+      add (establishedBankUse axis banks) (establishedFleetUse axis rest)
+
+def rec establishedFleetAllocation : EstablishedAxis -> EstablishedFleet -> Count :=
+  fun (axis : EstablishedAxis) (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return Count with
+    | noEstablishedFleet => zero
+    | establishedMember trusted swarm identity banks rest =>
+      add (establishedBankAllocation axis banks) (establishedFleetAllocation axis rest)
+
+def establishedLabelsCannotDiscount : (axis : EstablishedAxis) -> (trustedA : Flag) -> (trustedB : Flag) ->
+    (swarmA : Count) -> (swarmB : Count) -> (identityA : Count) -> (identityB : Count) ->
+    (banks : EstablishedBanks) -> (rest : EstablishedFleet) ->
+    Equal Count
+      (establishedFleetUse axis (establishedMember trustedA swarmA identityA banks rest))
+      (establishedFleetUse axis (establishedMember trustedB swarmB identityB banks rest)) :=
+  fun (axis : EstablishedAxis) (trustedA : Flag) (trustedB : Flag) (swarmA : Count) (swarmB : Count)
+      (identityA : Count) (identityB : Count) (banks : EstablishedBanks) (rest : EstablishedFleet) => same
+
+def rec establishedActualFleetUse : EstablishedResidentAxis -> EstablishedFleet -> Count :=
+  fun (axis : EstablishedResidentAxis) (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return Count with
+    | noEstablishedFleet => zero
+    | establishedMember trusted swarm identity banks rest =>
+      add (establishedActualBankUse axis banks) (establishedActualFleetUse axis rest)
+
+def rec establishedFleetBound : (axis : EstablishedAxis) -> (fleet : EstablishedFleet) ->
+    AtMost (establishedFleetUse axis fleet) (establishedFleetAllocation axis fleet) :=
+  fun (axis : EstablishedAxis) (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return
+        AtMost (establishedFleetUse axis self) (establishedFleetAllocation axis self) with
+    | noEstablishedFleet => least zero
+    | establishedMember trusted swarm identity banks rest => addBounds
+        (establishedBankUse axis banks) (establishedBankAllocation axis banks)
+        (establishedFleetUse axis rest) (establishedFleetAllocation axis rest)
+        (establishedBankBound axis banks) (establishedFleetBound axis rest)
+
+def rec establishedFleetResidentDominance : (axis : EstablishedResidentAxis) -> (fleet : EstablishedFleet) ->
+    AtMost (establishedActualFleetUse axis fleet)
+      (establishedFleetUse (establishedResidentCoordinate axis) fleet) :=
+  fun (axis : EstablishedResidentAxis) (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return
+        AtMost (establishedActualFleetUse axis self)
+          (establishedFleetUse (establishedResidentCoordinate axis) self) with
+    | noEstablishedFleet => least zero
+    | establishedMember trusted swarm identity banks rest => addBounds
+        (establishedActualBankUse axis banks) (establishedBankUse (establishedResidentCoordinate axis) banks)
+        (establishedActualFleetUse axis rest) (establishedFleetUse (establishedResidentCoordinate axis) rest)
+        (establishedBankResidentDominance axis banks) (establishedFleetResidentDominance axis rest)
+
+def rec establishedFleetStep : Count -> Count -> PoolAction -> EstablishedFleet -> EstablishedFleet :=
+  fun (member : Count) (bank : Count) (action : PoolAction) (fleet : EstablishedFleet) =>
+    case member as selected in Count return EstablishedFleet with
+    | zero =>
+      (case fleet as self in EstablishedFleet return EstablishedFleet with
+      | noEstablishedFleet => noEstablishedFleet
+      | establishedMember trusted swarm identity banks rest =>
+        establishedMember trusted swarm identity (establishedBankStep bank action banks) rest)
+    | next previous =>
+      case fleet as self in EstablishedFleet return EstablishedFleet with
+      | noEstablishedFleet => noEstablishedFleet
+      | establishedMember trusted swarm identity banks rest =>
+        establishedMember trusted swarm identity banks (establishedFleetStep previous bank action rest)
+
+def rec establishedFleetStepAllocation : (member : Count) -> (bank : Count) -> (action : PoolAction) ->
+    (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->
+    Equal Count (establishedFleetAllocation axis (establishedFleetStep member bank action fleet))
+      (establishedFleetAllocation axis fleet) :=
+  fun (member : Count) (bank : Count) (action : PoolAction) (fleet : EstablishedFleet) (axis : EstablishedAxis) =>
+    case member as selected in Count return
+        Equal Count (establishedFleetAllocation axis (establishedFleetStep selected bank action fleet))
+          (establishedFleetAllocation axis fleet) with
+    | zero =>
+      (case fleet as self in EstablishedFleet return
+          Equal Count (establishedFleetAllocation axis (establishedFleetStep zero bank action self))
+            (establishedFleetAllocation axis self) with
+      | noEstablishedFleet => same
+      | establishedMember trusted swarm identity banks rest => congruent Count Count
+          (fun (allocation : Count) => add allocation (establishedFleetAllocation axis rest))
+          (establishedBankAllocation axis (establishedBankStep bank action banks))
+          (establishedBankAllocation axis banks) (establishedBankStepAllocation bank action banks axis))
+    | next previous =>
+      case fleet as self in EstablishedFleet return
+          Equal Count (establishedFleetAllocation axis (establishedFleetStep (next previous) bank action self))
+            (establishedFleetAllocation axis self) with
+      | noEstablishedFleet => same
+      | establishedMember trusted swarm identity banks rest => congruent Count Count
+          (fun (allocation : Count) => add (establishedBankAllocation axis banks) allocation)
+          (establishedFleetAllocation axis (establishedFleetStep previous bank action rest))
+          (establishedFleetAllocation axis rest) (establishedFleetStepAllocation previous bank action rest axis)
+
+-- Churn keeps the owned banks. Trust, swarm and identity cannot reset charges.
+def rec establishedFleetRelabel : Count -> Flag -> Count -> Count -> EstablishedFleet -> EstablishedFleet :=
+  fun (member : Count) (trusted : Flag) (swarm : Count) (identity : Count) (fleet : EstablishedFleet) =>
+    case member as selected in Count return EstablishedFleet with
+    | zero =>
+      (case fleet as self in EstablishedFleet return EstablishedFleet with
+      | noEstablishedFleet => noEstablishedFleet
+      | establishedMember oldTrusted oldSwarm oldIdentity banks rest =>
+        establishedMember trusted swarm identity banks rest)
+    | next previous =>
+      case fleet as self in EstablishedFleet return EstablishedFleet with
+      | noEstablishedFleet => noEstablishedFleet
+      | establishedMember oldTrusted oldSwarm oldIdentity banks rest =>
+        establishedMember oldTrusted oldSwarm oldIdentity banks
+          (establishedFleetRelabel previous trusted swarm identity rest)
+
+def rec establishedRelabelAllocation : (member : Count) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->
+    Equal Count (establishedFleetAllocation axis (establishedFleetRelabel member trusted swarm identity fleet))
+      (establishedFleetAllocation axis fleet) :=
+  fun (member : Count) (trusted : Flag) (swarm : Count) (identity : Count)
+      (fleet : EstablishedFleet) (axis : EstablishedAxis) =>
+    case member as selected in Count return
+        Equal Count (establishedFleetAllocation axis (establishedFleetRelabel selected trusted swarm identity fleet))
+          (establishedFleetAllocation axis fleet) with
+    | zero =>
+      (case fleet as self in EstablishedFleet return
+          Equal Count (establishedFleetAllocation axis (establishedFleetRelabel zero trusted swarm identity self))
+            (establishedFleetAllocation axis self) with
+      | noEstablishedFleet => same
+      | establishedMember oldTrusted oldSwarm oldIdentity banks rest => same)
+    | next previous =>
+      case fleet as self in EstablishedFleet return
+          Equal Count (establishedFleetAllocation axis (establishedFleetRelabel (next previous) trusted swarm identity self))
+            (establishedFleetAllocation axis self) with
+      | noEstablishedFleet => same
+      | establishedMember oldTrusted oldSwarm oldIdentity banks rest => congruent Count Count
+          (fun (allocation : Count) => add (establishedBankAllocation axis banks) allocation)
+          (establishedFleetAllocation axis (establishedFleetRelabel previous trusted swarm identity rest))
+          (establishedFleetAllocation axis rest) (establishedRelabelAllocation previous trusted swarm identity rest axis)
+
+mu EstablishedTrace : Type 0 with
+| establishedDone : EstablishedTrace
+| establishedEvent : Count -> Count -> PoolAction -> EstablishedTrace -> EstablishedTrace
+| establishedChurn : Count -> Flag -> Count -> Count -> EstablishedTrace -> EstablishedTrace
+
+def rec runEstablishedFleet : EstablishedTrace -> EstablishedFleet -> EstablishedFleet :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) =>
+    case trace as self in EstablishedTrace return EstablishedFleet with
+    | establishedDone => fleet
+    | establishedEvent member bank action rest => runEstablishedFleet rest (establishedFleetStep member bank action fleet)
+    | establishedChurn member trusted swarm identity rest =>
+      runEstablishedFleet rest (establishedFleetRelabel member trusted swarm identity fleet)
+
+def rec establishedTraceAllocation : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->
+    Equal Count (establishedFleetAllocation axis (runEstablishedFleet trace fleet)) (establishedFleetAllocation axis fleet) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) (axis : EstablishedAxis) =>
+    case trace as self in EstablishedTrace return
+        Equal Count (establishedFleetAllocation axis (runEstablishedFleet self fleet))
+          (establishedFleetAllocation axis fleet) with
+    | establishedDone => same
+    | establishedEvent member bank action rest => equalTransitivity Count
+        (establishedFleetAllocation axis (runEstablishedFleet rest (establishedFleetStep member bank action fleet)))
+        (establishedFleetAllocation axis (establishedFleetStep member bank action fleet)) (establishedFleetAllocation axis fleet)
+        (establishedTraceAllocation rest (establishedFleetStep member bank action fleet) axis)
+        (establishedFleetStepAllocation member bank action fleet axis)
+    | establishedChurn member trusted swarm identity rest => equalTransitivity Count
+        (establishedFleetAllocation axis (runEstablishedFleet rest (establishedFleetRelabel member trusted swarm identity fleet)))
+        (establishedFleetAllocation axis (establishedFleetRelabel member trusted swarm identity fleet))
+        (establishedFleetAllocation axis fleet)
+        (establishedTraceAllocation rest (establishedFleetRelabel member trusted swarm identity fleet) axis)
+        (establishedRelabelAllocation member trusted swarm identity fleet axis)
+
+def establishedTraceBound : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->
+    AtMost (establishedFleetUse axis (runEstablishedFleet trace fleet)) (establishedFleetAllocation axis fleet) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) (axis : EstablishedAxis) =>
+    equalTransport Count (fun (allocation : Count) => AtMost (establishedFleetUse axis (runEstablishedFleet trace fleet)) allocation)
+      (establishedFleetAllocation axis (runEstablishedFleet trace fleet)) (establishedFleetAllocation axis fleet)
+      (establishedTraceAllocation trace fleet axis) (establishedFleetBound axis (runEstablishedFleet trace fleet))
+
+def establishedProcessVectorBound : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->
+    (processAllocation : EstablishedAxis -> Count) ->
+    ((axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis)) ->
+    (axis : EstablishedAxis) -> AtMost (establishedFleetUse axis (runEstablishedFleet trace fleet)) (processAllocation axis) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) (processAllocation : EstablishedAxis -> Count)
+      (fits : (axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis))
+      (axis : EstablishedAxis) => boundTransitive (establishedFleetUse axis (runEstablishedFleet trace fleet))
+        (establishedFleetAllocation axis fleet) (processAllocation axis) (establishedTraceBound trace fleet axis) (fits axis)
+
+def establishedResidentTraceBound : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->
+    (processAllocation : EstablishedAxis -> Count) ->
+    ((axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis)) ->
+    (axis : EstablishedResidentAxis) ->
+    AtMost (establishedActualFleetUse axis (runEstablishedFleet trace fleet))
+      (processAllocation (establishedResidentCoordinate axis)) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) (processAllocation : EstablishedAxis -> Count)
+      (fits : (axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis))
+      (axis : EstablishedResidentAxis) => boundTransitive
+        (establishedActualFleetUse axis (runEstablishedFleet trace fleet))
+        (establishedFleetUse (establishedResidentCoordinate axis) (runEstablishedFleet trace fleet))
+        (processAllocation (establishedResidentCoordinate axis))
+        (establishedFleetResidentDominance axis (runEstablishedFleet trace fleet))
+        (establishedProcessVectorBound trace fleet processAllocation fits (establishedResidentCoordinate axis))
+
+-- Shared storage, idle containers and process tasks need their own reserved
+-- overhead. Their supplied upper bound is charged even with zero occupancy.
+def establishedProcessResidentUse : EstablishedResidentAxis -> (EstablishedResidentAxis -> Count) ->
+    EstablishedTrace -> EstablishedFleet -> Count :=
+  fun (axis : EstablishedResidentAxis) (overhead : EstablishedResidentAxis -> Count)
+      (trace : EstablishedTrace) (fleet : EstablishedFleet) =>
+    add (overhead axis) (establishedActualFleetUse axis (runEstablishedFleet trace fleet))
+
+def establishedResidentWithOverheadBound : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->
+    (actualOverhead : EstablishedResidentAxis -> Count) -> (reservedOverhead : EstablishedResidentAxis -> Count) ->
+    (processAllocation : EstablishedAxis -> Count) ->
+    ((axis : EstablishedResidentAxis) -> AtMost (actualOverhead axis) (reservedOverhead axis)) ->
+    ((axis : EstablishedResidentAxis) -> AtMost
+      (add (reservedOverhead axis) (establishedFleetAllocation (establishedResidentCoordinate axis) fleet))
+      (processAllocation (establishedResidentCoordinate axis))) -> (axis : EstablishedResidentAxis) ->
+    AtMost (establishedProcessResidentUse axis actualOverhead trace fleet)
+      (processAllocation (establishedResidentCoordinate axis)) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet)
+      (actualOverhead : EstablishedResidentAxis -> Count) (reservedOverhead : EstablishedResidentAxis -> Count)
+      (processAllocation : EstablishedAxis -> Count)
+      (overheadFits : (axis : EstablishedResidentAxis) -> AtMost (actualOverhead axis) (reservedOverhead axis))
+      (fits : (axis : EstablishedResidentAxis) -> AtMost
+        (add (reservedOverhead axis) (establishedFleetAllocation (establishedResidentCoordinate axis) fleet))
+        (processAllocation (establishedResidentCoordinate axis))) (axis : EstablishedResidentAxis) =>
+    boundTransitive (establishedProcessResidentUse axis actualOverhead trace fleet)
+      (add (reservedOverhead axis) (establishedFleetAllocation (establishedResidentCoordinate axis) fleet))
+      (processAllocation (establishedResidentCoordinate axis))
+      (addBounds (actualOverhead axis) (reservedOverhead axis)
+        (establishedActualFleetUse axis (runEstablishedFleet trace fleet))
+        (establishedFleetAllocation (establishedResidentCoordinate axis) fleet) (overheadFits axis)
+        (boundTransitive (establishedActualFleetUse axis (runEstablishedFleet trace fleet))
+          (establishedFleetUse (establishedResidentCoordinate axis) (runEstablishedFleet trace fleet))
+          (establishedFleetAllocation (establishedResidentCoordinate axis) fleet)
+          (establishedFleetResidentDominance axis (runEstablishedFleet trace fleet))
+          (establishedTraceBound trace fleet (establishedResidentCoordinate axis))))
+      (fits axis)
+
+mu EstablishedProcess : Type 0 with
+| establishedProcess : EstablishedFleet -> LeasePool -> Count -> EstablishedProcess
+
+def runEstablishedProcess : EstablishedTrace -> EstablishedProcess -> EstablishedProcess :=
+  fun (trace : EstablishedTrace) (state : EstablishedProcess) =>
+    case state as self in EstablishedProcess return EstablishedProcess with
+    | establishedProcess fleet pending preacceptWork =>
+      establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork
+
+def establishedTraceKeepsOtherPhases : (trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->
+    (pending : LeasePool) -> (preacceptWork : Count) ->
+    Equal EstablishedProcess (runEstablishedProcess trace (establishedProcess fleet pending preacceptWork))
+      (establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork) :=
+  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) (pending : LeasePool) (preacceptWork : Count) => same
+
+def establishedProtocolUnit : (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->
+    Equal Count (establishedUnitValue (establishedSlots kind direction) kind direction unit) (next zero) :=
+  fun (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) =>
+    equalTransitivity Count
+      (establishedUnitValue (establishedSlots kind direction) kind direction unit)
+      (establishedFlagCount (sameCount (establishedDirectionCode direction) (establishedDirectionCode direction)))
+      (next zero)
+      (congruent Flag Count
+        (fun (matched : Flag) => establishedFlagCount
+          (both matched (sameCount (establishedDirectionCode direction) (establishedDirectionCode direction))))
+        (sameCount (establishedKindCode kind) (establishedKindCode kind)) on
+        (sameCountReflexive (establishedKindCode kind)))
+      (congruent Flag Count establishedFlagCount
+        (sameCount (establishedDirectionCode direction) (establishedDirectionCode direction)) on
+        (sameCountReflexive (establishedDirectionCode direction)))
+
+def establishedSlotClassification : (selectedKind : EstablishedKind) -> (selectedDirection : EstablishedDirection) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> Equal Count
+      (establishedUnitValue (establishedSlots selectedKind selectedDirection) kind direction unit)
+      (establishedFlagCount (both (sameCount (establishedKindCode kind) (establishedKindCode selectedKind))
+        (sameCount (establishedDirectionCode direction) (establishedDirectionCode selectedDirection)))) :=
+  fun (selectedKind : EstablishedKind) (selectedDirection : EstablishedDirection) (kind : EstablishedKind)
+      (direction : EstablishedDirection) (unit : EstablishedUnit) => same
+
+def establishedAdvertisedUnit : (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (bytes : Count) -> (tasks : Count) -> (advertised : Count) -> (actualBytes : Count) -> (actualTasks : Count) ->
+    (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) -> Equal Count
+      (establishedUnitValue establishedAdvertisedCredit kind direction
+        (establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits)) advertised :=
+  fun (kind : EstablishedKind) (direction : EstablishedDirection) (bytes : Count) (tasks : Count)
+      (advertised : Count) (actualBytes : Count) (actualTasks : Count)
+      (byteFits : AtMost actualBytes bytes) (taskFits : AtMost actualTasks tasks) => same
+
+def establishedResidentIgnoresAdvertised : (axis : EstablishedResidentAxis) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (bytes : Count) -> (tasks : Count) -> (creditA : Count) -> (creditB : Count) ->
+    (actualBytes : Count) -> (actualTasks : Count) -> (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) ->
+    Equal Count
+      (establishedUnitValue (establishedResidentCoordinate axis) kind direction
+        (establishedUnit bytes tasks creditA actualBytes actualTasks byteFits taskFits))
+      (establishedUnitValue (establishedResidentCoordinate axis) kind direction
+        (establishedUnit bytes tasks creditB actualBytes actualTasks byteFits taskFits)) :=
+  fun (axis : EstablishedResidentAxis) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (bytes : Count) (tasks : Count) (creditA : Count) (creditB : Count) (actualBytes : Count) (actualTasks : Count)
+      (byteFits : AtMost actualBytes bytes) (taskFits : AtMost actualTasks tasks) =>
+    case axis as self in EstablishedResidentAxis return Equal Count
+        (establishedUnitValue (establishedResidentCoordinate self) kind direction
+          (establishedUnit bytes tasks creditA actualBytes actualTasks byteFits taskFits))
+        (establishedUnitValue (establishedResidentCoordinate self) kind direction
+          (establishedUnit bytes tasks creditB actualBytes actualTasks byteFits taskFits)) with
+    | residentBytes => same
+    | residentTasks => same
+
+def establishedActualIgnoresAdvertised : (axis : EstablishedResidentAxis) -> (bytes : Count) -> (tasks : Count) ->
+    (creditA : Count) -> (creditB : Count) -> (actualBytes : Count) -> (actualTasks : Count) ->
+    (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) -> Equal Count
+      (establishedActualUnit axis (establishedUnit bytes tasks creditA actualBytes actualTasks byteFits taskFits))
+      (establishedActualUnit axis (establishedUnit bytes tasks creditB actualBytes actualTasks byteFits taskFits)) :=
+  fun (axis : EstablishedResidentAxis) (bytes : Count) (tasks : Count) (creditA : Count) (creditB : Count)
+      (actualBytes : Count) (actualTasks : Count) (byteFits : AtMost actualBytes bytes) (taskFits : AtMost actualTasks tasks) => same
+
+-- Exact update shapes quantify over arbitrary prefixes and suffixes at all
+-- three ownership levels. No other peer, bank or lease is touched.
+def rec appendEstablishedBanks : EstablishedBanks -> EstablishedBanks -> EstablishedBanks :=
+  fun (prefix : EstablishedBanks) (suffix : EstablishedBanks) =>
+    case prefix as self in EstablishedBanks return EstablishedBanks with
+    | noEstablishedBanks => suffix
+    | establishedBank kind direction unit pool rest =>
+      establishedBank kind direction unit pool (appendEstablishedBanks rest suffix)
+
+def rec establishedBankWidth : EstablishedBanks -> Count :=
+  fun (banks : EstablishedBanks) =>
+    case banks as self in EstablishedBanks return Count with
+    | noEstablishedBanks => zero
+    | establishedBank kind direction unit pool rest => next (establishedBankWidth rest)
+
+def rec establishedBankStepAtPrefix : (prefix : EstablishedBanks) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->
+    (suffix : EstablishedBanks) -> (action : PoolAction) ->
+    Equal EstablishedBanks
+      (establishedBankStep (establishedBankWidth prefix) action
+        (appendEstablishedBanks prefix (establishedBank kind direction unit pool suffix)))
+      (appendEstablishedBanks prefix (establishedBank kind direction unit (poolStep action pool) suffix)) :=
+  fun (prefix : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (unit : EstablishedUnit) (pool : LeasePool) (suffix : EstablishedBanks) (action : PoolAction) =>
+    case prefix as self in EstablishedBanks return Equal EstablishedBanks
+        (establishedBankStep (establishedBankWidth self) action
+          (appendEstablishedBanks self (establishedBank kind direction unit pool suffix)))
+        (appendEstablishedBanks self (establishedBank kind direction unit (poolStep action pool) suffix)) with
+    | noEstablishedBanks => same
+    | establishedBank oldKind oldDirection oldUnit oldPool rest => congruent EstablishedBanks EstablishedBanks
+        (fun (banks : EstablishedBanks) => establishedBank oldKind oldDirection oldUnit oldPool banks)
+        (establishedBankStep (establishedBankWidth rest) action
+          (appendEstablishedBanks rest (establishedBank kind direction unit pool suffix)))
+        (appendEstablishedBanks rest (establishedBank kind direction unit (poolStep action pool) suffix))
+        (establishedBankStepAtPrefix rest kind direction unit pool suffix action)
+
+def rec appendEstablishedFleet : EstablishedFleet -> EstablishedFleet -> EstablishedFleet :=
+  fun (prefix : EstablishedFleet) (suffix : EstablishedFleet) =>
+    case prefix as self in EstablishedFleet return EstablishedFleet with
+    | noEstablishedFleet => suffix
+    | establishedMember trusted swarm identity banks rest =>
+      establishedMember trusted swarm identity banks (appendEstablishedFleet rest suffix)
+
+def rec establishedFleetWidth : EstablishedFleet -> Count :=
+  fun (fleet : EstablishedFleet) =>
+    case fleet as self in EstablishedFleet return Count with
+    | noEstablishedFleet => zero
+    | establishedMember trusted swarm identity banks rest => next (establishedFleetWidth rest)
+
+def rec establishedFleetStepAtPrefix : (prefix : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banks : EstablishedBanks) -> (suffix : EstablishedFleet) -> (bank : Count) -> (action : PoolAction) ->
+    Equal EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth prefix) bank action
+        (appendEstablishedFleet prefix (establishedMember trusted swarm identity banks suffix)))
+      (appendEstablishedFleet prefix (establishedMember trusted swarm identity (establishedBankStep bank action banks) suffix)) :=
+  fun (prefix : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banks : EstablishedBanks) (suffix : EstablishedFleet) (bank : Count) (action : PoolAction) =>
+    case prefix as self in EstablishedFleet return Equal EstablishedFleet
+        (establishedFleetStep (establishedFleetWidth self) bank action
+          (appendEstablishedFleet self (establishedMember trusted swarm identity banks suffix)))
+        (appendEstablishedFleet self (establishedMember trusted swarm identity (establishedBankStep bank action banks) suffix)) with
+    | noEstablishedFleet => same
+    | establishedMember oldTrusted oldSwarm oldIdentity oldBanks rest => congruent EstablishedFleet EstablishedFleet
+        (fun (fleet : EstablishedFleet) => establishedMember oldTrusted oldSwarm oldIdentity oldBanks fleet)
+        (establishedFleetStep (establishedFleetWidth rest) bank action
+          (appendEstablishedFleet rest (establishedMember trusted swarm identity banks suffix)))
+        (appendEstablishedFleet rest (establishedMember trusted swarm identity (establishedBankStep bank action banks) suffix))
+        (establishedFleetStepAtPrefix rest trusted swarm identity banks suffix bank action)
+
+def rec establishedLeaseUpdateAtPrefix : (prefix : LeasePool) -> (lease : Lease) ->
+    (suffix : LeasePool) -> (change : Lease -> Lease) ->
+    Equal LeasePool
+      (updateLease (leaseCapacity prefix) change (appendLeasePool prefix (leaseCell lease suffix)))
+      (appendLeasePool prefix (leaseCell (change lease) suffix)) :=
+  fun (prefix : LeasePool) (lease : Lease) (suffix : LeasePool) (change : Lease -> Lease) =>
+    case prefix as self in LeasePool return Equal LeasePool
+        (updateLease (leaseCapacity self) change (appendLeasePool self (leaseCell lease suffix)))
+        (appendLeasePool self (leaseCell (change lease) suffix)) with
+    | emptyLeasePool => same
+    | leaseCell oldLease rest => congruent LeasePool LeasePool (fun (pool : LeasePool) => leaseCell oldLease pool)
+        (updateLease (leaseCapacity rest) change (appendLeasePool rest (leaseCell lease suffix)))
+        (appendLeasePool rest (leaseCell (change lease) suffix))
+        (establishedLeaseUpdateAtPrefix rest lease suffix change)
+
+def establishedFocusedFleet : EstablishedFleet -> Flag -> Count -> Count -> EstablishedBanks ->
+    EstablishedKind -> EstablishedDirection -> EstablishedUnit -> LeasePool -> EstablishedBanks -> EstablishedFleet -> EstablishedFleet :=
+  fun (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (unit : EstablishedUnit) (pool : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) =>
+    appendEstablishedFleet peersBefore (establishedMember trusted swarm identity
+      (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter)) peersAfter)
+
+def establishedFocusedStep : (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->
+    (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (action : PoolAction) ->
+    Equal EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) action
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (poolStep action pool) banksAfter peersAfter) :=
+  fun (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (pool : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) (action : PoolAction) =>
+    equalTransitivity EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) action
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))
+      (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity
+        (establishedBankStep (establishedBankWidth banksBefore) action
+          (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter))) peersAfter))
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (poolStep action pool) banksAfter peersAfter)
+      (establishedFleetStepAtPrefix peersBefore trusted swarm identity
+        (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter))
+        peersAfter (establishedBankWidth banksBefore) action)
+      (congruent EstablishedBanks EstablishedFleet
+        (fun (banks : EstablishedBanks) => appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter))
+        (establishedBankStep (establishedBankWidth banksBefore) action
+          (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter)))
+        (appendEstablishedBanks banksBefore (establishedBank kind direction unit (poolStep action pool) banksAfter))
+        (establishedBankStepAtPrefix banksBefore kind direction unit pool banksAfter action))
+
+def establishedOwnedPoolRelease : (before : LeasePool) -> (generation : Count) -> (after : LeasePool) -> (reason : PendingEnd) ->
+    Equal LeasePool
+      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)
+        (appendLeasePool before (leaseCell (heldLease generation) after)))
+      (appendLeasePool before (leaseCell (freeLease (next generation)) after)) :=
+  fun (before : LeasePool) (generation : Count) (after : LeasePool) (reason : PendingEnd) =>
+    equalTransitivity LeasePool
+      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)
+        (appendLeasePool before (leaseCell (heldLease generation) after)))
+      (appendLeasePool before (leaseCell (pendingCompletion (ownedGeneration generation) reason (heldLease generation)) after))
+      (appendLeasePool before (leaseCell (freeLease (next generation)) after))
+      (establishedLeaseUpdateAtPrefix before (heldLease generation) after
+        (fun (lease : Lease) => pendingCompletion (ownedGeneration generation) reason lease))
+      (congruent Lease LeasePool (fun (lease : Lease) => appendLeasePool before (leaseCell lease after))
+        (pendingCompletion (ownedGeneration generation) reason (heldLease generation))
+        (freeLease (next generation)) (everyTerminalReasonReleases generation reason))
+
+def establishedFocusedOwnedRelease : (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) ->
+    (generation : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) ->
+    (peersAfter : EstablishedFleet) -> (reason : PendingEnd) ->
+    Equal EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)
+        (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason)
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit
+          (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter)) banksAfter peersAfter))
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit
+        (appendLeasePool slotsBefore (leaseCell (freeLease (next generation)) slotsAfter)) banksAfter peersAfter) :=
+  fun (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit)
+      (slotsBefore : LeasePool) (generation : Count) (slotsAfter : LeasePool)
+      (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) (reason : PendingEnd) =>
+    equalTransitivity EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)
+        (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason)
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit
+          (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter)) banksAfter peersAfter))
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit
+        (poolStep (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason)
+          (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter))) banksAfter peersAfter)
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit
+        (appendLeasePool slotsBefore (leaseCell (freeLease (next generation)) slotsAfter)) banksAfter peersAfter)
+      (establishedFocusedStep peersBefore trusted swarm identity banksBefore kind direction unit
+        (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter)) banksAfter peersAfter
+        (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason))
+      (congruent LeasePool EstablishedFleet
+        (fun (pool : LeasePool) => establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)
+        (poolStep (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason)
+          (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter)))
+        (appendLeasePool slotsBefore (leaseCell (freeLease (next generation)) slotsAfter))
+        (establishedOwnedPoolRelease slotsBefore generation slotsAfter reason))
+
+mu EstablishedOwner : Type 0 with
+| establishedOwner : Count -> Count -> Count -> CompletionToken -> EstablishedOwner
+
+-- Shedding, normal close and cancellation use this same owned transition.
+-- Runtime ownership tokens are internal, and all terminal reasons are covered.
+def establishedOwnerTrace : EstablishedOwner -> PendingEnd -> EstablishedTrace :=
+  fun (owner : EstablishedOwner) (reason : PendingEnd) =>
+    case owner as self in EstablishedOwner return EstablishedTrace with
+    | establishedOwner member bank slot token =>
+      establishedEvent member bank (completeAt slot token reason) establishedDone
+
+def establishedRelease : EstablishedOwner -> PendingEnd -> EstablishedProcess -> EstablishedProcess :=
+  fun (owner : EstablishedOwner) (reason : PendingEnd) (state : EstablishedProcess) =>
+    runEstablishedProcess (establishedOwnerTrace owner reason) state
+
+def establishedReleaseBindsOwner : (member : Count) -> (bank : Count) -> (slot : Count) -> (token : CompletionToken) ->
+    (reason : PendingEnd) -> (fleet : EstablishedFleet) -> (pending : LeasePool) -> (preacceptWork : Count) ->
+    Equal EstablishedProcess
+      (establishedRelease (establishedOwner member bank slot token) reason (establishedProcess fleet pending preacceptWork))
+      (establishedProcess (establishedFleetStep member bank (completeAt slot token reason) fleet) pending preacceptWork) :=
+  fun (member : Count) (bank : Count) (slot : Count) (token : CompletionToken) (reason : PendingEnd)
+      (fleet : EstablishedFleet) (pending : LeasePool) (preacceptWork : Count) => same
+
+mu EstablishedTerminal : Type 0 with
+| establishedClosed : EstablishedTerminal
+| establishedCancelled : EstablishedTerminal
+| establishedFailed : EstablishedTerminal
+| establishedTimedOut : EstablishedTerminal
+| establishedShed : EstablishedTerminal
+
+-- The established event alphabet has its own lifetime ends. PendingEnd tags
+-- are only an internal lowering to the already-proved generic lease primitive.
+def establishedTerminalReason : EstablishedTerminal -> PendingEnd :=
+  fun (terminal : EstablishedTerminal) =>
+    case terminal as self in EstablishedTerminal return PendingEnd with
+    | establishedClosed => handshakeCancelled
+    | establishedCancelled => handshakeCancelled
+    | establishedFailed => handshakeFailed
+    | establishedTimedOut => handshakeTimedOut
+    | establishedShed => handshakeCancelled
+
+def establishedTerminalTrace : EstablishedTerminal -> EstablishedOwner -> EstablishedTrace :=
+  fun (terminal : EstablishedTerminal) (owner : EstablishedOwner) =>
+    case terminal as self in EstablishedTerminal return EstablishedTrace with
+    | establishedClosed => establishedOwnerTrace owner handshakeCancelled
+    | establishedCancelled => establishedOwnerTrace owner handshakeCancelled
+    | establishedFailed => establishedOwnerTrace owner handshakeFailed
+    | establishedTimedOut => establishedOwnerTrace owner handshakeTimedOut
+    | establishedShed => establishedOwnerTrace owner handshakeCancelled
+
+def establishedTerminate : EstablishedTerminal -> EstablishedOwner -> EstablishedProcess -> EstablishedProcess :=
+  fun (terminal : EstablishedTerminal) (owner : EstablishedOwner) (state : EstablishedProcess) =>
+    runEstablishedProcess (establishedTerminalTrace terminal owner) state
+
+def establishedTerminalBindsOwner : (terminal : EstablishedTerminal) -> (member : Count) -> (bank : Count) ->
+    (slot : Count) -> (token : CompletionToken) -> (fleet : EstablishedFleet) -> (pending : LeasePool) -> (preacceptWork : Count) ->
+    Equal EstablishedProcess
+      (establishedTerminate terminal (establishedOwner member bank slot token) (establishedProcess fleet pending preacceptWork))
+      (establishedProcess (establishedFleetStep member bank
+        (completeAt slot token (establishedTerminalReason terminal)) fleet) pending preacceptWork) :=
+  fun (terminal : EstablishedTerminal) (member : Count) (bank : Count) (slot : Count) (token : CompletionToken)
+      (fleet : EstablishedFleet) (pending : LeasePool) (preacceptWork : Count) =>
+    case terminal as self in EstablishedTerminal return Equal EstablishedProcess
+        (establishedTerminate self (establishedOwner member bank slot token) (establishedProcess fleet pending preacceptWork))
+        (establishedProcess (establishedFleetStep member bank
+          (completeAt slot token (establishedTerminalReason self)) fleet) pending preacceptWork) with
+    | establishedClosed => same
+    | establishedCancelled => same
+    | establishedFailed => same
+    | establishedTimedOut => same
+    | establishedShed => same
+
+def establishedFreeSlotGrant : (before : LeasePool) -> (generation : Count) -> (after : LeasePool) ->
+    Equal LeasePool (poolStep (reserveAt (leaseCapacity before)) (appendLeasePool before (leaseCell (freeLease generation) after)))
+      (appendLeasePool before (leaseCell (heldLease generation) after)) :=
+  fun (before : LeasePool) (generation : Count) (after : LeasePool) =>
+    establishedLeaseUpdateAtPrefix before (freeLease generation) after reserveLease
+
+def establishedHeldSlotRefuses : (before : LeasePool) -> (generation : Count) -> (after : LeasePool) ->
+    Equal LeasePool (poolStep (reserveAt (leaseCapacity before)) (appendLeasePool before (leaseCell (heldLease generation) after)))
+      (appendLeasePool before (leaseCell (heldLease generation) after)) :=
+  fun (before : LeasePool) (generation : Count) (after : LeasePool) =>
+    establishedLeaseUpdateAtPrefix before (heldLease generation) after reserveLease
+
+def establishedUnownedSlotRelease : (before : LeasePool) -> (lease : Lease) -> (after : LeasePool) -> (reason : PendingEnd) ->
+    Equal LeasePool (poolStep (completeAt (leaseCapacity before) noOwnedLease reason) (appendLeasePool before (leaseCell lease after)))
+      (appendLeasePool before (leaseCell lease after)) :=
+  fun (before : LeasePool) (lease : Lease) (after : LeasePool) (reason : PendingEnd) =>
+    establishedLeaseUpdateAtPrefix before lease after (fun (state : Lease) => pendingCompletion noOwnedLease reason state)
+
+def establishedStaleSlotRelease : (before : LeasePool) -> (generation : Count) -> (after : LeasePool) -> (reason : PendingEnd) ->
+    Equal LeasePool
+      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)
+        (appendLeasePool before (leaseCell (heldLease (next generation)) after)))
+      (appendLeasePool before (leaseCell (heldLease (next generation)) after)) :=
+  fun (before : LeasePool) (generation : Count) (after : LeasePool) (reason : PendingEnd) =>
+    equalTransitivity LeasePool
+      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)
+        (appendLeasePool before (leaseCell (heldLease (next generation)) after)))
+      (appendLeasePool before (leaseCell (pendingCompletion (ownedGeneration generation) reason (heldLease (next generation))) after))
+      (appendLeasePool before (leaseCell (heldLease (next generation)) after))
+      (establishedLeaseUpdateAtPrefix before (heldLease (next generation)) after
+        (fun (lease : Lease) => pendingCompletion (ownedGeneration generation) reason lease))
+      (congruent Lease LeasePool (fun (lease : Lease) => appendLeasePool before (leaseCell lease after))
+        (pendingCompletion (ownedGeneration generation) reason (heldLease (next generation)))
+        (heldLease (next generation)) (staleGenerationPreserved generation))

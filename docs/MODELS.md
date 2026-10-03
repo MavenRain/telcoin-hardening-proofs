@@ -2572,3 +2572,57 @@ authority and production burst/rate calibration remain explicit premises.
 E014/E013/E010 retain runtime source/accounting/calibration work. These proofs
 bound admitted-start counts, not resident-resource allocations, CPU costs,
 continuous-time scheduling fairness or critical-class service. M012 remains open.
+
+## Established resource vectors (module 86)
+
+`EstablishedFleet` holds one finite population of peers with independently
+owned `EstablishedBanks`. A bank has one of five protocol kinds and either
+incoming or outgoing direction, an `EstablishedUnit` and a finite `LeasePool`.
+All protocol/direction counts, byte/task reservations and advertised receive
+credit are projections of this same population. Category/direction roundtrips
+prevent aliases, and the slot classifier requires both labels to match.
+
+An arbitrary indexed `PoolAction` changes one peer, bank and slot. Grants take
+a free slot's generation and refuse a held slot. All terminal reasons use the
+same generation-owned release. `EstablishedTerminal` explicitly
+names close, cancellation, failure, timeout and shedding. Its wrapper binds
+every owner coordinate before lowering to the generic lease primitive. Exact
+update shapes quantify over arbitrary
+prefixes and suffixes at each ownership level. The composed release frees only
+the matching held generation, advances it and preserves all other peers, banks
+and slots. `EstablishedOwner` binds the peer, bank, slot and internal token;
+runtime provenance of that receipt remains a premise. Shedding uses this same
+terminal path. Unowned and preceding-generation tokens preserve their pools.
+
+Finite mixed grant, terminal and trust/swarm/identity-churn traces preserve
+every coordinate of the initial allocation. Each use coordinate stays below
+that allocation, and an explicit initial-fit premise composes all peer vectors
+into one supplied finite process allocation. Relabeling retains complete owned
+banks. Arbitrary simultaneous occupancy models overlapping resource lifetimes
+across the finite population. `EstablishedProcess` preserves its complete pending
+lease pool and its separate pre-accept work field through every established trace.
+This holds by construction because no established event can change those fields.
+
+Advertised receive credit is an independent weight. It changes neither reserved
+resident byte/task weights nor symbolic actual unit costs. `EstablishedUnit`
+requires explicit domination certificates for both actual cost upper bounds.
+These lift through all occupied slots, banks and peers to trace-wide resident
+bounds. `establishedResidentWithOverheadBound` additionally charges independently
+bounded fixed/shared resident overhead, including idle containers and process
+tasks, even at zero occupancy. Its premise reserves that overhead together with
+the population's complete allocation vector in the same process budget.
+
+The module has 35 counted proof declarations and 36 new semantic controls.
+Controls weaken category/direction distinctions, resident/advertised axes,
+actual costs, overhead, bank/peer sums, indexed isolation, trust charging, churn
+retention, trace execution, receipt coordinates and unrelated-phase preservation.
+Two controls specifically skip the established close and shedding releases.
+Each must fail over quantified inputs with a type mismatch.
+
+M012 criteria 0 and 3 are witnessed. Criterion 1 retains stage accounting
+between pending, pre-accept and established resources. Criterion 2 has finite-vector composition
+evidence but still requires critical-class service under explicit workload and
+scheduling premises. E022/E013/E010 retain runtime classification, unique slot
+routing, atomicity, receipt authority, nonwrapping generations, actual resource
+termination, cost domination and production calibration. Symbolic costs and
+overhead certificates are supplied model evidence, with runtime refinement open.

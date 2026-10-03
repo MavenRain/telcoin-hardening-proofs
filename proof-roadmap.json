@@ -76,7 +76,7 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "0218c17239c0806d735df9fe12356d53fc4704557911c1b967bb6b3d2e181a43"
+          "sha256": "2794f30658aadacf3a54fe326874f676be3da9dcb11ea8a24a5b1dadf280fa05"
         },
         {
           "criterion": 1,
@@ -86,7 +86,7 @@
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "0218c17239c0806d735df9fe12356d53fc4704557911c1b967bb6b3d2e181a43"
+          "sha256": "2794f30658aadacf3a54fe326874f676be3da9dcb11ea8a24a5b1dadf280fa05"
         }
       ]
     },
@@ -94,7 +94,7 @@
       "id": "R03",
       "title": "Close admission, ownership and rate accounting",
       "planned_turns": 5,
-      "turns_spent": 10,
+      "turns_spent": 11,
       "status": "active",
       "depends_on": [
         "R02"

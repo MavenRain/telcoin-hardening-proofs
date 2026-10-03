@@ -1170,3 +1170,40 @@ obligations remain open. Runtime source/index/clock/atomicity refinement and
 production calibration remain premises; these start-count envelopes do not
 close established resource vectors, resident-byte/task domination or critical
 scheduling. Historical receipts retain their original counts and hashes.
+
+## R03 turn 11 established resource vectors
+
+`r03-established-resource-vectors-check.json` records the complete final
+proof/mutation run and qualification guard: 69 modules, 1313 explicit equality
+and order proof declarations, 186 atomic model obligations, 34 claim groups
+and all 1383 sealed source units. All 1242 negative checks reject (1239
+registered controls plus three generic controls), with empty axiom disclosure
+and pinned compiler provenance.
+
+Module 86 contributes 35 proof declarations and 36 semantic controls. Its
+general statements derive every protocol/direction and resident coordinate
+from the same finite owned population, preserve allocation through arbitrary
+resource/churn traces, isolate releases after arbitrary peer/bank/slot prefixes,
+and preserve pending leases and pre-accept work. Advertised credit is separate
+from certified symbolic resident byte/task costs. Fixed/shared overhead has
+independent domination and reserved capacity in the same process allocation,
+including when no slots are occupied.
+
+Controls weaken kind/direction codes, vector coordinates, actual costs and
+overhead, complete bank/peer sums, indexed isolation, trust charging, churn
+retention, trace execution, receipt binding and pending/pre-accept field
+pass-through. Each new
+close and shedding control specifically requires the corresponding owned
+release; omitting it must fail. Every new
+rejection must be a semantic type mismatch in a statement over quantified
+inputs. Parser errors, crashes and timeouts receive no proof credit.
+
+M012 criteria 0 and 3 are witnessed. Criterion 1 retains stage accounting
+between pending, pre-accept and established resources. Criterion 2 has finite process-vector
+evidence but retains critical-class service under explicit workload/scheduling
+premises. The audit still covers 10 of 83 obligations and keeps 73 partial;
+R03 has used eleven turns against five planned and stays active. All 43
+external obligations remain open, and full qualification remains blocked.
+E022/E013/E010 retain runtime classification, routing, receipt, atomicity,
+termination, resident-cost domination and calibration refinement. Historical
+receipts retain their original counts and hashes.

@@ -71,7 +71,8 @@
     "proofs/82-normalized-source-attribution.mech": "7aaa81a46f742156c8d53032b15b3eaff8ed093716b3670904b396bb8ff57898",
     "proofs/83-trusted-source-authority.mech": "4d9a0f3468bb5403aa56a9cc2ee6919fe3d8c4f73b9f9e8c925047a2a4479744",
     "proofs/84-source-security-lifetimes.mech": "c4aed525c69dd2e2d490bdfaf69e3be4143cdf7d6ccbb7e78fd909c9926590ca",
-    "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb"
+    "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb",
+    "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b"
   },
   "obligations": [
     {
@@ -4632,7 +4633,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The frozen required scope remains a model obligation in R03.",
+      "scope_review": "Turn 11 witnesses M012 criteria 0 and 3. Module 86 derives all protocol/direction and resident coordinates from one finite owned population, composes its arbitrary mixed traces into one process vector, proves exact owner-specific release, and distinguishes advertised credit from certified resident byte/task costs. Criterion 2 has finite-vector evidence but retains critical-class workload/scheduling service as its precise R03 gap. Criterion 1 retains stage accounting between pending, pre-accept and established resources as its precise R03 gap. Runtime classification, routing, ownership and cost refinement remain external.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -4677,28 +4678,690 @@
             "Critical service is a separate capped scalar function, without a modeled scheduler."
           ],
           "limits": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. These local statements do not establish: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms. Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work. Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises. Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedActualIgnoresAdvertised",
+          "statement": "(axis : EstablishedResidentAxis) -> (bytes : Count) -> (tasks : Count) ->\n    (creditA : Count) -> (creditB : Count) -> (actualBytes : Count) -> (actualTasks : Count) ->\n    (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) -> Equal Count\n      (establishedActualUnit axis (establishedUnit bytes tasks creditA actualBytes actualTasks byteFits taskFits))\n      (establishedActualUnit axis (establishedUnit bytes tasks creditB actualBytes actualTasks byteFits taskFits))",
+          "scope_kind": "general_transition",
+          "establishes": "Changing advertised receive credit cannot change either symbolic actual resident byte/task unit cost.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedAdvertisedUnit",
+          "statement": "(kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (bytes : Count) -> (tasks : Count) -> (advertised : Count) -> (actualBytes : Count) -> (actualTasks : Count) ->\n    (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) -> Equal Count\n      (establishedUnitValue establishedAdvertisedCredit kind direction\n        (establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits)) advertised",
+          "scope_kind": "general_transition",
+          "establishes": "The advertised receive-credit coordinate records its independent supplied credit weight exactly.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedBankBound",
+          "statement": "(axis : EstablishedAxis) -> (banks : EstablishedBanks) ->\n    AtMost (establishedBankUse axis banks) (establishedBankAllocation axis banks)",
+          "scope_kind": "general_transition",
+          "establishes": "The sum over every categorized directional bank bounds each occupancy-weighted vector coordinate by its capacity-weighted allocation.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedBankResidentDominance",
+          "statement": "(axis : EstablishedResidentAxis) -> (banks : EstablishedBanks) ->\n    AtMost (establishedActualBankUse axis banks)\n      (establishedBankUse (establishedResidentCoordinate axis) banks)",
+          "scope_kind": "general_transition",
+          "establishes": "Actual symbolic resident bytes/tasks summed over every bank are dominated by that same bank population's reserved resident charges.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedBankStepAllocation",
+          "statement": "(index : Count) -> (action : PoolAction) ->\n    (banks : EstablishedBanks) -> (axis : EstablishedAxis) ->\n    Equal Count (establishedBankAllocation axis (establishedBankStep index action banks))\n      (establishedBankAllocation axis banks)",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary indexed grant or terminal action preserves every coordinate of the bank allocation vector.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedBankStepAtPrefix",
+          "statement": "(prefix : EstablishedBanks) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->\n    (suffix : EstablishedBanks) -> (action : PoolAction) ->\n    Equal EstablishedBanks\n      (establishedBankStep (establishedBankWidth prefix) action\n        (appendEstablishedBanks prefix (establishedBank kind direction unit pool suffix)))\n      (appendEstablishedBanks prefix (establishedBank kind direction unit (poolStep action pool) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Every arbitrary bank prefix and suffix is preserved around the one selected bank update.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedDirectionCodeRoundtrip",
+          "statement": "(direction : EstablishedDirection) ->\n    Equal EstablishedDirection (establishedDirectionFromCode (establishedDirectionCode direction)) direction",
+          "scope_kind": "general_transition",
+          "establishes": "Incoming and outgoing ownership directions roundtrip through distinct codes.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFleetBound",
+          "statement": "(axis : EstablishedAxis) -> (fleet : EstablishedFleet) ->\n    AtMost (establishedFleetUse axis fleet) (establishedFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Every finite peer population has coordinate-wise use below the sum of all of its reserved resource vectors.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFleetResidentDominance",
+          "statement": "(axis : EstablishedResidentAxis) -> (fleet : EstablishedFleet) ->\n    AtMost (establishedActualFleetUse axis fleet)\n      (establishedFleetUse (establishedResidentCoordinate axis) fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Actual symbolic byte/task costs over every peer and bank are dominated by the population's reserved resident charges.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFleetStepAllocation",
+          "statement": "(member : Count) -> (bank : Count) -> (action : PoolAction) ->\n    (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->\n    Equal Count (establishedFleetAllocation axis (establishedFleetStep member bank action fleet))\n      (establishedFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary indexed peer/bank grant or terminal action preserves the complete process allocation vector.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFleetStepAtPrefix",
+          "statement": "(prefix : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banks : EstablishedBanks) -> (suffix : EstablishedFleet) -> (bank : Count) -> (action : PoolAction) ->\n    Equal EstablishedFleet\n      (establishedFleetStep (establishedFleetWidth prefix) bank action\n        (appendEstablishedFleet prefix (establishedMember trusted swarm identity banks suffix)))\n      (appendEstablishedFleet prefix (establishedMember trusted swarm identity (establishedBankStep bank action banks) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Every arbitrary peer prefix and suffix is preserved around the one selected peer/bank update.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFocusedOwnedRelease",
+          "statement": "(peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) ->\n    (generation : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) ->\n    (peersAfter : EstablishedFleet) -> (reason : PendingEnd) ->\n    Equal EstablishedFleet\n      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)\n        (completeAt (leaseCapacity slotsBefore) (ownedGeneration generation) reason)\n        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit\n          (appendLeasePool slotsBefore (leaseCell (heldLease generation) slotsAfter)) banksAfter peersAfter))\n      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit\n        (appendLeasePool slotsBefore (leaseCell (freeLease (next generation)) slotsAfter)) banksAfter peersAfter)",
+          "scope_kind": "general_transition",
+          "establishes": "Matching-generation release after arbitrary peer, bank and slot prefixes frees exactly that established owner and preserves every prefix and suffix.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFocusedStep",
+          "statement": "(peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->\n    (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (action : PoolAction) ->\n    Equal EstablishedFleet\n      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) action\n        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))\n      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (poolStep action pool) banksAfter peersAfter)",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary action touches exactly its selected peer/bank pool, preserving every other ownership level.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedFreeSlotGrant",
+          "statement": "(before : LeasePool) -> (generation : Count) -> (after : LeasePool) ->\n    Equal LeasePool (poolStep (reserveAt (leaseCapacity before)) (appendLeasePool before (leaseCell (freeLease generation) after)))\n      (appendLeasePool before (leaseCell (heldLease generation) after))",
+          "scope_kind": "general_transition",
+          "establishes": "A grant after any finite slot prefix acquires its free generation without changing any other slot.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedHeldSlotRefuses",
+          "statement": "(before : LeasePool) -> (generation : Count) -> (after : LeasePool) ->\n    Equal LeasePool (poolStep (reserveAt (leaseCapacity before)) (appendLeasePool before (leaseCell (heldLease generation) after)))\n      (appendLeasePool before (leaseCell (heldLease generation) after))",
+          "scope_kind": "general_transition",
+          "establishes": "A grant after any finite slot prefix refuses an already-held slot and preserves the complete pool.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedKindCodeRoundtrip",
+          "statement": "(kind : EstablishedKind) ->\n    Equal EstablishedKind (establishedKindFromCode (establishedKindCode kind)) kind",
+          "scope_kind": "general_transition",
+          "establishes": "All five protocol categories roundtrip through distinct category codes.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedLabelsCannotDiscount",
+          "statement": "(axis : EstablishedAxis) -> (trustedA : Flag) -> (trustedB : Flag) ->\n    (swarmA : Count) -> (swarmB : Count) -> (identityA : Count) -> (identityB : Count) ->\n    (banks : EstablishedBanks) -> (rest : EstablishedFleet) ->\n    Equal Count\n      (establishedFleetUse axis (establishedMember trustedA swarmA identityA banks rest))\n      (establishedFleetUse axis (establishedMember trustedB swarmB identityB banks rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Changing any trust, swarm or identity label cannot change the resource use of a member and its suffix.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedLeaseUpdateAtPrefix",
+          "statement": "(prefix : LeasePool) -> (lease : Lease) ->\n    (suffix : LeasePool) -> (change : Lease -> Lease) ->\n    Equal LeasePool\n      (updateLease (leaseCapacity prefix) change (appendLeasePool prefix (leaseCell lease suffix)))\n      (appendLeasePool prefix (leaseCell (change lease) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Every arbitrary slot prefix and suffix is preserved around the one selected lease update.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedMultiplyUnitBound",
+          "statement": "(slots : Count) -> (actual : Count) -> (reserved : Count) ->\n    AtMost actual reserved -> AtMost (multiply slots actual) (multiply slots reserved)",
+          "scope_kind": "general_transition",
+          "establishes": "Any finite occupancy preserves a supplied per-slot unit-cost domination bound under multiplication.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedOwnedPoolRelease",
+          "statement": "(before : LeasePool) -> (generation : Count) -> (after : LeasePool) -> (reason : PendingEnd) ->\n    Equal LeasePool\n      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)\n        (appendLeasePool before (leaseCell (heldLease generation) after)))\n      (appendLeasePool before (leaseCell (freeLease (next generation)) after))",
+          "scope_kind": "general_transition",
+          "establishes": "Every terminal reason frees only its matching-generation held slot after any finite slot prefix, preserving all other slots.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedProcessVectorBound",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->\n    (processAllocation : EstablishedAxis -> Count) ->\n    ((axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis)) ->\n    (axis : EstablishedAxis) -> AtMost (establishedFleetUse axis (runEstablishedFleet trace fleet)) (processAllocation axis)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Per-peer resource vectors compose into one finite process vector for arbitrary mixed traces, under explicit initial coordinate-wise fit.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedProtocolUnit",
+          "statement": "(kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->\n    Equal Count (establishedUnitValue (establishedSlots kind direction) kind direction unit) (next zero)",
+          "scope_kind": "general_transition",
+          "establishes": "A slot contributes exactly one to its matching protocol and direction coordinate for every protocol kind and direction.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedRelabelAllocation",
+          "statement": "(member : Count) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->\n    Equal Count (establishedFleetAllocation axis (establishedFleetRelabel member trusted swarm identity fleet))\n      (establishedFleetAllocation axis fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Arbitrary indexed trust, swarm and identity churn retains the owned allocation vector.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedReleaseBindsOwner",
+          "statement": "(member : Count) -> (bank : Count) -> (slot : Count) -> (token : CompletionToken) ->\n    (reason : PendingEnd) -> (fleet : EstablishedFleet) -> (pending : LeasePool) -> (preacceptWork : Count) ->\n    Equal EstablishedProcess\n      (establishedRelease (establishedOwner member bank slot token) reason (establishedProcess fleet pending preacceptWork))\n      (establishedProcess (establishedFleetStep member bank (completeAt slot token reason) fleet) pending preacceptWork)",
+          "scope_kind": "general_transition",
+          "establishes": "The terminal and shedding wrapper uses the supplied peer, bank, slot and token, while preserving pending and pre-accept fields.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedResidentIgnoresAdvertised",
+          "statement": "(axis : EstablishedResidentAxis) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (bytes : Count) -> (tasks : Count) -> (creditA : Count) -> (creditB : Count) ->\n    (actualBytes : Count) -> (actualTasks : Count) -> (byteFits : AtMost actualBytes bytes) -> (taskFits : AtMost actualTasks tasks) ->\n    Equal Count\n      (establishedUnitValue (establishedResidentCoordinate axis) kind direction\n        (establishedUnit bytes tasks creditA actualBytes actualTasks byteFits taskFits))\n      (establishedUnitValue (establishedResidentCoordinate axis) kind direction\n        (establishedUnit bytes tasks creditB actualBytes actualTasks byteFits taskFits))",
+          "scope_kind": "general_transition",
+          "establishes": "Changing advertised receive credit cannot change either reserved resident byte/task unit weight.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedResidentTraceBound",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->\n    (processAllocation : EstablishedAxis -> Count) ->\n    ((axis : EstablishedAxis) -> AtMost (establishedFleetAllocation axis fleet) (processAllocation axis)) ->\n    (axis : EstablishedResidentAxis) ->\n    AtMost (establishedActualFleetUse axis (runEstablishedFleet trace fleet))\n      (processAllocation (establishedResidentCoordinate axis))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Actual symbolic bytes/tasks remain below the supplied process resident coordinates for every mixed trace under stored per-slot dominance and initial vector fit.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedResidentWithOverheadBound",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->\n    (actualOverhead : EstablishedResidentAxis -> Count) -> (reservedOverhead : EstablishedResidentAxis -> Count) ->\n    (processAllocation : EstablishedAxis -> Count) ->\n    ((axis : EstablishedResidentAxis) -> AtMost (actualOverhead axis) (reservedOverhead axis)) ->\n    ((axis : EstablishedResidentAxis) -> AtMost\n      (add (reservedOverhead axis) (establishedFleetAllocation (establishedResidentCoordinate axis) fleet))\n      (processAllocation (establishedResidentCoordinate axis))) -> (axis : EstablishedResidentAxis) ->\n    AtMost (establishedProcessResidentUse axis actualOverhead trace fleet)\n      (processAllocation (establishedResidentCoordinate axis))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Actual symbolic resident overhead plus all active-slot costs remains below the process resident coordinates for every mixed trace, under separate overhead domination and initial overhead-plus-vector fit.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedSlotClassification",
+          "statement": "(selectedKind : EstablishedKind) -> (selectedDirection : EstablishedDirection) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> Equal Count\n      (establishedUnitValue (establishedSlots selectedKind selectedDirection) kind direction unit)\n      (establishedFlagCount (both (sameCount (establishedKindCode kind) (establishedKindCode selectedKind))\n        (sameCount (establishedDirectionCode direction) (establishedDirectionCode selectedDirection))))",
+          "scope_kind": "general_transition",
+          "establishes": "An arbitrary selected slot coordinate charges only the conjunction of matching resource kind and direction.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedStaleSlotRelease",
+          "statement": "(before : LeasePool) -> (generation : Count) -> (after : LeasePool) -> (reason : PendingEnd) ->\n    Equal LeasePool\n      (poolStep (completeAt (leaseCapacity before) (ownedGeneration generation) reason)\n        (appendLeasePool before (leaseCell (heldLease (next generation)) after)))\n      (appendLeasePool before (leaseCell (heldLease (next generation)) after))",
+          "scope_kind": "general_transition",
+          "establishes": "A token for the preceding generation cannot release a reused slot after any finite prefix.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedTerminalBindsOwner",
+          "statement": "(terminal : EstablishedTerminal) -> (member : Count) -> (bank : Count) ->\n    (slot : Count) -> (token : CompletionToken) -> (fleet : EstablishedFleet) -> (pending : LeasePool) -> (preacceptWork : Count) ->\n    Equal EstablishedProcess\n      (establishedTerminate terminal (establishedOwner member bank slot token) (establishedProcess fleet pending preacceptWork))\n      (establishedProcess (establishedFleetStep member bank\n        (completeAt slot token (establishedTerminalReason terminal)) fleet) pending preacceptWork)",
+          "scope_kind": "general_transition",
+          "establishes": "Every explicit established close, cancellation, failure, timeout or shedding event dispatches the supplied peer, bank, slot and token to the owned terminal action, preserving pending and pre-accept fields.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedTraceAllocation",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->\n    Equal Count (establishedFleetAllocation axis (runEstablishedFleet trace fleet)) (establishedFleetAllocation axis fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed grant, terminal and relabel trace preserves the initial process allocation vector.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedTraceBound",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) -> (axis : EstablishedAxis) ->\n    AtMost (establishedFleetUse axis (runEstablishedFleet trace fleet)) (establishedFleetAllocation axis fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every coordinate of an arbitrary mixed resource/churn trace is bounded by its initial finite population allocation.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedTraceKeepsOtherPhases",
+          "statement": "(trace : EstablishedTrace) -> (fleet : EstablishedFleet) ->\n    (pending : LeasePool) -> (preacceptWork : Count) ->\n    Equal EstablishedProcess (runEstablishedProcess trace (establishedProcess fleet pending preacceptWork))\n      (establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every established trace keeps the complete pending lease pool and the unrelated pre-accept work field unchanged. This holds by construction: no established event can read or write these fields.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedUnitDominance",
+          "statement": "(axis : EstablishedResidentAxis) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) ->\n    AtMost (establishedActualUnit axis unit)\n      (establishedUnitValue (establishedResidentCoordinate axis) kind direction unit)",
+          "scope_kind": "general_transition",
+          "establishes": "Each supplied resident byte/task unit cost is dominated by its reserved unit weight using the constructor certificate.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
+        },
+        {
+          "path": "proofs/86-established-resource-vectors.mech",
+          "name": "establishedUnownedSlotRelease",
+          "statement": "(before : LeasePool) -> (lease : Lease) -> (after : LeasePool) -> (reason : PendingEnd) ->\n    Equal LeasePool (poolStep (completeAt (leaseCapacity before) noOwnedLease reason) (appendLeasePool before (leaseCell lease after)))\n      (appendLeasePool before (leaseCell lease after))",
+          "scope_kind": "general_transition",
+          "establishes": "A terminal action without an owned token preserves the complete arbitrary-prefix slot pool.",
+          "premises": [
+            "A fixed finite population has distinct owned resource banks. Every runtime grant and terminal release routes through its matching peer, bank and generation-tagged slot. E022 owns classification and routing refinement.",
+            "Transitions are serialized. Internal receipts bind all ownership coordinates; generations do not wrap and releasing a slot ends its associated resource lifetime. E022 and E013 retain runtime ownership, atomicity and phase accounting.",
+            "Each resource unit supplies symbolic upper bounds for actual resident bytes and tasks, with explicit AtMost certificates below reserved weights. Fixed/shared overhead has its own supplied resident bounds, domination certificates and process reservation. Runtime costs and overlap must refine these supplied bounds; E022 and E010 retain that evidence.",
+            "The sum of all per-peer vectors fits one supplied finite process allocation. Trust, swarm and identity labels neither supply extra capacity nor erase retained charges. Critical scheduling remains the unwitnessed part of M012 criterion 2."
+          ],
+          "limits": "These are finite abstract resource and symbolic resident-cost bounds. They do not certify runtime routing, receipt authority, task termination, storage/work dominance or calibrated weights. E022, E013 and E010 remain external. M012 criterion 2 still requires critical-class service under workload and scheduling premises."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "established_resource_quic_aliases_connection",
+          "sha256": "edcddbc29b6ce5cf73489e3f81a1fa0cc9f5fdd0795c524dd2cd5e6c14a5492a"
+        },
+        {
+          "name": "established_resource_kademlia_aliases_negotiating",
+          "sha256": "fa8234d71417638169a44dc7a6474e65ee7fcad161b9f9bfaa219320e7b4a4e4"
+        },
+        {
+          "name": "established_resource_directions_alias",
+          "sha256": "a221a9435496d1bc4b92e2891be93ea36a15b6fe8458af4e67b8526f56a6f6ea"
+        },
+        {
+          "name": "established_resource_bytes_use_advertised_credit",
+          "sha256": "8d13822f0bfe73c977cf957173cc6f643782ab34547d58c1dd4398563dce1648"
+        },
+        {
+          "name": "established_resource_tasks_use_bytes",
+          "sha256": "72288bf352f3a45dc037a4aaa33ce0a3776fd818d6c66a0d6bce1bc9ff54a738"
+        },
+        {
+          "name": "established_resource_advertised_credit_uses_bytes",
+          "sha256": "3e4704d5bb21fd9bb765f33ce1559db29c2eb94b877717affa2c83b8f9c33874"
+        },
+        {
+          "name": "established_resource_slots_ignore_direction",
+          "sha256": "c7e9fe5a1147167a1132f8047aa186f977a6304a63f3ca95d5ef92979518ab9d"
+        },
+        {
+          "name": "established_resource_slots_ignore_kind",
+          "sha256": "5ee73cdc5d3e4b854d28d1bd9f2d414004c9e392d00b06bbcb236537bfe59167"
+        },
+        {
+          "name": "established_resource_resident_bytes_use_credit_axis",
+          "sha256": "5c82e2b19e816b261a00cd060973bb35746e97b066d44eb300b3f4e29348dcc1"
+        },
+        {
+          "name": "established_resource_resident_tasks_use_bytes_axis",
+          "sha256": "6ef77f9a23c2c0e3a2a65e9fbd558c6a710213f59e2e092bba614bcb36b82454"
+        },
+        {
+          "name": "established_resource_actual_bytes_use_credit",
+          "sha256": "141d22217589dc58644c99ff09e16ab143edbe937448e4ffe5bb18638f4b29a3"
+        },
+        {
+          "name": "established_resource_actual_tasks_use_credit",
+          "sha256": "4b67784e64106978b3a4c53801f1e3bd2025ccc02ee17edad6ec61306efee16b"
+        },
+        {
+          "name": "established_resource_actual_tasks_use_byte_cost",
+          "sha256": "8eedea64f79e425994ce603f82eb6fb5e347ecea59ad0c25fb85415995a347c9"
+        },
+        {
+          "name": "established_resource_use_counts_capacity",
+          "sha256": "5fe702001c8a3e0aa831f4abd8c03313d039488af5a6458fbe55085bbe3e813c"
+        },
+        {
+          "name": "established_resource_use_omits_other_banks",
+          "sha256": "4ea6cee21eb0f96176a8a50197653e183f20a9b879598222d732e3ec09a3f18a"
+        },
+        {
+          "name": "established_resource_allocation_counts_occupancy",
+          "sha256": "91089509f0c41a8929286435eae4629333748dd71c9c703004e171282c04b705"
+        },
+        {
+          "name": "established_resource_actual_use_omits_other_banks",
+          "sha256": "759067856de647a3d0d4cf294cb26b8955326f6af00c3c5ac022f0ccbc682561"
+        },
+        {
+          "name": "established_resource_bank_step_ignores_owner",
+          "sha256": "dba0305e4880b7f2b8fb8d9d62aff20b245be760c62e3c6fb58200f2531aa98f"
+        },
+        {
+          "name": "established_resource_bank_step_releases_other_banks",
+          "sha256": "fb86e5476ee08c484a9d759f6f30a8aa0ec7601d22ef48635391073b6ba18da7"
+        },
+        {
+          "name": "established_resource_bank_tail_step_changes_head",
+          "sha256": "841c44cd8667036af3583769217906e9ffd8af7b5973317c49e8cf8cc0c555f9"
+        },
+        {
+          "name": "established_resource_trusted_peers_uncharged",
+          "sha256": "bb8ea7db2d7611c96086b0ac4f73cd2d37a2e32f3e179b221b723780397aa2f7"
+        },
+        {
+          "name": "established_resource_use_omits_other_peers",
+          "sha256": "7403591003fe2bc1263738eaa6b01679906e7f1a7f361ad69f390933073ba21c"
+        },
+        {
+          "name": "established_resource_peer_tail_step_changes_head",
+          "sha256": "4d758472eae20447b6c2d3fd42f7de11d86e68483255a3f2b3d9a404c441b9cf"
+        },
+        {
+          "name": "established_resource_peer_tail_step_skips_owner",
+          "sha256": "55499a48ed607ecef11d7b8ea0dae7a660b02bdc375999143de1ba28bd37feef"
+        },
+        {
+          "name": "established_resource_churn_drops_owned_banks",
+          "sha256": "6ca7ce3d02972536ba7202dd6e678d3d8f02660ddce2890833f8022b08c86eb0"
+        },
+        {
+          "name": "established_resource_trace_skips_resource_event",
+          "sha256": "718d44768947d3fd3faa5d7fea3ceb5bf05ea5f61f7a7194f7f436b62750057b"
+        },
+        {
+          "name": "established_resource_trace_discards_population",
+          "sha256": "c53ad50df27d5951eca67007fcea21dedf7a2e3ec8a721b1a1a6b9bd37cc987b"
+        },
+        {
+          "name": "established_resource_receipt_swaps_peer_and_bank",
+          "sha256": "b6b9f0b5107244f5d0d10253f9c7d51e66690eef12bb74a1568ee30270607c28"
+        },
+        {
+          "name": "established_resource_receipt_uses_wrong_slot",
+          "sha256": "9b097749809521cf9f483a22528c2eba4f75676b1fc1b89472e66e2537899d37"
+        },
+        {
+          "name": "established_resource_receipt_loses_token",
+          "sha256": "b4b2eeca7b234a8284c0f47ca693b2824de430fae23fd2fe98cbfd4437eacb6d"
+        },
+        {
+          "name": "established_resource_release_discards_pending",
+          "sha256": "ace547f6b828cd2201da50c4796dd3e0141e75e4148caa782d473bfcbc8b5c24"
+        },
+        {
+          "name": "established_resource_release_discards_preaccept_work",
+          "sha256": "b4a4afa9fc2d4f4730f00ace196fb60af97d5c605bc668fdd1cd7332b79074ae"
+        },
+        {
+          "name": "established_resource_resident_use_omits_fixed_overhead",
+          "sha256": "4ad3c03896a2296513164e719aa171854d9739cd407050d1c19792ba46c17e42"
+        },
+        {
+          "name": "established_resource_resident_use_omits_active_slots",
+          "sha256": "42e7564c2b42ddbcca68a03e78fb1f4bd3abfae8db640630392a660e88795016"
+        },
+        {
+          "name": "established_resource_closed_skips_release",
+          "sha256": "40cb140d8d6b54af3abf7102bc159cd5f120334610785bcac3abb0119c16aae3"
+        },
+        {
+          "name": "established_resource_shedding_skips_release",
+          "sha256": "148b8a18cba99dbf782117412b164c9408e1f427d20f71407383a1bf42e86839"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/20-accounting.mech#stageCompositionBound",
             "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
             "proofs/30-admission-and-service.mech#everyProfileBudget",
-            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget",
+            "proofs/86-established-resource-vectors.mech#establishedKindCodeRoundtrip",
+            "proofs/86-established-resource-vectors.mech#establishedDirectionCodeRoundtrip",
+            "proofs/86-established-resource-vectors.mech#establishedProtocolUnit",
+            "proofs/86-established-resource-vectors.mech#establishedSlotClassification",
+            "proofs/86-established-resource-vectors.mech#establishedFocusedStep",
+            "proofs/86-established-resource-vectors.mech#establishedFreeSlotGrant",
+            "proofs/86-established-resource-vectors.mech#establishedHeldSlotRefuses",
+            "proofs/86-established-resource-vectors.mech#establishedLabelsCannotDiscount",
+            "proofs/86-established-resource-vectors.mech#establishedTraceAllocation",
+            "proofs/86-established-resource-vectors.mech#establishedTraceBound",
+            "proofs/86-established-resource-vectors.mech#establishedProcessVectorBound",
+            "proofs/86-established-resource-vectors.mech#establishedBankBound",
+            "proofs/86-established-resource-vectors.mech#establishedBankStepAllocation",
+            "proofs/86-established-resource-vectors.mech#establishedFleetStepAllocation",
+            "proofs/86-established-resource-vectors.mech#establishedRelabelAllocation"
           ],
-          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Model grants in both directions for connections, QUIC streams/credits, request-response, negotiating/Kademlia substreams, retained bytes and tasks, and prove vector bounds under churn, overlap, trust and multiple swarms."
+          "rationale": "One fixed owned population supplies grants in both directions for connections, QUIC streams and advertised receive credit, request-response, negotiating/Kademlia substreams, bytes and tasks. Arbitrary mixed resource/churn traces preserve all vector bounds across trust and swarm labels, with explicit routing and initial-fit premises.",
+          "remaining": ""
         },
         {
           "index": 1,
           "status": "gap",
-          "witnesses": [],
-          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R03: Prove vector-resource releases and shedding remove only their established owner, separately from pending leases and pre-accept work."
+          "witnesses": [
+            "proofs/86-established-resource-vectors.mech#establishedBankStepAtPrefix",
+            "proofs/86-established-resource-vectors.mech#establishedFleetStepAtPrefix",
+            "proofs/86-established-resource-vectors.mech#establishedLeaseUpdateAtPrefix",
+            "proofs/86-established-resource-vectors.mech#establishedFocusedStep",
+            "proofs/86-established-resource-vectors.mech#establishedOwnedPoolRelease",
+            "proofs/86-established-resource-vectors.mech#establishedFocusedOwnedRelease",
+            "proofs/86-established-resource-vectors.mech#establishedReleaseBindsOwner",
+            "proofs/86-established-resource-vectors.mech#establishedUnownedSlotRelease",
+            "proofs/86-established-resource-vectors.mech#establishedStaleSlotRelease",
+            "proofs/86-established-resource-vectors.mech#establishedTraceKeepsOtherPhases",
+            "proofs/86-established-resource-vectors.mech#establishedTerminalBindsOwner"
+          ],
+          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises.",
+          "remaining": "R03: Model pending-handshake and pre-accept events in the same process as established events, including a pending completion that grants an established slot, and prove that each event changes only its own stage account and that promotion releases its pending lease exactly once."
         },
         {
           "index": 2,
@@ -4707,22 +5370,34 @@
             "proofs/20-accounting.mech#stageCompositionBound",
             "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
             "proofs/30-admission-and-service.mech#everyProfileBudget",
-            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget",
+            "proofs/86-established-resource-vectors.mech#establishedFleetBound",
+            "proofs/86-established-resource-vectors.mech#establishedTraceBound",
+            "proofs/86-established-resource-vectors.mech#establishedProcessVectorBound"
           ],
-          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Compose per-peer resource vectors within one finite process allocation and prove critical-class service under explicit workload/scheduling premises."
+          "rationale": "Arbitrary per-peer vectors now compose into one finite process allocation. Scalar critical/bulk independence does not establish a scheduler service guarantee, so the critical workload/scheduling part remains open.",
+          "remaining": "R03: Prove critical-class service under explicit workload/scheduling premises."
         },
         {
           "index": 3,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/20-accounting.mech#stageCompositionBound",
             "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
             "proofs/30-admission-and-service.mech#everyProfileBudget",
-            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget"
+            "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget",
+            "proofs/86-established-resource-vectors.mech#establishedUnitDominance",
+            "proofs/86-established-resource-vectors.mech#establishedBankResidentDominance",
+            "proofs/86-established-resource-vectors.mech#establishedFleetResidentDominance",
+            "proofs/86-established-resource-vectors.mech#establishedResidentTraceBound",
+            "proofs/86-established-resource-vectors.mech#establishedAdvertisedUnit",
+            "proofs/86-established-resource-vectors.mech#establishedResidentIgnoresAdvertised",
+            "proofs/86-established-resource-vectors.mech#establishedActualIgnoresAdvertised",
+            "proofs/86-established-resource-vectors.mech#establishedResidentWithOverheadBound",
+            "proofs/86-established-resource-vectors.mech#establishedMultiplyUnitBound"
           ],
-          "rationale": "Scalar stage and pending-cost bounds do not establish an established-resource allocation vector. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R03: Separate advertised receive credit from resident allocation and state/prove the required resident-byte/task domination relations."
+          "rationale": "Advertised credit has an exact independent coordinate and cannot alter reserved or actual symbolic resident unit costs. Explicit per-slot byte/task domination certificates lift through all banks and peers into arbitrary-trace process resident bounds. Fixed/shared resident overhead has separate domination and reserved capacity, charged even with zero occupied slots. Runtime costs must refine these supplied upper bounds.",
+          "remaining": ""
         }
       ]
     },

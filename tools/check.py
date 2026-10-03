@@ -2647,6 +2647,109 @@ MUTATIONS += [(name, _COMPOSED_RATE_COMPOSED_RATE_STARTS_CORE, _COMPOSED_RATE_CO
               for name, before, after in [('composed_rate_trace_reuses_predebit_state', '(composedRateStep aggregateBurst aggregateRate sourceBurst sourceRate event state)', 'state')]]
 
 
+# Established-resource vectors: exact state and conditional resident bounds.
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDKINDCODE = 'def establishedKindCode : EstablishedKind -> Count :=\n  fun (kind : EstablishedKind) =>\n    case kind as self in EstablishedKind return Count with\n    | establishedConnection => zero\n    | establishedQuicStream => next zero\n    | establishedRequestResponse => next (next zero)\n    | establishedNegotiating => next (next (next zero))\n    | establishedKademlia => next (next (next (next zero)))\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDKINDCODE, _ESTABLISHED_RESOURCE_ESTABLISHEDKINDCODE.replace(before, after))
+              for name, before, after in [('established_resource_quic_aliases_connection', '| establishedQuicStream => next zero', '| establishedQuicStream => zero'), ('established_resource_kademlia_aliases_negotiating', '| establishedKademlia => next (next (next (next zero)))', '| establishedKademlia => next (next (next zero))')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDDIRECTIONCODE = 'def establishedDirectionCode : EstablishedDirection -> Count :=\n  fun (direction : EstablishedDirection) =>\n    case direction as self in EstablishedDirection return Count with\n    | establishedIncoming => zero\n    | establishedOutgoing => next zero\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDDIRECTIONCODE, _ESTABLISHED_RESOURCE_ESTABLISHEDDIRECTIONCODE.replace(before, after))
+              for name, before, after in [('established_resource_directions_alias', '| establishedOutgoing => next zero', '| establishedOutgoing => zero')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDUNITVALUE = 'def establishedUnitValue : EstablishedAxis -> EstablishedKind -> EstablishedDirection -> EstablishedUnit -> Count :=\n  fun (axis : EstablishedAxis) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) =>\n    case axis as self in EstablishedAxis return Count with\n    | establishedSlots selectedKind selectedDirection => establishedFlagCount\n        (both (sameCount (establishedKindCode kind) (establishedKindCode selectedKind))\n          (sameCount (establishedDirectionCode direction) (establishedDirectionCode selectedDirection)))\n    | establishedBytes =>\n      (case unit as weight in EstablishedUnit return Count with\n      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => bytes)\n    | establishedTasks =>\n      (case unit as weight in EstablishedUnit return Count with\n      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => tasks)\n    | establishedAdvertisedCredit =>\n      case unit as weight in EstablishedUnit return Count with\n      | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits => advertised\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDUNITVALUE, _ESTABLISHED_RESOURCE_ESTABLISHEDUNITVALUE.replace(before, after))
+              for name, before, after in [('established_resource_bytes_use_advertised_credit', 'taskFits => bytes)', 'taskFits => advertised)'), ('established_resource_tasks_use_bytes', 'taskFits => tasks)', 'taskFits => bytes)'), ('established_resource_advertised_credit_uses_bytes', 'taskFits => advertised\n', 'taskFits => bytes\n'), ('established_resource_slots_ignore_direction', '(sameCount (establishedDirectionCode direction) (establishedDirectionCode selectedDirection))', 'on'), ('established_resource_slots_ignore_kind', '(sameCount (establishedKindCode kind) (establishedKindCode selectedKind))', 'on')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDRESIDENTCOORDINATE = 'def establishedResidentCoordinate : EstablishedResidentAxis -> EstablishedAxis :=\n  fun (axis : EstablishedResidentAxis) =>\n    case axis as self in EstablishedResidentAxis return EstablishedAxis with\n    | residentBytes => establishedBytes\n    | residentTasks => establishedTasks\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDRESIDENTCOORDINATE, _ESTABLISHED_RESOURCE_ESTABLISHEDRESIDENTCOORDINATE.replace(before, after))
+              for name, before, after in [('established_resource_resident_bytes_use_credit_axis', '| residentBytes => establishedBytes', '| residentBytes => establishedAdvertisedCredit'), ('established_resource_resident_tasks_use_bytes_axis', '| residentTasks => establishedTasks', '| residentTasks => establishedBytes')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDACTUALUNIT = 'def establishedActualUnit : EstablishedResidentAxis -> EstablishedUnit -> Count :=\n  fun (axis : EstablishedResidentAxis) (unit : EstablishedUnit) =>\n    case unit as weight in EstablishedUnit return Count with\n    | establishedUnit bytes tasks advertised actualBytes actualTasks byteFits taskFits =>\n      case axis as self in EstablishedResidentAxis return Count with\n      | residentBytes => actualBytes\n      | residentTasks => actualTasks\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDACTUALUNIT, _ESTABLISHED_RESOURCE_ESTABLISHEDACTUALUNIT.replace(before, after))
+              for name, before, after in [('established_resource_actual_bytes_use_credit', '| residentBytes => actualBytes', '| residentBytes => advertised'), ('established_resource_actual_tasks_use_credit', '| residentTasks => actualTasks', '| residentTasks => advertised'), ('established_resource_actual_tasks_use_byte_cost', '| residentTasks => actualTasks', '| residentTasks => actualBytes')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDBANKUSE = 'def rec establishedBankUse : EstablishedAxis -> EstablishedBanks -> Count :=\n  fun (axis : EstablishedAxis) (banks : EstablishedBanks) =>\n    case banks as self in EstablishedBanks return Count with\n    | noEstablishedBanks => zero\n    | establishedBank kind direction unit pool rest =>\n      add (multiply (leaseOccupancy pool) (establishedUnitValue axis kind direction unit))\n        (establishedBankUse axis rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKUSE, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKUSE.replace(before, after))
+              for name, before, after in [('established_resource_use_counts_capacity', '(leaseOccupancy pool)', '(leaseCapacity pool)'), ('established_resource_use_omits_other_banks', '(establishedBankUse axis rest)', 'zero')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDBANKALLOCATION = 'def rec establishedBankAllocation : EstablishedAxis -> EstablishedBanks -> Count :=\n  fun (axis : EstablishedAxis) (banks : EstablishedBanks) =>\n    case banks as self in EstablishedBanks return Count with\n    | noEstablishedBanks => zero\n    | establishedBank kind direction unit pool rest =>\n      add (multiply (leaseCapacity pool) (establishedUnitValue axis kind direction unit))\n        (establishedBankAllocation axis rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKALLOCATION, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKALLOCATION.replace(before, after))
+              for name, before, after in [('established_resource_allocation_counts_occupancy', '(leaseCapacity pool)', '(leaseOccupancy pool)')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDACTUALBANKUSE = 'def rec establishedActualBankUse : EstablishedResidentAxis -> EstablishedBanks -> Count :=\n  fun (axis : EstablishedResidentAxis) (banks : EstablishedBanks) =>\n    case banks as self in EstablishedBanks return Count with\n    | noEstablishedBanks => zero\n    | establishedBank kind direction unit pool rest =>\n      add (multiply (leaseOccupancy pool) (establishedActualUnit axis unit))\n        (establishedActualBankUse axis rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDACTUALBANKUSE, _ESTABLISHED_RESOURCE_ESTABLISHEDACTUALBANKUSE.replace(before, after))
+              for name, before, after in [('established_resource_actual_use_omits_other_banks', '(establishedActualBankUse axis rest)', 'zero')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDBANKSTEP = 'def rec establishedBankStep : Count -> PoolAction -> EstablishedBanks -> EstablishedBanks :=\n  fun (index : Count) (action : PoolAction) (banks : EstablishedBanks) =>\n    case index as selected in Count return EstablishedBanks with\n    | zero =>\n      (case banks as self in EstablishedBanks return EstablishedBanks with\n      | noEstablishedBanks => noEstablishedBanks\n      | establishedBank kind direction unit pool rest =>\n        establishedBank kind direction unit (poolStep action pool) rest)\n    | next previous =>\n      case banks as self in EstablishedBanks return EstablishedBanks with\n      | noEstablishedBanks => noEstablishedBanks\n      | establishedBank kind direction unit pool rest =>\n        establishedBank kind direction unit pool (establishedBankStep previous action rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKSTEP, _ESTABLISHED_RESOURCE_ESTABLISHEDBANKSTEP.replace(before, after))
+              for name, before, after in [('established_resource_bank_step_ignores_owner', 'establishedBank kind direction unit (poolStep action pool) rest)', 'establishedBank kind direction unit pool rest)'), ('established_resource_bank_step_releases_other_banks', 'establishedBank kind direction unit (poolStep action pool) rest)', 'establishedBank kind direction unit (poolStep action pool) (establishedBankStep zero action rest))'), ('established_resource_bank_tail_step_changes_head', 'establishedBank kind direction unit pool (establishedBankStep previous action rest)', 'establishedBank kind direction unit (poolStep action pool) (establishedBankStep previous action rest)')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDFLEETUSE = 'def rec establishedFleetUse : EstablishedAxis -> EstablishedFleet -> Count :=\n  fun (axis : EstablishedAxis) (fleet : EstablishedFleet) =>\n    case fleet as self in EstablishedFleet return Count with\n    | noEstablishedFleet => zero\n    | establishedMember trusted swarm identity banks rest =>\n      add (establishedBankUse axis banks) (establishedFleetUse axis rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETUSE, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETUSE.replace(before, after))
+              for name, before, after in [('established_resource_trusted_peers_uncharged', 'add (establishedBankUse axis banks) (establishedFleetUse axis rest)', 'add (case trusted as classification in Flag return Count with\n      | off => establishedBankUse axis banks\n      | on => zero) (establishedFleetUse axis rest)'), ('established_resource_use_omits_other_peers', '(establishedFleetUse axis rest)', 'zero')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDFLEETSTEP = 'def rec establishedFleetStep : Count -> Count -> PoolAction -> EstablishedFleet -> EstablishedFleet :=\n  fun (member : Count) (bank : Count) (action : PoolAction) (fleet : EstablishedFleet) =>\n    case member as selected in Count return EstablishedFleet with\n    | zero =>\n      (case fleet as self in EstablishedFleet return EstablishedFleet with\n      | noEstablishedFleet => noEstablishedFleet\n      | establishedMember trusted swarm identity banks rest =>\n        establishedMember trusted swarm identity (establishedBankStep bank action banks) rest)\n    | next previous =>\n      case fleet as self in EstablishedFleet return EstablishedFleet with\n      | noEstablishedFleet => noEstablishedFleet\n      | establishedMember trusted swarm identity banks rest =>\n        establishedMember trusted swarm identity banks (establishedFleetStep previous bank action rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETSTEP, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETSTEP.replace(before, after))
+              for name, before, after in [('established_resource_peer_tail_step_changes_head', 'establishedMember trusted swarm identity banks (establishedFleetStep previous bank action rest)', 'establishedMember trusted swarm identity (establishedBankStep bank action banks) (establishedFleetStep previous bank action rest)'), ('established_resource_peer_tail_step_skips_owner', 'establishedMember trusted swarm identity banks (establishedFleetStep previous bank action rest)', 'establishedMember trusted swarm identity banks rest')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDFLEETRELABEL = 'def rec establishedFleetRelabel : Count -> Flag -> Count -> Count -> EstablishedFleet -> EstablishedFleet :=\n  fun (member : Count) (trusted : Flag) (swarm : Count) (identity : Count) (fleet : EstablishedFleet) =>\n    case member as selected in Count return EstablishedFleet with\n    | zero =>\n      (case fleet as self in EstablishedFleet return EstablishedFleet with\n      | noEstablishedFleet => noEstablishedFleet\n      | establishedMember oldTrusted oldSwarm oldIdentity banks rest =>\n        establishedMember trusted swarm identity banks rest)\n    | next previous =>\n      case fleet as self in EstablishedFleet return EstablishedFleet with\n      | noEstablishedFleet => noEstablishedFleet\n      | establishedMember oldTrusted oldSwarm oldIdentity banks rest =>\n        establishedMember oldTrusted oldSwarm oldIdentity banks\n          (establishedFleetRelabel previous trusted swarm identity rest)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETRELABEL, _ESTABLISHED_RESOURCE_ESTABLISHEDFLEETRELABEL.replace(before, after))
+              for name, before, after in [('established_resource_churn_drops_owned_banks', 'establishedMember trusted swarm identity banks rest)', 'establishedMember trusted swarm identity noEstablishedBanks rest)')]]
+
+
+_ESTABLISHED_RESOURCE_RUNESTABLISHEDFLEET = 'def rec runEstablishedFleet : EstablishedTrace -> EstablishedFleet -> EstablishedFleet :=\n  fun (trace : EstablishedTrace) (fleet : EstablishedFleet) =>\n    case trace as self in EstablishedTrace return EstablishedFleet with\n    | establishedDone => fleet\n    | establishedEvent member bank action rest => runEstablishedFleet rest (establishedFleetStep member bank action fleet)\n    | establishedChurn member trusted swarm identity rest =>\n      runEstablishedFleet rest (establishedFleetRelabel member trusted swarm identity fleet)\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_RUNESTABLISHEDFLEET, _ESTABLISHED_RESOURCE_RUNESTABLISHEDFLEET.replace(before, after))
+              for name, before, after in [('established_resource_trace_skips_resource_event', 'runEstablishedFleet rest (establishedFleetStep member bank action fleet)', 'runEstablishedFleet rest fleet'), ('established_resource_trace_discards_population', '| establishedDone => fleet', '| establishedDone => noEstablishedFleet')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDOWNERTRACE = 'def establishedOwnerTrace : EstablishedOwner -> PendingEnd -> EstablishedTrace :=\n  fun (owner : EstablishedOwner) (reason : PendingEnd) =>\n    case owner as self in EstablishedOwner return EstablishedTrace with\n    | establishedOwner member bank slot token =>\n      establishedEvent member bank (completeAt slot token reason) establishedDone\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDOWNERTRACE, _ESTABLISHED_RESOURCE_ESTABLISHEDOWNERTRACE.replace(before, after))
+              for name, before, after in [('established_resource_receipt_swaps_peer_and_bank', 'establishedEvent member bank (completeAt slot token reason)', 'establishedEvent bank member (completeAt slot token reason)'), ('established_resource_receipt_uses_wrong_slot', 'completeAt slot token reason', 'completeAt zero token reason'), ('established_resource_receipt_loses_token', 'completeAt slot token reason', 'completeAt slot noOwnedLease reason')]]
+
+
+_ESTABLISHED_RESOURCE_RUNESTABLISHEDPROCESS = 'def runEstablishedProcess : EstablishedTrace -> EstablishedProcess -> EstablishedProcess :=\n  fun (trace : EstablishedTrace) (state : EstablishedProcess) =>\n    case state as self in EstablishedProcess return EstablishedProcess with\n    | establishedProcess fleet pending preacceptWork =>\n      establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_RUNESTABLISHEDPROCESS, _ESTABLISHED_RESOURCE_RUNESTABLISHEDPROCESS.replace(before, after))
+              for name, before, after in [('established_resource_release_discards_pending', 'establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork', 'establishedProcess (runEstablishedFleet trace fleet) emptyLeasePool preacceptWork'), ('established_resource_release_discards_preaccept_work', 'establishedProcess (runEstablishedFleet trace fleet) pending preacceptWork', 'establishedProcess (runEstablishedFleet trace fleet) pending zero')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDPROCESSRESIDENTUSE = 'def establishedProcessResidentUse : EstablishedResidentAxis -> (EstablishedResidentAxis -> Count) ->\n    EstablishedTrace -> EstablishedFleet -> Count :=\n  fun (axis : EstablishedResidentAxis) (overhead : EstablishedResidentAxis -> Count)\n      (trace : EstablishedTrace) (fleet : EstablishedFleet) =>\n    add (overhead axis) (establishedActualFleetUse axis (runEstablishedFleet trace fleet))\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDPROCESSRESIDENTUSE, _ESTABLISHED_RESOURCE_ESTABLISHEDPROCESSRESIDENTUSE.replace(before, after))
+              for name, before, after in [('established_resource_resident_use_omits_fixed_overhead', 'add (overhead axis) (establishedActualFleetUse axis (runEstablishedFleet trace fleet))', 'establishedActualFleetUse axis (runEstablishedFleet trace fleet)'), ('established_resource_resident_use_omits_active_slots', 'add (overhead axis) (establishedActualFleetUse axis (runEstablishedFleet trace fleet))', 'overhead axis')]]
+
+
+_ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE = 'def establishedTerminalTrace : EstablishedTerminal -> EstablishedOwner -> EstablishedTrace :=\n  fun (terminal : EstablishedTerminal) (owner : EstablishedOwner) =>\n    case terminal as self in EstablishedTerminal return EstablishedTrace with\n    | establishedClosed => establishedOwnerTrace owner handshakeCancelled\n    | establishedCancelled => establishedOwnerTrace owner handshakeCancelled\n    | establishedFailed => establishedOwnerTrace owner handshakeFailed\n    | establishedTimedOut => establishedOwnerTrace owner handshakeTimedOut\n    | establishedShed => establishedOwnerTrace owner handshakeCancelled\n\n'
+
+MUTATIONS += [(name, _ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE, _ESTABLISHED_RESOURCE_ESTABLISHEDTERMINALTRACE.replace(before, after))
+              for name, before, after in [('established_resource_closed_skips_release', '| establishedClosed => establishedOwnerTrace owner handshakeCancelled', '| establishedClosed => establishedDone'), ('established_resource_shedding_skips_release', '| establishedShed => establishedOwnerTrace owner handshakeCancelled', '| establishedShed => establishedDone')]]
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")

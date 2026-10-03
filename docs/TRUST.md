@@ -614,3 +614,37 @@ Clock authority, serialization and initial fits are explicit premises, not
 validated deployment evidence. The bounds count admitted starts; pre-accept
 work, resident bytes/tasks, real-time fairness and critical scheduling have
 separate resource/refinement obligations. M012 remains the open R03 model work.
+
+## Established resource-vector refinement boundary
+
+Module 86 witnesses M012's resource and resident-domination criteria
+under explicit runtime premises. Every connection, QUIC stream/credit,
+request-response, negotiating/Kademlia substream, byte and task allocation must
+route through the corresponding bank and direction in the one finite owned
+population. Runtime objects must have unique peer/bank/slot ownership, and all
+swarms and trusted traffic must use the same composed process allocation.
+Changing trust, identity or swarm labels must retain the charged banks.
+
+Internal terminal and shedding receipts must carry the correct peer, bank,
+slot and generation token. Updates must be serialized, generations must not
+wrap, and freeing a slot must end the associated resource lifetime. Otherwise
+the abstract exact-owner release and resident occupancy bounds cannot refine
+runtime cleanup. The established path must preserve independently owned pending
+leases and pre-accept work. The process-state witness holds by construction and
+does not model stage interaction.
+
+Reserved byte/task weights must dominate supplied actual per-active-slot cost
+upper bounds, including transient overlap. Fixed/shared storage, idle containers
+and process tasks have separate symbolic overhead bounds and domination
+certificates. Their reserved overhead plus every peer's resource vector must
+fit the same finite process resident allocation. Runtime measurement must
+justify the unit and overhead upper bounds. Advertised receive credit supplies
+no premise for resident bytes or tasks; those are separate coordinates.
+
+E022 retains established-resource classification, routing, cleanup and cost
+refinement. E013 retains runtime pending/phase accounting and receipt/atomicity
+boundaries. E010 retains production cost calibration and deployed domination.
+All remain external. M012 criterion 1 still requires modeled stage accounting
+between pending, pre-accept and established resources. Criterion 2 still
+requires a modeled critical-service guarantee under explicit workload/scheduling
+premises, so R03 stays active.
