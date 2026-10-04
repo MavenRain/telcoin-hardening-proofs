@@ -74,3 +74,21 @@ promotion and complete-state refusal now cover arbitrary positions and all
 absent indices without assuming the promotion guard. Exact prefix/suffix and
 generation effects have mutation controls. Criteria 0, 1 and 3 are witnessed;
 criterion 2 remains open. The turn-15 deadline and completion gate are unchanged.
+
+## Turn 15 result
+
+Module 90 discharges criterion 2 with protected FIFO service across every
+eligible peer and swarm. Queue prefixes fit occupied established slots;
+funded rounds cover scan and job costs for every participant. Enough delivered
+ticks derive service of every target. Arbitrary bulk, pending and pre-accept
+transitions retain their disjoint allocation. The model keeps them off the
+protected fleet by construction, so this separation is a premise and not a
+derived result. Whole-process vector bounds include explicit shared overhead and
+retain separate resident-cost domination.
+
+All four frozen M012 criteria are witnessed with no remaining model work.
+The reviewed audit and generated inventory mark M012 covered, closing R03 at
+turn 15. The integrated receipt is
+[r03-protected-critical-service-check.json](../evidence/r03-protected-critical-service-check.json).
+Runtime scheduling, routing, nonaliasing, atomicity, authority and cost
+refinement remain explicit external obligations. R04 is the next packet.

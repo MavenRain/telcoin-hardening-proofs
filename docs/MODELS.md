@@ -2702,4 +2702,61 @@ from the concrete state shape. M012 criterion 1 is witnessed.
 The process remains a serialized abstract transition system. Runtime routing
 and classification (E013, E019, E022), atomicity, receipt authority, actual
 termination and cost domination (including E010) are external obligations.
-Critical-class scheduling service remains M012 criterion 2 for turn 15.
+At turn 14, critical-class scheduling service remained M012 criterion 2; module 90 closes it below.
+
+## Protected critical service and whole-process allocation
+
+Module 90 closes M012 criterion 2. `ProtectedFleet` records every protected
+peer's swarm, identity, trust label, protocol kind/direction, established banks,
+eligibility and target FIFO rank. The population is arbitrary and finite.
+`protectedMemberResources`, `protectedResourcesIncludeTail` and
+`protectedRoundIncludesTail` expose the complete resource and round-cost sums.
+
+The service window has explicit premises:
+
+- Each target and its FIFO prefix already occupy distinct slots of the selected
+  kind and direction. `ProtectedRequest` bounds the prefix by occupied slots
+  and a finite common maximum. New arrivals cannot overtake captured targets
+  or acquire the captured allocations during the window.
+- Targets remain eligible, and their owned banks and participant set remain
+  fixed. Releases and promotions outside the window retain modules 86-89's
+  generation and stage semantics.
+- Every delivered tick reserves a positive scan charge and positive job charge
+  for every peer. Its budget covers the complete sum. Actual scan and job work
+  must be dominated by these charges.
+- The scheduler delivers at least the workload maximum in ticks within the
+  required interval. Funding and eligibility gate each tick. The model treats
+  a delivered tick that passes the gate as one completed service round for
+  that peer. Runtime job completion remains external. No premise asserts
+  completed target service.
+- Bulk, pending and pre-accept work use a disjoint `CoupledProcess`. Critical
+  and other allocations, plus fixed/shared scheduler overhead, fit a finite
+  whole-process vector. Runtime routing and nonaliasing remain external.
+
+`protectedRequestResident` and `protectedWorkloadAllocation` connect queue
+prefixes to occupied slots and finite allocations. `protectedRunStep`,
+`protectedFleetStep` and `protectedBulkStep` give operational equations.
+`protectedProcessServiceGuarantee` derives service for every target from these
+premises using module 35's FIFO theorem. Its result checks every peer and tail.
+`protectedBulkCannotSteal` records that the schedule projection keeps bulk
+events off the critical fleet. It holds by construction.
+Ineligibility, a zero budget for a positive round cost, or an empty schedule
+leave waiting targets unchanged. `protectedFleetIneligibleUnchanged` and
+`protectedFleetUnfundedUnchanged` state the first two facts for a fleet member
+on every trace. One tick cannot complete a target that still has predecessors.
+
+The same schedules satisfy `protectedWholeBound` and
+`protectedFiniteProcessBound` on every resource coordinate. They compose
+critical banks with pending, pre-accept and bulk established resources.
+`protectedProcessWithOverhead` charges shared overhead against reserved capacity.
+Captured banks remain charged after service until a later owned release.
+`protectedRoundCostDominance` and `protectedWindowCostBound` bound round and
+window work. Advertised credit stays independent of resident bytes/tasks,
+whose bounds retain module 86's domination certificates and per-stage premises.
+
+Thirty-two new equality/order witnesses and 32 mutation controls cover this slice.
+Controls reject weakened resident workload, eligibility, funding and tick
+premises; omitted peer/swarm/resource and cost contributions; bulk interference;
+skipped transitions; and false all-peer service. Runtime refinement remains
+with E010, E013, E017, E019, E021 and E022. Production
+cost values and the relation between ticks and elapsed time remain external.

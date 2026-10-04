@@ -1,0 +1,508 @@
+-- M012: a finite protected FIFO window across every peer and swarm.
+-- Captured critical banks remain owned throughout the window. Requests ahead
+-- of each target are already resident in distinct occupied slots of its kind
+-- and direction. No arrival overtakes a target. Eligibility holds throughout.
+-- Each delivered tick reserves one bounded scan and one bounded job per peer.
+-- Bulk/pending/pre-accept work uses a disjoint CoupledProcess allocation.
+-- Runtime routing, nonaliasing, job completion, costs and tick delivery are
+-- external refinement obligations. Eligibility and funding gate each tick. The
+-- model treats a delivered tick that passes the gate as one completed service
+-- round for that peer.
+
+mu ProtectedFleet : Type 0 with
+| noProtectedFleet : ProtectedFleet
+| protectedMember : Flag -> Count -> Count -> EstablishedKind -> EstablishedDirection ->
+    EstablishedBanks -> Flag -> CriticalState -> ProtectedFleet -> ProtectedFleet
+
+def rec protectedResources : ProtectedFleet -> EstablishedFleet :=
+  fun (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return EstablishedFleet with
+    | noProtectedFleet => noEstablishedFleet
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      establishedMember trusted swarm identity banks (protectedResources rest)
+
+def rec protectedWidth : ProtectedFleet -> Count :=
+  fun (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Count with
+    | noProtectedFleet => zero
+    | protectedMember trusted swarm identity kind direction banks eligible state rest => next (protectedWidth rest)
+
+def protectedRoundCost : Count -> Count -> ProtectedFleet -> Count :=
+  fun (scanCost : Count) (jobCost : Count) (fleet : ProtectedFleet) =>
+    multiply (protectedWidth fleet) (add (next scanCost) (next jobCost))
+
+def rec protectedBudgetEnough : (required : Count) -> (budget : Count) -> AtMost required budget ->
+    Equal Flag (enoughRecords required budget) on :=
+  fun (required : Count) (budget : Count) (fits : AtMost required budget) =>
+    case fits as witness in AtMost used cap return Equal Flag (enoughRecords used cap) on with
+    | least cap => same
+    | lift used cap previous => protectedBudgetEnough used cap previous
+
+def protectedRun : Flag -> ServiceTrace -> CriticalState -> CriticalState :=
+  fun (enabled : Flag) (trace : ServiceTrace) (state : CriticalState) =>
+    case enabled as self in Flag return CriticalState with
+    | off => state
+    | on => runService trace state
+
+def protectedRunStep : (enabled : Flag) -> (event : ServiceEvent) -> (rest : ServiceTrace) -> (state : CriticalState) ->
+    Equal CriticalState (protectedRun enabled (serviceEvent event rest) state)
+      (protectedRun enabled rest (protectedRun enabled (serviceEvent event serviceDone) state)) :=
+  fun (enabled : Flag) (event : ServiceEvent) (rest : ServiceTrace) (state : CriticalState) =>
+    case enabled as self in Flag return Equal CriticalState
+      (protectedRun self (serviceEvent event rest) state)
+      (protectedRun self rest (protectedRun self (serviceEvent event serviceDone) state)) with
+    | off => same
+    | on => same
+
+def rec runProtectedFleet : Count -> Count -> ServiceTrace -> ProtectedFleet -> ProtectedFleet :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return ProtectedFleet with
+    | noProtectedFleet => noProtectedFleet
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      protectedMember trusted swarm identity kind direction banks eligible
+        (protectedRun (both eligible (enoughRecords required budget)) trace state)
+        (runProtectedFleet required budget trace rest)
+
+def rec protectedResourcesPreserved : (required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->
+    Equal EstablishedFleet (protectedResources (runProtectedFleet required budget trace fleet)) (protectedResources fleet) :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Equal EstablishedFleet
+      (protectedResources (runProtectedFleet required budget trace self)) (protectedResources self) with
+    | noProtectedFleet => same
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      congruent EstablishedFleet EstablishedFleet (fun (tail : EstablishedFleet) => establishedMember trusted swarm identity banks tail)
+        (protectedResources (runProtectedFleet required budget trace rest)) (protectedResources rest)
+        (protectedResourcesPreserved required budget trace rest)
+
+def rec protectedWidthPreserved : (required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->
+    Equal Count (protectedWidth (runProtectedFleet required budget trace fleet)) (protectedWidth fleet) :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Equal Count
+      (protectedWidth (runProtectedFleet required budget trace self)) (protectedWidth self) with
+    | noProtectedFleet => same
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      congruent Count Count (fun (width : Count) => next width) (protectedWidth (runProtectedFleet required budget trace rest)) (protectedWidth rest)
+        (protectedWidthPreserved required budget trace rest)
+
+-- The workload certificate relates the FIFO rank to occupied resources and a
+-- finite maximum. It contains no proposition that a request has been served.
+mu ProtectedRequest (maximum : Count) (kind : EstablishedKind) (direction : EstablishedDirection)
+    (banks : EstablishedBanks) : (0 state : CriticalState) -> Type 0 with
+| protectedAlreadyServed : ProtectedRequest maximum kind direction banks criticalServed
+| protectedWaiting : (ahead : Count) ->
+    AtMost (next ahead) (establishedBankUse (establishedSlots kind direction) banks) ->
+    AtMost (next ahead) maximum -> ProtectedRequest maximum kind direction banks (waitingBehind ahead)
+
+mu ProtectedWindow (maximum : Count) : (0 fleet : ProtectedFleet) -> Type 0 with
+| protectedWindowDone : ProtectedWindow maximum noProtectedFleet
+| protectedWindowMember : (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (state : CriticalState) -> (rest : ProtectedFleet) ->
+    ProtectedRequest maximum kind direction banks state -> ProtectedWindow maximum rest ->
+    ProtectedWindow maximum (protectedMember trusted swarm identity kind direction banks on state rest)
+
+mu ProtectedServed : (0 fleet : ProtectedFleet) -> Type 0 with
+| protectedServedDone : ProtectedServed noProtectedFleet
+| protectedServedMember : (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) ->
+    Equal CriticalState state criticalServed -> ProtectedServed rest ->
+    ProtectedServed (protectedMember trusted swarm identity kind direction banks eligible state rest)
+
+def protectedServedTrace : (trace : ServiceTrace) -> Equal CriticalState (runService trace criticalServed) criticalServed :=
+  fun (trace : ServiceTrace) => equalTransitivity CriticalState
+    (runService trace criticalServed) (criticalRounds (serviceRounds trace) criticalServed) criticalServed
+    (serviceTraceReducesToRounds trace criticalServed) (servedRemainsServed (serviceRounds trace))
+
+def protectedRequestProgress : (maximum : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (banks : EstablishedBanks) -> (state : CriticalState) -> ProtectedRequest maximum kind direction banks state ->
+    (trace : ServiceTrace) -> AtMost maximum (serviceRounds trace) -> Equal CriticalState (runService trace state) criticalServed :=
+  fun (maximum : Count) (kind : EstablishedKind) (direction : EstablishedDirection) (banks : EstablishedBanks)
+      (state : CriticalState) (request : ProtectedRequest maximum kind direction banks state) =>
+    case request as witness in ProtectedRequest current return
+      (trace : ServiceTrace) -> AtMost maximum (serviceRounds trace) -> Equal CriticalState (runService trace current) criticalServed with
+    | protectedAlreadyServed => fun (trace : ServiceTrace) (enough : AtMost maximum (serviceRounds trace)) => protectedServedTrace trace
+    | protectedWaiting ahead resident bounded =>
+      fun (trace : ServiceTrace) (enough : AtMost maximum (serviceRounds trace)) =>
+        criticalRequestServedWithinRounds trace ahead
+          (boundTransitive (next ahead) maximum (serviceRounds trace) bounded enough)
+
+def protectedFundedProgress : (required : Count) -> (budget : Count) -> AtMost required budget ->
+    (trace : ServiceTrace) -> (state : CriticalState) ->
+    Equal CriticalState (protectedRun (both on (enoughRecords required budget)) trace state) (runService trace state) :=
+  fun (required : Count) (budget : Count) (fits : AtMost required budget) (trace : ServiceTrace) (state : CriticalState) =>
+    congruent Flag CriticalState (fun (enabled : Flag) => protectedRun enabled trace state)
+      (enoughRecords required budget) on (protectedBudgetEnough required budget fits)
+
+def rec protectedAllPeersServed : (maximum : Count) -> (fleet : ProtectedFleet) -> ProtectedWindow maximum fleet ->
+    (required : Count) -> (budget : Count) -> AtMost required budget ->
+    (trace : ServiceTrace) -> AtMost maximum (serviceRounds trace) ->
+    ProtectedServed (runProtectedFleet required budget trace fleet) :=
+  fun (maximum : Count) (fleet : ProtectedFleet) (window : ProtectedWindow maximum fleet) =>
+    case window as witness in ProtectedWindow current return
+      (required : Count) -> (budget : Count) -> AtMost required budget ->
+      (trace : ServiceTrace) -> AtMost maximum (serviceRounds trace) ->
+      ProtectedServed (runProtectedFleet required budget trace current) with
+    | protectedWindowDone =>
+      fun (required : Count) (budget : Count) (fits : AtMost required budget)
+          (trace : ServiceTrace) (enough : AtMost maximum (serviceRounds trace)) => protectedServedDone
+    | protectedWindowMember trusted swarm identity kind direction banks state rest request remaining =>
+      fun (required : Count) (budget : Count) (fits : AtMost required budget)
+          (trace : ServiceTrace) (enough : AtMost maximum (serviceRounds trace)) =>
+        protectedServedMember trusted swarm identity kind direction banks on
+          (protectedRun (both on (enoughRecords required budget)) trace state)
+          (runProtectedFleet required budget trace rest)
+          (equalTransitivity CriticalState
+            (protectedRun (both on (enoughRecords required budget)) trace state) (runService trace state) criticalServed
+            (protectedFundedProgress required budget fits trace state)
+            (protectedRequestProgress maximum kind direction banks state request trace enough))
+          (protectedAllPeersServed maximum rest remaining required budget fits trace enough)
+
+-- Bulk events include arbitrary pending/executor/established transitions in
+-- the other partition. Only delivered ticks become FIFO service opportunities.
+mu ProtectedSchedule : Type 0 with
+| protectedScheduleDone : ProtectedSchedule
+| protectedTick : ProtectedSchedule -> ProtectedSchedule
+| protectedBulk : CoupledEvent -> ProtectedSchedule -> ProtectedSchedule
+
+def rec protectedServiceTrace : ProtectedSchedule -> ServiceTrace :=
+  fun (schedule : ProtectedSchedule) =>
+    case schedule as self in ProtectedSchedule return ServiceTrace with
+    | protectedScheduleDone => serviceDone
+    | protectedTick rest => serviceEvent completedServiceRound (protectedServiceTrace rest)
+    | protectedBulk event rest => protectedServiceTrace rest
+
+def rec protectedOtherTrace : ProtectedSchedule -> CoupledTrace :=
+  fun (schedule : ProtectedSchedule) =>
+    case schedule as self in ProtectedSchedule return CoupledTrace with
+    | protectedScheduleDone => coupledDone
+    | protectedTick rest => protectedOtherTrace rest
+    | protectedBulk event rest => coupledEvent event (protectedOtherTrace rest)
+
+mu ProtectedProcess : Type 0 with
+| protectedProcess : ProtectedFleet -> CoupledProcess -> ProtectedProcess
+
+def protectedCritical : ProtectedProcess -> ProtectedFleet :=
+  fun (process : ProtectedProcess) =>
+    case process as self in ProtectedProcess return ProtectedFleet with
+    | protectedProcess critical other => critical
+
+def protectedOther : ProtectedProcess -> CoupledProcess :=
+  fun (process : ProtectedProcess) =>
+    case process as self in ProtectedProcess return CoupledProcess with
+    | protectedProcess critical other => other
+
+def runProtectedProcess : Count -> Count -> Count -> ProtectedSchedule -> ProtectedProcess -> ProtectedProcess :=
+  fun (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule) (process : ProtectedProcess) =>
+    protectedProcess
+      (runProtectedFleet (protectedRoundCost scanCost jobCost (protectedCritical process)) budget
+        (protectedServiceTrace schedule) (protectedCritical process))
+      (runCoupled (protectedOtherTrace schedule) (protectedOther process))
+
+def protectedProcessService : (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (critical : ProtectedFleet) -> (other : CoupledProcess) -> (maximum : Count) ->
+    ProtectedWindow maximum critical -> AtMost (protectedRoundCost scanCost jobCost critical) budget ->
+    AtMost maximum (serviceRounds (protectedServiceTrace schedule)) ->
+    ProtectedServed (protectedCritical (runProtectedProcess scanCost jobCost budget schedule (protectedProcess critical other))) :=
+  fun (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule)
+      (critical : ProtectedFleet) (other : CoupledProcess) (maximum : Count)
+      (window : ProtectedWindow maximum critical) (funded : AtMost (protectedRoundCost scanCost jobCost critical) budget)
+      (delivered : AtMost maximum (serviceRounds (protectedServiceTrace schedule))) =>
+    protectedAllPeersServed maximum critical window (protectedRoundCost scanCost jobCost critical) budget funded
+      (protectedServiceTrace schedule) delivered
+
+def protectedWholeUse : Count -> Count -> Count -> EstablishedAxis -> ProtectedProcess -> Count :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis) (process : ProtectedProcess) =>
+    add (establishedFleetUse axis (protectedResources (protectedCritical process)))
+      (coupledUse pendingWeight waitingWeight activeWeight axis (protectedOther process))
+
+def protectedWholeAllocation : Count -> Count -> Count -> EstablishedAxis -> ProtectedProcess -> Count :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis) (process : ProtectedProcess) =>
+    add (establishedFleetAllocation axis (protectedResources (protectedCritical process)))
+      (coupledAllocation pendingWeight waitingWeight activeWeight axis (protectedOther process))
+
+def protectedCriticalBound : (required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->
+    (axis : EstablishedAxis) -> AtMost
+      (establishedFleetUse axis (protectedResources (runProtectedFleet required budget trace fleet)))
+      (establishedFleetAllocation axis (protectedResources fleet)) :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (fleet : ProtectedFleet) (axis : EstablishedAxis) =>
+    equalTransport EstablishedFleet
+      (fun (resources : EstablishedFleet) => AtMost (establishedFleetUse axis resources) (establishedFleetAllocation axis (protectedResources fleet)))
+      (protectedResources fleet) (protectedResources (runProtectedFleet required budget trace fleet))
+      (equalSymmetry EstablishedFleet (protectedResources (runProtectedFleet required budget trace fleet)) (protectedResources fleet)
+        (protectedResourcesPreserved required budget trace fleet))
+      (establishedFleetBound axis (protectedResources fleet))
+
+def protectedWholeBound : (pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->
+    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> AtMost
+      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process))
+      (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis)
+      (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule) (process : ProtectedProcess) =>
+    addBounds
+      (establishedFleetUse axis (protectedResources (protectedCritical (runProtectedProcess scanCost jobCost budget schedule process))))
+      (establishedFleetAllocation axis (protectedResources (protectedCritical process)))
+      (coupledUse pendingWeight waitingWeight activeWeight axis (runCoupled (protectedOtherTrace schedule) (protectedOther process)))
+      (coupledAllocation pendingWeight waitingWeight activeWeight axis (protectedOther process))
+      (protectedCriticalBound (protectedRoundCost scanCost jobCost (protectedCritical process)) budget
+        (protectedServiceTrace schedule) (protectedCritical process) axis)
+      (coupledMixedTraceBound pendingWeight waitingWeight activeWeight axis (protectedOtherTrace schedule) (protectedOther process))
+
+def protectedFiniteProcessBound : (pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->
+    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> (allocation : Count) ->
+    AtMost (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) allocation -> AtMost
+      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process)) allocation :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis)
+      (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule) (process : ProtectedProcess)
+      (allocation : Count) (fits : AtMost (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) allocation) =>
+    boundTransitive
+      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process))
+      (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) allocation
+      (protectedWholeBound pendingWeight waitingWeight activeWeight axis scanCost jobCost budget schedule process) fits
+
+def protectedWindowCostBound : (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (fleet : ProtectedFleet) -> AtMost (protectedRoundCost scanCost jobCost fleet) budget ->
+    AtMost (multiply (serviceRounds (protectedServiceTrace schedule)) (protectedRoundCost scanCost jobCost fleet))
+      (multiply (serviceRounds (protectedServiceTrace schedule)) budget) :=
+  fun (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule) (fleet : ProtectedFleet)
+      (fits : AtMost (protectedRoundCost scanCost jobCost fleet) budget) =>
+    establishedMultiplyUnitBound (serviceRounds (protectedServiceTrace schedule)) (protectedRoundCost scanCost jobCost fleet) budget fits
+
+def protectedBulkCannotSteal : (event : CoupledEvent) -> (rest : ProtectedSchedule) ->
+    (scanCost : Count) -> (jobCost : Count) -> (budget : Count) -> (critical : ProtectedFleet) -> (other : CoupledProcess) ->
+    Equal ProtectedFleet
+      (protectedCritical (runProtectedProcess scanCost jobCost budget (protectedBulk event rest) (protectedProcess critical other)))
+      (protectedCritical (runProtectedProcess scanCost jobCost budget rest (protectedProcess critical (coupledStep event other)))) :=
+  fun (event : CoupledEvent) (rest : ProtectedSchedule) (scanCost : Count) (jobCost : Count) (budget : Count)
+      (critical : ProtectedFleet) (other : CoupledProcess) => same
+
+def protectedIneligibleDoesNotProgress : (required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (state : CriticalState) ->
+    Equal CriticalState (protectedRun (both off (enoughRecords required budget)) trace state) state :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (state : CriticalState) => same
+
+def protectedUnfundedDoesNotProgress : (required : Count) -> (trace : ServiceTrace) -> (state : CriticalState) ->
+    Equal CriticalState (protectedRun (both on (enoughRecords (next required) zero)) trace state) state :=
+  fun (required : Count) (trace : ServiceTrace) (state : CriticalState) => same
+
+def protectedFleetIneligibleUnchanged : (required : Count) -> (budget : Count) -> (trace : ServiceTrace) ->
+    (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (banks : EstablishedBanks) -> (state : CriticalState) ->
+    (rest : ProtectedFleet) -> Equal ProtectedFleet
+      (runProtectedFleet required budget trace (protectedMember trusted swarm identity kind direction banks off state rest))
+      (protectedMember trusted swarm identity kind direction banks off state (runProtectedFleet required budget trace rest)) :=
+  fun (required : Count) (budget : Count) (trace : ServiceTrace) (trusted : Flag) (swarm : Count) (identity : Count)
+      (kind : EstablishedKind) (direction : EstablishedDirection) (banks : EstablishedBanks) (state : CriticalState)
+      (rest : ProtectedFleet) => same
+
+def protectedFleetUnfundedUnchanged : (required : Count) -> (trace : ServiceTrace) ->
+    (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (banks : EstablishedBanks) -> (state : CriticalState) ->
+    (rest : ProtectedFleet) -> Equal ProtectedFleet
+      (runProtectedFleet (next required) zero trace (protectedMember trusted swarm identity kind direction banks on state rest))
+      (protectedMember trusted swarm identity kind direction banks on state (runProtectedFleet (next required) zero trace rest)) :=
+  fun (required : Count) (trace : ServiceTrace) (trusted : Flag) (swarm : Count) (identity : Count)
+      (kind : EstablishedKind) (direction : EstablishedDirection) (banks : EstablishedBanks) (state : CriticalState)
+      (rest : ProtectedFleet) => same
+
+def protectedTickServesHead : (remainingBudget : Count) ->
+    Equal CriticalState (protectedRun (both on (enoughRecords (next zero) (next remainingBudget)))
+      (protectedServiceTrace (protectedTick protectedScheduleDone)) (waitingBehind zero)) criticalServed :=
+  fun (remainingBudget : Count) => same
+
+def protectedNoTickNoService : (ahead : Count) ->
+    Equal CriticalState (protectedRun on (protectedServiceTrace protectedScheduleDone) (waitingBehind ahead)) (waitingBehind ahead) :=
+  fun (ahead : Count) => same
+
+def protectedDemand : CriticalState -> Count :=
+  fun (state : CriticalState) =>
+    case state as self in CriticalState return Count with
+    | criticalServed => zero
+    | waitingBehind ahead => next ahead
+
+def protectedRequestResident : (maximum : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->
+    (banks : EstablishedBanks) -> (state : CriticalState) -> ProtectedRequest maximum kind direction banks state ->
+    AtMost (protectedDemand state) (establishedBankUse (establishedSlots kind direction) banks) :=
+  fun (maximum : Count) (kind : EstablishedKind) (direction : EstablishedDirection) (banks : EstablishedBanks)
+      (state : CriticalState) (request : ProtectedRequest maximum kind direction banks state) =>
+    case request as witness in ProtectedRequest current return
+      AtMost (protectedDemand current) (establishedBankUse (establishedSlots kind direction) banks) with
+    | protectedAlreadyServed => least (establishedBankUse (establishedSlots kind direction) banks)
+    | protectedWaiting ahead resident bounded => resident
+
+def rec protectedFleetDemand : ProtectedFleet -> Count :=
+  fun (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Count with
+    | noProtectedFleet => zero
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      add (protectedDemand state) (protectedFleetDemand rest)
+
+def rec protectedSelectedAllocation : ProtectedFleet -> Count :=
+  fun (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Count with
+    | noProtectedFleet => zero
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      add (establishedBankAllocation (establishedSlots kind direction) banks) (protectedSelectedAllocation rest)
+
+def rec protectedWorkloadAllocation : (maximum : Count) -> (fleet : ProtectedFleet) -> ProtectedWindow maximum fleet ->
+    AtMost (protectedFleetDemand fleet) (protectedSelectedAllocation fleet) :=
+  fun (maximum : Count) (fleet : ProtectedFleet) (window : ProtectedWindow maximum fleet) =>
+    case window as witness in ProtectedWindow current return
+      AtMost (protectedFleetDemand current) (protectedSelectedAllocation current) with
+    | protectedWindowDone => least zero
+    | protectedWindowMember trusted swarm identity kind direction banks state rest request remaining =>
+      addBounds (protectedDemand state) (establishedBankAllocation (establishedSlots kind direction) banks)
+        (protectedFleetDemand rest) (protectedSelectedAllocation rest)
+        (boundTransitive (protectedDemand state) (establishedBankUse (establishedSlots kind direction) banks)
+          (establishedBankAllocation (establishedSlots kind direction) banks)
+          (protectedRequestResident maximum kind direction banks state request)
+          (establishedBankBound (establishedSlots kind direction) banks))
+        (protectedWorkloadAllocation maximum rest remaining)
+
+def protectedRoundCostDominance : (scanCost : Count) -> (jobCost : Count) -> (actualScan : Count) -> (actualJob : Count) ->
+    (fleet : ProtectedFleet) -> AtMost actualScan (next scanCost) -> AtMost actualJob (next jobCost) ->
+    AtMost (multiply (protectedWidth fleet) (add actualScan actualJob)) (protectedRoundCost scanCost jobCost fleet) :=
+  fun (scanCost : Count) (jobCost : Count) (actualScan : Count) (actualJob : Count) (fleet : ProtectedFleet)
+      (scanFits : AtMost actualScan (next scanCost)) (jobFits : AtMost actualJob (next jobCost)) =>
+    establishedMultiplyUnitBound (protectedWidth fleet) (add actualScan actualJob) (add (next scanCost) (next jobCost))
+      (addBounds actualScan (next scanCost) actualJob (next jobCost) scanFits jobFits)
+
+def rec protectedFleetStep : (required : Count) -> (budget : Count) -> (event : ServiceEvent) ->
+    (rest : ServiceTrace) -> (fleet : ProtectedFleet) -> Equal ProtectedFleet
+      (runProtectedFleet required budget (serviceEvent event rest) fleet)
+      (runProtectedFleet required budget rest (runProtectedFleet required budget (serviceEvent event serviceDone) fleet)) :=
+  fun (required : Count) (budget : Count) (event : ServiceEvent) (rest : ServiceTrace) (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Equal ProtectedFleet
+      (runProtectedFleet required budget (serviceEvent event rest) self)
+      (runProtectedFleet required budget rest (runProtectedFleet required budget (serviceEvent event serviceDone) self)) with
+    | noProtectedFleet => same
+    | protectedMember trusted swarm identity kind direction banks eligible state tail =>
+      equalTransitivity ProtectedFleet
+        (protectedMember trusted swarm identity kind direction banks eligible
+          (protectedRun (both eligible (enoughRecords required budget)) (serviceEvent event rest) state)
+          (runProtectedFleet required budget (serviceEvent event rest) tail))
+        (protectedMember trusted swarm identity kind direction banks eligible
+          (protectedRun (both eligible (enoughRecords required budget)) rest
+            (protectedRun (both eligible (enoughRecords required budget)) (serviceEvent event serviceDone) state))
+          (runProtectedFleet required budget (serviceEvent event rest) tail))
+        (runProtectedFleet required budget rest
+          (runProtectedFleet required budget (serviceEvent event serviceDone)
+            (protectedMember trusted swarm identity kind direction banks eligible state tail)))
+        (congruent CriticalState ProtectedFleet
+          (fun (current : CriticalState) => protectedMember trusted swarm identity kind direction banks eligible current
+            (runProtectedFleet required budget (serviceEvent event rest) tail))
+          (protectedRun (both eligible (enoughRecords required budget)) (serviceEvent event rest) state)
+          (protectedRun (both eligible (enoughRecords required budget)) rest
+            (protectedRun (both eligible (enoughRecords required budget)) (serviceEvent event serviceDone) state))
+          (protectedRunStep (both eligible (enoughRecords required budget)) event rest state))
+        (congruent ProtectedFleet ProtectedFleet
+          (fun (remaining : ProtectedFleet) => protectedMember trusted swarm identity kind direction banks eligible
+            (protectedRun (both eligible (enoughRecords required budget)) rest
+              (protectedRun (both eligible (enoughRecords required budget)) (serviceEvent event serviceDone) state)) remaining)
+          (runProtectedFleet required budget (serviceEvent event rest) tail)
+          (runProtectedFleet required budget rest (runProtectedFleet required budget (serviceEvent event serviceDone) tail))
+          (protectedFleetStep required budget event rest tail))
+
+def protectedBulkStep : (event : CoupledEvent) -> (rest : ProtectedSchedule) ->
+    (scanCost : Count) -> (jobCost : Count) -> (budget : Count) -> (critical : ProtectedFleet) -> (other : CoupledProcess) ->
+    Equal ProtectedProcess
+      (runProtectedProcess scanCost jobCost budget (protectedBulk event rest) (protectedProcess critical other))
+      (runProtectedProcess scanCost jobCost budget rest (protectedProcess critical (coupledStep event other))) :=
+  fun (event : CoupledEvent) (rest : ProtectedSchedule) (scanCost : Count) (jobCost : Count) (budget : Count)
+      (critical : ProtectedFleet) (other : CoupledProcess) => same
+
+def protectedRoundIncludesTail : (scanCost : Count) -> (jobCost : Count) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal Count
+      (protectedRoundCost scanCost jobCost (protectedMember trusted swarm identity kind direction banks eligible state rest))
+      (add (add (next scanCost) (next jobCost)) (protectedRoundCost scanCost jobCost rest)) :=
+  fun (scanCost : Count) (jobCost : Count) (trusted : Flag) (swarm : Count) (identity : Count)
+      (kind : EstablishedKind) (direction : EstablishedDirection) (banks : EstablishedBanks)
+      (eligible : Flag) (state : CriticalState) (rest : ProtectedFleet) => same
+
+def protectedResourcesIncludeTail : (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> (axis : EstablishedAxis) -> Equal Count
+      (establishedFleetAllocation axis (protectedResources (protectedMember trusted swarm identity kind direction banks eligible state rest)))
+      (add (establishedBankAllocation axis banks) (establishedFleetAllocation axis (protectedResources rest))) :=
+  fun (trusted : Flag) (swarm : Count) (identity : Count) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (banks : EstablishedBanks) (eligible : Flag) (state : CriticalState) (rest : ProtectedFleet) (axis : EstablishedAxis) => same
+
+def protectedMemberResources : (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal EstablishedFleet
+      (protectedResources (protectedMember trusted swarm identity kind direction banks eligible state rest))
+      (establishedMember trusted swarm identity banks (protectedResources rest)) :=
+  fun (trusted : Flag) (swarm : Count) (identity : Count) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (banks : EstablishedBanks) (eligible : Flag) (state : CriticalState) (rest : ProtectedFleet) => same
+
+def protectedOneTickLeavesSuccessor : (ahead : Count) ->
+    Equal CriticalState (protectedRun on (protectedServiceTrace (protectedTick protectedScheduleDone)) (waitingBehind (next ahead)))
+      (waitingBehind ahead) :=
+  fun (ahead : Count) => same
+
+def protectedServedFlag : CriticalState -> Flag :=
+  fun (state : CriticalState) =>
+    case state as self in CriticalState return Flag with
+    | criticalServed => on
+    | waitingBehind ahead => off
+
+def rec protectedAllServedFlag : ProtectedFleet -> Flag :=
+  fun (fleet : ProtectedFleet) =>
+    case fleet as self in ProtectedFleet return Flag with
+    | noProtectedFleet => on
+    | protectedMember trusted swarm identity kind direction banks eligible state rest =>
+      both (protectedServedFlag state) (protectedAllServedFlag rest)
+
+def rec protectedServedCertificate : (fleet : ProtectedFleet) -> ProtectedServed fleet ->
+    Equal Flag (protectedAllServedFlag fleet) on :=
+  fun (fleet : ProtectedFleet) (certificate : ProtectedServed fleet) =>
+    case certificate as witness in ProtectedServed current return Equal Flag (protectedAllServedFlag current) on with
+    | protectedServedDone => same
+    | protectedServedMember trusted swarm identity kind direction banks eligible state rest served remaining =>
+      equalTransitivity Flag (both (protectedServedFlag state) (protectedAllServedFlag rest))
+        (protectedAllServedFlag rest) on
+        (congruent CriticalState Flag (fun (current : CriticalState) => both (protectedServedFlag current) (protectedAllServedFlag rest))
+          state criticalServed served)
+        (protectedServedCertificate rest remaining)
+
+def protectedProcessServiceGuarantee : (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (critical : ProtectedFleet) -> (other : CoupledProcess) -> (maximum : Count) ->
+    ProtectedWindow maximum critical -> AtMost (protectedRoundCost scanCost jobCost critical) budget ->
+    AtMost maximum (serviceRounds (protectedServiceTrace schedule)) ->
+    Equal Flag (protectedAllServedFlag (protectedCritical
+      (runProtectedProcess scanCost jobCost budget schedule (protectedProcess critical other)))) on :=
+  fun (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule)
+      (critical : ProtectedFleet) (other : CoupledProcess) (maximum : Count)
+      (window : ProtectedWindow maximum critical) (funded : AtMost (protectedRoundCost scanCost jobCost critical) budget)
+      (delivered : AtMost maximum (serviceRounds (protectedServiceTrace schedule))) =>
+    protectedServedCertificate
+      (protectedCritical (runProtectedProcess scanCost jobCost budget schedule (protectedProcess critical other)))
+      (protectedProcessService scanCost jobCost budget schedule critical other maximum window funded delivered)
+
+def protectedWaitingFlag : (ahead : Count) -> Equal Flag (protectedServedFlag (waitingBehind ahead)) off :=
+  fun (ahead : Count) => same
+
+def protectedEveryPeerFlag : (trusted : Flag) -> (swarm : Count) -> (identity : Count) ->
+    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->
+    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal Flag
+      (protectedAllServedFlag (protectedMember trusted swarm identity kind direction banks eligible state rest))
+      (both (protectedServedFlag state) (protectedAllServedFlag rest)) :=
+  fun (trusted : Flag) (swarm : Count) (identity : Count) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (banks : EstablishedBanks) (eligible : Flag) (state : CriticalState) (rest : ProtectedFleet) => same
+
+def protectedProcessWithOverhead : (pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->
+    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->
+    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> (actualOverhead : Count) -> (reservedOverhead : Count) ->
+    AtMost actualOverhead reservedOverhead -> AtMost
+      (add actualOverhead (protectedWholeUse pendingWeight waitingWeight activeWeight axis
+        (runProtectedProcess scanCost jobCost budget schedule process)))
+      (add reservedOverhead (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process)) :=
+  fun (pendingWeight : Count) (waitingWeight : Count) (activeWeight : Count) (axis : EstablishedAxis)
+      (scanCost : Count) (jobCost : Count) (budget : Count) (schedule : ProtectedSchedule) (process : ProtectedProcess)
+      (actualOverhead : Count) (reservedOverhead : Count) (overheadFits : AtMost actualOverhead reservedOverhead) =>
+    addBounds actualOverhead reservedOverhead
+      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process))
+      (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) overheadFits
+      (protectedWholeBound pendingWeight waitingWeight activeWeight axis scanCost jobCost budget schedule process)

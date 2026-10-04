@@ -498,7 +498,8 @@ own units and supplied host allocations. The model's per-interval work bound
 does not prove cumulative rate or scheduling fairness. Supplied source labels
 do not prove IP/prefix normalization. Concrete resource vectors, shared
 runtime routing, calibration and deployment guarantees remain external or
-separately open model obligations, including M012. Module 85 separately covers M013 timed rate counts.
+separately open model obligations. Module 85 separately covers M013 timed
+rate counts. M012 is covered at R03 turn 15.
 E022 owns established-resource routing and work-budget enforcement. E013 owns
 runtime pending accounting. E010 owns calibration and deployment guarantees.
 
@@ -613,7 +614,8 @@ E014/E013/E010 retain their source, accounting and calibration refinements.
 Clock authority, serialization and initial fits are explicit premises, not
 validated deployment evidence. The bounds count admitted starts; pre-accept
 work, resident bytes/tasks, real-time fairness and critical scheduling have
-separate resource/refinement obligations. M012 remains the open R03 model work.
+separate resource/refinement obligations. M012 was the open R03 model work
+until turn 15.
 
 ## Established resource-vector refinement boundary
 
@@ -645,9 +647,9 @@ E022 retains established-resource classification, routing, cleanup and cost
 refinement. E013 retains runtime pending/phase accounting and receipt/atomicity
 boundaries. E010 retains production cost calibration and deployed domination.
 All remain external. Modules 87-89 witness M012 criterion 1 stage accounting
-between pending, pre-accept and established resources. Criterion 2 still
-requires a modeled critical-service guarantee under explicit workload/scheduling
-premises, so R03 stays active.
+between pending, pre-accept and established resources. Criterion 2 required
+a modeled critical-service guarantee under explicit workload/scheduling
+premises until turn 15. Module 90 supplies it, and R03 closes.
 
 ## R03 turn 12: stage-accounting boundary
 
@@ -700,4 +702,26 @@ Runtime classification/routing across pending, pre-accept and established
 resources remains E013, E019 and E022. Atomic execution, receipt authority,
 nonwrapping generations, actual resource termination and stage-cost domination
 (including E010) remain external. M012 criterion 1 closure provides no critical
-scheduling guarantee; criterion 2 and deployment qualification remain open.
+scheduling guarantee. Module 90 witnesses criterion 2 at turn 15. Deployment
+qualification remains open.
+
+## R03 turn 15: protected critical-service boundary
+
+Module 90 derives FIFO service for every target in a finite captured window.
+The premises are: each target and its predecessors already occupy slots of the
+selected kind and direction; no arrival overtakes a target; the targets stay
+eligible; each delivered tick has a budget that covers the scan and job charges
+of every peer; the scheduler delivers at least the workload maximum in ticks.
+The model treats each delivered tick of a funded eligible peer as one completed
+service round. Runtime job completion is not proved.
+
+Bulk, pending and pre-accept work runs in the module-88 coupled process. The
+schedule projection keeps bulk events off the critical fleet, and critical
+ticks do not change a bank. These separations hold by construction of the
+model. They are premises for the runtime, not results.
+
+Runtime routing, nonaliasing, atomicity, receipt authority, nonwrapping
+generations, cost domination, resource termination, tick delivery and scheduler
+conformance remain external (E010, E013, E017, E019, E021 and E022). M012 is
+covered and R03 is closed. No external obligation or qualification guard
+closes.

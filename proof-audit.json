@@ -75,7 +75,8 @@
     "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b",
     "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7",
     "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a",
-    "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4"
+    "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4",
+    "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c"
   },
   "obligations": [
     {
@@ -4635,8 +4636,8 @@
       "id": "M012",
       "closure_packet": "R03",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 14 closes criterion 1. Module 89 derives successful promotion from owned pending and vacant established slots at arbitrary pending, peer, bank and slot prefixes/suffixes, without a guard-equality premise. The exact resulting process releases only the selected pending generation, acquires only the selected established generation, and preserves the executor and every surrounding account. General operational refusal preserves the complete state for absent indices, free pending slots, mismatched generations and occupied destinations. Modules 86-88 retain established release isolation, separate stage accounting, generation consumption, promotion idempotence and arbitrary mixed-trace allocation bounds. Criteria 0, 1 and 3 are witnessed; criterion 2 still requires critical-class service under explicit workload/scheduling premises. Runtime classification, routing, atomicity, receipt authority and per-stage cost domination remain external obligations E013, E019, E022 and E010.",
+      "scope_complete": true,
+      "scope_review": "Turn 15 reviews all four frozen M012 criteria as witnessed. Modules 86-89 retain finite peer/swarm vector grants, churn/exemption accounting, generation-owned release, arbitrary-position coupled stage promotion/refusal and separate advertised-credit/resident domination. The criterion-1 rationale retains the limitation that establishedTraceKeepsOtherPhases alone does not witness stage accounting. Module 90 closes criterion 2 with occupied-slot workload certificates, guarded all-peer FIFO transitions, funded delivered ticks and complete critical-plus-coupled process composition, including separate shared overhead. No desired service result is a premise. The captured-window assumptions retain static protected ownership and eligibility while arbitrary bulk/pending/pre-accept schedules run in their disjoint allocation. All dimensions, protocol directions, peers and swarm labels remain represented. The separation of bulk events from the critical fleet and the static critical banks hold by construction of module 90. They are premises for the runtime and earn no noninterference credit. Runtime routing, nonaliasing, atomicity, authority, cost domination, resource termination and scheduler conformance remain explicit E010/E013/E017/E019/E021/E022 obligations.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -6341,6 +6342,454 @@
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
           "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedBudgetEnough",
+          "statement": "(required : Count) -> (budget : Count) -> AtMost required budget ->\n    Equal Flag (enoughRecords required budget) on",
+          "scope_kind": "general_transition",
+          "establishes": "A numerical funding bound derives the executable round-budget guard.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedRunStep",
+          "statement": "(enabled : Flag) -> (event : ServiceEvent) -> (rest : ServiceTrace) -> (state : CriticalState) ->\n    Equal CriticalState (protectedRun enabled (serviceEvent event rest) state)\n      (protectedRun enabled rest (protectedRun enabled (serviceEvent event serviceDone) state))",
+          "scope_kind": "general_transition",
+          "establishes": "Guarded FIFO execution decomposes into single-event transitions.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedResourcesPreserved",
+          "statement": "(required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->\n    Equal EstablishedFleet (protectedResources (runProtectedFleet required budget trace fleet)) (protectedResources fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every captured bank, owner and swarm remains charged throughout arbitrary service traces. This holds by construction: no service event can change a bank, an owner or a swarm label.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedWidthPreserved",
+          "statement": "(required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->\n    Equal Count (protectedWidth (runProtectedFleet required budget trace fleet)) (protectedWidth fleet)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Service cannot reduce the participant count used to fund later rounds. This holds by construction: no service event can add or remove a participant.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedServedTrace",
+          "statement": "(trace : ServiceTrace) -> Equal CriticalState (runService trace criticalServed) criticalServed",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Further service events preserve a completed target.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedRequestProgress",
+          "statement": "(maximum : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (banks : EstablishedBanks) -> (state : CriticalState) -> ProtectedRequest maximum kind direction banks state ->\n    (trace : ServiceTrace) -> AtMost maximum (serviceRounds trace) -> Equal CriticalState (runService trace state) criticalServed",
+          "scope_kind": "conditional_liveness",
+          "establishes": "An occupied-slot-bounded FIFO target completes after enough delivered rounds.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedFundedProgress",
+          "statement": "(required : Count) -> (budget : Count) -> AtMost required budget ->\n    (trace : ServiceTrace) -> (state : CriticalState) ->\n    Equal CriticalState (protectedRun (both on (enoughRecords required budget)) trace state) (runService trace state)",
+          "scope_kind": "general_transition",
+          "establishes": "A funded eligible window executes the FIFO transitions without assuming their service result.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedCriticalBound",
+          "statement": "(required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (fleet : ProtectedFleet) ->\n    (axis : EstablishedAxis) -> AtMost\n      (establishedFleetUse axis (protectedResources (runProtectedFleet required budget trace fleet)))\n      (establishedFleetAllocation axis (protectedResources fleet))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Protected trace resource use remains within the initial established vector. This holds by construction: the critical banks are static during the window.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedWholeBound",
+          "statement": "(pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->\n    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->\n    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> AtMost\n      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process))\n      (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every mixed schedule composes critical, pending, pre-accept and bulk resource use within their complete allocation.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedFiniteProcessBound",
+          "statement": "(pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->\n    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->\n    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> (allocation : Count) ->\n    AtMost (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process) allocation -> AtMost\n      (protectedWholeUse pendingWeight waitingWeight activeWeight axis (runProtectedProcess scanCost jobCost budget schedule process)) allocation",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Coordinate-wise initial fit lifts the mixed-schedule bound into a supplied finite process budget.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedWindowCostBound",
+          "statement": "(scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->\n    (schedule : ProtectedSchedule) -> (fleet : ProtectedFleet) -> AtMost (protectedRoundCost scanCost jobCost fleet) budget ->\n    AtMost (multiply (serviceRounds (protectedServiceTrace schedule)) (protectedRoundCost scanCost jobCost fleet))\n      (multiply (serviceRounds (protectedServiceTrace schedule)) budget)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Delivered ticks multiply the funded all-peer round charge into a finite window cost bound.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedBulkCannotSteal",
+          "statement": "(event : CoupledEvent) -> (rest : ProtectedSchedule) ->\n    (scanCost : Count) -> (jobCost : Count) -> (budget : Count) -> (critical : ProtectedFleet) -> (other : CoupledProcess) ->\n    Equal ProtectedFleet\n      (protectedCritical (runProtectedProcess scanCost jobCost budget (protectedBulk event rest) (protectedProcess critical other)))\n      (protectedCritical (runProtectedProcess scanCost jobCost budget rest (protectedProcess critical (coupledStep event other))))",
+          "scope_kind": "general_transition",
+          "establishes": "The schedule projection keeps a bulk event off the critical fleet by construction. This equation does not witness runtime noninterference.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedIneligibleDoesNotProgress",
+          "statement": "(required : Count) -> (budget : Count) -> (trace : ServiceTrace) -> (state : CriticalState) ->\n    Equal CriticalState (protectedRun (both off (enoughRecords required budget)) trace state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Ineligible work cannot make progress through the service guard.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedUnfundedDoesNotProgress",
+          "statement": "(required : Count) -> (trace : ServiceTrace) -> (state : CriticalState) ->\n    Equal CriticalState (protectedRun (both on (enoughRecords (next required) zero)) trace state) state",
+          "scope_kind": "general_transition",
+          "establishes": "Zero funding cannot execute a positive-cost round.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedFleetIneligibleUnchanged",
+          "statement": "(required : Count) -> (budget : Count) -> (trace : ServiceTrace) ->\n    (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (banks : EstablishedBanks) -> (state : CriticalState) ->\n    (rest : ProtectedFleet) -> Equal ProtectedFleet\n      (runProtectedFleet required budget trace (protectedMember trusted swarm identity kind direction banks off state rest))\n      (protectedMember trusted swarm identity kind direction banks off state (runProtectedFleet required budget trace rest))",
+          "scope_kind": "general_transition",
+          "establishes": "An ineligible fleet member keeps its state on every service trace. The fleet run continues on the tail.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedFleetUnfundedUnchanged",
+          "statement": "(required : Count) -> (trace : ServiceTrace) ->\n    (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (banks : EstablishedBanks) -> (state : CriticalState) ->\n    (rest : ProtectedFleet) -> Equal ProtectedFleet\n      (runProtectedFleet (next required) zero trace (protectedMember trusted swarm identity kind direction banks on state rest))\n      (protectedMember trusted swarm identity kind direction banks on state (runProtectedFleet (next required) zero trace rest))",
+          "scope_kind": "general_transition",
+          "establishes": "A fleet member keeps its state on every service trace when the budget is zero and the round cost is positive. The fleet run continues on the tail.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedTickServesHead",
+          "statement": "(remainingBudget : Count) ->\n    Equal CriticalState (protectedRun (both on (enoughRecords (next zero) (next remainingBudget)))\n      (protectedServiceTrace (protectedTick protectedScheduleDone)) (waitingBehind zero)) criticalServed",
+          "scope_kind": "general_transition",
+          "establishes": "One funded eligible tick serves a head target.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedNoTickNoService",
+          "statement": "(ahead : Count) ->\n    Equal CriticalState (protectedRun on (protectedServiceTrace protectedScheduleDone) (waitingBehind ahead)) (waitingBehind ahead)",
+          "scope_kind": "general_transition",
+          "establishes": "No delivered tick leaves every waiting rank unchanged.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedRequestResident",
+          "statement": "(maximum : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) ->\n    (banks : EstablishedBanks) -> (state : CriticalState) -> ProtectedRequest maximum kind direction banks state ->\n    AtMost (protectedDemand state) (establishedBankUse (establishedSlots kind direction) banks)",
+          "scope_kind": "general_transition",
+          "establishes": "The workload certificate charges the target and its predecessors to occupied matching protocol slots.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedWorkloadAllocation",
+          "statement": "(maximum : Count) -> (fleet : ProtectedFleet) -> ProtectedWindow maximum fleet ->\n    AtMost (protectedFleetDemand fleet) (protectedSelectedAllocation fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "All peer workloads compose within the sum of their selected established slot allocations.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedRoundCostDominance",
+          "statement": "(scanCost : Count) -> (jobCost : Count) -> (actualScan : Count) -> (actualJob : Count) ->\n    (fleet : ProtectedFleet) -> AtMost actualScan (next scanCost) -> AtMost actualJob (next jobCost) ->\n    AtMost (multiply (protectedWidth fleet) (add actualScan actualJob)) (protectedRoundCost scanCost jobCost fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Explicit scan/job cost domination composes over the entire participant population.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedFleetStep",
+          "statement": "(required : Count) -> (budget : Count) -> (event : ServiceEvent) ->\n    (rest : ServiceTrace) -> (fleet : ProtectedFleet) -> Equal ProtectedFleet\n      (runProtectedFleet required budget (serviceEvent event rest) fleet)\n      (runProtectedFleet required budget rest (runProtectedFleet required budget (serviceEvent event serviceDone) fleet))",
+          "scope_kind": "general_transition",
+          "establishes": "All-peer trace execution equals successive guarded FIFO steps.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedBulkStep",
+          "statement": "(event : CoupledEvent) -> (rest : ProtectedSchedule) ->\n    (scanCost : Count) -> (jobCost : Count) -> (budget : Count) -> (critical : ProtectedFleet) -> (other : CoupledProcess) ->\n    Equal ProtectedProcess\n      (runProtectedProcess scanCost jobCost budget (protectedBulk event rest) (protectedProcess critical other))\n      (runProtectedProcess scanCost jobCost budget rest (protectedProcess critical (coupledStep event other)))",
+          "scope_kind": "general_transition",
+          "establishes": "The full process executes each projected bulk event through the existing coupled transition.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedRoundIncludesTail",
+          "statement": "(scanCost : Count) -> (jobCost : Count) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->\n    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal Count\n      (protectedRoundCost scanCost jobCost (protectedMember trusted swarm identity kind direction banks eligible state rest))\n      (add (add (next scanCost) (next jobCost)) (protectedRoundCost scanCost jobCost rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Each peer and every remaining peer contribute to the required round cost.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedResourcesIncludeTail",
+          "statement": "(trusted : Flag) -> (swarm : Count) -> (identity : Count) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->\n    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> (axis : EstablishedAxis) -> Equal Count\n      (establishedFleetAllocation axis (protectedResources (protectedMember trusted swarm identity kind direction banks eligible state rest)))\n      (add (establishedBankAllocation axis banks) (establishedFleetAllocation axis (protectedResources rest)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every bank and peer contributes to each established allocation coordinate.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedMemberResources",
+          "statement": "(trusted : Flag) -> (swarm : Count) -> (identity : Count) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->\n    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal EstablishedFleet\n      (protectedResources (protectedMember trusted swarm identity kind direction banks eligible state rest))\n      (establishedMember trusted swarm identity banks (protectedResources rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Resource composition retains exact trust, swarm, identity, bank and tail data.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedOneTickLeavesSuccessor",
+          "statement": "(ahead : Count) ->\n    Equal CriticalState (protectedRun on (protectedServiceTrace (protectedTick protectedScheduleDone)) (waitingBehind (next ahead)))\n      (waitingBehind ahead)",
+          "scope_kind": "general_transition",
+          "establishes": "One tick cannot skip predecessors and falsely complete a waiting target.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedServedCertificate",
+          "statement": "(fleet : ProtectedFleet) -> ProtectedServed fleet ->\n    Equal Flag (protectedAllServedFlag fleet) on",
+          "scope_kind": "general_transition",
+          "establishes": "The all-peer service certificate implies the executable conjunction over every participant.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedProcessServiceGuarantee",
+          "statement": "(scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->\n    (schedule : ProtectedSchedule) -> (critical : ProtectedFleet) -> (other : CoupledProcess) -> (maximum : Count) ->\n    ProtectedWindow maximum critical -> AtMost (protectedRoundCost scanCost jobCost critical) budget ->\n    AtMost maximum (serviceRounds (protectedServiceTrace schedule)) ->\n    Equal Flag (protectedAllServedFlag (protectedCritical\n      (runProtectedProcess scanCost jobCost budget schedule (protectedProcess critical other)))) on",
+          "scope_kind": "conditional_liveness",
+          "establishes": "Every protected target is served after enough funded delivered ticks within an arbitrary mixed process schedule.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedWaitingFlag",
+          "statement": "(ahead : Count) -> Equal Flag (protectedServedFlag (waitingBehind ahead)) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unfinished target is not reported as served.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedEveryPeerFlag",
+          "statement": "(trusted : Flag) -> (swarm : Count) -> (identity : Count) ->\n    (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (banks : EstablishedBanks) ->\n    (eligible : Flag) -> (state : CriticalState) -> (rest : ProtectedFleet) -> Equal Flag\n      (protectedAllServedFlag (protectedMember trusted swarm identity kind direction banks eligible state rest))\n      (both (protectedServedFlag state) (protectedAllServedFlag rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Service reporting checks the head target and every remaining peer.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
+        },
+        {
+          "path": "proofs/90-protected-critical-service.mech",
+          "name": "protectedProcessWithOverhead",
+          "statement": "(pendingWeight : Count) -> (waitingWeight : Count) -> (activeWeight : Count) ->\n    (axis : EstablishedAxis) -> (scanCost : Count) -> (jobCost : Count) -> (budget : Count) ->\n    (schedule : ProtectedSchedule) -> (process : ProtectedProcess) -> (actualOverhead : Count) -> (reservedOverhead : Count) ->\n    AtMost actualOverhead reservedOverhead -> AtMost\n      (add actualOverhead (protectedWholeUse pendingWeight waitingWeight activeWeight axis\n        (runProtectedProcess scanCost jobCost budget schedule process)))\n      (add reservedOverhead (protectedWholeAllocation pendingWeight waitingWeight activeWeight axis process))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Shared scheduler/service overhead remains explicitly charged against reserved whole-process capacity.",
+          "premises": [
+            "Captured FIFO prefixes already occupy distinct matching protocol/direction slots, fit a finite maximum and remain eligible; no arrival overtakes targets or acquires their captured banks during the window.",
+            "Each delivered tick has a budget covering positive scan and job charges for every peer. The scheduler supplies at least the workload maximum in ticks. The model treats each funded delivered tick as one completed service round for each eligible peer. Runtime completion of the scan and job in each tick is not proved. E010, E017, E021 and E022 retain actual cost, latency, scheduling and critical-message conformance.",
+            "All critical banks and the other CoupledProcess partition are disjoint, exhaust the modeled participants and retain ownership. E013, E019 and E022 retain runtime routing, classification, atomicity and receipt refinement. Promotion coordinates and generation receipts are classified internal authority. Nonwrapping generations and actual resource termination remain runtime premises.",
+            "Actual resident bytes/tasks and per-stage weights require domination certificates. Fixed/shared scheduler overhead has separate reserved capacity, and the composed vector must fit the finite process allocation."
+          ],
+          "limits": "A finite captured service window with static protected ownership and eligibility. The guarantee is conditional on funding and delivered ticks, not a wall-clock latency claim. Runtime refinement, production calibration and deployment qualification remain external."
         }
       ],
       "controls": [
@@ -6807,6 +7256,134 @@
         {
           "name": "general_stage_grants_wrong_bank",
           "sha256": "e0dc71a85d8ce921748787902b3c0d6c21675f77a56c9ab6d475f7ff187036a0"
+        },
+        {
+          "name": "protected_service_ignores_eligibility",
+          "sha256": "2c3e4437617552b3a1a79721888dc28da36ea1e23f4181346119e119fdf1f44e"
+        },
+        {
+          "name": "protected_service_ignores_budget",
+          "sha256": "cc5dd4873b6054c77cc2abe9a0a637ccf69fd167e91969d477e816e6d576ea8e"
+        },
+        {
+          "name": "protected_service_skips_tail_service",
+          "sha256": "53e3611b115ca92a6cb62109ac415382a6a7d922ca0348a59f05fb3e91af185d"
+        },
+        {
+          "name": "protected_service_drops_owned_banks",
+          "sha256": "a79ed4b4cdc8219ec29f221ae67a38b680a0837a5a6abd311ab5edad6efaf890"
+        },
+        {
+          "name": "protected_service_disabled_still_runs",
+          "sha256": "1276432aab211c1d98825c1b4018199d671c31e51e8edd8342816f7449b966d8"
+        },
+        {
+          "name": "protected_service_enabled_never_runs",
+          "sha256": "a4d6bb43987fc9fc6df58b8ec122924b235e43df2137c55f2c4ab7c9b93b0bad"
+        },
+        {
+          "name": "protected_service_omits_peer_cost",
+          "sha256": "e0f5c69c1e1ff404c3ee462115ef0ae8abd4d26a2a113c4deb2929f8339267bc"
+        },
+        {
+          "name": "protected_service_omits_other_peer_costs",
+          "sha256": "aa11bd27934aec7e5b979540eb3b3a0521d3dffe4f30d48f763584fe03a12aaa"
+        },
+        {
+          "name": "protected_service_omits_scan_cost",
+          "sha256": "44f322992ac3b419f785678c2333a5d98e1b74f2b4b7faa7d23f93cc9f01ff65"
+        },
+        {
+          "name": "protected_service_omits_job_cost",
+          "sha256": "1191368c8c0c51eae46f0b1914606479f73a95e16f846b09c93802cea2646351"
+        },
+        {
+          "name": "protected_service_omits_peer_resources",
+          "sha256": "cb3b816eddc3fdab1fd6816b6088f5f4460d167c68d0aedab8d2c6c8038c5b75"
+        },
+        {
+          "name": "protected_service_omits_other_peers",
+          "sha256": "b99b532a3b63b77411359fce7a1eb82dc5cb1dc59b6d5c6c438fabfd0e63e7f0"
+        },
+        {
+          "name": "protected_service_omits_banks",
+          "sha256": "1c677e1b0c5d868e275f210b9f2689790c1cf9dc2e0519a51ad6a17fdd76ed19"
+        },
+        {
+          "name": "protected_service_omits_swarm_label",
+          "sha256": "0919893945cc3a3effb32988781f77187db63f9722c0fe740d79329f8fa30c7e"
+        },
+        {
+          "name": "protected_service_drops_resident_premise",
+          "sha256": "a547c735d24e7be78607f945b40519b4186271098457ef626e08b49ec809a107"
+        },
+        {
+          "name": "protected_service_counts_vacant_as_resident",
+          "sha256": "ee324f0ee5a84b30c21986802abef0b9114b46b65ceec0e5e80817bcd8d1c31b"
+        },
+        {
+          "name": "protected_service_drops_workload_maximum",
+          "sha256": "be2d9c7aed8b914dc08d1df4d5a1182d2432bc0db82653ef2c2ab56b5dccc175"
+        },
+        {
+          "name": "protected_service_admits_ineligible_window",
+          "sha256": "6c84cf7fcdcd5856141712acd64a9f0c3702908d3dad22024926a35e2303fb00"
+        },
+        {
+          "name": "protected_service_tick_does_no_work",
+          "sha256": "cd069c6fc785dc3328518e788f4f511332765cfe08f9b88f623d7cf28682e8d2"
+        },
+        {
+          "name": "protected_service_bulk_steals_critical_turn",
+          "sha256": "aace7db6b72faf7ad1f73e972a22203a510a2dc2f7b995656173b05d3447badc"
+        },
+        {
+          "name": "protected_service_drops_bulk_transition",
+          "sha256": "8c1027579f177139843544ccaa8eae9c8d5798bbaa3b5cf4a40463f723c859a5"
+        },
+        {
+          "name": "protected_service_omits_critical_allocation",
+          "sha256": "2188f7df1f30b6d060438c3a7e71d81091ea6ac66dbf7bbfd689319cc1708c2b"
+        },
+        {
+          "name": "protected_service_omits_other_allocation",
+          "sha256": "3404c31e134cc5d643f1327131d42e6c5b4284a52acb491cb6f163d6bdd05349"
+        },
+        {
+          "name": "protected_service_omits_critical_use",
+          "sha256": "ca4d22efb3111614415596f71fc386c931305366c12a8ad8485115aa3fd279b1"
+        },
+        {
+          "name": "protected_service_omits_other_use",
+          "sha256": "92ed7eaf19137615b1cfacfdfc54cee8e712be4e6d36464afdbe8a1a44c98390"
+        },
+        {
+          "name": "protected_service_drops_tick_premise",
+          "sha256": "80368f0eec5b2bca1c3245f13f577c1b2270ef17188b173341c018da31d7e5e0"
+        },
+        {
+          "name": "protected_service_drops_funding_premise",
+          "sha256": "fa9504786f9376bffb6ade5f483ab569c923ddb27530a34ebaab20ed4abd87b6"
+        },
+        {
+          "name": "protected_service_inflates_waiting_demand",
+          "sha256": "9fd0184fae57acf6ee7fc5bd8201d504bb8c095e9b57305da8bc8b11fd6bc38f"
+        },
+        {
+          "name": "protected_service_omits_selected_tail_allocation",
+          "sha256": "11d3cced003723a8871a08f974ac51a13e15a861f8cdc47deb00852b975d6892"
+        },
+        {
+          "name": "protected_service_false_served_flag",
+          "sha256": "b08df1992a4f0838e523eade7608855e99b7e5c81118f35173cbb241dbf8b33b"
+        },
+        {
+          "name": "protected_service_flag_omits_tail",
+          "sha256": "42b1714a0eeca87a24ea63e7e5a398d407137c4b264375ecdd120135bee1a554"
+        },
+        {
+          "name": "protected_service_flag_omits_head",
+          "sha256": "28b1eddab387581d421f905ad07dc586a3502956b3e5de766d529d19c0595474"
         }
       ],
       "criteria": [
@@ -6948,7 +7525,7 @@
         },
         {
           "index": 2,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/20-accounting.mech#stageCompositionBound",
             "proofs/22-weighted-resources.mech#bothSwarmsRetainedCostTraceBound",
@@ -6956,10 +7533,42 @@
             "proofs/30-admission-and-service.mech#bulkCannotConsumeCriticalBudget",
             "proofs/86-established-resource-vectors.mech#establishedFleetBound",
             "proofs/86-established-resource-vectors.mech#establishedTraceBound",
-            "proofs/86-established-resource-vectors.mech#establishedProcessVectorBound"
+            "proofs/86-established-resource-vectors.mech#establishedProcessVectorBound",
+            "proofs/90-protected-critical-service.mech#protectedBudgetEnough",
+            "proofs/90-protected-critical-service.mech#protectedRunStep",
+            "proofs/90-protected-critical-service.mech#protectedResourcesPreserved",
+            "proofs/90-protected-critical-service.mech#protectedWidthPreserved",
+            "proofs/90-protected-critical-service.mech#protectedServedTrace",
+            "proofs/90-protected-critical-service.mech#protectedRequestProgress",
+            "proofs/90-protected-critical-service.mech#protectedFundedProgress",
+            "proofs/90-protected-critical-service.mech#protectedCriticalBound",
+            "proofs/90-protected-critical-service.mech#protectedWholeBound",
+            "proofs/90-protected-critical-service.mech#protectedFiniteProcessBound",
+            "proofs/90-protected-critical-service.mech#protectedWindowCostBound",
+            "proofs/90-protected-critical-service.mech#protectedBulkCannotSteal",
+            "proofs/90-protected-critical-service.mech#protectedIneligibleDoesNotProgress",
+            "proofs/90-protected-critical-service.mech#protectedUnfundedDoesNotProgress",
+            "proofs/90-protected-critical-service.mech#protectedFleetIneligibleUnchanged",
+            "proofs/90-protected-critical-service.mech#protectedFleetUnfundedUnchanged",
+            "proofs/90-protected-critical-service.mech#protectedTickServesHead",
+            "proofs/90-protected-critical-service.mech#protectedNoTickNoService",
+            "proofs/90-protected-critical-service.mech#protectedRequestResident",
+            "proofs/90-protected-critical-service.mech#protectedWorkloadAllocation",
+            "proofs/90-protected-critical-service.mech#protectedRoundCostDominance",
+            "proofs/90-protected-critical-service.mech#protectedFleetStep",
+            "proofs/90-protected-critical-service.mech#protectedBulkStep",
+            "proofs/90-protected-critical-service.mech#protectedRoundIncludesTail",
+            "proofs/90-protected-critical-service.mech#protectedResourcesIncludeTail",
+            "proofs/90-protected-critical-service.mech#protectedMemberResources",
+            "proofs/90-protected-critical-service.mech#protectedOneTickLeavesSuccessor",
+            "proofs/90-protected-critical-service.mech#protectedServedCertificate",
+            "proofs/90-protected-critical-service.mech#protectedProcessServiceGuarantee",
+            "proofs/90-protected-critical-service.mech#protectedWaitingFlag",
+            "proofs/90-protected-critical-service.mech#protectedEveryPeerFlag",
+            "proofs/90-protected-critical-service.mech#protectedProcessWithOverhead"
           ],
-          "rationale": "Arbitrary per-peer vectors now compose into one finite process allocation. Scalar critical/bulk independence does not establish a scheduler service guarantee, so the critical workload/scheduling part remains open.",
-          "remaining": "R03: Prove critical-class service under explicit workload/scheduling premises."
+          "rationale": "Module 90 requires each finite FIFO prefix to fit occupied established protocol slots and a common maximum. It derives all-peer service from continuous eligibility, full-population round funding and enough delivered ticks. The service derivation uses the rank bound; the occupied-slot certificate is a workload premise. The schedule projects bulk events through the existing coupled process and critical ticks through guarded FIFO transitions. No bulk event can change the critical fleet, and no critical tick can change a bank. As a result, protectedBulkCannotSteal, protectedBulkStep, protectedResourcesPreserved, protectedWidthPreserved and protectedCriticalBound hold by construction and do not witness runtime noninterference or critical grant and release accounting. Separation of bulk and critical work is a premise. All peers and arbitrary swarm labels contribute to the critical resource vector and round cost. Critical banks remain charged throughout the window, while pending, pre-accept and bulk resources use a disjoint coupled allocation. Whole-process and explicit overhead bounds apply to the same mixed schedules, with actual cost domination and initial coordinate-wise fit. The tick premise counts delivered ticks. The model treats each funded delivered tick as one completed FIFO round for each eligible peer, as in module 35. No premise asserts target service. Runtime scheduler, routing, nonaliasing and cost conformance remain E010/E013/E017/E019/E021/E022 obligations.",
+          "remaining": ""
         },
         {
           "index": 3,

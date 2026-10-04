@@ -170,7 +170,8 @@ def inventory() -> dict:
     return {"version": 1, "semantically_complete": summary["complete"],
             "note": "Disposition links are checked; semantic rationales and theorem scope require review.",
             "dispositions": summary,
-            "witness_audit": {key: value for key, value in witness_audit.items() if key != "remaining"},
+            "witness_audit": {key: value for key, value in witness_audit.items() if key != "remaining"}
+                             | {"open_packets": sorted({gap["closure_packet"] for gap in witness_audit["remaining"]})},
             "units": units}
 
 
@@ -237,6 +238,10 @@ def proof_plan(data: dict) -> dict:
         scope(ROOT, data, load(ROOT / "source-ledger.json"), load(ROOT / "proof-scope.json"))
     if packets[1]["status"] == "closed" and not data["witness_audit"]["witness_audit_complete"]:
         raise ValueError("R02 witness audit is incomplete")
+    uncovered = sorted({row["id"] for row in packets if row["status"] == "closed"}
+                       & set(data["witness_audit"]["open_packets"]))
+    if uncovered:
+        raise ValueError(f"closed proof packet has uncovered model obligations: {uncovered[0]}")
     return plan | {"planned_turns": planned,
                    "turns_used": sum(row["turns_spent"] for row in packets),
                    "closed_packets": sum(row["status"] == "closed" for row in packets)}

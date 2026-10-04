@@ -1,6 +1,6 @@
-# R03 admission boundary, turn 14
+# R03 admission boundary, closed at turn 15
 
-R03 is active after fourteen execution turns. Turn 1 closed M004, turn 2 closed
+R03 closes after fifteen execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
@@ -17,10 +17,11 @@ Turn 13 couples the existing distinct pending pool, pre-accept executor and
 established fleet. General nonpromotion isolation, guarded refusal and promotion
 idempotence hold; a focused successful promotion pins the release and grant.
 Turn 14 closes criterion 1 with arbitrary-prefix/suffix successful promotion and
-all absent-index operational witnesses. Criterion 2 retains critical
-workload/scheduling service as its exact remaining gap.
+all absent-index operational witnesses. Turn 15 closes criterion 2 with
+protected critical service across every peer and swarm under explicit
+resident-workload, eligibility, funding and delivered-tick premises.
 M005 was already covered by R02.
-The audit covers ten of 83 model obligations, retains 73 exact gaps, and leaves all 43 external obligations
+The audit covers eleven of 83 model obligations, retains 72 exact gaps, and leaves all 43 external obligations
 open. The frozen scope,
 obligations, packet assignments and qualification guards remain intact.
 
@@ -32,7 +33,7 @@ obligations, packet assignments and qualification guards remain intact.
 | M004 | Module 75's arbitrary-pool and arbitrary-index exhaustion bridge, composed complete-state admission refusal and receipt absence; existing arbitrary PoolTrace and SourceAdmissionTrace bounds, conservation and fixed structural capacity. | Exhaustion means zero total leaseAvailability, including empty pools and missing indices. Runtime receipt authority, stable indices, serialization, nonwrapping generations and storage dominance remain external. E013 owns them. |
 | M009 | Module 84's arbitrary normalized-source lifecycle traces preserve complete protected debt/ban cells and selected T4b/T8 restrictions, bound cardinality by initial fixed width, and make registration identity-independent and restart/epoch lifetimes explicit. | One shared fixed-width table, classified fixed-prefix addresses and serialized transitions are modeled. Protected state survives restart/epoch boundaries; debt service and ban expiry are outside these churn-only traces. E014 owns runtime restoration, prefix classification, release authority and nonwrapping lifecycle counters. E029 owns peer lifecycle refinement. |
 | M013 | Module 85 supplies joint aggregate and normalized-prefix burst-plus-trusted-ticks envelopes over arbitrary mixed traces, with exact paired receipts and whole-state refusal/terminal witnesses. | Fixed finite canonical-key allocation, correctly classified address/reachability, supplied eligibility, serialized atomic updates, trusted ticks and each view's initial-credit fit are explicit. Runtime refinement and calibration remain external; resident resource vectors and scheduling remain M012. |
-| M012 | Module 86 derives protocol/direction and resident coordinates from one finite peer/bank/slot population; arbitrary mixed traces preserve one process vector, exact arbitrary-prefix releases isolate the owner, and certified byte/task domination includes separately reserved overhead. Advertised receive credit is independent of resident weights and costs. | Correct runtime classification/routing, internal receipt authority, serialized updates, nonwrapping generations, actual resource termination, symbolic unit/overhead domination and initial vector-plus-overhead fit are premises. E022/E013/E010 retain runtime refinement. Critical service under workload/scheduling premises remains a model gap in criterion 2. |
+| M012 | Module 86 derives protocol/direction and resident coordinates from one finite peer/bank/slot population; arbitrary mixed traces preserve one process vector, exact arbitrary-prefix releases isolate the owner, and certified byte/task domination includes separately reserved overhead. Advertised receive credit is independent of resident weights and costs. | Correct runtime classification/routing, internal receipt authority, serialized updates, nonwrapping generations, actual resource termination, symbolic unit/overhead domination and initial vector-plus-overhead fit are premises. E022/E013/E010 retain runtime refinement. Module 90 closes criterion 2 with occupied-slot workload certificates, funded all-peer FIFO rounds and explicit tick delivery; E017/E021/E022 retain scheduler and critical-message refinement. |
 | M011 | Module 79's arbitrary endpoint/swarm trace bounds for separate waiting and active banks, conditional refused/permitted dispatch transitions, generation-owned terminal releases, shared weighted host allocation and charged work envelope. | All endpoint work routes through the same banks. Atomic transfer, internal callback provenance, nonwrapping generations, actual task termination on terminal release, and runtime resource/work dominance remain E019 premises. No mutex or fair scheduling is assumed. |
 | M007 | Module 80's arbitrary finite population and weighted-coordinate bounds, allocation preservation under mixed ownership/churn traces, retained charges on identity changes, and per-interval clipped work composition. | Every participant receives a separately owned slice whose sum fits the one supplied host vector. Connection and reconnect-burst parameters are member counts, bank weights and bank capacities in this arbitrary fleet. A burst in one interval is any finite trace of hostEvent and hostChurn steps over the fixed population. M013 owns burst-plus-rate budgets across intervals. Runtime routing, weight dominance, work-budget enforcement and production calibration remain external. E022 owns established-resource routing, weight dominance and work-budget enforcement. E013 owns runtime pending accounting. E010 owns production calibration and deployed storage and work dominance. Labels do not establish source normalization; specific established resource vectors remain M012 work. |
 | M021 | Module 81's unique connection lookup, exact indexed update and other-slot preservation; generation-owned migration, establishment and terminal cleanup; arbitrary schedule capacity, live-cell and discarded-tombstone bounds and exact conservation. | All endpoints and swarms share one finite serialized routing table. Internal callback authority, destination validation, nonwrapping generations and fixed-width storage dominance remain E019 premises. Migration preserves the original endpoint owner; handshake success retains established routing. No fairness or concrete socket restructuring is proved. |
@@ -458,24 +459,102 @@ controls reject false input ownership, loss of any prefix/suffix, incorrect
 generation consumption, executor loss, wrong member/bank grants and false
 refusal claims at present or available indices.
 
-## Remaining R03 scope
+## Protected critical service and whole-process allocation
 
-One R03 obligation remains: M012. Criteria 0, 1 and 3 are witnessed. Criterion 2
-still requires critical-class service under explicit workload and scheduling
-premises within the finite composed process allocation. Turn 15 must discharge
-that claim under the [two-turn closure requirement](M012-CLOSURE.md).
-R03 stays active, and all 43 external obligations remain open.
+Module 90 closes M012 criterion 2. `ProtectedFleet` records every protected
+peer's swarm, identity, trust label, protocol kind/direction, established banks,
+eligibility and target FIFO rank. The population is arbitrary and finite.
+`protectedMemberResources`, `protectedResourcesIncludeTail` and
+`protectedRoundIncludesTail` expose the complete resource and round-cost sums.
+
+The service window has explicit premises:
+
+- Each target and its FIFO prefix already occupy distinct slots of the selected
+  kind and direction. `ProtectedRequest` bounds the prefix by occupied slots
+  and a finite common maximum. New arrivals cannot overtake captured targets
+  or acquire the captured allocations during the window.
+- Targets remain eligible, and their owned banks and participant set remain
+  fixed. Releases and promotions outside the window retain modules 86-89's
+  generation and stage semantics.
+- Every delivered tick reserves a positive scan charge and positive job charge
+  for every peer. Its budget covers the complete sum. Actual scan and job work
+  must be dominated by these charges.
+- The scheduler delivers at least the workload maximum in ticks within the
+  required interval. Funding and eligibility gate each tick. The model treats
+  a delivered tick that passes the gate as one completed service round for
+  that peer. Runtime job completion remains external. No premise asserts
+  completed target service.
+- Bulk, pending and pre-accept work use a disjoint `CoupledProcess`. Critical
+  and other allocations, plus fixed/shared scheduler overhead, fit a finite
+  whole-process vector. Runtime routing and nonaliasing remain external.
+
+`protectedRequestResident` and `protectedWorkloadAllocation` connect queue
+prefixes to occupied slots and finite allocations. `protectedRunStep`,
+`protectedFleetStep` and `protectedBulkStep` give operational equations.
+`protectedProcessServiceGuarantee` derives service for every target from these
+premises using module 35's FIFO theorem. Its result checks every peer and tail.
+`protectedBulkCannotSteal` records that the schedule projection keeps bulk
+events off the critical fleet. It holds by construction.
+Ineligibility, a zero budget for a positive round cost, or an empty schedule
+leave waiting targets unchanged. `protectedFleetIneligibleUnchanged` and
+`protectedFleetUnfundedUnchanged` state the first two facts for a fleet member
+on every trace. One tick cannot complete a target that still has predecessors.
+
+The same schedules satisfy `protectedWholeBound` and
+`protectedFiniteProcessBound` on every resource coordinate. They compose
+critical banks with pending, pre-accept and bulk established resources.
+`protectedProcessWithOverhead` charges shared overhead against reserved capacity.
+Captured banks remain charged after service until a later owned release.
+`protectedRoundCostDominance` and `protectedWindowCostBound` bound round and
+window work. Advertised credit stays independent of resident bytes/tasks,
+whose bounds retain module 86's domination certificates and per-stage premises.
+
+Thirty-two new equality/order witnesses and 32 mutation controls cover this slice.
+Controls reject weakened resident workload, eligibility, funding and tick
+premises; omitted peer/swarm/resource and cost contributions; bulk interference;
+skipped transitions; and false all-peer service. Runtime refinement remains
+with E010, E013, E017, E019, E021 and E022. Production
+cost values and the relation between ticks and elapsed time remain external.
+
+## R03 closure scope
+
+All eleven R03 model obligations are covered. M012's four unchanged criteria have
+general witnesses: vector grant bounds and churn accounting (criterion 0),
+owned release and coupled stage promotion/refusal (criterion 1), protected
+critical service within the finite process allocation (criterion 2), and
+separate advertised credit with explicit resident domination (criterion 3).
+R03 closes at turn 15 under the [closure requirement](M012-CLOSURE.md).
+The next packet is R04. Seventy-two model obligations and all 43 external
+obligations remain open.
+
+## R03 exit evidence
+
+| Criterion | Audited evidence | Result |
+|---|---|---|
+| 0: Every frozen R03 obligation has witnesses at the required model scope. | `source-ledger.json` assigns eleven model obligations to R03: M001, M002, M003, M004, M005, M007, M009, M011, M012, M013 and M021. `proof-audit.json` records `scope_complete` true for each obligation and `witnessed` for each criterion. | Eleven obligations are covered, with 24 of 24 criteria witnessed. R02 covered M005. R03 covered the other ten. |
+| 1: Per-source and shared rate/cost envelopes compose across both swarms and cover each named path. | Envelopes: `composedBurstRateEnvelope` and `composedRateCreditConservation` (M013); `bothSwarmsRetainedCostTraceBound`, `sharedHostTraceBound` and `sharedHostWorkAfterTraceBound` (M007); `executorHostResourceTraceBound` and `executorHostWorkTraceBound` (M011). Denial: `composedZeroAggregateNoOp` and `composedIneligibleAttemptNoOp` (M013). Overflow: `prevalidationOverflowDropsPacket` and `prevalidationSaturatedArrivalIsNoOp` (M002); `exhaustedSourceAdmissionIsNoOp` (M004). Cancellation: `everyTerminalReasonReleases` (M005); `establishedTerminalBindsOwner` (M012). Stale completion: `indexedSourceAdmissionStaleCompletionPreserves` (M005); `executorStaleActiveCallback` and `executorStaleWaitingCallback` (M011); `establishedStaleSlotRelease` (M012). Cleanup: `prevalidationDecisionReleasesPacket` (M002); `routeTerminalRemovesRouting` and `routeScheduleDiscardedStateBound` (M021); `composedFinishNoOp` (M013). | A criterion of the named obligation cites each witness. Each witness holds under the premises and limits that the audit records. |
+| 2: Negative controls reject weakened invariants. Runtime assumptions stay explicit. | The eleven audit entries list 439 controls. The receipt records all 439 among its 1354 rejected negative checks. Each witness records its premises and limits. The scope reviews refer runtime premises to E008, E010, E013, E014, E017, E019, E020, E021, E022 and E029. | All listed controls are rejected. Runtime charge and storage domination stay explicit premises with external owners. |
+
+`proof-roadmap.json` pins `proof-audit.json` for criteria 0 and 1 and
+`tools/check.py` for criterion 2. It does not pin the receipt, because the
+receipt records the hash of `proof-roadmap.json`.
+
+R03 used fifteen turns against five planned. R02 used five against three.
+The twelve overrun turns exceed the ten-turn reserve by two. Turn use is
+25 of 50. The R04 to R10 allocations total 27 turns and 25 turns remain, so
+the plan projects 52 turns. The owner must revise these allocations
+([roadmap](ROADMAP.md) rule 6).
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-general-stage-promotion-check.json](../evidence/r03-general-stage-promotion-check.json).
-The corpus has 1409 explicit proof declarations in 72 modules. The full run
-includes 1322 negative checks (1319 registered mutations plus three generic
+[r03-protected-critical-service-check.json](../evidence/r03-protected-critical-service-check.json).
+The corpus has 1441 explicit proof declarations in 73 modules. The full run
+includes 1354 negative checks (1351 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-13 and R02 receipts retain their original counts
-and input hashes.
+open. The historical R03 turn-1 through turn-14 and R02 receipts retain their
+original counts and input hashes.

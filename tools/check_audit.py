@@ -40,13 +40,13 @@ class AuditChecks(unittest.TestCase):
         result = self.validate()
         self.assertEqual((result["model_obligations"], result["reviewed_obligations"],
                           result["covered_obligations"], result["partial_obligations"],
-                          result["unreviewed_obligations"]), (83, 83, 10, 73, 0))
+                          result["unreviewed_obligations"]), (83, 83, 11, 72, 0))
         self.assertEqual(result["unaudited_criteria"], 0)
         self.assertTrue(result["witness_audit_complete"])
         self.assertFalse(result["model_coverage_complete"])
         self.assertFalse(result["external_obligations_closed"])
         self.assertNotIn("model_checked", result)
-        self.assertEqual(len(result["remaining"]), 73)
+        self.assertEqual(len(result["remaining"]), 72)
         self.assertEqual(set(result["witness_scope_counts"]),
                          {"arbitrary_trace", "general_transition", "conditional_liveness", "finite_example"})
 
@@ -266,6 +266,25 @@ class AuditChecks(unittest.TestCase):
         with patch.dict(catalog["proof_plan"].__globals__, {"load": load}):
             self.assertEqual(catalog["proof_plan"](self.inventory)["packets"][1]["status"], "closed")
         self.assertFalse(self.inventory["witness_audit"]["model_coverage_complete"])
+
+    def test_closed_packet_cannot_keep_an_uncovered_model_obligation(self):
+        self.row("M012")["scope_complete"] = False
+        original_load = catalog["load"]
+        def load(path):
+            return self.data if path.name == "proof-audit.json" else original_load(path)
+        with patch.dict(catalog["proof_plan"].__globals__, {"load": load}):
+            inventory = catalog["inventory"]()
+            self.assertIn("R03", inventory["witness_audit"]["open_packets"])
+            with self.assertRaisesRegex(ValueError, "closed proof packet has uncovered model obligations: R03"):
+                catalog["proof_plan"](inventory)
+
+    def test_closed_packets_own_no_remaining_model_gap(self):
+        open_packets = self.inventory["witness_audit"]["open_packets"]
+        self.assertEqual(open_packets, sorted({gap["closure_packet"] for gap in self.validate()["remaining"]}))
+        plan = catalog["proof_plan"](self.inventory)
+        closed = {row["id"] for row in plan["packets"] if row["status"] == "closed"}
+        self.assertIn("R03", closed)
+        self.assertFalse(closed & set(open_packets))
 
     def test_unknown_scope_or_status_value_is_rejected(self):
         self.row()["witnesses"][0]["scope_kind"] = "fully_proved"

@@ -1281,3 +1281,24 @@ service under concrete workload/scheduling premises. Coverage stays at 10 of
 83 model obligations, with 73 retaining gaps and 43 external obligations open.
 R03 has used fourteen turns against five planned. Runtime refinement and full
 qualification remain incomplete; historical receipts keep their hashes.
+
+## R03 turn 15 protected critical service
+
+`r03-protected-critical-service-check.json` records the complete model check:
+73 modules, 1441 explicit equality/order proofs, 34 claim groups, 186 atomic
+obligations, 1383 source units and 1354 rejected negative checks. Module 90 adds
+32 witnesses and 32 mutation controls. The receipt also pins the M012 closure
+requirement and result document.
+
+M012 criterion 2 now derives all-peer FIFO service from occupied-slot workload
+certificates, continuous eligibility, funded round costs and enough delivered
+ticks. Every peer and swarm contributes to cost and resource composition.
+Arbitrary bulk, pending and pre-accept transitions use a disjoint allocation.
+The same schedules preserve finite process resource vectors with explicit
+shared overhead. Actual resident costs and scheduler conformance remain
+external obligations, including E010, E017, E021 and E022.
+
+All four unchanged M012 criteria are witnessed. R03 closes at turn 15 with all
+eleven of its model obligations covered. The complete ledger covers 11 of 83
+model obligations and retains 72 gaps; all 43 external obligations remain open.
+R04 is next. The full-qualification guard remains in force.

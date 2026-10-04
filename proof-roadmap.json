@@ -76,17 +76,17 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "936dbcac7900088525869ac7b855de9d7b328ace1e3673919c1ccdc155e36c80"
+          "sha256": "26a21356fb1ef60221556ac6e7bea83e2d188f44f63ff795cc14c6912a3a1edd"
         },
         {
           "criterion": 1,
           "path": "docs/R02-AUDIT.md",
-          "sha256": "b9457944d25c9ceb438f7c8e2371c3b565cfce759c1e4e1593f21756b4543325"
+          "sha256": "3acacadeee8901b6202a4c32f5462c6f15bb366b2379a3a136c576686b9af522"
         },
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "936dbcac7900088525869ac7b855de9d7b328ace1e3673919c1ccdc155e36c80"
+          "sha256": "26a21356fb1ef60221556ac6e7bea83e2d188f44f63ff795cc14c6912a3a1edd"
         }
       ]
     },
@@ -94,8 +94,8 @@
       "id": "R03",
       "title": "Close admission, ownership and rate accounting",
       "planned_turns": 5,
-      "turns_spent": 14,
-      "status": "active",
+      "turns_spent": 15,
+      "status": "closed",
       "depends_on": [
         "R02"
       ],
@@ -107,7 +107,23 @@
         "Per-source and shared rate/cost envelopes compose across both swarms and cover denial, overflow, cancellation, stale completion and cleanup paths.",
         "Negative controls reject weakened ownership, credit, source attribution and resource-bound invariants. Runtime charge and storage dominance assumptions stay explicit."
       ],
-      "evidence": []
+      "evidence": [
+        {
+          "criterion": 0,
+          "path": "proof-audit.json",
+          "sha256": "26a21356fb1ef60221556ac6e7bea83e2d188f44f63ff795cc14c6912a3a1edd"
+        },
+        {
+          "criterion": 1,
+          "path": "proof-audit.json",
+          "sha256": "26a21356fb1ef60221556ac6e7bea83e2d188f44f63ff795cc14c6912a3a1edd"
+        },
+        {
+          "criterion": 2,
+          "path": "tools/check.py",
+          "sha256": "2d3549ac02cad3e30ccb416af9d27822d5e041173b67f7c9945ab3b75a58b321"
+        }
+      ]
     },
     {
       "id": "R04",

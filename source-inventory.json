@@ -17,25 +17,32 @@
   "witness_audit": {
     "audit_valid": true,
     "proof_scope_sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
-    "audit_sha256": "936dbcac7900088525869ac7b855de9d7b328ace1e3673919c1ccdc155e36c80",
-    "modules": 72,
-    "proof_declarations": 1409,
+    "audit_sha256": "26a21356fb1ef60221556ac6e7bea83e2d188f44f63ff795cc14c6912a3a1edd",
+    "modules": 73,
+    "proof_declarations": 1441,
     "model_obligations": 83,
     "reviewed_obligations": 83,
-    "covered_obligations": 10,
-    "partial_obligations": 73,
+    "covered_obligations": 11,
+    "partial_obligations": 72,
     "unreviewed_obligations": 0,
     "witness_scope_counts": {
-      "arbitrary_trace": 83,
-      "conditional_liveness": 3,
+      "arbitrary_trace": 91,
+      "conditional_liveness": 5,
       "finite_example": 9,
-      "general_transition": 405
+      "general_transition": 427
     },
     "unaudited_criteria": 0,
     "witness_audit_complete": true,
     "model_coverage_complete": false,
     "external_obligations_closed": false,
-    "note": "Pins and audit structure are checked. Semantic entailment, scope classifications and premises require review; compiler checks are separate."
+    "note": "Pins and audit structure are checked. Semantic entailment, scope classifications and premises require review; compiler checks are separate.",
+    "open_packets": [
+      "R04",
+      "R05",
+      "R06",
+      "R07",
+      "R08"
+    ]
   },
   "units": [
     {
