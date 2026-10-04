@@ -1,0 +1,580 @@
+-- Five verified membership sources, selected separately for each role and swarm.
+-- Identity indices and verification judgments are supplied by the runtime.
+mu CommitteePolicyUnion : Type 0 with
+| committeePolicyUnion : Slots -> Slots -> Slots -> Slots -> Slots -> CommitteePolicyUnion
+
+def emptyCommitteePolicyUnion : CommitteePolicyUnion :=
+  committeePolicyUnion noSlots noSlots noSlots noSlots noSlots
+
+def committeeUnionMember : Count -> CommitteePolicyUnion -> Flag :=
+  fun (identity : Count) (members : CommitteePolicyUnion) =>
+    case members as self in CommitteePolicyUnion return Flag with
+    | committeePolicyUnion previous current following trusted bootstrap =>
+      either (policyMemberAt identity previous)
+        (either (policyMemberAt identity current)
+          (either (policyMemberAt identity following)
+            (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap))))
+
+mu NodePolicyRole : Type 0 with
+| validatorPolicyRole : NodePolicyRole
+| hubPolicyRole : NodePolicyRole
+| observerPolicyRole : NodePolicyRole
+
+mu NodePolicySwarm : Type 0 with
+| primaryPolicySwarm : NodePolicySwarm
+| indexedWorkerPolicySwarm : Count -> NodePolicySwarm
+
+mu WorkerPolicyUnions : Type 0 with
+| noWorkerPolicyUnions : WorkerPolicyUnions
+| workerPolicyUnion : CommitteePolicyUnion -> WorkerPolicyUnions -> WorkerPolicyUnions
+
+def rec workerPolicyUnionAt : Count -> WorkerPolicyUnions -> CommitteePolicyUnion :=
+  fun (index : Count) (workers : WorkerPolicyUnions) =>
+    case index as self in Count return CommitteePolicyUnion with
+    | zero => (case workers as rows in WorkerPolicyUnions return CommitteePolicyUnion with
+      | noWorkerPolicyUnions => emptyCommitteePolicyUnion
+      | workerPolicyUnion members rest => members)
+    | next remaining =>
+      case workers as rows in WorkerPolicyUnions return CommitteePolicyUnion with
+      | noWorkerPolicyUnions => emptyCommitteePolicyUnion
+      | workerPolicyUnion members rest => workerPolicyUnionAt remaining rest
+
+-- An authorized configuration can add a worker at any finite index.
+-- Missing earlier workers receive empty membership, never inherited privilege.
+def rec replaceWorkerPolicyUnion : Count -> CommitteePolicyUnion -> WorkerPolicyUnions -> WorkerPolicyUnions :=
+  fun (index : Count) (incoming : CommitteePolicyUnion) (workers : WorkerPolicyUnions) =>
+    case index as self in Count return WorkerPolicyUnions with
+    | zero => (case workers as rows in WorkerPolicyUnions return WorkerPolicyUnions with
+      | noWorkerPolicyUnions => workerPolicyUnion incoming noWorkerPolicyUnions
+      | workerPolicyUnion members rest => workerPolicyUnion incoming rest)
+    | next remaining =>
+      case workers as rows in WorkerPolicyUnions return WorkerPolicyUnions with
+      | noWorkerPolicyUnions => workerPolicyUnion emptyCommitteePolicyUnion
+          (replaceWorkerPolicyUnion remaining incoming noWorkerPolicyUnions)
+      | workerPolicyUnion members rest => workerPolicyUnion members
+          (replaceWorkerPolicyUnion remaining incoming rest)
+
+mu SwarmPolicyUnions : Type 0 with
+| swarmPolicyUnions : CommitteePolicyUnion -> WorkerPolicyUnions -> SwarmPolicyUnions
+
+def swarmPolicyUnionAt : NodePolicySwarm -> SwarmPolicyUnions -> CommitteePolicyUnion :=
+  fun (swarm : NodePolicySwarm) (unions : SwarmPolicyUnions) =>
+    case unions as self in SwarmPolicyUnions return CommitteePolicyUnion with
+    | swarmPolicyUnions primary workers =>
+      case swarm as selected in NodePolicySwarm return CommitteePolicyUnion with
+      | primaryPolicySwarm => primary
+      | indexedWorkerPolicySwarm index => workerPolicyUnionAt index workers
+
+def replaceSwarmPolicyUnion : NodePolicySwarm -> CommitteePolicyUnion -> SwarmPolicyUnions -> SwarmPolicyUnions :=
+  fun (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (unions : SwarmPolicyUnions) =>
+    case unions as self in SwarmPolicyUnions return SwarmPolicyUnions with
+    | swarmPolicyUnions primary workers =>
+      case swarm as selected in NodePolicySwarm return SwarmPolicyUnions with
+      | primaryPolicySwarm => swarmPolicyUnions incoming workers
+      | indexedWorkerPolicySwarm index => swarmPolicyUnions primary (replaceWorkerPolicyUnion index incoming workers)
+
+mu RoleUnionPolicy : Type 0 with
+| roleUnionPolicy : Profile -> SwarmPolicyUnions -> RoleUnionPolicy
+
+def roleUnionProfile : RoleUnionPolicy -> Profile :=
+  fun (view : RoleUnionPolicy) =>
+    case view as self in RoleUnionPolicy return Profile with
+    | roleUnionPolicy profile unions => profile
+
+def roleUnionSwarms : RoleUnionPolicy -> SwarmPolicyUnions :=
+  fun (view : RoleUnionPolicy) =>
+    case view as self in RoleUnionPolicy return SwarmPolicyUnions with
+    | roleUnionPolicy profile unions => unions
+
+mu AuthoritativeUnionPolicy : Type 0 with
+| authoritativeUnionPolicy : Count -> RoleUnionPolicy -> RoleUnionPolicy -> RoleUnionPolicy -> AuthoritativeUnionPolicy
+
+def authoritativeUnionGeneration : AuthoritativeUnionPolicy -> Count :=
+  fun (policy : AuthoritativeUnionPolicy) =>
+    case policy as self in AuthoritativeUnionPolicy return Count with
+    | authoritativeUnionPolicy generation validator hub observer => generation
+
+def authoritativeRolePolicy : NodePolicyRole -> AuthoritativeUnionPolicy -> RoleUnionPolicy :=
+  fun (role : NodePolicyRole) (policy : AuthoritativeUnionPolicy) =>
+    case policy as self in AuthoritativeUnionPolicy return RoleUnionPolicy with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as selected in NodePolicyRole return RoleUnionPolicy with
+      | validatorPolicyRole => validator
+      | hubPolicyRole => hub
+      | observerPolicyRole => observer
+
+def replaceAuthoritativeRolePolicy : NodePolicyRole -> RoleUnionPolicy -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (role : NodePolicyRole) (incoming : RoleUnionPolicy) (policy : AuthoritativeUnionPolicy) =>
+    case policy as self in AuthoritativeUnionPolicy return AuthoritativeUnionPolicy with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as selected in NodePolicyRole return AuthoritativeUnionPolicy with
+      | validatorPolicyRole => authoritativeUnionPolicy (next generation) incoming hub observer
+      | hubPolicyRole => authoritativeUnionPolicy (next generation) validator incoming observer
+      | observerPolicyRole => authoritativeUnionPolicy (next generation) validator hub incoming
+
+def authoritativeUnionAt : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> CommitteePolicyUnion :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy) =>
+    swarmPolicyUnionAt swarm (roleUnionSwarms (authoritativeRolePolicy role policy))
+
+def authoritativeUnionQuery : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    both authenticated (memberAllowed (roleUnionProfile (authoritativeRolePolicy role policy))
+      (committeeUnionMember identity (authoritativeUnionAt role swarm policy)))
+
+def verifiedCommitteeUnionUpdate : Flag -> NodePolicyRole -> NodePolicySwarm -> CommitteePolicyUnion ->
+    AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (verified : Flag) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    case verified as checked in Flag return AuthoritativeUnionPolicy with
+    | off => policy
+    | on => replaceAuthoritativeRolePolicy role
+        (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+          (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) policy
+
+-- Profile changes represent authorized operator configuration, not peer requests.
+def configureUnionProfile : NodePolicyRole -> Profile -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (role : NodePolicyRole) (requested : Profile) (policy : AuthoritativeUnionPolicy) =>
+    replaceAuthoritativeRolePolicy role
+      (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role policy))) policy
+
+mu AuthoritativeUnionChange : Type 0 with
+| committeeUnionChange : Flag -> NodePolicyRole -> NodePolicySwarm -> CommitteePolicyUnion -> AuthoritativeUnionChange
+| unionProfileChange : NodePolicyRole -> Profile -> AuthoritativeUnionChange
+
+def applyAuthoritativeUnionChange : AuthoritativeUnionChange -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (change : AuthoritativeUnionChange) (policy : AuthoritativeUnionPolicy) =>
+    case change as self in AuthoritativeUnionChange return AuthoritativeUnionPolicy with
+    | committeeUnionChange verified role swarm incoming => verifiedCommitteeUnionUpdate verified role swarm incoming policy
+    | unionProfileChange role requested => configureUnionProfile role requested policy
+
+mu AuthoritativeUnionChanges : Type 0 with
+| noAuthoritativeUnionChanges : AuthoritativeUnionChanges
+| authoritativeUnionChange : AuthoritativeUnionChange -> AuthoritativeUnionChanges -> AuthoritativeUnionChanges
+
+def rec runAuthoritativeUnionChanges : AuthoritativeUnionChanges -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (changes : AuthoritativeUnionChanges) (policy : AuthoritativeUnionPolicy) =>
+    case changes as self in AuthoritativeUnionChanges return AuthoritativeUnionPolicy with
+    | noAuthoritativeUnionChanges => policy
+    | authoritativeUnionChange change rest => runAuthoritativeUnionChanges rest (applyAuthoritativeUnionChange change policy)
+
+def defaultRoleUnionPolicy : RoleUnionPolicy :=
+  roleUnionPolicy openProfile (swarmPolicyUnions emptyCommitteePolicyUnion noWorkerPolicyUnions)
+
+def defaultAuthoritativeUnionPolicy : AuthoritativeUnionPolicy :=
+  authoritativeUnionPolicy zero defaultRoleUnionPolicy defaultRoleUnionPolicy defaultRoleUnionPolicy
+
+def unionBothRightOn : (verified : Flag) -> Equal Flag (both verified on) verified :=
+  fun (verified : Flag) =>
+    case verified as self in Flag return Equal Flag (both self on) self with
+    | off => same
+    | on => same
+
+def committeeUnionExactMembership : (identity : Count) -> (previous : Slots) -> (current : Slots) ->
+    (following : Slots) -> (trusted : Slots) -> (bootstrap : Slots) ->
+    Equal Flag (committeeUnionMember identity (committeePolicyUnion previous current following trusted bootstrap))
+      (either (policyMemberAt identity previous) (either (policyMemberAt identity current)
+        (either (policyMemberAt identity following) (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap))))) :=
+  fun (identity : Count) (previous : Slots) (current : Slots) (following : Slots) (trusted : Slots) (bootstrap : Slots) => same
+
+def rec emptyCommitteeUnionHasNoMember : (identity : Count) ->
+    Equal Flag (committeeUnionMember identity emptyCommitteePolicyUnion) off :=
+  fun (identity : Count) =>
+    case identity as self in Count return Equal Flag (committeeUnionMember self emptyCommitteePolicyUnion) off with
+    | zero => same
+    | next remaining => same
+
+def rec replacedWorkerUnionSelected : (index : Count) -> (incoming : CommitteePolicyUnion) -> (workers : WorkerPolicyUnions) ->
+    Equal CommitteePolicyUnion (workerPolicyUnionAt index (replaceWorkerPolicyUnion index incoming workers)) incoming :=
+  fun (index : Count) =>
+    case index as self in Count return (incoming : CommitteePolicyUnion) -> (workers : WorkerPolicyUnions) ->
+        Equal CommitteePolicyUnion (workerPolicyUnionAt self (replaceWorkerPolicyUnion self incoming workers)) incoming with
+    | zero => fun (incoming : CommitteePolicyUnion) (workers : WorkerPolicyUnions) =>
+      (case workers as rows in WorkerPolicyUnions return
+          Equal CommitteePolicyUnion (workerPolicyUnionAt zero (replaceWorkerPolicyUnion zero incoming rows)) incoming with
+      | noWorkerPolicyUnions => same
+      | workerPolicyUnion members rest => same)
+    | next remaining => fun (incoming : CommitteePolicyUnion) (workers : WorkerPolicyUnions) =>
+      case workers as rows in WorkerPolicyUnions return
+          Equal CommitteePolicyUnion (workerPolicyUnionAt (next remaining) (replaceWorkerPolicyUnion (next remaining) incoming rows)) incoming with
+      | noWorkerPolicyUnions => replacedWorkerUnionSelected remaining incoming noWorkerPolicyUnions
+      | workerPolicyUnion members rest => replacedWorkerUnionSelected remaining incoming rest
+
+def replacedSwarmUnionSelected : (swarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) -> (unions : SwarmPolicyUnions) ->
+    Equal CommitteePolicyUnion (swarmPolicyUnionAt swarm (replaceSwarmPolicyUnion swarm incoming unions)) incoming :=
+  fun (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (unions : SwarmPolicyUnions) =>
+    case unions as rows in SwarmPolicyUnions return
+        Equal CommitteePolicyUnion (swarmPolicyUnionAt swarm (replaceSwarmPolicyUnion swarm incoming rows)) incoming with
+    | swarmPolicyUnions primary workers =>
+      case swarm as selected in NodePolicySwarm return
+          Equal CommitteePolicyUnion (swarmPolicyUnionAt selected (replaceSwarmPolicyUnion selected incoming (swarmPolicyUnions primary workers))) incoming with
+      | primaryPolicySwarm => same
+      | indexedWorkerPolicySwarm index => replacedWorkerUnionSelected index incoming workers
+
+def replacedRolePolicySelected : (role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal RoleUnionPolicy (authoritativeRolePolicy role (replaceAuthoritativeRolePolicy role incoming policy)) incoming :=
+  fun (role : NodePolicyRole) (incoming : RoleUnionPolicy) (policy : AuthoritativeUnionPolicy) =>
+    case policy as state in AuthoritativeUnionPolicy return
+        Equal RoleUnionPolicy (authoritativeRolePolicy role (replaceAuthoritativeRolePolicy role incoming state)) incoming with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as selected in NodePolicyRole return
+          Equal RoleUnionPolicy (authoritativeRolePolicy selected
+            (replaceAuthoritativeRolePolicy selected incoming (authoritativeUnionPolicy generation validator hub observer))) incoming with
+      | validatorPolicyRole => same
+      | hubPolicyRole => same
+      | observerPolicyRole => same
+
+def unverifiedCommitteeUpdateIsNoOp : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal AuthoritativeUnionPolicy (verifiedCommitteeUnionUpdate off role swarm incoming policy) policy :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) => same
+
+def unverifiedCommitteeUpdateCannotGrantAdmission : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) -> (queryRole : NodePolicyRole) ->
+    (querySwarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery queryRole querySwarm
+      (verifiedCommitteeUnionUpdate off role swarm incoming policy) authenticated identity)
+      (authoritativeUnionQuery queryRole querySwarm policy authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy)
+      (queryRole : NodePolicyRole) (querySwarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) => same
+
+def authoritativeUnionRequiresIdentity : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery role swarm policy off identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def authoritativeClosedUsesExactUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->
+    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity)
+      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm policy))) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count)
+      (closed : Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile) =>
+    case equalSymmetry Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile closed
+        as witness in Equal selected return Equal Flag
+          (both authenticated (memberAllowed selected (committeeUnionMember identity (authoritativeUnionAt role swarm policy))))
+          (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm policy))) with
+    | same => same
+
+def authoritativeOpenKeepsAuthentication : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) openProfile ->
+    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) authenticated :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count)
+      (opened : Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) openProfile) =>
+    case equalSymmetry Profile (roleUnionProfile (authoritativeRolePolicy role policy)) openProfile opened
+        as witness in Equal selected return Equal Flag
+          (both authenticated (memberAllowed selected (committeeUnionMember identity (authoritativeUnionAt role swarm policy)))) authenticated with
+    | same => unionBothRightOn authenticated
+
+def authoritativeGraceKeepsAuthentication : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) graceProfile ->
+    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) authenticated :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count)
+      (grace : Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) graceProfile) =>
+    case equalSymmetry Profile (roleUnionProfile (authoritativeRolePolicy role policy)) graceProfile grace
+        as witness in Equal selected return Equal Flag
+          (both authenticated (memberAllowed selected (committeeUnionMember identity (authoritativeUnionAt role swarm policy)))) authenticated with
+    | same => unionBothRightOn authenticated
+
+def everyRoleDefaultsOpen : (role : NodePolicyRole) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role defaultAuthoritativeUnionPolicy)) openProfile :=
+  fun (role : NodePolicyRole) =>
+    case role as selected in NodePolicyRole return
+        Equal Profile (roleUnionProfile (authoritativeRolePolicy selected defaultAuthoritativeUnionPolicy)) openProfile with
+    | validatorPolicyRole => same
+    | hubPolicyRole => same
+    | observerPolicyRole => same
+
+def everyDefaultSwarmUsesOpen : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery role swarm defaultAuthoritativeUnionPolicy authenticated identity) authenticated :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    authoritativeOpenKeepsAuthentication role swarm defaultAuthoritativeUnionPolicy authenticated identity (everyRoleDefaultsOpen role)
+
+def mixedUnionChangesRequireIdentity : (changes : AuthoritativeUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes policy) off identity) off :=
+  fun (changes : AuthoritativeUnionChanges) (policy : AuthoritativeUnionPolicy)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) =>
+    authoritativeUnionRequiresIdentity role swarm (runAuthoritativeUnionChanges changes policy) identity
+
+def mixedClosedChangesUseExactUnion : (changes : AuthoritativeUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (runAuthoritativeUnionChanges changes policy))) closedProfile ->
+    Equal Flag (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes policy) authenticated identity)
+      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm (runAuthoritativeUnionChanges changes policy)))) :=
+  fun (changes : AuthoritativeUnionChanges) (policy : AuthoritativeUnionPolicy) (role : NodePolicyRole)
+      (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (closed : Equal Profile (roleUnionProfile (authoritativeRolePolicy role (runAuthoritativeUnionChanges changes policy))) closedProfile) =>
+    authoritativeClosedUsesExactUnion role swarm (runAuthoritativeUnionChanges changes policy) authenticated identity closed
+
+def roleReplacementSelectsUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm (replaceAuthoritativeRolePolicy role incoming policy))
+      (swarmPolicyUnionAt swarm (roleUnionSwarms incoming)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : RoleUnionPolicy) (policy : AuthoritativeUnionPolicy) =>
+    case equalSymmetry RoleUnionPolicy
+        (authoritativeRolePolicy role (replaceAuthoritativeRolePolicy role incoming policy)) incoming
+        (replacedRolePolicySelected role incoming policy)
+        as witness in Equal selected return Equal CommitteePolicyUnion (swarmPolicyUnionAt swarm (roleUnionSwarms selected))
+          (swarmPolicyUnionAt swarm (roleUnionSwarms incoming)) with
+    | same => same
+
+def verifiedCommitteeUpdateSelectsExactUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm (verifiedCommitteeUnionUpdate on role swarm incoming policy)) incoming :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    equalTransitivity CommitteePolicyUnion
+      (authoritativeUnionAt role swarm (verifiedCommitteeUnionUpdate on role swarm incoming policy))
+      (swarmPolicyUnionAt swarm (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) incoming
+      (roleReplacementSelectsUnion role swarm
+        (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+          (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) policy)
+      (replacedSwarmUnionSelected swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))
+
+def verifiedCommitteeUpdateKeepsProfile : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (verifiedCommitteeUnionUpdate on role swarm incoming policy)))
+      (roleUnionProfile (authoritativeRolePolicy role policy)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    case equalSymmetry RoleUnionPolicy (authoritativeRolePolicy role (verifiedCommitteeUnionUpdate on role swarm incoming policy))
+        (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+          (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy))))
+        (replacedRolePolicySelected role
+          (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+            (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) policy)
+        as witness in Equal selected return Equal Profile (roleUnionProfile selected) (roleUnionProfile (authoritativeRolePolicy role policy)) with
+    | same => same
+
+mu UnselectedRolePolicies : Type 0 with
+| unselectedRolePolicies : RoleUnionPolicy -> RoleUnionPolicy -> UnselectedRolePolicies
+
+def otherRolePolicies : NodePolicyRole -> AuthoritativeUnionPolicy -> UnselectedRolePolicies :=
+  fun (role : NodePolicyRole) (policy : AuthoritativeUnionPolicy) =>
+    case role as selected in NodePolicyRole return UnselectedRolePolicies with
+    | validatorPolicyRole => unselectedRolePolicies (authoritativeRolePolicy hubPolicyRole policy) (authoritativeRolePolicy observerPolicyRole policy)
+    | hubPolicyRole => unselectedRolePolicies (authoritativeRolePolicy validatorPolicyRole policy) (authoritativeRolePolicy observerPolicyRole policy)
+    | observerPolicyRole => unselectedRolePolicies (authoritativeRolePolicy validatorPolicyRole policy) (authoritativeRolePolicy hubPolicyRole policy)
+
+def roleReplacementKeepsOtherRoles : (role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal UnselectedRolePolicies (otherRolePolicies role (replaceAuthoritativeRolePolicy role incoming policy)) (otherRolePolicies role policy) :=
+  fun (role : NodePolicyRole) (incoming : RoleUnionPolicy) (policy : AuthoritativeUnionPolicy) =>
+    case policy as state in AuthoritativeUnionPolicy return
+        Equal UnselectedRolePolicies (otherRolePolicies role (replaceAuthoritativeRolePolicy role incoming state)) (otherRolePolicies role state) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as selected in NodePolicyRole return
+          Equal UnselectedRolePolicies (otherRolePolicies selected
+            (replaceAuthoritativeRolePolicy selected incoming (authoritativeUnionPolicy generation validator hub observer)))
+            (otherRolePolicies selected (authoritativeUnionPolicy generation validator hub observer)) with
+      | validatorPolicyRole => same
+      | hubPolicyRole => same
+      | observerPolicyRole => same
+
+def verifiedCommitteeUpdateKeepsOtherRoles : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal UnselectedRolePolicies (otherRolePolicies role (verifiedCommitteeUnionUpdate on role swarm incoming policy)) (otherRolePolicies role policy) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    roleReplacementKeepsOtherRoles role
+      (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+        (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) policy
+
+def workerUpdateKeepsPrimaryUnion : (index : Count) -> (incoming : CommitteePolicyUnion) ->
+    (unions : SwarmPolicyUnions) ->
+    Equal CommitteePolicyUnion (swarmPolicyUnionAt primaryPolicySwarm
+      (replaceSwarmPolicyUnion (indexedWorkerPolicySwarm index) incoming unions)) (swarmPolicyUnionAt primaryPolicySwarm unions) :=
+  fun (index : Count) (incoming : CommitteePolicyUnion) (unions : SwarmPolicyUnions) =>
+    case unions as state in SwarmPolicyUnions return Equal CommitteePolicyUnion (swarmPolicyUnionAt primaryPolicySwarm
+        (replaceSwarmPolicyUnion (indexedWorkerPolicySwarm index) incoming state)) (swarmPolicyUnionAt primaryPolicySwarm state) with
+    | swarmPolicyUnions primary workers => same
+
+def primaryUpdateKeepsEveryWorkerUnion : (index : Count) -> (incoming : CommitteePolicyUnion) ->
+    (unions : SwarmPolicyUnions) ->
+    Equal CommitteePolicyUnion (swarmPolicyUnionAt (indexedWorkerPolicySwarm index)
+      (replaceSwarmPolicyUnion primaryPolicySwarm incoming unions)) (swarmPolicyUnionAt (indexedWorkerPolicySwarm index) unions) :=
+  fun (index : Count) (incoming : CommitteePolicyUnion) (unions : SwarmPolicyUnions) =>
+    case unions as state in SwarmPolicyUnions return Equal CommitteePolicyUnion (swarmPolicyUnionAt (indexedWorkerPolicySwarm index)
+        (replaceSwarmPolicyUnion primaryPolicySwarm incoming state)) (swarmPolicyUnionAt (indexedWorkerPolicySwarm index) state) with
+    | swarmPolicyUnions primary workers => same
+
+def rec appendWorkerPolicyUnions : WorkerPolicyUnions -> WorkerPolicyUnions -> WorkerPolicyUnions :=
+  fun (prefix : WorkerPolicyUnions) (suffix : WorkerPolicyUnions) =>
+    case prefix as self in WorkerPolicyUnions return WorkerPolicyUnions with
+    | noWorkerPolicyUnions => suffix
+    | workerPolicyUnion members rest => workerPolicyUnion members (appendWorkerPolicyUnions rest suffix)
+
+def rec workerPolicyUnionLength : WorkerPolicyUnions -> Count :=
+  fun (workers : WorkerPolicyUnions) =>
+    case workers as self in WorkerPolicyUnions return Count with
+    | noWorkerPolicyUnions => zero
+    | workerPolicyUnion members rest => next (workerPolicyUnionLength rest)
+
+def rec workerReplacementKeepsPrefixAndSuffix : (prefix : WorkerPolicyUnions) -> (old : CommitteePolicyUnion) ->
+    (incoming : CommitteePolicyUnion) -> (suffix : WorkerPolicyUnions) ->
+    Equal WorkerPolicyUnions
+      (replaceWorkerPolicyUnion (workerPolicyUnionLength prefix) incoming (appendWorkerPolicyUnions prefix (workerPolicyUnion old suffix)))
+      (appendWorkerPolicyUnions prefix (workerPolicyUnion incoming suffix)) :=
+  fun (prefix : WorkerPolicyUnions) =>
+    case prefix as self in WorkerPolicyUnions return (old : CommitteePolicyUnion) ->
+        (incoming : CommitteePolicyUnion) -> (suffix : WorkerPolicyUnions) -> Equal WorkerPolicyUnions
+          (replaceWorkerPolicyUnion (workerPolicyUnionLength self) incoming (appendWorkerPolicyUnions self (workerPolicyUnion old suffix)))
+          (appendWorkerPolicyUnions self (workerPolicyUnion incoming suffix)) with
+    | noWorkerPolicyUnions => fun (old : CommitteePolicyUnion) (incoming : CommitteePolicyUnion) (suffix : WorkerPolicyUnions) => same
+    | workerPolicyUnion members rest => fun (old : CommitteePolicyUnion) (incoming : CommitteePolicyUnion) (suffix : WorkerPolicyUnions) =>
+      case workerReplacementKeepsPrefixAndSuffix rest old incoming suffix as witness in Equal rows return Equal WorkerPolicyUnions
+          (workerPolicyUnion members (replaceWorkerPolicyUnion (workerPolicyUnionLength rest) incoming
+            (appendWorkerPolicyUnions rest (workerPolicyUnion old suffix)))) (workerPolicyUnion members rows) with
+      | same => same
+
+def rec paddedWorkerUnionIsEmpty : (index : Count) -> (gap : Count) -> (incoming : CommitteePolicyUnion) ->
+    Equal CommitteePolicyUnion
+      (workerPolicyUnionAt index (replaceWorkerPolicyUnion (next (add index gap)) incoming noWorkerPolicyUnions))
+      emptyCommitteePolicyUnion :=
+  fun (index : Count) =>
+    case index as self in Count return (gap : Count) -> (incoming : CommitteePolicyUnion) ->
+        Equal CommitteePolicyUnion
+          (workerPolicyUnionAt self (replaceWorkerPolicyUnion (next (add self gap)) incoming noWorkerPolicyUnions))
+          emptyCommitteePolicyUnion with
+    | zero => fun (gap : Count) (incoming : CommitteePolicyUnion) => same
+    | next remaining => fun (gap : Count) (incoming : CommitteePolicyUnion) =>
+      paddedWorkerUnionIsEmpty remaining gap incoming
+
+def rec workerExtensionKeepsExistingWorkers : (existing : WorkerPolicyUnions) -> (gap : Count) ->
+    (incoming : CommitteePolicyUnion) ->
+    Equal WorkerPolicyUnions
+      (replaceWorkerPolicyUnion (add (workerPolicyUnionLength existing) gap) incoming existing)
+      (appendWorkerPolicyUnions existing (replaceWorkerPolicyUnion gap incoming noWorkerPolicyUnions)) :=
+  fun (existing : WorkerPolicyUnions) =>
+    case existing as self in WorkerPolicyUnions return (gap : Count) -> (incoming : CommitteePolicyUnion) ->
+        Equal WorkerPolicyUnions
+          (replaceWorkerPolicyUnion (add (workerPolicyUnionLength self) gap) incoming self)
+          (appendWorkerPolicyUnions self (replaceWorkerPolicyUnion gap incoming noWorkerPolicyUnions)) with
+    | noWorkerPolicyUnions => fun (gap : Count) (incoming : CommitteePolicyUnion) => same
+    | workerPolicyUnion members rest => fun (gap : Count) (incoming : CommitteePolicyUnion) =>
+      case workerExtensionKeepsExistingWorkers rest gap incoming as witness in Equal rows return Equal WorkerPolicyUnions
+          (workerPolicyUnion members (replaceWorkerPolicyUnion (add (workerPolicyUnionLength rest) gap) incoming rest))
+          (workerPolicyUnion members rows) with
+      | same => same
+
+def rec missingWorkerUnionIsEmpty : (index : Count) ->
+    Equal CommitteePolicyUnion (workerPolicyUnionAt index noWorkerPolicyUnions) emptyCommitteePolicyUnion :=
+  fun (index : Count) =>
+    case index as self in Count return Equal CommitteePolicyUnion (workerPolicyUnionAt self noWorkerPolicyUnions) emptyCommitteePolicyUnion with
+    | zero => same
+    | next remaining => same
+
+def rec workerBeyondExtensionIsEmpty : (index : Count) -> (gap : Count) -> (incoming : CommitteePolicyUnion) ->
+    Equal CommitteePolicyUnion
+      (workerPolicyUnionAt (next (add index gap)) (replaceWorkerPolicyUnion index incoming noWorkerPolicyUnions))
+      emptyCommitteePolicyUnion :=
+  fun (index : Count) =>
+    case index as self in Count return (gap : Count) -> (incoming : CommitteePolicyUnion) ->
+        Equal CommitteePolicyUnion
+          (workerPolicyUnionAt (next (add self gap)) (replaceWorkerPolicyUnion self incoming noWorkerPolicyUnions))
+          emptyCommitteePolicyUnion with
+    | zero => fun (gap : Count) (incoming : CommitteePolicyUnion) => missingWorkerUnionIsEmpty gap
+    | next remaining => fun (gap : Count) (incoming : CommitteePolicyUnion) =>
+      workerBeyondExtensionIsEmpty remaining gap incoming
+
+def roleReplacementAdvancesGeneration : (role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal Count (authoritativeUnionGeneration (replaceAuthoritativeRolePolicy role incoming policy)) (next (authoritativeUnionGeneration policy)) :=
+  fun (role : NodePolicyRole) (incoming : RoleUnionPolicy) (policy : AuthoritativeUnionPolicy) =>
+    case policy as state in AuthoritativeUnionPolicy return
+        Equal Count (authoritativeUnionGeneration (replaceAuthoritativeRolePolicy role incoming state)) (next (authoritativeUnionGeneration state)) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as selected in NodePolicyRole return Equal Count
+          (authoritativeUnionGeneration (replaceAuthoritativeRolePolicy selected incoming (authoritativeUnionPolicy generation validator hub observer)))
+          (next generation) with
+      | validatorPolicyRole => same
+      | hubPolicyRole => same
+      | observerPolicyRole => same
+
+def verifiedCommitteeUpdateAdvancesGeneration : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal Count (authoritativeUnionGeneration (verifiedCommitteeUnionUpdate on role swarm incoming policy))
+      (next (authoritativeUnionGeneration policy)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    roleReplacementAdvancesGeneration role
+      (roleUnionPolicy (roleUnionProfile (authoritativeRolePolicy role policy))
+        (replaceSwarmPolicyUnion swarm incoming (roleUnionSwarms (authoritativeRolePolicy role policy)))) policy
+
+mu ProvisionalUnionChanges : Type 0 with
+| noProvisionalUnionChanges : ProvisionalUnionChanges
+| provisionalUnionChange : NodePolicyRole -> NodePolicySwarm -> CommitteePolicyUnion -> ProvisionalUnionChanges -> ProvisionalUnionChanges
+
+def rec lowerProvisionalUnionChanges : ProvisionalUnionChanges -> AuthoritativeUnionChanges :=
+  fun (changes : ProvisionalUnionChanges) =>
+    case changes as self in ProvisionalUnionChanges return AuthoritativeUnionChanges with
+    | noProvisionalUnionChanges => noAuthoritativeUnionChanges
+    | provisionalUnionChange role swarm incoming rest => authoritativeUnionChange
+        (committeeUnionChange off role swarm incoming) (lowerProvisionalUnionChanges rest)
+
+def rec everyProvisionalUnionTraceIsNoOp : (changes : ProvisionalUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal AuthoritativeUnionPolicy (runAuthoritativeUnionChanges (lowerProvisionalUnionChanges changes) policy) policy :=
+  fun (changes : ProvisionalUnionChanges) =>
+    case changes as self in ProvisionalUnionChanges return (policy : AuthoritativeUnionPolicy) ->
+        Equal AuthoritativeUnionPolicy (runAuthoritativeUnionChanges (lowerProvisionalUnionChanges self) policy) policy with
+    | noProvisionalUnionChanges => fun (policy : AuthoritativeUnionPolicy) => same
+    | provisionalUnionChange role swarm incoming rest => fun (policy : AuthoritativeUnionPolicy) =>
+      everyProvisionalUnionTraceIsNoOp rest policy
+
+def unionTraceAppliesFirstChangeFirst : (change : AuthoritativeUnionChange) -> (rest : AuthoritativeUnionChanges) ->
+    (policy : AuthoritativeUnionPolicy) ->
+    Equal AuthoritativeUnionPolicy (runAuthoritativeUnionChanges (authoritativeUnionChange change rest) policy)
+      (runAuthoritativeUnionChanges rest (applyAuthoritativeUnionChange change policy)) :=
+  fun (change : AuthoritativeUnionChange) (rest : AuthoritativeUnionChanges) (policy : AuthoritativeUnionPolicy) => same
+
+def singleVerifiedUnionTraceSelectsExactUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm
+      (runAuthoritativeUnionChanges (authoritativeUnionChange (committeeUnionChange on role swarm incoming) noAuthoritativeUnionChanges) policy)) incoming :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (policy : AuthoritativeUnionPolicy) =>
+    verifiedCommitteeUpdateSelectsExactUnion role swarm incoming policy
+
+def configuredUnionProfileSelected : (role : NodePolicyRole) -> (requested : Profile) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (configureUnionProfile role requested policy))) requested :=
+  fun (role : NodePolicyRole) (requested : Profile) (policy : AuthoritativeUnionPolicy) =>
+    case equalSymmetry RoleUnionPolicy
+        (authoritativeRolePolicy role (configureUnionProfile role requested policy))
+        (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role policy)))
+        (replacedRolePolicySelected role (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role policy))) policy)
+        as witness in Equal selected return Equal Profile (roleUnionProfile selected) requested with
+    | same => same
+
+def singleProfileTraceSelectsRequestedProfile : (role : NodePolicyRole) -> (requested : Profile) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role
+      (runAuthoritativeUnionChanges (authoritativeUnionChange (unionProfileChange role requested) noAuthoritativeUnionChanges) policy))) requested :=
+  fun (role : NodePolicyRole) (requested : Profile) (policy : AuthoritativeUnionPolicy) =>
+    configuredUnionProfileSelected role requested policy
+
+def authoritativeClosedUnlistedRefused : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) off ->
+    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count)
+      (closed : Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile)
+      (absent : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) off) =>
+    equalTransitivity Flag (authoritativeUnionQuery role swarm policy authenticated identity)
+      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm policy))) off
+      (authoritativeClosedUsesExactUnion role swarm policy authenticated identity closed)
+      (case equalSymmetry Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) off absent
+          as witness in Equal member return Equal Flag (both authenticated member) off with
+      | same => bothRightOff authenticated)
+
+def authoritativeClosedVerifiedMemberAdmitted : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) on ->
+    Equal Flag (authoritativeUnionQuery role swarm policy on identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (policy : AuthoritativeUnionPolicy) (identity : Count)
+      (closed : Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile)
+      (listed : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) on) =>
+    equalTransitivity Flag (authoritativeUnionQuery role swarm policy on identity)
+      (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) on
+      (authoritativeClosedUsesExactUnion role swarm policy on identity closed) listed

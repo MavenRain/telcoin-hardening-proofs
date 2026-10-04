@@ -76,7 +76,8 @@
     "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7",
     "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a",
     "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4",
-    "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c"
+    "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c",
+    "proofs/91-authoritative-policy-union.mech": "25bffdaf514e59b72bab34e20e31606f64320909200f74545bf2d6a8d7cdf4db"
   },
   "obligations": [
     {
@@ -8913,8 +8914,8 @@
       "id": "M022",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The frozen required scope remains a model obligation in R04.",
+      "scope_complete": true,
+      "scope_review": "Module 91 constructs exactly the previous/current/next committee, trusted and bootstrap disjunction, separately for validator/hub/observer roles and primary/arbitrary-index worker swarms. Every role defaults Open; Closed admission is exactly authenticated selected-union membership. Verified updates install the selected union, preserve profiles and unrelated roles/workers, and advance generation. Unverified updates and arbitrary provisional traces are complete-state no-ops. Mixed traces retain authenticated current-view Closed admission. Faithful identity indexing, correctly verified source vectors/updates and authorized operator configuration are explicit premises. A policy snapshot is one immutable AuthoritativeUnionPolicy value. Each query statement quantifies over every such value, except that everyDefaultSwarmUsesOpen uses the default value. authoritativeUnionQuery does not read the generation counter. Snapshot and version use across decision points, and stale-revision use, remain M023. The original flat-list statements retain only local credit. M023 retains lifecycle decision points and revision/receipt races; E029 retains runtime policy and record refinement.",
       "witnesses": [
         {
           "path": "proofs/33-policy-readers.mech",
@@ -8937,29 +8938,719 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. These local statements do not establish: Model the previous/current/next committee, trusted and bootstrap union and prove Closed admission uses exactly that verified union while Open remains the default. Quantify all primary/worker roles and updates, and prove provisional identity cannot enter any privileged union component."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "unionBothRightOn",
+          "statement": "(verified : Flag) -> Equal Flag (both verified on) verified",
+          "scope_kind": "general_transition",
+          "establishes": "Conjoining any Flag with on returns that Flag. Boolean helper for the Open and Grace statements.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "committeeUnionExactMembership",
+          "statement": "(identity : Count) -> (previous : Slots) -> (current : Slots) ->\n    (following : Slots) -> (trusted : Slots) -> (bootstrap : Slots) ->\n    Equal Flag (committeeUnionMember identity (committeePolicyUnion previous current following trusted bootstrap))\n      (either (policyMemberAt identity previous) (either (policyMemberAt identity current)\n        (either (policyMemberAt identity following) (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap)))))",
+          "scope_kind": "general_transition",
+          "establishes": "Every identity lookup is exactly the disjunction of previous/current/next committee, trusted and bootstrap vectors.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "emptyCommitteeUnionHasNoMember",
+          "statement": "(identity : Count) ->\n    Equal Flag (committeeUnionMember identity emptyCommitteePolicyUnion) off",
+          "scope_kind": "general_transition",
+          "establishes": "An empty five-source union grants no membership at any identity index.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "replacedWorkerUnionSelected",
+          "statement": "(index : Count) -> (incoming : CommitteePolicyUnion) -> (workers : WorkerPolicyUnions) ->\n    Equal CommitteePolicyUnion (workerPolicyUnionAt index (replaceWorkerPolicyUnion index incoming workers)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing or adding any finite worker index returns exactly the incoming union at that index.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "replacedSwarmUnionSelected",
+          "statement": "(swarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) -> (unions : SwarmPolicyUnions) ->\n    Equal CommitteePolicyUnion (swarmPolicyUnionAt swarm (replaceSwarmPolicyUnion swarm incoming unions)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "Primary and arbitrary worker replacements select exactly their incoming union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "replacedRolePolicySelected",
+          "statement": "(role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal RoleUnionPolicy (authoritativeRolePolicy role (replaceAuthoritativeRolePolicy role incoming policy)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "Each node-role replacement installs exactly the selected role view.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "unverifiedCommitteeUpdateIsNoOp",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal AuthoritativeUnionPolicy (verifiedCommitteeUnionUpdate off role swarm incoming policy) policy",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified update preserves the complete policy for every role, swarm and candidate union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "unverifiedCommitteeUpdateCannotGrantAdmission",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) -> (queryRole : NodePolicyRole) ->\n    (querySwarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery queryRole querySwarm\n      (verifiedCommitteeUnionUpdate off role swarm incoming policy) authenticated identity)\n      (authoritativeUnionQuery queryRole querySwarm policy authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified roster update preserves every role/swarm admission decision for every identity and authentication flag.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeUnionRequiresIdentity",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery role swarm policy off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Unverified identity is refused under every profile, role, swarm and membership state.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeClosedUsesExactUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->\n    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity)\n      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm policy)))",
+          "scope_kind": "general_transition",
+          "establishes": "A Closed view admits exactly authenticated identities in its selected five-source union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeOpenKeepsAuthentication",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) openProfile ->\n    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "An Open view returns exactly the authentication flag independently of membership.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeGraceKeepsAuthentication",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) graceProfile ->\n    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "A Grace view returns exactly the authentication flag independently of membership.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "everyRoleDefaultsOpen",
+          "statement": "(role : NodePolicyRole) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role defaultAuthoritativeUnionPolicy)) openProfile",
+          "scope_kind": "general_transition",
+          "establishes": "Validator, hub and observer views all default to Open.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "everyDefaultSwarmUsesOpen",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery role swarm defaultAuthoritativeUnionPolicy authenticated identity) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "Every primary and arbitrary worker query in the default policy returns exactly its authentication flag.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "mixedUnionChangesRequireIdentity",
+          "statement": "(changes : AuthoritativeUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes policy) off identity) off",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite interleaving of roster and profile changes, every role/swarm still refuses unverified identity. This is the per-state statement at the final state of the trace. It does not relate the final policy to the individual events.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "mixedClosedChangesUseExactUnion",
+          "statement": "(changes : AuthoritativeUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (runAuthoritativeUnionChanges changes policy))) closedProfile ->\n    Equal Flag (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes policy) authenticated identity)\n      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm (runAuthoritativeUnionChanges changes policy))))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite mixed trace, a Closed final role view uses exactly its final selected five-source union. This is the per-state statement at the final state of the trace. It does not relate the final policy to the individual events.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "roleReplacementSelectsUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm (replaceAuthoritativeRolePolicy role incoming policy))\n      (swarmPolicyUnionAt swarm (roleUnionSwarms incoming))",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing a role view makes its selected swarm use exactly the incoming view membership.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "verifiedCommitteeUpdateSelectsExactUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm (verifiedCommitteeUnionUpdate on role swarm incoming policy)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "A verified roster update installs exactly the incoming five-source union for the selected role and swarm.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "verifiedCommitteeUpdateKeepsProfile",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (verifiedCommitteeUnionUpdate on role swarm incoming policy)))\n      (roleUnionProfile (authoritativeRolePolicy role policy))",
+          "scope_kind": "general_transition",
+          "establishes": "A verified roster update preserves the selected requested profile.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "roleReplacementKeepsOtherRoles",
+          "statement": "(role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal UnselectedRolePolicies (otherRolePolicies role (replaceAuthoritativeRolePolicy role incoming policy)) (otherRolePolicies role policy)",
+          "scope_kind": "general_transition",
+          "establishes": "Each role replacement preserves both other role views completely.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "verifiedCommitteeUpdateKeepsOtherRoles",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal UnselectedRolePolicies (otherRolePolicies role (verifiedCommitteeUnionUpdate on role swarm incoming policy)) (otherRolePolicies role policy)",
+          "scope_kind": "general_transition",
+          "establishes": "Verified roster updates preserve every unselected role profile and all its primary/worker unions.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "workerUpdateKeepsPrimaryUnion",
+          "statement": "(index : Count) -> (incoming : CommitteePolicyUnion) ->\n    (unions : SwarmPolicyUnions) ->\n    Equal CommitteePolicyUnion (swarmPolicyUnionAt primaryPolicySwarm\n      (replaceSwarmPolicyUnion (indexedWorkerPolicySwarm index) incoming unions)) (swarmPolicyUnionAt primaryPolicySwarm unions)",
+          "scope_kind": "general_transition",
+          "establishes": "Updating any worker index preserves the primary union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "primaryUpdateKeepsEveryWorkerUnion",
+          "statement": "(index : Count) -> (incoming : CommitteePolicyUnion) ->\n    (unions : SwarmPolicyUnions) ->\n    Equal CommitteePolicyUnion (swarmPolicyUnionAt (indexedWorkerPolicySwarm index)\n      (replaceSwarmPolicyUnion primaryPolicySwarm incoming unions)) (swarmPolicyUnionAt (indexedWorkerPolicySwarm index) unions)",
+          "scope_kind": "general_transition",
+          "establishes": "Updating the primary union preserves every worker index.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "workerReplacementKeepsPrefixAndSuffix",
+          "statement": "(prefix : WorkerPolicyUnions) -> (old : CommitteePolicyUnion) ->\n    (incoming : CommitteePolicyUnion) -> (suffix : WorkerPolicyUnions) ->\n    Equal WorkerPolicyUnions\n      (replaceWorkerPolicyUnion (workerPolicyUnionLength prefix) incoming (appendWorkerPolicyUnions prefix (workerPolicyUnion old suffix)))\n      (appendWorkerPolicyUnions prefix (workerPolicyUnion incoming suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing an existing worker preserves every arbitrary worker prefix and suffix exactly.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "paddedWorkerUnionIsEmpty",
+          "statement": "(index : Count) -> (gap : Count) -> (incoming : CommitteePolicyUnion) ->\n    Equal CommitteePolicyUnion\n      (workerPolicyUnionAt index (replaceWorkerPolicyUnion (next (add index gap)) incoming noWorkerPolicyUnions))\n      emptyCommitteePolicyUnion",
+          "scope_kind": "general_transition",
+          "establishes": "A worker update beyond an empty worker list gives every earlier worker index the empty union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "workerExtensionKeepsExistingWorkers",
+          "statement": "(existing : WorkerPolicyUnions) -> (gap : Count) ->\n    (incoming : CommitteePolicyUnion) ->\n    Equal WorkerPolicyUnions\n      (replaceWorkerPolicyUnion (add (workerPolicyUnionLength existing) gap) incoming existing)\n      (appendWorkerPolicyUnions existing (replaceWorkerPolicyUnion gap incoming noWorkerPolicyUnions))",
+          "scope_kind": "general_transition",
+          "establishes": "A worker update at or beyond the end of the worker list keeps every existing worker union exactly and appends only the extension built on the empty list.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "missingWorkerUnionIsEmpty",
+          "statement": "(index : Count) ->\n    Equal CommitteePolicyUnion (workerPolicyUnionAt index noWorkerPolicyUnions) emptyCommitteePolicyUnion",
+          "scope_kind": "general_transition",
+          "establishes": "Every lookup in an absent worker configuration returns the empty union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "workerBeyondExtensionIsEmpty",
+          "statement": "(index : Count) -> (gap : Count) -> (incoming : CommitteePolicyUnion) ->\n    Equal CommitteePolicyUnion\n      (workerPolicyUnionAt (next (add index gap)) (replaceWorkerPolicyUnion index incoming noWorkerPolicyUnions))\n      emptyCommitteePolicyUnion",
+          "scope_kind": "general_transition",
+          "establishes": "A worker update on an empty worker list leaves every index beyond the target with the empty union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "roleReplacementAdvancesGeneration",
+          "statement": "(role : NodePolicyRole) -> (incoming : RoleUnionPolicy) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal Count (authoritativeUnionGeneration (replaceAuthoritativeRolePolicy role incoming policy)) (next (authoritativeUnionGeneration policy))",
+          "scope_kind": "general_transition",
+          "establishes": "Every role replacement advances the whole-policy generation once.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "verifiedCommitteeUpdateAdvancesGeneration",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal Count (authoritativeUnionGeneration (verifiedCommitteeUnionUpdate on role swarm incoming policy))\n      (next (authoritativeUnionGeneration policy))",
+          "scope_kind": "general_transition",
+          "establishes": "Every verified roster update advances the whole-policy generation once.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "everyProvisionalUnionTraceIsNoOp",
+          "statement": "(changes : ProvisionalUnionChanges) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal AuthoritativeUnionPolicy (runAuthoritativeUnionChanges (lowerProvisionalUnionChanges changes) policy) policy",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace of provisional roster updates preserves the complete policy.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "unionTraceAppliesFirstChangeFirst",
+          "statement": "(change : AuthoritativeUnionChange) -> (rest : AuthoritativeUnionChanges) ->\n    (policy : AuthoritativeUnionPolicy) ->\n    Equal AuthoritativeUnionPolicy (runAuthoritativeUnionChanges (authoritativeUnionChange change rest) policy)\n      (runAuthoritativeUnionChanges rest (applyAuthoritativeUnionChange change policy))",
+          "scope_kind": "general_transition",
+          "establishes": "Every non-empty trace applies its first change and then runs the rest on the result.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "singleVerifiedUnionTraceSelectsExactUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm\n      (runAuthoritativeUnionChanges (authoritativeUnionChange (committeeUnionChange on role swarm incoming) noAuthoritativeUnionChanges) policy)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "A singleton verified-update trace executes the selected union replacement.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "configuredUnionProfileSelected",
+          "statement": "(role : NodePolicyRole) -> (requested : Profile) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (configureUnionProfile role requested policy))) requested",
+          "scope_kind": "general_transition",
+          "establishes": "Authorized configuration installs exactly the requested selected role profile.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "singleProfileTraceSelectsRequestedProfile",
+          "statement": "(role : NodePolicyRole) -> (requested : Profile) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role\n      (runAuthoritativeUnionChanges (authoritativeUnionChange (unionProfileChange role requested) noAuthoritativeUnionChanges) policy))) requested",
+          "scope_kind": "general_transition",
+          "establishes": "A singleton profile-change trace executes the requested role-profile change.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeClosedUnlistedRefused",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) off ->\n    Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Closed admission refuses every identity absent from the selected five-source union for either authentication flag.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
+        },
+        {
+          "path": "proofs/91-authoritative-policy-union.mech",
+          "name": "authoritativeClosedVerifiedMemberAdmitted",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role policy)) closedProfile ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm policy)) on ->\n    Equal Flag (authoritativeUnionQuery role swarm policy on identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Closed admission accepts every authenticated identity in the selected five-source union.",
+          "premises": [
+            "Serialized finite model states and transitions; identity indices faithfully represent runtime network identities.",
+            "Initial membership vectors contain correctly verified committee/trusted/bootstrap inputs; the verification flag correctly classifies each incoming complete union.",
+            "Profile-change events represent authorized operator configuration. Closed/Open/Grace-specific statements require the displayed profile equality; listed/absent statements require the displayed membership equality."
+          ],
+          "limits": "Only abstract current-view membership and configuration are modeled. Runtime signature/configuration validation, identity indexing and projection remain E029; distinct inbound/outbound revision and receipt enforcement remain M023. Fallback isolation, recovery thresholds and reload/removal lifecycle remain M006/M039/M042. Worker extension has no runtime allocation-cost claim."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "policy_union_omits_previous",
+          "sha256": "e5085be4f6fa6a8a1be839ea796ba00c98d13558ee6469351504eb156a38b5e2"
+        },
+        {
+          "name": "policy_union_omits_current",
+          "sha256": "2072fd4ef7195c05b0b5f8b93108c9adf77c75a8522d63cdf7368aecb2c0a2f4"
+        },
+        {
+          "name": "policy_union_omits_following",
+          "sha256": "88c7492f0aa64f9ef7819067fb235347ce2805c1d992827f3eeb3910fd07dc70"
+        },
+        {
+          "name": "policy_union_omits_trusted",
+          "sha256": "8a6bd973955411cdd33e4b547f7d00ebf4317d6ae8ac1875d1f3d457779a1de3"
+        },
+        {
+          "name": "policy_union_omits_bootstrap",
+          "sha256": "135d6bf5fe3264baca372b8f86816551d74b82cda9345a6da02782092793fa4b"
+        },
+        {
+          "name": "policy_union_intersects_sources",
+          "sha256": "6575922cc65106bc26188c635c15b9dffe55e2db5d8268527cacc88ebeec0f93"
+        },
+        {
+          "name": "policy_union_worker_lookup_stops_at_head",
+          "sha256": "3ca15993e6157d6bee7323b4cd1d4d2ca13c0914f2263ea73fadca87e1701834"
+        },
+        {
+          "name": "policy_union_missing_worker_inherits_privilege",
+          "sha256": "f650bf4bedc3bfd0e48bc613491bc05962724d777ab7c468a8e9592cf53e6deb"
+        },
+        {
+          "name": "policy_union_worker_replacement_drops_suffix",
+          "sha256": "1dd23eaa42e8284db0bc17cba84adce71cb4951be97de4c962cd4d3f49e10533"
+        },
+        {
+          "name": "policy_union_worker_replacement_erases_prefix",
+          "sha256": "70354b561d412871f226a556d59cbadbf22252c9bc7dfcc9b696ed772f3d268b"
+        },
+        {
+          "name": "policy_union_worker_extension_inherits_privilege",
+          "sha256": "8cac4080d13cbb740ed6e7ab85ffd4beaf358998b35912c41ea943f1715cdd84"
+        },
+        {
+          "name": "policy_union_worker_extension_adds_privileged_tail",
+          "sha256": "c7d8018451d45a0c9a3919b6886e100a079192bddcd97fc2de530fbdc352a639"
+        },
+        {
+          "name": "policy_union_primary_queries_worker",
+          "sha256": "ff81fc89f16d5cca850413240e7f72c0de380402e8583d119bded5b63a4190ed"
+        },
+        {
+          "name": "policy_union_worker_queries_primary",
+          "sha256": "5c005fa9b276443ecd6b9190386ecaccdd64b74ce93e6aec58fb367aa81b17fe"
+        },
+        {
+          "name": "policy_union_primary_update_erases_workers",
+          "sha256": "03a806951eae803e068c414a0f0a22378262419356b4ae576eb55df433100c74"
+        },
+        {
+          "name": "policy_union_worker_update_overwrites_primary",
+          "sha256": "dacf37a24525f6dc3634564ee63c7ff844c5cedfc789318bd87c0f6271a7e912"
+        },
+        {
+          "name": "policy_union_validator_queries_wrong_role",
+          "sha256": "3d1009ee4ca67592f885b1b0b8190509736b181b5b81b383c8bdca25878ed683"
+        },
+        {
+          "name": "policy_union_hub_queries_wrong_role",
+          "sha256": "8bce73908c25d7c0f63866cc6209a59cef0135bbf3275aa45b64db7029211aaf"
+        },
+        {
+          "name": "policy_union_observer_queries_wrong_role",
+          "sha256": "ed251d8c981a5aee275f806013500807e74f78ae632d05e96baeb93e92ecff4a"
+        },
+        {
+          "name": "policy_union_validator_update_changes_other_role",
+          "sha256": "20b12408013be818cf245d82c5a4ac63da2510e1d18687e130d43e666347a1b1"
+        },
+        {
+          "name": "policy_union_hub_update_changes_other_role",
+          "sha256": "f318c28ab8fe7707b8bfe0f4f273eb66a0d5bda2bf5c1276c304206ba3638abd"
+        },
+        {
+          "name": "policy_union_observer_update_changes_other_role",
+          "sha256": "df01beafd4ad422523a502921a437fb4aaf46323058e4a77157a77faf4902ce5"
+        },
+        {
+          "name": "policy_union_unverified_update_grants_membership",
+          "sha256": "d3ce77966d2eb4301e648f1f69ae273aad0547293bd6b87675b02f5b3f596c3a"
+        },
+        {
+          "name": "policy_union_verified_update_ignored",
+          "sha256": "7e764f420a05117fa16cc51cc31c18b6fbfd7ca560f69cf77eb8254697d7c818"
+        },
+        {
+          "name": "policy_union_roster_update_changes_profile",
+          "sha256": "c31c94b4296d593955970e641e28eab7f4ef7f8a56a9733d6e78d7d9a5ee80ec"
+        },
+        {
+          "name": "policy_union_query_skips_identity",
+          "sha256": "777eeba55c054be51baf2e91bb20f93f4ca0fbaf2385885a503c4878dad9b0b6"
+        },
+        {
+          "name": "policy_union_query_forces_open",
+          "sha256": "c6c7525b0f93fb4e004a7610a9aa1df6d873748d1940314ccba6c4c8ad0d339d"
+        },
+        {
+          "name": "policy_union_query_ignores_selected_swarm",
+          "sha256": "a9a212d78341e72c58e800b494eef75d072587b9eb2c8564ac549f36a7da303f"
+        },
+        {
+          "name": "policy_union_default_is_closed",
+          "sha256": "e7e61607d74161c539bd1307955caf019642fe171ab132933df034d7f24f9e1f"
+        },
+        {
+          "name": "policy_union_update_keeps_old_generation",
+          "sha256": "8514bbb3c4d9e118136fecb5aaa33e94331b56279972954f1e811b998e50f7fd"
+        },
+        {
+          "name": "policy_union_trace_ignores_verified_update",
+          "sha256": "2477c009821b3f2c18a486c1414eb77c05e62736895e0f544dd90f58648b9a14"
+        },
+        {
+          "name": "policy_union_trace_ignores_profile_change",
+          "sha256": "1f3682be4986efcb0dfae83122fad58fa9e4da16fbd2f79d8823dc28ac507ea6"
+        },
+        {
+          "name": "policy_union_trace_runs_last_change_first",
+          "sha256": "2a724847efc83df3ceb3723237545b1160c5ae95a0873e0c4331a2b31172aa65"
+        },
+        {
+          "name": "policy_union_provisional_trace_verifies_input",
+          "sha256": "ca9e04801091edc6775506be1676ba9beaf4cc9f59545cbf5027404cf1d8e199"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#closedPolicyRefusesUnlisted",
-            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication"
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication",
+            "proofs/91-authoritative-policy-union.mech#unionBothRightOn",
+            "proofs/91-authoritative-policy-union.mech#committeeUnionExactMembership",
+            "proofs/91-authoritative-policy-union.mech#emptyCommitteeUnionHasNoMember",
+            "proofs/91-authoritative-policy-union.mech#replacedWorkerUnionSelected",
+            "proofs/91-authoritative-policy-union.mech#replacedSwarmUnionSelected",
+            "proofs/91-authoritative-policy-union.mech#replacedRolePolicySelected",
+            "proofs/91-authoritative-policy-union.mech#unverifiedCommitteeUpdateIsNoOp",
+            "proofs/91-authoritative-policy-union.mech#unverifiedCommitteeUpdateCannotGrantAdmission",
+            "proofs/91-authoritative-policy-union.mech#authoritativeUnionRequiresIdentity",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedUsesExactUnion",
+            "proofs/91-authoritative-policy-union.mech#authoritativeOpenKeepsAuthentication",
+            "proofs/91-authoritative-policy-union.mech#authoritativeGraceKeepsAuthentication",
+            "proofs/91-authoritative-policy-union.mech#everyRoleDefaultsOpen",
+            "proofs/91-authoritative-policy-union.mech#everyDefaultSwarmUsesOpen",
+            "proofs/91-authoritative-policy-union.mech#mixedUnionChangesRequireIdentity",
+            "proofs/91-authoritative-policy-union.mech#mixedClosedChangesUseExactUnion",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementSelectsUnion",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateSelectsExactUnion",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateKeepsProfile",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementKeepsOtherRoles",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateKeepsOtherRoles",
+            "proofs/91-authoritative-policy-union.mech#workerUpdateKeepsPrimaryUnion",
+            "proofs/91-authoritative-policy-union.mech#primaryUpdateKeepsEveryWorkerUnion",
+            "proofs/91-authoritative-policy-union.mech#workerReplacementKeepsPrefixAndSuffix",
+            "proofs/91-authoritative-policy-union.mech#paddedWorkerUnionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#workerExtensionKeepsExistingWorkers",
+            "proofs/91-authoritative-policy-union.mech#missingWorkerUnionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#workerBeyondExtensionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementAdvancesGeneration",
+            "proofs/91-authoritative-policy-union.mech#everyProvisionalUnionTraceIsNoOp",
+            "proofs/91-authoritative-policy-union.mech#singleVerifiedUnionTraceSelectsExactUnion",
+            "proofs/91-authoritative-policy-union.mech#configuredUnionProfileSelected",
+            "proofs/91-authoritative-policy-union.mech#singleProfileTraceSelectsRequestedProfile",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedUnlistedRefused",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedVerifiedMemberAdmitted"
           ],
-          "rationale": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Model the previous/current/next committee, trusted and bootstrap union and prove Closed admission uses exactly that verified union while Open remains the default."
+          "rationale": "The exact five-source constructor, current Closed acceptance/refusal and Open-default witnesses quantify every role and primary/worker index. Targeted verified updates, arbitrary worker prefix/suffix preservation, worker-list extension (existing workers kept, every other new index empty) and complete-state provisional trace preservation cover the general update scope. All 34 controls are linked by canonical hashes. Authentication/source verification and operator authority remain granted model premises; runtime derivation and M023 lifecycle enforcement receive no credit here.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#closedPolicyRefusesUnlisted",
-            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication"
+            "proofs/33-policy-readers.mech#policyQueryRequiresAuthentication",
+            "proofs/91-authoritative-policy-union.mech#unionBothRightOn",
+            "proofs/91-authoritative-policy-union.mech#committeeUnionExactMembership",
+            "proofs/91-authoritative-policy-union.mech#emptyCommitteeUnionHasNoMember",
+            "proofs/91-authoritative-policy-union.mech#replacedWorkerUnionSelected",
+            "proofs/91-authoritative-policy-union.mech#replacedSwarmUnionSelected",
+            "proofs/91-authoritative-policy-union.mech#replacedRolePolicySelected",
+            "proofs/91-authoritative-policy-union.mech#unverifiedCommitteeUpdateIsNoOp",
+            "proofs/91-authoritative-policy-union.mech#unverifiedCommitteeUpdateCannotGrantAdmission",
+            "proofs/91-authoritative-policy-union.mech#authoritativeUnionRequiresIdentity",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedUsesExactUnion",
+            "proofs/91-authoritative-policy-union.mech#authoritativeOpenKeepsAuthentication",
+            "proofs/91-authoritative-policy-union.mech#authoritativeGraceKeepsAuthentication",
+            "proofs/91-authoritative-policy-union.mech#everyRoleDefaultsOpen",
+            "proofs/91-authoritative-policy-union.mech#everyDefaultSwarmUsesOpen",
+            "proofs/91-authoritative-policy-union.mech#mixedUnionChangesRequireIdentity",
+            "proofs/91-authoritative-policy-union.mech#mixedClosedChangesUseExactUnion",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementSelectsUnion",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateSelectsExactUnion",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateKeepsProfile",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementKeepsOtherRoles",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateKeepsOtherRoles",
+            "proofs/91-authoritative-policy-union.mech#workerUpdateKeepsPrimaryUnion",
+            "proofs/91-authoritative-policy-union.mech#primaryUpdateKeepsEveryWorkerUnion",
+            "proofs/91-authoritative-policy-union.mech#workerReplacementKeepsPrefixAndSuffix",
+            "proofs/91-authoritative-policy-union.mech#paddedWorkerUnionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#workerExtensionKeepsExistingWorkers",
+            "proofs/91-authoritative-policy-union.mech#missingWorkerUnionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#workerBeyondExtensionIsEmpty",
+            "proofs/91-authoritative-policy-union.mech#roleReplacementAdvancesGeneration",
+            "proofs/91-authoritative-policy-union.mech#verifiedCommitteeUpdateAdvancesGeneration",
+            "proofs/91-authoritative-policy-union.mech#everyProvisionalUnionTraceIsNoOp",
+            "proofs/91-authoritative-policy-union.mech#unionTraceAppliesFirstChangeFirst",
+            "proofs/91-authoritative-policy-union.mech#singleVerifiedUnionTraceSelectsExactUnion",
+            "proofs/91-authoritative-policy-union.mech#configuredUnionProfileSelected",
+            "proofs/91-authoritative-policy-union.mech#singleProfileTraceSelectsRequestedProfile",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedUnlistedRefused",
+            "proofs/91-authoritative-policy-union.mech#authoritativeClosedVerifiedMemberAdmitted"
           ],
-          "rationale": "Closed lookup uses a supplied flat membership Slots value, not the documented union construction. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Quantify all primary/worker roles and updates, and prove provisional identity cannot enter any privileged union component."
+          "rationale": "Failure branches are explicit. authoritativeClosedUnlistedRefused refuses an identity that is absent from the selected union in a Closed view, for either authentication flag. authoritativeUnionRequiresIdentity refuses an unauthenticated identity with no profile hypothesis. unverifiedCommitteeUpdateIsNoOp keeps the complete policy for every flag-off update. everyProvisionalUnionTraceIsNoOp keeps the complete policy for every finite provisional trace. missingWorkerUnionIsEmpty returns the empty union for every index of the empty worker list. workerExtensionKeepsExistingWorkers keeps every existing worker when an update extends the worker list. paddedWorkerUnionIsEmpty and workerBeyondExtensionIsEmpty return the empty union for every other new index when an update extends the empty worker list. Conditional premises are explicit. The Closed, Open and Grace statements carry the displayed profile equality. The listed and absent statements carry the displayed membership equality. The six authoritative query statements bind every role, swarm, policy value and identity index. The six committee update statements bind every role, swarm, incoming union and policy value. The three arbitrary_trace statements bind every finite change list and policy value. unionTraceAppliesFirstChangeFirst binds every change, remaining change list and policy value. The other module-91 statements are component statements with narrower binders. The two module-33 flat-list statements keep local credit only. The authentication flag, faithful identity indexing, verified initial membership vectors, the verification flag and authorized operator configuration are granted model premises. E029 owns their runtime derivation. M023 owns lifecycle enforcement.",
+          "remaining": ""
         }
       ]
     },

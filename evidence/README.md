@@ -1302,3 +1302,19 @@ All four unchanged M012 criteria are witnessed. R03 closes at turn 15 with all
 eleven of its model obligations covered. The complete ledger covers 11 of 83
 model obligations and retains 72 gaps; all 43 external obligations remain open.
 R04 is next. The full-qualification guard remains in force.
+
+## R04 turn 1: authoritative policy union
+
+[r04-authoritative-policy-union-check.json](r04-authoritative-policy-union-check.json)
+records the full gate for module 91: 74 modules, 1478 explicit equality/order
+proofs, empty axiom disclosure and 1388 rejected negative checks. The 34 new
+`policy_union_*` controls require semantic type rejection. They cover each
+membership source, role/swarm selection, identity verification, targeted update
+isolation, worker-list extension, default profile, generation, executable trace
+transitions and trace execution order.
+
+Both M022 criteria are witnessed by general role/swarm/update proofs and three
+arbitrary-trace results. The current audit covers 12 of 83 model obligations;
+71 retain gaps. R04 is active at turn 1, using execution turn 26 of 50. The
+[turn record](../docs/R04-POLICY.md) states the model premises and remaining
+obligations. All 43 external obligations and full qualification remain open.

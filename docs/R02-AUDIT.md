@@ -1,8 +1,8 @@
 # R02 existing proof audit, complete witness census
 
 This document records the R02 closure baseline. [R03 turn 15](R03-ADMISSION.md)
-subsequently closes M012 and R03; the current ledger covers eleven
-obligations and retains 72 gaps. The R02 receipt keeps its original corpus and
+subsequently closes M012 and R03. [R04 turn 1](R04-POLICY.md) closes M022;
+the current ledger covers twelve obligations and retains 71 gaps. The R02 receipt keeps its original corpus and
 82-gap scope.
 
 R02 closes after five execution turns, within the user's five-turn cap.
@@ -39,7 +39,10 @@ criterion of M001 receives general transition credit; reachability-evidence and
 identity composition still need a witness.
 
 The R04 reviews distinguish a supplied policy snapshot from the documented
-committee/trusted/bootstrap union and real decision/lifecycle transitions. The
+committee/trusted/bootstrap union and real decision/lifecycle transitions.
+Module 91 now supplies the exact five-source union for all node roles and
+primary/worker swarms, targeted verified updates and general provisional/mixed
+trace witnesses, closing M022. The
 three `PolicyConsumer` constructors do not model separate inbound, outbound-dial
 and outbound-established operations. Snapshot agreement and stale receipt
 rejection therefore do not close M023. General authentication, policy fault,

@@ -267,6 +267,31 @@ Checking a generation and then using the result without protection permits a
 race with a later publication. The model's serialized transitions exclude that
 race, so an implementation refinement must justify this boundary explicitly.
 
+## Authoritative policy union
+
+[91-authoritative-policy-union.mech](../proofs/91-authoritative-policy-union.mech)
+closes M022 with separate previous/current/next committee, trusted and bootstrap
+membership vectors for validator, hub and observer roles, primary swarms and
+arbitrary worker indices. Closed queries use their exact disjunction and require
+authenticated identity. Every role defaults Open. Open and Grace retain the
+authentication gate independently of membership.
+
+Verified updates replace exactly the selected union, retain its profile and
+other roles, preserve unselected primary/workers, and advance generation.
+Existing worker replacement preserves every arbitrary prefix and suffix.
+New worker indices extend a finite configuration. Existing workers stay
+unchanged and every other new index is empty. No storage or runtime
+resize-cost bound is claimed. Unverified updates and arbitrary finite
+provisional traces preserve the complete state. Mixed traces retain the
+current Closed union and authentication boundary.
+
+Faithful identity indexing, correct verification classifications for all five
+sources and authorized operator configuration are premises. Runtime policy and
+record refinement remain E029. Distinct inbound/outbound gates, stale
+receipt races, fallback fault isolation and reload/removal lifecycles remain
+M023/M006/M042. [R04 turn 1](R04-POLICY.md) records exact witnesses, controls,
+validation and remaining scope.
+
 ## Policy and resource interleavings
 
 [36-governed-resources.mech](../proofs/36-governed-resources.mech) combines a policy

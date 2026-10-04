@@ -36,10 +36,17 @@ construction. Runtime routing and nonaliasing remain external. The resource
 vector
 composes within the finite whole-process allocation, including explicit shared
 overhead. Stage ownership, promotion and resident-cost domination retain their
-existing proofs. Eleven obligations are covered; 72 retain model gaps. All four
+existing proofs. All four
 M012 criteria are witnessed. See the [closure result](docs/M012-CLOSURE.md).
 Runtime refinement and production calibration remain external obligations.
 All 43 external obligations remain open.
+
+[R04 turn 1](docs/R04-POLICY.md) closes M022 with the exact previous/current/next
+committee, trusted and bootstrap union for each node role and primary/worker
+swarm. Verified roster updates preserve the selected profile and unrelated
+views; provisional updates preserve the complete policy. Open remains the
+default. Twelve obligations are covered and 71 retain model gaps. R04 remains
+active at execution turn 26 of 50.
 
 ## Run locally
 
@@ -59,7 +66,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 1354 deliberately invalid
+source hashes and coverage freshness, and requires 1388 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.
@@ -102,7 +109,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1441 explicit equality and order proof declarations across 73 modules. This count
+1478 explicit equality and order proof declarations across 74 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -180,6 +187,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `88-coupled-stage-process.mech` | Existing pending leases, pre-accept executor banks and established fleet share one process transition. Other-stage accounts survive every nonpromotion event. Guarded promotion is atomic and idempotent; focused successful promotion releases pending ownership and grants the distinct established slot. Arbitrary mixed traces preserve each allocation and the composed vector. Module 89 generalizes promotion and refusal; module 90 adds protected critical scheduling. |
 | `89-general-stage-promotion.mech` | Unconditional promotion at arbitrary pending, peer, bank and slot prefixes/suffixes preserves every unselected account. General complete-state refusal covers absent indices, free or stale pending ownership, and occupied destinations. M012 criterion 1 is witnessed; module 90 closes criterion 2. |
 | `90-protected-critical-service.mech` | Occupied-slot workload certificates, funded all-peer FIFO service across arbitrary swarms, disjoint bulk/pending/pre-accept transitions, finite process vectors and explicit scheduler overhead. |
+| `91-authoritative-policy-union.mech` | Exact five-source membership union for every node role and primary/worker swarm, authenticated Closed admission, Open defaults, targeted verified updates and provisional/mixed trace boundaries. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

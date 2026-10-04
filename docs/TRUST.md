@@ -725,3 +725,22 @@ generations, cost domination, resource termination, tick delivery and scheduler
 conformance remain external (E010, E013, E017, E019, E021 and E022). M012 is
 covered and R03 is closed. No external obligation or qualification guard
 closes.
+
+## R04 turn 1 policy-union boundary
+
+Module 91 checks exact five-source membership construction for each modeled
+node role and primary/worker swarm, authenticated Closed admission, Open defaults,
+verified targeted updates and complete-state preservation under provisional
+updates. Its membership vectors already represent verified identities.
+The runtime must preserve identity indexing and correctly classify every
+committee, trusted and bootstrap input; an `on` verification flag is a supplied
+judgment. Profile-change events represent authorized operator configuration.
+
+Generation advances on every role replacement and on every verified roster
+update, but the module has no receipt or compare-and-publish protocol. It queries
+a current immutable view in a serialized model. M023 still owns distinct
+inbound/outbound gates and intervening revisions.
+M006, M039 and M042 retain fallback isolation, recovery closure and consistent
+reload/removal lifecycles. Extending the finite worker configuration does not
+prove a bounded runtime allocation cost. E029 retains policy and record
+refinement. M022 is covered; R04 and all external obligations remain open.
