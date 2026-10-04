@@ -1,13 +1,14 @@
 # M012 two-turn closure requirement
 
 Recorded 2026-10-03 from the user's instruction: M012 must be fully closed
-within the next two development turns. The current R03 execution count is 13,
+within the next two development turns. The R03 execution count was 13 at recording,
 so the deadline is the end of R03 turn 15. This document records the requirement;
 it does not advance the execution count or claim additional proof coverage.
 
 The four M012 acceptance criteria in [the frozen source ledger](../source-ledger.json)
-remain unchanged. Criteria 0 and 3 are witnessed. Criteria 1 and 2 remain open
-in [the proof audit](../proof-audit.json).
+remain unchanged. At recording, criteria 0 and 3 were witnessed. Criteria 1 and
+2 were open in [the proof audit](../proof-audit.json). The turn result sections
+below record the later state.
 
 ## Turn 14: close stage accounting
 
@@ -65,3 +66,11 @@ M012 is closed only when all of the following hold:
 Additional intermediate models or supporting proof counts do not extend this
 deadline. If a required claim cannot be proved, report the exact unresolved
 claim and evidence; do not weaken the acceptance criteria or mark M012 closed.
+
+## Turn 14 result
+
+Module 89 discharges criterion 1 using the existing coupled process. Successful
+promotion and complete-state refusal now cover arbitrary positions and all
+absent indices without assuming the promotion guard. Exact prefix/suffix and
+generation effects have mutation controls. Criteria 0, 1 and 3 are witnessed;
+criterion 2 remains open. The turn-15 deadline and completion gate are unchanged.

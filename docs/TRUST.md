@@ -644,7 +644,7 @@ no premise for resident bytes or tasks; those are separate coordinates.
 E022 retains established-resource classification, routing, cleanup and cost
 refinement. E013 retains runtime pending/phase accounting and receipt/atomicity
 boundaries. E010 retains production cost calibration and deployed domination.
-All remain external. M012 criterion 1 still requires modeled stage accounting
+All remain external. Modules 87-89 witness M012 criterion 1 stage accounting
 between pending, pre-accept and established resources. Criterion 2 still
 requires a modeled critical-service guarantee under explicit workload/scheduling
 premises, so R03 stays active.
@@ -661,8 +661,8 @@ supplied unit certificate to dominate the resource throughout all three
 phases, including overlap or transient storage at a real handoff.
 
 One carried reservation is not a proof of release and acquisition between the
-existing distinct stage pools. M012 criterion 1 retains that model bridge,
-including exactly-once pending release and refusal/stale callback behavior.
+existing distinct stage pools. Modules 88-89 supply that model bridge,
+including generation consumption, replay refusal and stale callback behavior.
 Criterion 2 retains scheduling service. E013, E022 and E010 continue to own
 runtime accounting, cost domination and calibration. No external obligation
 or qualification guard closes in this turn.
@@ -684,6 +684,20 @@ stage weights remain premises owned by E013, E019, E022 and E010. The model
 does not establish a runtime implementation bridge or calibration.
 
 Successful head promotion pins independent generations and arbitrary suffixes.
-Arbitrary-prefix/suffix promotion and all absent-index operational witnesses
-remain M012 criterion-1 gaps; critical workload/scheduling service remains
+Module 89 adds arbitrary-prefix/suffix promotion and all absent-index operational
+witnesses, closing M012 criterion 1; critical workload/scheduling service remains
 criterion 2. No external obligation or qualification guard closes.
+
+## General promotion boundary
+
+Module 89 derives promotion success and refusal at arbitrary positions in the
+existing coupled process. Guard equality is a proved intermediate fact for the
+operational witnesses. The stale case explicitly assumes that the supplied
+generation differs from the held generation; it does not assume refusal.
+The success equation preserves every unselected account and the executor.
+
+Runtime classification/routing across pending, pre-accept and established
+resources remains E013, E019 and E022. Atomic execution, receipt authority,
+nonwrapping generations, actual resource termination and stage-cost domination
+(including E010) remain external. M012 criterion 1 closure provides no critical
+scheduling guarantee; criterion 2 and deployment qualification remain open.

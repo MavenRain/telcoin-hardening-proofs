@@ -2651,8 +2651,8 @@ wrong-cell updates and missing or duplicate stage charges.
 The phase ledger reserves the same unit throughout a resource lifetime. It
 does not establish separate pool admission, pending-generation refund on
 distinct established allocation, pre-accept execution coupling, or scheduling
-service. M012 criterion 1 retains coupled stage accounting and that promotion
-bridge, and criterion 2 retains critical service. Runtime receipt provenance, atomicity, routing and phase-wide
+service. Modules 88-89 supply coupled stage accounting and that promotion
+bridge; criterion 2 retains critical service. Runtime receipt provenance, atomicity, routing and phase-wide
 cost domination remain external premises.
 
 ## R03 turn 13: coupled distinct stage process
@@ -2680,8 +2680,26 @@ vacancy, coordinate routing, release/grant effects, other-stage isolation,
 trace dispatch and allocation accounting. They reject proof-term weakening;
 they do not validate runtime behavior.
 
-M012 criterion 1 retains successful promotion at arbitrary prefixes/suffixes
-and all absent-index operational refusal witnesses. Generic granted/refused
-statements assume their guard equality. Criterion 2 retains critical scheduling
+Module 89 supplies successful promotion at arbitrary prefixes/suffixes
+and all absent-index operational refusal witnesses, closing M012 criterion 1.
+Module 88's generic granted/refused statements assume their guard equality.
+Criterion 2 retains critical scheduling
 service. Runtime classification, routing, receipt provenance, serialized
 atomicity, actual termination and per-stage cost domination remain external.
+
+## General operational stage promotion
+
+Module 89 uses the unchanged coupled process from module 88. Its 24 proof
+declarations derive lookups after arbitrary prefixes, absence at every index
+beyond a collection, exact pending release and established acquisition, and
+complete-state promotion/refusal equations. `coupledPromotionAtPrefixes`
+quantifies every pending, peer, bank and slot prefix and suffix, both independent
+generations, the executor, resource kind/direction, and trust/swarm labels.
+It assumes no guard equality. The stale refusal theorem requires only a
+generation-mismatch equality; all other operational cases derive their guard
+from the concrete state shape. M012 criterion 1 is witnessed.
+
+The process remains a serialized abstract transition system. Runtime routing
+and classification (E013, E019, E022), atomicity, receipt authority, actual
+termination and cost domination (including E010) are external obligations.
+Critical-class scheduling service remains M012 criterion 2 for turn 15.

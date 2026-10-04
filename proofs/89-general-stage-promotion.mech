@@ -1,0 +1,275 @@
+-- R03: operational promotion at arbitrary positions in the coupled process.
+-- Every prefix and suffix is arbitrary, including all trust and swarm labels.
+def coupledEqualTwo : (0 A : Type 0) -> (0 B : Type 0) -> (0 C : Type 0) ->
+    (0 f : A -> B -> C) -> (0 a : A) -> (0 b : A) -> (0 c : B) -> (0 d : B) ->
+    Equal A a b -> Equal B c d -> Equal C (f a c) (f b d) :=
+  fun (0 A : Type 0) (0 B : Type 0) (0 C : Type 0) (0 f : A -> B -> C)
+      (0 a : A) (0 b : A) (0 c : B) (0 d : B) (ab : Equal A a b) (cd : Equal B c d) =>
+    equalTransitivity C (f a c) (f b c) (f b d)
+      (congruent A C (fun (x : A) => f x c) a b ab)
+      (congruent B C (fun (x : B) => f b x) c d cd)
+
+def rec coupledOwnedAtPrefix : (prefix : LeasePool) -> (lease : Lease) ->
+    (suffix : LeasePool) -> (generation : Count) ->
+    Equal Flag (executorOwnedAt (leaseCapacity prefix) generation (appendLeasePool prefix (leaseCell lease suffix)))
+      (executorOwnedAt zero generation (leaseCell lease suffix)) :=
+  fun (prefix : LeasePool) (lease : Lease) (suffix : LeasePool) (generation : Count) =>
+    case prefix as self in LeasePool return Equal Flag
+        (executorOwnedAt (leaseCapacity self) generation (appendLeasePool self (leaseCell lease suffix)))
+        (executorOwnedAt zero generation (leaseCell lease suffix)) with
+    | emptyLeasePool => same
+    | leaseCell old rest => coupledOwnedAtPrefix rest lease suffix generation
+
+def rec coupledVacantAtPrefix : (prefix : LeasePool) -> (lease : Lease) -> (suffix : LeasePool) ->
+    Equal Flag (executorVacantAt (leaseCapacity prefix) (appendLeasePool prefix (leaseCell lease suffix)))
+      (executorVacantAt zero (leaseCell lease suffix)) :=
+  fun (prefix : LeasePool) (lease : Lease) (suffix : LeasePool) =>
+    case prefix as self in LeasePool return Equal Flag
+        (executorVacantAt (leaseCapacity self) (appendLeasePool self (leaseCell lease suffix)))
+        (executorVacantAt zero (leaseCell lease suffix)) with
+    | emptyLeasePool => same
+    | leaseCell old rest => coupledVacantAtPrefix rest lease suffix
+
+def rec coupledBankPoolAtPrefix : (prefix : EstablishedBanks) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->
+    (suffix : EstablishedBanks) -> Equal LeasePool
+      (coupledBankPool (establishedBankWidth prefix) (appendEstablishedBanks prefix (establishedBank kind direction unit pool suffix))) pool :=
+  fun (prefix : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (unit : EstablishedUnit) (pool : LeasePool) (suffix : EstablishedBanks) =>
+    case prefix as self in EstablishedBanks return Equal LeasePool
+        (coupledBankPool (establishedBankWidth self) (appendEstablishedBanks self (establishedBank kind direction unit pool suffix))) pool with
+    | noEstablishedBanks => same
+    | establishedBank oldKind oldDirection oldUnit oldPool rest =>
+        coupledBankPoolAtPrefix rest kind direction unit pool suffix
+
+def rec coupledFleetPoolAtPrefix : (prefix : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banks : EstablishedBanks) -> (suffix : EstablishedFleet) -> (bank : Count) ->
+    Equal LeasePool
+      (coupledFleetPool (establishedFleetWidth prefix) bank (appendEstablishedFleet prefix (establishedMember trusted swarm identity banks suffix)))
+      (coupledBankPool bank banks) :=
+  fun (prefix : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banks : EstablishedBanks) (suffix : EstablishedFleet) (bank : Count) =>
+    case prefix as self in EstablishedFleet return Equal LeasePool
+        (coupledFleetPool (establishedFleetWidth self) bank (appendEstablishedFleet self (establishedMember trusted swarm identity banks suffix)))
+        (coupledBankPool bank banks) with
+    | noEstablishedFleet => same
+    | establishedMember oldTrusted oldSwarm oldIdentity oldBanks rest =>
+        coupledFleetPoolAtPrefix rest trusted swarm identity banks suffix bank
+
+def coupledFocusedPool : (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->
+    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->
+    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->
+    (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> Equal LeasePool
+      (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)) pool :=
+  fun (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count)
+      (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection)
+      (unit : EstablishedUnit) (pool : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) =>
+    equalTransitivity LeasePool
+      (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)
+        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))
+      (coupledBankPool (establishedBankWidth banksBefore) (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter))) pool
+      (coupledFleetPoolAtPrefix peersBefore trusted swarm identity
+        (appendEstablishedBanks banksBefore (establishedBank kind direction unit pool banksAfter)) peersAfter (establishedBankWidth banksBefore))
+      (coupledBankPoolAtPrefix banksBefore kind direction unit pool banksAfter)
+
+def rec coupledOwnedBeyond : (pool : LeasePool) -> (offset : Count) -> (generation : Count) ->
+    Equal Flag (executorOwnedAt (add (leaseCapacity pool) offset) generation pool) off :=
+  fun (pool : LeasePool) (offset : Count) (generation : Count) =>
+    case pool as self in LeasePool return Equal Flag (executorOwnedAt (add (leaseCapacity self) offset) generation self) off with
+    | emptyLeasePool =>
+        (case offset as index in Count return Equal Flag (executorOwnedAt index generation emptyLeasePool) off with
+        | zero => same
+        | next previous => same)
+    | leaseCell lease rest => coupledOwnedBeyond rest offset generation
+
+def rec coupledVacantBeyond : (pool : LeasePool) -> (offset : Count) ->
+    Equal Flag (executorVacantAt (add (leaseCapacity pool) offset) pool) off :=
+  fun (pool : LeasePool) (offset : Count) =>
+    case pool as self in LeasePool return Equal Flag (executorVacantAt (add (leaseCapacity self) offset) self) off with
+    | emptyLeasePool =>
+        (case offset as index in Count return Equal Flag (executorVacantAt index emptyLeasePool) off with
+        | zero => same
+        | next previous => same)
+    | leaseCell lease rest => coupledVacantBeyond rest offset
+
+def rec coupledBankBeyond : (banks : EstablishedBanks) -> (offset : Count) ->
+    Equal LeasePool (coupledBankPool (add (establishedBankWidth banks) offset) banks) emptyLeasePool :=
+  fun (banks : EstablishedBanks) (offset : Count) =>
+    case banks as self in EstablishedBanks return Equal LeasePool
+        (coupledBankPool (add (establishedBankWidth self) offset) self) emptyLeasePool with
+    | noEstablishedBanks =>
+        (case offset as index in Count return Equal LeasePool (coupledBankPool index noEstablishedBanks) emptyLeasePool with
+        | zero => same
+        | next previous => same)
+    | establishedBank kind direction unit pool rest => coupledBankBeyond rest offset
+
+def rec coupledFleetBeyond : (fleet : EstablishedFleet) -> (offset : Count) -> (bank : Count) ->
+    Equal LeasePool (coupledFleetPool (add (establishedFleetWidth fleet) offset) bank fleet) emptyLeasePool :=
+  fun (fleet : EstablishedFleet) (offset : Count) (bank : Count) =>
+    case fleet as self in EstablishedFleet return Equal LeasePool
+        (coupledFleetPool (add (establishedFleetWidth self) offset) bank self) emptyLeasePool with
+    | noEstablishedFleet =>
+        (case offset as index in Count return Equal LeasePool (coupledFleetPool index bank noEstablishedFleet) emptyLeasePool with
+        | zero => same
+        | next previous => same)
+    | establishedMember trusted swarm identity banks rest => coupledFleetBeyond rest offset bank
+
+def coupledBothRightOff : (owned : Flag) -> Equal Flag (both owned off) off :=
+  fun (owned : Flag) => case owned as self in Flag return Equal Flag (both self off) off with
+    | off => same
+    | on => same
+
+def coupledRefusePending : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Flag (executorOwnedAt pendingIndex generation (coupledPending process)) off ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess)
+      (unowned : Equal Flag (executorOwnedAt pendingIndex generation (coupledPending process)) off) =>
+    coupledPromotionRefused pendingIndex generation member bank slot process
+      (congruent Flag Flag (fun (owned : Flag) => both owned (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process))))
+        (executorOwnedAt pendingIndex generation (coupledPending process)) off unowned)
+
+def coupledRefuseDestination : (pendingIndex : Count) -> (generation : Count) -> (member : Count) ->
+    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->
+    Equal Flag (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process))) off ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process :=
+  fun (pendingIndex : Count) (generation : Count) (member : Count) (bank : Count)
+      (slot : Count) (process : CoupledProcess)
+      (unavailable : Equal Flag (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process))) off) =>
+    coupledPromotionRefused pendingIndex generation member bank slot process
+      (equalTransitivity Flag (coupledPromotionAllowed pendingIndex generation member bank slot process)
+        (both (executorOwnedAt pendingIndex generation (coupledPending process)) off) off
+        (congruent Flag Flag (fun (vacant : Flag) => both (executorOwnedAt pendingIndex generation (coupledPending process)) vacant)
+          (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process))) off unavailable)
+        (coupledBothRightOff (executorOwnedAt pendingIndex generation (coupledPending process))))
+
+def coupledReleaseAtPrefix : (prefix : LeasePool) -> (generation : Count) -> (suffix : LeasePool) ->
+    Equal LeasePool (updateLease (leaseCapacity prefix) (fun (lease : Lease) => releaseOwned generation lease) (appendLeasePool prefix (leaseCell (heldLease generation) suffix))) (appendLeasePool prefix (leaseCell (freeLease (next generation)) suffix)) :=
+  fun (prefix : LeasePool) (generation : Count) (suffix : LeasePool) =>
+    equalTransitivity LeasePool
+      (updateLease (leaseCapacity prefix) (fun (lease : Lease) => releaseOwned generation lease) (appendLeasePool prefix (leaseCell (heldLease generation) suffix)))
+      (appendLeasePool prefix (leaseCell (releaseOwned generation (heldLease generation)) suffix))
+      (appendLeasePool prefix (leaseCell (freeLease (next generation)) suffix))
+      (establishedLeaseUpdateAtPrefix prefix (heldLease generation) suffix (fun (lease : Lease) => releaseOwned generation lease))
+      (congruent Lease LeasePool (fun (lease : Lease) => appendLeasePool prefix (leaseCell lease suffix)) (releaseOwned generation (heldLease generation)) (freeLease (next generation))
+        (matchingGenerationReleased generation))
+
+def coupledReserveAtPrefix : (prefix : LeasePool) -> (generation : Count) -> (suffix : LeasePool) ->
+    Equal LeasePool (updateLease (leaseCapacity prefix) reserveLease (appendLeasePool prefix (leaseCell (freeLease generation) suffix))) (appendLeasePool prefix (leaseCell (heldLease generation) suffix)) :=
+  fun (prefix : LeasePool) (generation : Count) (suffix : LeasePool) =>
+    establishedLeaseUpdateAtPrefix prefix (freeLease generation) suffix reserveLease
+
+def coupledPromotionAllowedAtPrefixes : (pendingBefore : LeasePool) -> (generation : Count) -> (pendingAfter : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->
+    Equal Flag (coupledPromotionAllowed (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) on :=
+  fun (pendingBefore : LeasePool) (generation : Count) (pendingAfter : LeasePool) (executor : ExecutorBank) (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count) (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) (slotsBefore : LeasePool) (destinationGeneration : Count) (slotsAfter : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) =>
+    coupledEqualTwo Flag Flag Flag both (executorOwnedAt (leaseCapacity pendingBefore) generation (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter))) on (executorVacantAt (leaseCapacity slotsBefore) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) on
+      (equalTransitivity Flag
+      (executorOwnedAt (leaseCapacity pendingBefore) generation (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)))
+      (sameCount generation generation)
+      on
+      (coupledOwnedAtPrefix pendingBefore (heldLease generation) pendingAfter generation)
+      (sameCountReflexive generation))
+      (equalTransitivity Flag
+      (executorVacantAt (leaseCapacity slotsBefore) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)))
+      (executorVacantAt (leaseCapacity slotsBefore) (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)))
+      on
+      (congruent LeasePool Flag (fun (pool : LeasePool) => executorVacantAt (leaseCapacity slotsBefore) pool) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter))
+        (coupledFocusedPool peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))
+      (coupledVacantAtPrefix slotsBefore (freeLease destinationGeneration) slotsAfter))
+
+def coupledPromotionAtPrefixes : (pendingBefore : LeasePool) -> (generation : Count) -> (pendingAfter : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->
+    Equal CoupledProcess (coupledPromote (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) (coupledProcess (appendLeasePool pendingBefore (leaseCell (freeLease (next generation)) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) :=
+  fun (pendingBefore : LeasePool) (generation : Count) (pendingAfter : LeasePool) (executor : ExecutorBank) (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count) (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) (slotsBefore : LeasePool) (destinationGeneration : Count) (slotsAfter : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) =>
+    equalTransitivity CoupledProcess
+      (coupledPromote (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)))
+      (coupledProcess (poolStep (completeAt (leaseCapacity pendingBefore) (ownedGeneration generation) connectionEstablished) (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter))) executor (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (reserveAt (leaseCapacity slotsBefore)) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)))
+      (coupledProcess (appendLeasePool pendingBefore (leaseCell (freeLease (next generation)) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))
+      (coupledPromotionGranted (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) (coupledPromotionAllowedAtPrefixes pendingBefore generation pendingAfter executor peersBefore trusted swarm identity banksBefore kind direction unit slotsBefore destinationGeneration slotsAfter banksAfter peersAfter))
+      (coupledEqualTwo LeasePool EstablishedFleet CoupledProcess (fun (pending : LeasePool) (fleet : EstablishedFleet) => coupledProcess pending executor fleet)
+      (poolStep (completeAt (leaseCapacity pendingBefore) (ownedGeneration generation) connectionEstablished) (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter))) (appendLeasePool pendingBefore (leaseCell (freeLease (next generation)) pendingAfter)) (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (reserveAt (leaseCapacity slotsBefore)) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)
+      (coupledReleaseAtPrefix pendingBefore generation pendingAfter)
+      (equalTransitivity EstablishedFleet
+      (establishedFleetStep (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (reserveAt (leaseCapacity slotsBefore)) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (poolStep (reserveAt (leaseCapacity slotsBefore)) (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter))) banksAfter peersAfter)
+      (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)
+      (establishedFocusedStep peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter (reserveAt (leaseCapacity slotsBefore)))
+      (congruent LeasePool EstablishedFleet (fun (pool : LeasePool) => (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)) (poolStep (reserveAt (leaseCapacity slotsBefore)) (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter))) (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter))
+        (coupledReserveAtPrefix slotsBefore destinationGeneration slotsAfter))))
+
+def coupledFreePendingAtPrefixRefuses : (prefix : LeasePool) -> (suffix : LeasePool) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (current : Count) ->
+    Equal CoupledProcess (coupledPromote (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (freeLease current) suffix)) executor fleet)) (coupledProcess (appendLeasePool prefix (leaseCell (freeLease current) suffix)) executor fleet) :=
+  fun (prefix : LeasePool) (suffix : LeasePool) (generation : Count) (member : Count) (bank : Count) (slot : Count) (executor : ExecutorBank) (fleet : EstablishedFleet) (current : Count) =>
+    coupledRefusePending (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (freeLease current) suffix)) executor fleet)
+      (coupledOwnedAtPrefix prefix (freeLease current) suffix generation)
+
+def coupledStalePendingAtPrefixRefuses : (prefix : LeasePool) -> (suffix : LeasePool) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (current : Count) -> (mismatch : Equal Flag (sameCount generation current) off) ->
+    Equal CoupledProcess (coupledPromote (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (heldLease current) suffix)) executor fleet)) (coupledProcess (appendLeasePool prefix (leaseCell (heldLease current) suffix)) executor fleet) :=
+  fun (prefix : LeasePool) (suffix : LeasePool) (generation : Count) (member : Count) (bank : Count) (slot : Count) (executor : ExecutorBank) (fleet : EstablishedFleet) (current : Count) (mismatch : Equal Flag (sameCount generation current) off) =>
+    coupledRefusePending (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (heldLease current) suffix)) executor fleet)
+      (equalTransitivity Flag
+      (executorOwnedAt (leaseCapacity prefix) generation (appendLeasePool prefix (leaseCell (heldLease current) suffix)))
+      (sameCount generation current)
+      off
+      (coupledOwnedAtPrefix prefix (heldLease current) suffix generation)
+      (mismatch))
+
+def coupledAbsentPendingRefuses : (pending : LeasePool) -> (offset : Count) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->
+    Equal CoupledProcess (coupledPromote (add (leaseCapacity pending) offset) generation member bank slot (coupledProcess pending executor fleet)) (coupledProcess pending executor fleet) :=
+  fun (pending : LeasePool) (offset : Count) (generation : Count) (member : Count) (bank : Count) (slot : Count) (executor : ExecutorBank) (fleet : EstablishedFleet) =>
+    coupledRefusePending (add (leaseCapacity pending) offset) generation member bank slot (coupledProcess pending executor fleet)
+      (coupledOwnedBeyond pending offset generation)
+
+def coupledAbsentMemberRefuses : (pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (offset : Count) -> (bank : Count) -> (slot : Count) ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation (add (establishedFleetWidth fleet) offset) bank slot (coupledProcess pending executor fleet)) (coupledProcess pending executor fleet) :=
+  fun (pendingIndex : Count) (generation : Count) (pending : LeasePool) (executor : ExecutorBank) (fleet : EstablishedFleet) (offset : Count) (bank : Count) (slot : Count) =>
+    coupledRefuseDestination pendingIndex generation (add (establishedFleetWidth fleet) offset) bank slot (coupledProcess pending executor fleet)
+      (equalTransitivity Flag
+      (executorVacantAt slot (coupledFleetPool (add (establishedFleetWidth fleet) offset) bank fleet))
+      (executorVacantAt slot emptyLeasePool)
+      off
+      (congruent LeasePool Flag (fun (pool : LeasePool) => executorVacantAt slot pool) (coupledFleetPool (add (establishedFleetWidth fleet) offset) bank fleet) emptyLeasePool
+        (coupledFleetBeyond fleet offset bank))
+      (coupledVacantBeyond emptyLeasePool slot))
+
+def coupledAbsentBankRefuses : (pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banks : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (offset : Count) -> (slot : Count) ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) slot (coupledProcess pending executor (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter)))) (coupledProcess pending executor (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter))) :=
+  fun (pendingIndex : Count) (generation : Count) (pending : LeasePool) (executor : ExecutorBank) (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count) (banks : EstablishedBanks) (peersAfter : EstablishedFleet) (offset : Count) (slot : Count) =>
+    coupledRefuseDestination pendingIndex generation (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) slot (coupledProcess pending executor (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter)))
+      (equalTransitivity Flag
+      (executorVacantAt slot (coupledFleetPool (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter))))
+      (executorVacantAt slot emptyLeasePool)
+      off
+      (congruent LeasePool Flag (fun (pool : LeasePool) => executorVacantAt slot pool) (coupledFleetPool (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter))) emptyLeasePool
+        (equalTransitivity LeasePool
+      (coupledFleetPool (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter)))
+      (coupledBankPool (add (establishedBankWidth banks) offset) banks)
+      emptyLeasePool
+      (coupledFleetPoolAtPrefix peersBefore trusted swarm identity banks peersAfter (add (establishedBankWidth banks) offset))
+      (coupledBankBeyond banks offset)))
+      (coupledVacantBeyond emptyLeasePool slot))
+
+def coupledAbsentSlotRefuses : (pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (offset : Count) ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (add (leaseCapacity pool) offset) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)) :=
+  fun (pendingIndex : Count) (generation : Count) (pending : LeasePool) (executor : ExecutorBank) (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count) (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) (pool : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) (offset : Count) =>
+    coupledRefuseDestination pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (add (leaseCapacity pool) offset) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))
+      (equalTransitivity Flag
+      (executorVacantAt (add (leaseCapacity pool) offset) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)))
+      (executorVacantAt (add (leaseCapacity pool) offset) pool)
+      off
+      (congruent LeasePool Flag (fun (found : LeasePool) => executorVacantAt (add (leaseCapacity pool) offset) found) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)) pool
+        (coupledFocusedPool peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))
+      (coupledVacantBeyond pool offset))
+
+def coupledOccupiedSlotAtPrefixesRefuses : (pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->
+    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) :=
+  fun (pendingIndex : Count) (generation : Count) (pending : LeasePool) (executor : ExecutorBank) (peersBefore : EstablishedFleet) (trusted : Flag) (swarm : Count) (identity : Count) (banksBefore : EstablishedBanks) (kind : EstablishedKind) (direction : EstablishedDirection) (unit : EstablishedUnit) (slotsBefore : LeasePool) (destinationGeneration : Count) (slotsAfter : LeasePool) (banksAfter : EstablishedBanks) (peersAfter : EstablishedFleet) =>
+    coupledRefuseDestination pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))
+      (equalTransitivity Flag
+      (executorVacantAt (leaseCapacity slotsBefore) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)))
+      (executorVacantAt (leaseCapacity slotsBefore) (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)))
+      off
+      (congruent LeasePool Flag (fun (pool : LeasePool) => executorVacantAt (leaseCapacity slotsBefore) pool) (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter)) (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter))
+        (coupledFocusedPool peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))
+      (coupledVacantAtPrefix slotsBefore (heldLease destinationGeneration) slotsAfter))

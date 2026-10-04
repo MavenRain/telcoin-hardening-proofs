@@ -74,7 +74,8 @@
     "proofs/85-composed-source-rates.mech": "5100f5e1bdd4edaaa396a7d71c1649208815a76361d69a38af6ac0f4249ffbcb",
     "proofs/86-established-resource-vectors.mech": "4268b57aba3bf5901c3fef8411cfe3078cef0c7d531df4f9dd8d56a7b7eff75b",
     "proofs/87-stage-resource-accounting.mech": "6e131f1bd63bb0d30be079121a1d5cbcc55a12d38ef28fe8faeb34076982cfe7",
-    "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a"
+    "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a",
+    "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4"
   },
   "obligations": [
     {
@@ -4635,7 +4636,7 @@
       "closure_packet": "R03",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 13 couples the existing pending LeasePool, pre-accept ExecutorBank and established fleet. General stage isolation, mixed-trace allocation bounds, guarded refusal and promotion idempotence are witnessed; a successful head promotion pins pending release and distinct established acquisition. Criterion 1 retains arbitrary-prefix/suffix successful-promotion and absent-index operational witnesses. Criteria 0 and 3 remain witnessed; criterion 2 retains critical workload/scheduling service. Runtime classification, routing, atomicity, receipt authority and per-stage cost domination remain external. E013, E019, E022 and E010 own their refinement.",
+      "scope_review": "Turn 14 closes criterion 1. Module 89 derives successful promotion from owned pending and vacant established slots at arbitrary pending, peer, bank and slot prefixes/suffixes, without a guard-equality premise. The exact resulting process releases only the selected pending generation, acquires only the selected established generation, and preserves the executor and every surrounding account. General operational refusal preserves the complete state for absent indices, free pending slots, mismatched generations and occupied destinations. Modules 86-88 retain established release isolation, separate stage accounting, generation consumption, promotion idempotence and arbitrary mixed-trace allocation bounds. Criteria 0, 1 and 3 are witnessed; criterion 2 still requires critical-class service under explicit workload/scheduling premises. Runtime classification, routing, atomicity, receipt authority and per-stage cost domination remain external obligations E013, E019, E022 and E010.",
       "witnesses": [
         {
           "path": "proofs/20-accounting.mech",
@@ -5533,7 +5534,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5546,7 +5547,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5559,7 +5560,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5572,7 +5573,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5585,7 +5586,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5598,7 +5599,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5611,7 +5612,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5624,7 +5625,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5637,7 +5638,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5650,7 +5651,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5663,7 +5664,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5676,7 +5677,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5689,7 +5690,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5702,7 +5703,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5715,7 +5716,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5728,7 +5729,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5741,7 +5742,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5754,7 +5755,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5767,7 +5768,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5780,7 +5781,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5793,7 +5794,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5806,7 +5807,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5819,7 +5820,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5832,7 +5833,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5845,7 +5846,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5858,7 +5859,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5871,7 +5872,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5884,7 +5885,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5897,7 +5898,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5910,7 +5911,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5923,7 +5924,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5936,7 +5937,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5949,7 +5950,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5962,7 +5963,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5975,7 +5976,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -5988,7 +5989,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -6001,7 +6002,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -6014,7 +6015,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -6027,7 +6028,7 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
         },
         {
           "path": "proofs/88-coupled-stage-process.mech",
@@ -6040,7 +6041,306 @@
             "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
             "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
           ],
-          "limits": "General allowed/refused statements require their explicit guard equality. Successful owner/suffix effects are pinned at head slots; arbitrary-prefix/suffix promotion and all absent-index operational witnesses remain open. This model does not prove critical scheduling service or runtime refinement."
+          "limits": "The granted/refused helper statements require their explicit guard equality, and the focused success statement selects head slots. Module 89 supplies the general operational promotion and refusal witnesses. This module does not prove critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledOwnedAtPrefix",
+          "statement": "(prefix : LeasePool) -> (lease : Lease) ->\n    (suffix : LeasePool) -> (generation : Count) ->\n    Equal Flag (executorOwnedAt (leaseCapacity prefix) generation (appendLeasePool prefix (leaseCell lease suffix)))\n      (executorOwnedAt zero generation (leaseCell lease suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Pending ownership lookup reaches the selected slot after any prefix without inspecting or changing surrounding slots.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledVacantAtPrefix",
+          "statement": "(prefix : LeasePool) -> (lease : Lease) -> (suffix : LeasePool) ->\n    Equal Flag (executorVacantAt (leaseCapacity prefix) (appendLeasePool prefix (leaseCell lease suffix)))\n      (executorVacantAt zero (leaseCell lease suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Vacancy lookup reaches the selected slot after any prefix.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledBankPoolAtPrefix",
+          "statement": "(prefix : EstablishedBanks) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->\n    (suffix : EstablishedBanks) -> Equal LeasePool\n      (coupledBankPool (establishedBankWidth prefix) (appendEstablishedBanks prefix (establishedBank kind direction unit pool suffix))) pool",
+          "scope_kind": "general_transition",
+          "establishes": "Bank lookup selects the exact pool after arbitrary banks, preserving arbitrary suffixes and resource classifications.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledFleetPoolAtPrefix",
+          "statement": "(prefix : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banks : EstablishedBanks) -> (suffix : EstablishedFleet) -> (bank : Count) ->\n    Equal LeasePool\n      (coupledFleetPool (establishedFleetWidth prefix) bank (appendEstablishedFleet prefix (establishedMember trusted swarm identity banks suffix)))\n      (coupledBankPool bank banks)",
+          "scope_kind": "general_transition",
+          "establishes": "Peer lookup reaches the selected banks after arbitrary peers, trust labels and swarms.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledFocusedPool",
+          "statement": "(peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) ->\n    (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) ->\n    (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) ->\n    (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> Equal LeasePool\n      (coupledFleetPool (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore)\n        (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter)) pool",
+          "scope_kind": "general_transition",
+          "establishes": "Composed peer and bank lookup returns exactly the selected pool at arbitrary prefixes.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledOwnedBeyond",
+          "statement": "(pool : LeasePool) -> (offset : Count) -> (generation : Count) ->\n    Equal Flag (executorOwnedAt (add (leaseCapacity pool) offset) generation pool) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every pending index represented by pool capacity plus an arbitrary offset is unowned.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledVacantBeyond",
+          "statement": "(pool : LeasePool) -> (offset : Count) ->\n    Equal Flag (executorVacantAt (add (leaseCapacity pool) offset) pool) off",
+          "scope_kind": "general_transition",
+          "establishes": "Every slot index represented by pool capacity plus an arbitrary offset is unavailable.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledBankBeyond",
+          "statement": "(banks : EstablishedBanks) -> (offset : Count) ->\n    Equal LeasePool (coupledBankPool (add (establishedBankWidth banks) offset) banks) emptyLeasePool",
+          "scope_kind": "general_transition",
+          "establishes": "Every bank index at or beyond the bank width returns the empty pool.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledFleetBeyond",
+          "statement": "(fleet : EstablishedFleet) -> (offset : Count) -> (bank : Count) ->\n    Equal LeasePool (coupledFleetPool (add (establishedFleetWidth fleet) offset) bank fleet) emptyLeasePool",
+          "scope_kind": "general_transition",
+          "establishes": "Every peer index at or beyond the fleet width returns the empty pool.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledBothRightOff",
+          "statement": "(owned : Flag) -> Equal Flag (both owned off) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unavailable destination denies conjunction for either pending ownership result.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledRefusePending",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Flag (executorOwnedAt pendingIndex generation (coupledPending process)) off ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process",
+          "scope_kind": "general_transition",
+          "establishes": "An unowned pending lookup suffices for complete-state promotion refusal.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledRefuseDestination",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (member : Count) ->\n    (bank : Count) -> (slot : Count) -> (process : CoupledProcess) ->\n    Equal Flag (executorVacantAt slot (coupledFleetPool member bank (coupledFleet process))) off ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation member bank slot process) process",
+          "scope_kind": "general_transition",
+          "establishes": "An unavailable destination lookup suffices for complete-state promotion refusal.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledReleaseAtPrefix",
+          "statement": "(prefix : LeasePool) -> (generation : Count) -> (suffix : LeasePool) ->\n    Equal LeasePool (updateLease (leaseCapacity prefix) (fun (lease : Lease) => releaseOwned generation lease) (appendLeasePool prefix (leaseCell (heldLease generation) suffix))) (appendLeasePool prefix (leaseCell (freeLease (next generation)) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Release consumes exactly the selected pending generation and preserves arbitrary prefix and suffix slots.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledReserveAtPrefix",
+          "statement": "(prefix : LeasePool) -> (generation : Count) -> (suffix : LeasePool) ->\n    Equal LeasePool (updateLease (leaseCapacity prefix) reserveLease (appendLeasePool prefix (leaseCell (freeLease generation) suffix))) (appendLeasePool prefix (leaseCell (heldLease generation) suffix))",
+          "scope_kind": "general_transition",
+          "establishes": "Reservation acquires exactly the selected free generation and preserves arbitrary prefix and suffix slots.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledPromotionAllowedAtPrefixes",
+          "statement": "(pendingBefore : LeasePool) -> (generation : Count) -> (pendingAfter : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->\n    Equal Flag (coupledPromotionAllowed (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) on",
+          "scope_kind": "general_transition",
+          "establishes": "Owned pending and vacant established slots derive the promotion guard at arbitrary pending, peer, bank and slot prefixes without assuming its result.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledPromotionAtPrefixes",
+          "statement": "(pendingBefore : LeasePool) -> (generation : Count) -> (pendingAfter : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->\n    Equal CoupledProcess (coupledPromote (leaseCapacity pendingBefore) generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess (appendLeasePool pendingBefore (leaseCell (heldLease generation) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (freeLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) (coupledProcess (appendLeasePool pendingBefore (leaseCell (freeLease (next generation)) pendingAfter)) executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))",
+          "scope_kind": "general_transition",
+          "establishes": "Successful promotion releases the selected pending generation, acquires the distinct established slot, and preserves the executor and every pending, peer, bank and slot prefix/suffix.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledFreePendingAtPrefixRefuses",
+          "statement": "(prefix : LeasePool) -> (suffix : LeasePool) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (current : Count) ->\n    Equal CoupledProcess (coupledPromote (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (freeLease current) suffix)) executor fleet)) (coupledProcess (appendLeasePool prefix (leaseCell (freeLease current) suffix)) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "A free pending slot at any prefix refuses promotion and preserves the complete process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledStalePendingAtPrefixRefuses",
+          "statement": "(prefix : LeasePool) -> (suffix : LeasePool) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (current : Count) -> (mismatch : Equal Flag (sameCount generation current) off) ->\n    Equal CoupledProcess (coupledPromote (leaseCapacity prefix) generation member bank slot (coupledProcess (appendLeasePool prefix (leaseCell (heldLease current) suffix)) executor fleet)) (coupledProcess (appendLeasePool prefix (leaseCell (heldLease current) suffix)) executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Any mismatched generation at any pending prefix refuses promotion and preserves the complete process; the explicit premise is generation inequality, not the promotion guard.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledAbsentPendingRefuses",
+          "statement": "(pending : LeasePool) -> (offset : Count) -> (generation : Count) -> (member : Count) -> (bank : Count) -> (slot : Count) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) ->\n    Equal CoupledProcess (coupledPromote (add (leaseCapacity pending) offset) generation member bank slot (coupledProcess pending executor fleet)) (coupledProcess pending executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Every absent pending index refuses promotion and preserves the complete process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledAbsentMemberRefuses",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (fleet : EstablishedFleet) -> (offset : Count) -> (bank : Count) -> (slot : Count) ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation (add (establishedFleetWidth fleet) offset) bank slot (coupledProcess pending executor fleet)) (coupledProcess pending executor fleet)",
+          "scope_kind": "general_transition",
+          "establishes": "Every absent member index refuses promotion and preserves the complete process for arbitrary pending, bank and slot coordinates.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledAbsentBankRefuses",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banks : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (offset : Count) -> (slot : Count) ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (add (establishedBankWidth banks) offset) slot (coupledProcess pending executor (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter)))) (coupledProcess pending executor (appendEstablishedFleet peersBefore (establishedMember trusted swarm identity banks peersAfter)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every absent bank index at any selected peer refuses promotion and preserves the complete process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledAbsentSlotRefuses",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (pool : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) -> (offset : Count) ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (add (leaseCapacity pool) offset) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit pool banksAfter peersAfter))",
+          "scope_kind": "general_transition",
+          "establishes": "Every absent slot index at any selected peer and bank refuses promotion and preserves the complete process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
+        },
+        {
+          "path": "proofs/89-general-stage-promotion.mech",
+          "name": "coupledOccupiedSlotAtPrefixesRefuses",
+          "statement": "(pendingIndex : Count) -> (generation : Count) -> (pending : LeasePool) -> (executor : ExecutorBank) -> (peersBefore : EstablishedFleet) -> (trusted : Flag) -> (swarm : Count) -> (identity : Count) -> (banksBefore : EstablishedBanks) -> (kind : EstablishedKind) -> (direction : EstablishedDirection) -> (unit : EstablishedUnit) -> (slotsBefore : LeasePool) -> (destinationGeneration : Count) -> (slotsAfter : LeasePool) -> (banksAfter : EstablishedBanks) -> (peersAfter : EstablishedFleet) ->\n    Equal CoupledProcess (coupledPromote pendingIndex generation (establishedFleetWidth peersBefore) (establishedBankWidth banksBefore) (leaseCapacity slotsBefore) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))) (coupledProcess pending executor (establishedFocusedFleet peersBefore trusted swarm identity banksBefore kind direction unit (appendLeasePool slotsBefore (leaseCell (heldLease destinationGeneration) slotsAfter)) banksAfter peersAfter))",
+          "scope_kind": "general_transition",
+          "establishes": "An occupied destination at arbitrary peer, bank and slot prefixes refuses promotion and preserves the complete process.",
+          "premises": [
+            "All pending, pre-accept and established work routes through these distinct finite accounts with serialized atomic transitions. E013, E019 and E022 retain runtime classification and routing refinement for the pending, pre-accept and established stages.",
+            "Promotion coordinates and generation receipts are classified internal authority; nonwrapping generations and actual resource termination remain runtime premises.",
+            "Weighted resource interpretations require supplied per-stage cost domination and coordinate-wise initial process fit; no scheduling guarantee is assumed."
+          ],
+          "limits": "The operational success and refusal witnesses derive guard decisions from their concrete state shapes. Stale ownership requires the explicit sameCount mismatch; lookup/refusal helpers retain their stated intermediate equalities. These proofs do not establish critical scheduling service or runtime refinement."
         }
       ],
       "controls": [
@@ -6411,6 +6711,102 @@
         {
           "name": "coupled_stage_pending_reservation_skipped",
           "sha256": "fdbe479624b97c53bce4ab6cc6d112112d60282113f554f4b948ef1d1fc4b0c2"
+        },
+        {
+          "name": "general_stage_accepts_free_pending",
+          "sha256": "18930165ab106dd5e9368b3698151bfb1d2ad9b2a182ded3db5d3689758fd898"
+        },
+        {
+          "name": "general_stage_accepts_occupied_destination",
+          "sha256": "3901d0427de36970fb1422356d6f5993e58034317409ae5df5964faba21edae5"
+        },
+        {
+          "name": "general_stage_drops_pending_prefix",
+          "sha256": "19c755c109808f7ba5983b526411f730f9ce693120605c701228007f3d05b005"
+        },
+        {
+          "name": "general_stage_drops_pending_suffix",
+          "sha256": "aee285cbc4ef0591f7f9f419108240e3a13593e93a5b96b6bde596c1c0b14f0d"
+        },
+        {
+          "name": "general_stage_reuses_pending_generation",
+          "sha256": "54f5de14ca9432d0018e19751798515af5e4aa17c24bdf74d9094ee0e852fdff"
+        },
+        {
+          "name": "general_stage_releases_wrong_generation",
+          "sha256": "a188f648d7fd2b6b605c61c93e4bd0c65c6b19103f2bd140b89829aa85a6b1ba"
+        },
+        {
+          "name": "general_stage_skips_destination_acquisition",
+          "sha256": "ab00b3f7c368faa6d55fec5b16085a93bb4c2f3f61f7eb31648c7e1cfaf9c065"
+        },
+        {
+          "name": "general_stage_changes_destination_generation",
+          "sha256": "4a7274a470032d0a352ea338b7b8da0a20407da33b32d941fa9211a4a295829d"
+        },
+        {
+          "name": "general_stage_drops_slot_prefix",
+          "sha256": "582e2768074fed9da59104aeb4aaaab36bc9c1db72b2558f8600e6145751f2b6"
+        },
+        {
+          "name": "general_stage_drops_slot_suffix",
+          "sha256": "6d0447706c71102c9144bac100fef193fc9b861ba22e15f20e2932fa2215e072"
+        },
+        {
+          "name": "general_stage_drops_peer_prefix",
+          "sha256": "c210d277892f8de31b272b78d7d5ec919a33f92b58e6f48ef0e750e2e0932bf4"
+        },
+        {
+          "name": "general_stage_drops_bank_prefix",
+          "sha256": "0a192e1b7eb11c591a55026ad983f0096071454a18da4f673c4db1f7fe43a96e"
+        },
+        {
+          "name": "general_stage_drops_bank_suffix",
+          "sha256": "b6efb6d2caa3252d8af67b51980ec6813ad42320ecef80b100a19e5d90746034"
+        },
+        {
+          "name": "general_stage_drops_peer_suffix",
+          "sha256": "5c1df8437a82a92e218e81353d4c0d88a028600cf8aed332b0881fc775e0bd3f"
+        },
+        {
+          "name": "general_stage_discards_executor",
+          "sha256": "b4c1fc18c35e5a9a6741480e2acad34a882ea5acc3eb4f58b3ef35047876b52c"
+        },
+        {
+          "name": "general_stage_refuses_present_pending",
+          "sha256": "1d800f9d4ef99ffae0e48a11237aa9424450f58c37fdc4e44bee055cb62f7868"
+        },
+        {
+          "name": "general_stage_refuses_present_member",
+          "sha256": "6c7e2dabe4b204938757b48f8e5edfe43dc7df2aca55fabac009828b1c2e4943"
+        },
+        {
+          "name": "general_stage_refuses_present_bank",
+          "sha256": "00b05cc9f967f325d8d9a00834325a7bdb00cdba1e8b4c63519ffd3396b4ecce"
+        },
+        {
+          "name": "general_stage_refuses_present_slot",
+          "sha256": "93abbc9fcc0f175a2c7b3577289aa5a5e4fb2c5dbfedbe8e0873f9a63f0f4e3b"
+        },
+        {
+          "name": "general_stage_free_refusal_accepts_owned",
+          "sha256": "4d0547997cbcafec28395b48ea8368fc288a039764a1dc771ce607fcd24619cc"
+        },
+        {
+          "name": "general_stage_occupied_refusal_accepts_vacant",
+          "sha256": "6e5ed373037147e6b32137b34a529ac56731b286e78c39c43131e7758f4edf8c"
+        },
+        {
+          "name": "general_stage_stale_refusal_drops_mismatch",
+          "sha256": "fe557247b9c675bf4e90e4639662ae97590747b03fb6a56f93d4b6d26c2ff649"
+        },
+        {
+          "name": "general_stage_grants_wrong_member",
+          "sha256": "5ae302e87916548dbeb40459be6ff5ef16c63ab47928011bf80b4e22c0bc1d7d"
+        },
+        {
+          "name": "general_stage_grants_wrong_bank",
+          "sha256": "e0dc71a85d8ce921748787902b3c0d6c21675f77a56c9ab6d475f7ff187036a0"
         }
       ],
       "criteria": [
@@ -6443,7 +6839,7 @@
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/86-established-resource-vectors.mech#establishedBankStepAtPrefix",
             "proofs/86-established-resource-vectors.mech#establishedFleetStepAtPrefix",
@@ -6522,10 +6918,33 @@
             "proofs/88-coupled-stage-process.mech#coupledFailedCompletionRouting",
             "proofs/88-coupled-stage-process.mech#coupledPendingReservationRouting",
             "proofs/88-coupled-stage-process.mech#coupledPromotionReplayCase",
-            "proofs/88-coupled-stage-process.mech#coupledPromotionIdempotent"
+            "proofs/88-coupled-stage-process.mech#coupledPromotionIdempotent",
+            "proofs/89-general-stage-promotion.mech#coupledOwnedAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledVacantAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledBankPoolAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledFleetPoolAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledFocusedPool",
+            "proofs/89-general-stage-promotion.mech#coupledOwnedBeyond",
+            "proofs/89-general-stage-promotion.mech#coupledVacantBeyond",
+            "proofs/89-general-stage-promotion.mech#coupledBankBeyond",
+            "proofs/89-general-stage-promotion.mech#coupledFleetBeyond",
+            "proofs/89-general-stage-promotion.mech#coupledBothRightOff",
+            "proofs/89-general-stage-promotion.mech#coupledRefusePending",
+            "proofs/89-general-stage-promotion.mech#coupledRefuseDestination",
+            "proofs/89-general-stage-promotion.mech#coupledReleaseAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledReserveAtPrefix",
+            "proofs/89-general-stage-promotion.mech#coupledPromotionAllowedAtPrefixes",
+            "proofs/89-general-stage-promotion.mech#coupledPromotionAtPrefixes",
+            "proofs/89-general-stage-promotion.mech#coupledFreePendingAtPrefixRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledStalePendingAtPrefixRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledAbsentPendingRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledAbsentMemberRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledAbsentBankRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledAbsentSlotRefuses",
+            "proofs/89-general-stage-promotion.mech#coupledOccupiedSlotAtPrefixesRefuses"
           ],
-          "rationale": "Exact arbitrary-prefix/suffix statements isolate the selected established peer, bank and generation-owned slot. The terminal/shedding wrapper binds every receipt coordinate; unowned and preceding-generation tokens preserve their pools. No established event can change the pending lease pool or the pre-accept work field, so establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Runtime receipt provenance and actual resource termination remain premises. Turn 12 adds module 87: one generation-owned reservation moves through pending, pre-accept and established phases. Stage charges partition its shared vector exactly; arbitrary mixed traces preserve allocation and bounds. Phase-scoped receipts, adjacent handoff reachability, idempotent completion and arbitrary-prefix/suffix routing constrain the operational definitions. This does not discharge coupled-process stage accounting or the separate-pool promotion bridge. Turn 13 supplies distinct stage accounts in one process, general nonpromotion isolation, complete-state guarded refusal, exact head promotion, generation consumption and guarded promotion idempotence. Arbitrary mixed traces retain each stage allocation and their composed weighted vector.",
-          "remaining": "R03: Generalize successful promotion to arbitrary pending, peer, bank and slot prefixes/suffixes, and pin promotion refusal at every absent member/bank/slot index. Module 88 proves general stage isolation, guarded complete-state refusal and idempotence, but its unconditional successful-promotion witness selects head slots. The generic promotion statements still take the allowed/refused guard equality as a premise."
+          "rationale": "Modules 86-89 distinguish pending handshakes, pre-accept executor work and established resources in one coupled process. Established release/shedding isolates its selected generation-owned allocation. No established event of module 86 can change the pending lease pool or the pre-accept work field. As a result, establishedTraceKeepsOtherPhases holds by construction and does not witness stage accounting. Nonpromotion transitions preserve the other stages. Promotion success is derived from a held pending generation and a vacant established generation at arbitrary pending, peer, bank and slot prefixes/suffixes, with no assumed promotion guard. Its complete-state equation frees only the selected pending generation (consuming it), acquires only the selected established generation, preserves the executor, and retains every unselected prefix and suffix. Complete-state refusal covers every absent pending/member/bank/slot index, free pending ownership, any explicitly mismatched generation and occupied destinations at arbitrary positions. Generation consumption, replay idempotence, established release isolation and arbitrary mixed-trace stage allocation bounds remain witnessed. Runtime classification/routing, atomicity, receipt authority, actual resource termination and cost domination remain explicit external obligations; critical scheduling service remains criterion 2.",
+          "remaining": ""
         },
         {
           "index": 2,

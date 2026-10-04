@@ -1,6 +1,6 @@
-# R03 admission boundary, turn 13
+# R03 admission boundary, turn 14
 
-R03 is active after thirteen execution turns. Turn 1 closed M004, turn 2 closed
+R03 is active after fourteen execution turns. Turn 1 closed M004, turn 2 closed
 M001 with authentication and reachability composition, turn 3 closed M002
 with a pre-validation envelope, and turn 4 closes M011 with unlocked handshake
 execution, ownership and host envelopes. Turn 5 closes M007 with arbitrary
@@ -16,8 +16,8 @@ reservation ledger with exact stage partitions and phase-scoped receipts.
 Turn 13 couples the existing distinct pending pool, pre-accept executor and
 established fleet. General nonpromotion isolation, guarded refusal and promotion
 idempotence hold; a focused successful promotion pins the release and grant.
-Criterion 1 retains arbitrary-prefix/suffix successful-promotion and all
-absent-index operational witnesses. Criterion 2 retains critical
+Turn 14 closes criterion 1 with arbitrary-prefix/suffix successful promotion and
+all absent-index operational witnesses. Criterion 2 retains critical
 workload/scheduling service as its exact remaining gap.
 M005 was already covered by R02.
 The audit covers ten of 83 model obligations, retains 73 exact gaps, and leaves all 43 external obligations
@@ -403,10 +403,10 @@ established resources. Unowned, free and preceding-generation handoffs preserve
 their resources. The 25 controls test these operational rules, trace routing,
 ledger isolation and stage partitioning against general statements.
 
-This ledger moves one reservation between phases. It does not yet connect the
-existing pending pool, pre-accept executor and established fleet, or release a
-pending lease while granting a distinct established lease. M012 criterion 1
-therefore remains a gap. Runtime interpretation requires atomic transitions,
+This ledger moves one reservation between phases. Modules 88-89 connect the
+existing pending pool, pre-accept executor and established fleet, and release a
+pending lease while granting a distinct established lease. Their combined
+evidence closes M012 criterion 1. Runtime interpretation requires atomic transitions,
 correct receipt routing and cost bounds that dominate every phase. Advertised
 credit remains separate from resident bytes and tasks.
 
@@ -437,33 +437,45 @@ authority, routing, serialization, nonwrapping generations, actual resource
 termination and resource-cost domination remain explicit premises. No
 critical scheduling service is derived.
 
-The generic granted/refused statements assume their guard equality. Successful
-promotion at arbitrary prefixes/suffixes, and operational refusal for every
-absent member/bank/slot index, remain criterion-1 work. These gaps receive no
-coverage credit from the focused successful head witness.
+## General operational stage promotion
+
+Module 89 derives the promotion guard from owned pending and vacant established
+slots at arbitrary pending, peer, bank and slot prefixes/suffixes. Its exact
+success equation frees the selected pending generation and increments it,
+acquires the distinct established generation unchanged, and preserves the
+executor and every surrounding account. All resource kinds, directions, trust
+labels and swarm labels remain universally quantified.
+
+Operational refusal preserves the complete process for free pending slots,
+any mismatched generation, occupied destination slots, and every absent pending,
+member, bank or slot index. Absent indices range over each collection's length
+plus an arbitrary offset. The stale case assumes only the explicit generation
+mismatch. No operational witness assumes the promotion guard's result.
+
+The new evidence closes M012 criterion 1 together with the established release
+isolation and coupled mixed-trace accounting in modules 86-88. The 24 new
+controls reject false input ownership, loss of any prefix/suffix, incorrect
+generation consumption, executor loss, wrong member/bank grants and false
+refusal claims at present or available indices.
 
 ## Remaining R03 scope
 
-One R03 obligation remains: M012.
-Its remaining criterion-1 work in proof-audit.json is arbitrary-prefix/suffix
-successful promotion and all absent-index operational refusal witnesses.
-Module 88 now supplies general other-stage isolation, guarded complete-state
-refusal, promotion idempotence and mixed-trace allocation accounting.
-Its remaining criterion-2 work
-is critical-class service under explicit workload/scheduling premises. Finite process-vector composition
-already has general evidence. R03 stays active until its three exit criteria
-close, and all 43 external obligations remain open.
+One R03 obligation remains: M012. Criteria 0, 1 and 3 are witnessed. Criterion 2
+still requires critical-class service under explicit workload and scheduling
+premises within the finite composed process allocation. Turn 15 must discharge
+that claim under the [two-turn closure requirement](M012-CLOSURE.md).
+R03 stays active, and all 43 external obligations remain open.
 
 ## Validation
 
 The complete proof and mutation receipt is
-[r03-coupled-stage-process-check.json](../evidence/r03-coupled-stage-process-check.json).
-The corpus has 1385 explicit proof declarations in 71 modules. The full run
-includes 1298 negative checks (1295 registered mutations plus three generic
+[r03-general-stage-promotion-check.json](../evidence/r03-general-stage-promotion-check.json).
+The corpus has 1409 explicit proof declarations in 72 modules. The full run
+includes 1322 negative checks (1319 registered mutations plus three generic
 controls), empty axiom disclosure and pinned compiler provenance. Disposition,
 scope, audit and qualification regressions retain the fixed source and external
 boundaries.
 
 Full qualification must still fail while model and external obligations remain
-open. The historical R03 turn-1 through turn-12 and R02 receipts retain their original counts
+open. The historical R03 turn-1 through turn-13 and R02 receipts retain their original counts
 and input hashes.

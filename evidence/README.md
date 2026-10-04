@@ -1258,3 +1258,26 @@ The complete mutation suite ran with two workers. The blocked-qualification
 branch then reused that completed rejection set after verifying the compiler,
 checked source, checker and every candidate. Positive and axiom checks ran
 again, and the original qualification-guard assertions confirmed exit 2.
+
+## R03 turn 14 general stage promotion
+
+`r03-general-stage-promotion-check.json` records the complete model check:
+72 modules, 1409 explicit proof declarations, 34 claim groups, 186 atomic
+obligations, 1383 source units and 1322 rejected negative checks. Module 89 adds
+24 counted proofs and 24 `general_stage_*` controls. The receipt pins 104 input
+files and the locked compiler, with empty axiom disclosure.
+
+M012 criterion 1 is witnessed by exact arbitrary-prefix/suffix promotion and
+complete-state refusal for absent pending/member/bank/slot indices, free or
+mismatched pending ownership and occupied destinations. The success theorem
+derives the guard, releases only the selected pending generation, grants only
+the selected established slot, and preserves the executor and all surrounding
+accounts. Existing generation consumption, replay idempotence, release isolation
+and mixed-trace allocation bounds remain checked. The stale theorem explicitly
+requires generation mismatch, not a refused guard.
+
+Criteria 0 and 3 retain their evidence. Criterion 2 remains open for critical
+service under concrete workload/scheduling premises. Coverage stays at 10 of
+83 model obligations, with 73 retaining gaps and 43 external obligations open.
+R03 has used fourteen turns against five planned. Runtime refinement and full
+qualification remain incomplete; historical receipts keep their hashes.
