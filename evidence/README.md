@@ -1314,7 +1314,24 @@ isolation, worker-list extension, default profile, generation, executable trace
 transitions and trace execution order.
 
 Both M022 criteria are witnessed by general role/swarm/update proofs and three
-arbitrary-trace results. The current audit covers 12 of 83 model obligations;
-71 retain gaps. R04 is active at turn 1, using execution turn 26 of 50. The
+arbitrary-trace results. At turn 1 the audit covered 12 of 83 model obligations;
+71 retained gaps. R04 was active at turn 1, using execution turn 26 of 50. The
 [turn record](../docs/R04-POLICY.md) states the model premises and remaining
 obligations. All 43 external obligations and full qualification remain open.
+
+## R04 turn 2: policy lifecycle revisions
+
+[r04-policy-lifecycle-revisions-check.json](r04-policy-lifecycle-revisions-check.json)
+records the full gate for module 92: 75 modules, 1522 explicit equality/order
+proofs, empty axiom disclosure and 1420 rejected negative checks. The 32 new
+`lifecycle_*` controls require semantic type rejection. They cover revision
+stamp checks, role and worker aliasing, stale authorities, authentication and
+policy bypass, refusal and success branches, intervening events and revision
+counts.
+
+Both M023 criteria are witnessed by general role/swarm/revision proofs and
+arbitrary-trace results. The current audit covers 13 of 83 model obligations;
+70 retain gaps. R04 is active at turn 2, using execution turn 27 of 50. The
+turn-1 receipt is now historical. The [turn record](../docs/R04-POLICY.md)
+states the model premises and remaining obligations. All 43 external
+obligations and full qualification remain open.

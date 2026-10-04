@@ -77,7 +77,8 @@
     "proofs/88-coupled-stage-process.mech": "5bd8dc3c938874a8c2dd66461341b2552852e0ca8d33f87e959ed47cf641e29a",
     "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4",
     "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c",
-    "proofs/91-authoritative-policy-union.mech": "25bffdaf514e59b72bab34e20e31606f64320909200f74545bf2d6a8d7cdf4db"
+    "proofs/91-authoritative-policy-union.mech": "25bffdaf514e59b72bab34e20e31606f64320909200f74545bf2d6a8d7cdf4db",
+    "proofs/92-policy-lifecycle-revisions.mech": "aefd607e54917314abb84f8b0ac9f9ee07cf8925a5618fe83c15f4d378f42cb6"
   },
   "obligations": [
     {
@@ -9658,8 +9659,8 @@
       "id": "M023",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The frozen required scope remains a model obligation in R04.",
+      "scope_complete": true,
+      "scope_review": "R04 turn 2: module 92 implements distinct inbound admission, outbound dial and outbound establishment transitions for every node role, primary and arbitrary-index worker swarm. Inbound/dial decisions use the current exact authoritative union; establishment checks generation, role, swarm and identity and independently re-queries the current authenticated policy. Closed, Open and Grace behavior is preserved explicitly. Mixed finite update traces advance generation by their exact effective update count. A prior receipt remains refused after a verified roster or authorized profile update and any following mixed trace. An executable exchange places arbitrary prefix/intervening changes around separate dial/establishment decisions, rejects every intervening trace with a positive effective revision count and also has a positive fresh-success witness. The old module-33 statements keep only their recorded local credit. Atomic current-authority capture, faithful indexing/current authentication, correctly classified roster updates, authorized profile events and unbounded model generations are explicit premises. M024 retains independent bounded privileges and M040 retains live-connection sweeps; E029 retains runtime receipt provenance, publication, generation persistence and refinement. The sealed obligation and external boundary are unchanged.",
       "witnesses": [
         {
           "path": "proofs/33-policy-readers.mech",
@@ -9704,33 +9705,760 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. These local statements do not establish: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates. Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "sameUnionRoleUsesDistinctTags",
+          "statement": "(captured : NodePolicyRole) -> (current : NodePolicyRole) ->\n    Equal Flag (sameUnionRole captured current) (sameCount (unionRoleTag captured) (unionRoleTag current))",
+          "scope_kind": "general_transition",
+          "establishes": "Role equality is exactly equality of three distinct natural-number tags for every pair of node roles.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "sameUnionWorkerSwarmUsesExactIndex",
+          "statement": "(captured : Count) -> (current : Count) ->\n    Equal Flag (sameUnionSwarm (indexedWorkerPolicySwarm captured) (indexedWorkerPolicySwarm current)) (sameCount captured current)",
+          "scope_kind": "general_transition",
+          "establishes": "Worker equality compares the entire arbitrary natural-number index.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionPrimaryNeverMatchesWorker",
+          "statement": "(index : Count) -> Equal Flag (sameUnionSwarm primaryPolicySwarm (indexedWorkerPolicySwarm index)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A primary receipt never matches a worker at any index.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionWorkerNeverMatchesPrimary",
+          "statement": "(index : Count) -> Equal Flag (sameUnionSwarm (indexedWorkerPolicySwarm index) primaryPolicySwarm) off",
+          "scope_kind": "general_transition",
+          "establishes": "A worker receipt never matches a primary query.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "freshUnionRevisionMatches",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (unionRevisionMatches role swarm current identity (captureUnionRevision role swarm current identity)) on",
+          "scope_kind": "general_transition",
+          "establishes": "A freshly captured current generation, role, swarm and identity passes every revision check.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "inboundUnionChecksCurrent",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (inboundUnionAllowed (inboundUnionAdmission role swarm current authenticated identity))\n      (authoritativeUnionQuery role swarm current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Inbound admission returns exactly the current selected authoritative policy decision.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "outboundUnionDialChecksCurrent",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (outboundUnionDialAllowed (outboundUnionDial role swarm current authenticated identity))\n      (authoritativeUnionQuery role swarm current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Outbound dial returns exactly the current selected authoritative policy decision.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "outboundUnionEstablishedChecksCurrent",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->\n    Equal Flag (outboundUnionEstablishedAllowed\n      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)))\n      (both (unionRevisionMatches role swarm current identity receipt) (authoritativeUnionQuery role swarm current authenticated identity))",
+          "scope_kind": "general_transition",
+          "establishes": "Establishment from an approved dial requires both matching revision/context and the independently authenticated current policy decision.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "refusedUnionDialCannotEstablish",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm current authenticated identity outboundUnionDialRefused) outboundUnionEstablishedRefused",
+          "scope_kind": "general_transition",
+          "establishes": "A refused dial cannot produce an established approval under any current policy.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "mismatchedUnionRevisionCannotEstablish",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->\n    Equal Flag (unionRevisionMatches role swarm current identity receipt) off ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused",
+          "scope_kind": "general_transition",
+          "establishes": "Every receipt failing the revision/context check produces an explicit establishment refusal.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "deniedCurrentUnionCannotEstablish",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->\n    Equal Flag (authoritativeUnionQuery role swarm current authenticated identity) off ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused",
+          "scope_kind": "general_transition",
+          "establishes": "A denied current policy query refuses establishment even when an approved dial receipt is supplied.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unauthenticatedUnionCannotEstablish",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm current off identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused",
+          "scope_kind": "general_transition",
+          "establishes": "An unauthenticated establishment query is refused for every approved dial receipt.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "mismatchedUnionGeneration",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->\n    Equal Flag (sameCount generation (authoritativeUnionGeneration current)) off ->\n    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A different captured generation cannot match the current authority, independently of every context field.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "mismatchedUnionRole",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->\n    Equal Flag (sameUnionRole capturedRole role) off ->\n    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt for a different node role fails even when the remaining receipt fields are arbitrary.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "mismatchedUnionSwarm",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->\n    Equal Flag (sameUnionSwarm capturedSwarm swarm) off ->\n    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt for a different swarm fails even when the remaining receipt fields are arbitrary.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "mismatchedUnionIdentity",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->\n    Equal Flag (sameCount capturedIdentity identity) off ->\n    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A receipt for a different identity fails even when the remaining receipt fields are arbitrary.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "currentUnionReceiptEstablishesDecision",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm current authenticated identity\n        (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))\n      (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)\n        (authoritativeUnionQuery role swarm current authenticated identity))",
+          "scope_kind": "general_transition",
+          "establishes": "A current-context approved receipt preserves exactly the current establishment decision and stamps any resulting approval with the current authority.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecyclePointsCheckCurrent",
+          "statement": "(point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)\n      (authoritativeUnionQuery role swarm current authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Every separately implemented lifecycle point checks the same selected current immutable policy; the established branch uses a current-context approved receipt.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecyclePointsRequireIdentity",
+          "statement": "(point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm current off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "All three lifecycle points retain the independent current authentication gate.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecycleClosedUsesExactUnion",
+          "statement": "(point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) closedProfile ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)\n      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm current)))",
+          "scope_kind": "general_transition",
+          "establishes": "Under an explicitly Closed selected profile, all three points require authenticated exact five-source union membership.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecycleOpenKeepsAuthentication",
+          "statement": "(point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) openProfile ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "Under an explicitly Open selected profile, all three points preserve authentication while allowing authenticated nonmembers.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecycleGraceKeepsAuthentication",
+          "statement": "(point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) graceProfile ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "Under an explicitly Grace selected profile, all three points preserve authentication while allowing authenticated nonmembers.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionChangesGeneration",
+          "statement": "(changes : AuthoritativeUnionChanges) -> (current : AuthoritativeUnionPolicy) ->\n    Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes current))\n      (add (authoritativeUnionGeneration current) (unionChangesRevisionCount changes))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite mixed roster/profile trace advances the authority by exactly its verified roster and authorized profile update count; provisional roster events consume no revision.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "advancedUnionReceiptAfterTraceMismatch",
+          "statement": "(before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->\n    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->\n    Equal Flag (unionRevisionMatches role swarm (runAuthoritativeUnionChanges changes after) identity\n      (captureUnionRevision role swarm before identity)) off",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After one generation advance and every finite following mixed trace, a receipt captured before the advance remains stale.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "advancedUnionReceiptAfterTraceCannotEstablish",
+          "statement": "(before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->\n    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes after) authenticated identity\n        (outboundUnionDialApproved (captureUnionRevision role swarm before identity))) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After one generation advance and every finite following mixed trace, establishment from a receipt captured before the advance is explicitly refused.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "verifiedUnionUpdateAndTraceCannotEstablish",
+          "statement": "(current : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->\n    (updateRole : NodePolicyRole) -> (updateSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes (verifiedCommitteeUnionUpdate on updateRole updateSwarm incoming current))\n        authenticated identity (outboundUnionDialApproved (captureUnionRevision role swarm current identity))) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every verified roster update invalidates prior receipts for all query roles and swarms, even after arbitrary following mixed updates.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionProfileUpdateAndTraceCannotEstablish",
+          "statement": "(current : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->\n    (updateRole : NodePolicyRole) -> (requested : Profile) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes (configureUnionProfile updateRole requested current))\n        authenticated identity (outboundUnionDialApproved (captureUnionRevision role swarm current identity))) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every authorized profile update invalidates prior receipts for all query roles and swarms, even after arbitrary following mixed updates.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "allUnionLifecyclePointsAfterChangesCheckCurrent",
+          "statement": "(changes : AuthoritativeUnionChanges) -> (point : UnionLifecyclePoint) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (freshUnionLifecycleAllowed point role swarm (runAuthoritativeUnionChanges changes current) authenticated identity)\n      (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes current) authenticated identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After every finite mixed update trace, each lifecycle point checks the resulting selected authority; its established branch uses a freshly captured approved receipt.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionOutboundExchangeUsesInterveningChanges",
+          "statement": "(before : AuthoritativeUnionChanges) -> (between : AuthoritativeUnionChanges) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (runUnionOutboundExchange before between role swarm current dialAuthenticated establishedAuthenticated identity)\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges between (runAuthoritativeUnionChanges before current))\n        establishedAuthenticated identity (outboundUnionDial role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "The executable exchange dials after the prefix, establishes after the intervening trace, and uses separate dial and establishment authentication inputs.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "selectedUnionDialAfterAdvanceCannotEstablish",
+          "statement": "(before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->\n    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) -> (allowed : Flag) ->\n    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes after) authenticated identity\n        (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) allowed)) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Both refusal and approval branches of every dial selection are refused after a generation advance and every finite following mixed trace.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionOutboundExchangeAfterVerifiedUpdateRefused",
+          "statement": "(before : AuthoritativeUnionChanges) -> (after : AuthoritativeUnionChanges) ->\n    (updateRole : NodePolicyRole) -> (updateSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->\n    Equal OutboundUnionEstablishedDecision\n      (runUnionOutboundExchange before (authoritativeUnionChange (committeeUnionChange on updateRole updateSwarm incoming) after)\n        role swarm current dialAuthenticated establishedAuthenticated identity) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An actual dial/establish exchange is refused after any prefix when a verified update is the first intervening event, regardless of the dial decision, query context and following mixed trace.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "effectiveUnionTraceReceiptMismatch",
+          "statement": "(before : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->\n    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    Equal Count (unionChangesRevisionCount changes) (next remaining) ->\n    Equal Flag (unionRevisionMatches role swarm (runAuthoritativeUnionChanges changes before) identity\n      (captureUnionRevision role swarm before identity)) off",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A receipt captured before any finite mixed trace with a positive effective revision count no longer matches the resulting authority, for every role, swarm and identity, wherever the effective events occur in the trace.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence.",
+            "Hypothesis: the effective revision count of the trace is next remaining, so the trace holds at least one verified roster update or authorized profile change, at any position."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "selectedUnionDialAfterEffectiveChangesCannotEstablish",
+          "statement": "(before : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->\n    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) -> (allowed : Flag) ->\n    Equal Count (unionChangesRevisionCount changes) (next remaining) ->\n    Equal OutboundUnionEstablishedDecision\n      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes before) authenticated identity\n        (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) allowed)) outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A selected dial result captured before any finite mixed trace with a positive effective revision count cannot establish afterward, for both dial branches and every establishment authentication input.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence.",
+            "Hypothesis: the effective revision count of the trace is next remaining, so the trace holds at least one verified roster update or authorized profile change, at any position."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "unionOutboundExchangeAfterEffectiveChangesRefused",
+          "statement": "(before : AuthoritativeUnionChanges) -> (between : AuthoritativeUnionChanges) ->\n    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->\n    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->\n    Equal Count (unionChangesRevisionCount between) (next remaining) ->\n    Equal OutboundUnionEstablishedDecision\n      (runUnionOutboundExchange before between role swarm current dialAuthenticated establishedAuthenticated identity)\n      outboundUnionEstablishedRefused",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An actual dial/establish exchange is refused after any prefix when the intervening mixed trace holds a verified roster update or authorized profile change at any position, regardless of the dial decision and query context.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence.",
+            "Hypothesis: the effective revision count of the trace is next remaining, so the trace holds at least one verified roster update or authorized profile change, at any position."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open."
+        },
+        {
+          "path": "proofs/92-policy-lifecycle-revisions.mech",
+          "name": "freshUnionDialCanEstablish",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery role swarm current on identity) on ->\n    Equal OutboundUnionEstablishedDecision\n      (runUnionOutboundExchange noAuthoritativeUnionChanges noAuthoritativeUnionChanges role swarm current on on identity)\n      (outboundUnionEstablishedApproved (captureUnionRevision role swarm current identity))",
+          "scope_kind": "general_transition",
+          "establishes": "An actual fresh authenticated dial with a current allowed query establishes successfully, ruling out an always-refuse lifecycle.",
+          "premises": [
+            "Each decision receives the authoritative immutable policy at its atomic model decision point. Updates and decisions form an ordered finite execution; runtime publication linearization remains E029.",
+            "Network identities map faithfully to vector indices. The authentication flag is the current independent verification judgment, including at establishment.",
+            "Roster verification flags classify all incoming source vectors correctly, and profile changes represent authorized operator configuration.",
+            "Generations are unbounded natural numbers advanced by verified roster and authorized profile events; runtime wraparound, persistence and rollback refinement remain external.",
+            "Any additional Equal premise in the exact statement is required, including explicit profile, mismatch, generation-advance or positive-decision evidence."
+          ],
+          "limits": "Abstract lifecycle and revision enforcement only. An approved dial constructor is not a cryptographic or runtime provenance proof; E029 retains runtime receipt provenance and M024 retains independent bounded privileges. The fresh lifecycle observation uses a current-context approved receipt, while the executable exchange and stale-trace witnesses cover actual dial results across updates. Fault-triggered fallback isolation, source/resource attribution, expiry and reload/removal remain their independent ledger obligations. E029 retains runtime authority capture, publication, generation discipline and policy/record refinement; all external obligations remain open. Both trace arguments are the empty trace. This witness shows success only for a fresh exchange with no prefix or intervening changes."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "lifecycle_capture_wrong_generation",
+          "sha256": "7e609aac4c60d7a731d36aea84911a034fd081ac3cf18dfe32f2926a3e8e57c1"
+        },
+        {
+          "name": "lifecycle_capture_wrong_role",
+          "sha256": "50adff9263635417216e1c9191a65ff0278459860083ebfa457eb5872d810a5c"
+        },
+        {
+          "name": "lifecycle_capture_wrong_swarm",
+          "sha256": "0c8d8cb8d550240998a0bc1c32aebb40d30719bf435ce681b56f72677d3afdff"
+        },
+        {
+          "name": "lifecycle_capture_wrong_identity",
+          "sha256": "5f7bcae230d4f67ad2e381134685550a596b20101e8b8db378cccb1e1eee8a6d"
+        },
+        {
+          "name": "lifecycle_stamp_drops_generation",
+          "sha256": "7cf4e5384636c4d2eb91039236cd63cc5451d41436da66abfbbdae43fbdef287"
+        },
+        {
+          "name": "lifecycle_stamp_drops_role",
+          "sha256": "3584e3018f666e4e5e7b9671def1e15e5fc940cbcfed2567b0cb877f5b8d9042"
+        },
+        {
+          "name": "lifecycle_stamp_drops_swarm",
+          "sha256": "b2573e4aa68f8771cdf330a0d7aa06a3e83c5c5c4bd3ed6c3c0a5580b7890904"
+        },
+        {
+          "name": "lifecycle_stamp_drops_identity",
+          "sha256": "fd49339637a19972a5b9f39a4abceb32aaf0dc26ad7677858452a6c1c0d29551"
+        },
+        {
+          "name": "lifecycle_roles_alias",
+          "sha256": "74e7e99ed33a0ebed25ae2321c839cbe20ebb90dcd3f4e7a411755ade43a2b65"
+        },
+        {
+          "name": "lifecycle_workers_alias",
+          "sha256": "ef21962b6a8ba904f9c0129ed7542ed478a78da3cdc7ce8f2151c9735f022b68"
+        },
+        {
+          "name": "lifecycle_primary_matches_worker",
+          "sha256": "78e1c7511951d8b75046de9487b096698d1709005450f6a1cf975a30226440db"
+        },
+        {
+          "name": "lifecycle_inbound_stale_authority",
+          "sha256": "bcf69061f53b0a7cc36ca84a6c2a11cc8746a71f64bc58729eef82c3f68ccba9"
+        },
+        {
+          "name": "lifecycle_inbound_auth_bypassed",
+          "sha256": "a01ed076844fe180e3d7675b893b9f9d4634bad8f3182272cb3fed8ea8675781"
+        },
+        {
+          "name": "lifecycle_dial_stale_authority",
+          "sha256": "6125685695f88bdf4841d11744f9fdcf228c4409392f98b7cde818f855f34119"
+        },
+        {
+          "name": "lifecycle_dial_auth_bypassed",
+          "sha256": "3b81834fa7b1da470cb638a90d4816d88af3d9bef2b4e42860d9eaf071686938"
+        },
+        {
+          "name": "lifecycle_dial_wrong_role",
+          "sha256": "b79b0494c922b67661e4b66c71edda6e1099e8c482bc2a178cb92179815b073b"
+        },
+        {
+          "name": "lifecycle_dial_wrong_swarm",
+          "sha256": "d05fa69ffc17be9930765881807af3302ee92f0026c415740d4073a437afe5dc"
+        },
+        {
+          "name": "lifecycle_established_policy_bypassed",
+          "sha256": "c6396dcd8b69edec936b1802235fea66291d97e01c679414e7aa8ac86a41b42b"
+        },
+        {
+          "name": "lifecycle_established_revision_bypassed",
+          "sha256": "a8bd5ec75144676bab89bed5c28c632a481eea0cb16a835c3e56fbf4225feb4c"
+        },
+        {
+          "name": "lifecycle_established_auth_bypassed",
+          "sha256": "5a16887281a8ca101ad582542213de4df70f1b2c7e7a69c2f692d9eef07c1991"
+        },
+        {
+          "name": "lifecycle_refused_dial_establishes",
+          "sha256": "215f6a09397489abb17027ae92bb82e5cec68aecbc8f1d182cdba47b3d440f7a"
+        },
+        {
+          "name": "lifecycle_inbound_drops_success",
+          "sha256": "c26ced8a15a6d2a0e6b84d826099730c3554c28247ad8fa1ed83459baf803cef"
+        },
+        {
+          "name": "lifecycle_dial_drops_success",
+          "sha256": "61065ac88d70c2ee19923204ca4e66988fddba6b4cda102e8617bab5b17dec91"
+        },
+        {
+          "name": "lifecycle_established_drops_success",
+          "sha256": "924a8e29184f1261a566c889886b826ad4e0ea721ee87709542d3e0359977986"
+        },
+        {
+          "name": "lifecycle_established_refusal_grants",
+          "sha256": "5dab9b48bc505b63a6fe972ed3fbd032aafb74c38c64721949b0b025ce511123"
+        },
+        {
+          "name": "lifecycle_exchange_drops_between",
+          "sha256": "17e38fe1a4629a85ca3e7662149b3e74ae60aafdbcd6353127aace870faf1ad4"
+        },
+        {
+          "name": "lifecycle_exchange_reverses_changes",
+          "sha256": "98cfbc2e5d1be18a3eb21c8c142bf3d1257bc91aa5f4639d3a936af3832f65de"
+        },
+        {
+          "name": "lifecycle_exchange_uses_future_dial",
+          "sha256": "0ebb4a33d34fdf2282a3daab1b958003c07c2a0f3fb84385fa98058e50d0572a"
+        },
+        {
+          "name": "lifecycle_exchange_reuses_dial_auth",
+          "sha256": "eaeb10fc3dd85a358fdcae9160659f69b8cdaf7ddb466808fc57954eeea8402d"
+        },
+        {
+          "name": "lifecycle_count_drops_verified",
+          "sha256": "748d38a19ac2169a3563c05ea9b7213092f759256f63f5363d4703cc69f5025e"
+        },
+        {
+          "name": "lifecycle_count_drops_profile",
+          "sha256": "d9d7f32255322933218b0e880dc79493d24dd39dbfe6c62d0a2c44c8fe5a0043"
+        },
+        {
+          "name": "lifecycle_count_includes_unverified",
+          "sha256": "30d0bd58e51471209fae46a77a1e311a2ff068bf248c47ec471ae7512ea270b4"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#capturedPolicyReadersAgree",
             "proofs/33-policy-readers.mech#freshPolicyReceiptPreservesDecision",
             "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
-            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied",
+            "proofs/92-policy-lifecycle-revisions.mech#sameUnionRoleUsesDistinctTags",
+            "proofs/92-policy-lifecycle-revisions.mech#sameUnionWorkerSwarmUsesExactIndex",
+            "proofs/92-policy-lifecycle-revisions.mech#unionPrimaryNeverMatchesWorker",
+            "proofs/92-policy-lifecycle-revisions.mech#unionWorkerNeverMatchesPrimary",
+            "proofs/92-policy-lifecycle-revisions.mech#freshUnionRevisionMatches",
+            "proofs/92-policy-lifecycle-revisions.mech#inboundUnionChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#outboundUnionDialChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#outboundUnionEstablishedChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#refusedUnionDialCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionRevisionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#deniedCurrentUnionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unauthenticatedUnionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionGeneration",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionRole",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionSwarm",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionIdentity",
+            "proofs/92-policy-lifecycle-revisions.mech#currentUnionReceiptEstablishesDecision",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsCheckCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsRequireIdentity",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleClosedUsesExactUnion",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleOpenKeepsAuthentication",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleGraceKeepsAuthentication",
+            "proofs/92-policy-lifecycle-revisions.mech#unionChangesGeneration",
+            "proofs/92-policy-lifecycle-revisions.mech#advancedUnionReceiptAfterTraceMismatch",
+            "proofs/92-policy-lifecycle-revisions.mech#advancedUnionReceiptAfterTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#verifiedUnionUpdateAndTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionProfileUpdateAndTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsAfterChangesCheckCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeUsesInterveningChanges",
+            "proofs/92-policy-lifecycle-revisions.mech#selectedUnionDialAfterAdvanceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeAfterVerifiedUpdateRefused",
+            "proofs/92-policy-lifecycle-revisions.mech#effectiveUnionTraceReceiptMismatch",
+            "proofs/92-policy-lifecycle-revisions.mech#selectedUnionDialAfterEffectiveChangesCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeAfterEffectiveChangesRefused",
+            "proofs/92-policy-lifecycle-revisions.mech#freshUnionDialCanEstablish"
           ],
-          "rationale": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Model inbound admission, outbound dial and outbound established decision points separately and prove each checks the authoritative revision, including intervening updates."
+          "rationale": "Distinct executable lifecycle transitions use the current authority and bind establishment to its revision/context. The cited general and arbitrary-trace witnesses cover every role/swarm, actual intervening updates, explicit Open/Grace fallback, authentication, stale refusals and fresh success. Module-33 witnesses retain only local supplied-snapshot credit; runtime receipt provenance/publication remain E029 and independent bounded privileges/live-connection sweeps remain M024/M040 as recorded in scope_review.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#capturedPolicyReadersAgree",
             "proofs/33-policy-readers.mech#freshPolicyReceiptPreservesDecision",
             "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
-            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied",
+            "proofs/92-policy-lifecycle-revisions.mech#sameUnionRoleUsesDistinctTags",
+            "proofs/92-policy-lifecycle-revisions.mech#sameUnionWorkerSwarmUsesExactIndex",
+            "proofs/92-policy-lifecycle-revisions.mech#unionPrimaryNeverMatchesWorker",
+            "proofs/92-policy-lifecycle-revisions.mech#unionWorkerNeverMatchesPrimary",
+            "proofs/92-policy-lifecycle-revisions.mech#freshUnionRevisionMatches",
+            "proofs/92-policy-lifecycle-revisions.mech#inboundUnionChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#outboundUnionDialChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#outboundUnionEstablishedChecksCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#refusedUnionDialCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionRevisionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#deniedCurrentUnionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unauthenticatedUnionCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionGeneration",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionRole",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionSwarm",
+            "proofs/92-policy-lifecycle-revisions.mech#mismatchedUnionIdentity",
+            "proofs/92-policy-lifecycle-revisions.mech#currentUnionReceiptEstablishesDecision",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsCheckCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsRequireIdentity",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleClosedUsesExactUnion",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleOpenKeepsAuthentication",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecycleGraceKeepsAuthentication",
+            "proofs/92-policy-lifecycle-revisions.mech#unionChangesGeneration",
+            "proofs/92-policy-lifecycle-revisions.mech#advancedUnionReceiptAfterTraceMismatch",
+            "proofs/92-policy-lifecycle-revisions.mech#advancedUnionReceiptAfterTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#verifiedUnionUpdateAndTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionProfileUpdateAndTraceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#allUnionLifecyclePointsAfterChangesCheckCurrent",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeUsesInterveningChanges",
+            "proofs/92-policy-lifecycle-revisions.mech#selectedUnionDialAfterAdvanceCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeAfterVerifiedUpdateRefused",
+            "proofs/92-policy-lifecycle-revisions.mech#effectiveUnionTraceReceiptMismatch",
+            "proofs/92-policy-lifecycle-revisions.mech#selectedUnionDialAfterEffectiveChangesCannotEstablish",
+            "proofs/92-policy-lifecycle-revisions.mech#unionOutboundExchangeAfterEffectiveChangesRefused",
+            "proofs/92-policy-lifecycle-revisions.mech#freshUnionDialCanEstablish"
           ],
-          "rationale": "The three PolicyConsumer constructors agree on a supplied snapshot; distinct inbound/outbound hook transitions are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Compose those gates for all swarms with Open/Grace fallback and prove stale or different-revision decisions cannot grant privilege."
+          "rationale": "Failure branches are explicit. allUnionLifecyclePointsRequireIdentity refuses an unauthenticated identity at each of the three lifecycle points. inboundUnionChecksCurrent and outboundUnionDialChecksCurrent equate the inbound and dial allowed flags with the current authoritative query, so a denied query gives no approval. refusedUnionDialCannotEstablish refuses establishment after a refused dial. mismatchedUnionGeneration, mismatchedUnionRole, mismatchedUnionSwarm and mismatchedUnionIdentity turn the receipt match off when the generation, role, swarm or identity comparison is off. mismatchedUnionRevisionCannotEstablish refuses establishment for every receipt whose match is off. deniedCurrentUnionCannotEstablish and unauthenticatedUnionCannotEstablish refuse establishment on a denied or unauthenticated current query, for every receipt. unionChangesGeneration shows that a trace advances the generation by its count of verified roster updates and profile changes only, so provisional roster events consume no revision. advancedUnionReceiptAfterTraceCannotEstablish and selectedUnionDialAfterAdvanceCannotEstablish refuse a receipt captured before one generation advance, for every finite following trace. verifiedUnionUpdateAndTraceCannotEstablish and unionProfileUpdateAndTraceCannotEstablish refuse a prior receipt after a verified roster update or a profile update, for every finite following trace. unionOutboundExchangeAfterVerifiedUpdateRefused refuses the executable exchange when a verified update is the first intervening event, for every prefix trace and every following trace. unionOutboundExchangeAfterEffectiveChangesRefused refuses the exchange for every intervening trace with a positive effective revision count. Together the statements quantify over every node role, the primary swarm and every worker index, every policy value, every identity index and every finite mixed trace. Conditional premises are explicit: atomic capture of the current authority, faithful identity indexing, current authentication, correctly classified roster updates, authorized profile events, unbounded generations and each Equal premise in the recorded statements. Module-33 witnesses keep local supplied-snapshot credit only. E029 keeps runtime receipt provenance, publication and generation persistence. M024 keeps independent bounded privileges. M040 keeps live-connection sweeps.",
+          "remaining": ""
         }
       ]
     },

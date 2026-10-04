@@ -287,10 +287,37 @@ current Closed union and authentication boundary.
 
 Faithful identity indexing, correct verification classifications for all five
 sources and authorized operator configuration are premises. Runtime policy and
-record refinement remain E029. Distinct inbound/outbound gates, stale
-receipt races, fallback fault isolation and reload/removal lifecycles remain
-M023/M006/M042. [R04 turn 1](R04-POLICY.md) records exact witnesses, controls,
+record refinement remain E029. Module 92 adds the M023 lifecycle gates below.
+Fallback fault isolation and reload/removal lifecycles remain M006/M042.
+[R04](R04-POLICY.md) records exact witnesses, controls,
 validation and remaining scope.
+
+## Policy lifecycle revisions
+
+[92-policy-lifecycle-revisions.mech](../proofs/92-policy-lifecycle-revisions.mech)
+closes M023 with separate inbound, outbound dial and outbound established result
+types. Inbound and dial decisions query the current selected authority.
+Establishment requires a matching generation, role, primary/worker index and
+identity, then independently checks current authentication and policy. A refused
+dial, mismatched receipt or denied current query yields an explicit refusal.
+Every role and arbitrary swarm index is quantified. Closed uses exact union
+membership; Open and Grace retain authentication for nonmembers.
+
+Mixed update traces advance generation by exactly their verified roster and
+authorized profile event count. After one effective revision and any finite
+following trace, prior receipts cannot establish. An executable exchange dials
+after a prefix and establishes after intervening changes with separate
+authentication inputs. An intervening trace with a positive effective revision
+count refuses the actual dial result, including both branches. A fresh allowed
+dial establishes successfully.
+
+Each model decision atomically receives its current immutable authority.
+Authentication, source verification and operator authorization are supplied
+judgments; natural-number generations cannot wrap or roll back in this model.
+Runtime authority capture, publication and generation discipline remain E029.
+Runtime receipt provenance also remains E029. Independent bounded privileges,
+live-connection sweeps, fault isolation, resource attribution and reload/removal
+retain their separate model obligations.
 
 ## Policy and resource interleavings
 

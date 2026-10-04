@@ -1,0 +1,694 @@
+-- M023: three lifecycle decisions use the current immutable authority.
+-- Counts are unbounded model generations; runtime publication remains E029.
+
+def equalRefl : (A : Type 0) -> (value : A) -> Equal A value value :=
+  fun (A : Type 0) (value : A) => same
+
+def sameUnionRole : NodePolicyRole -> NodePolicyRole -> Flag :=
+  fun (captured : NodePolicyRole) (current : NodePolicyRole) =>
+    case captured as first in NodePolicyRole return Flag with
+    | validatorPolicyRole => (case current as second in NodePolicyRole return Flag with
+      | validatorPolicyRole => on | hubPolicyRole => off | observerPolicyRole => off)
+    | hubPolicyRole => (case current as second in NodePolicyRole return Flag with
+      | validatorPolicyRole => off | hubPolicyRole => on | observerPolicyRole => off)
+    | observerPolicyRole => (case current as second in NodePolicyRole return Flag with
+      | validatorPolicyRole => off | hubPolicyRole => off | observerPolicyRole => on)
+
+def sameUnionSwarm : NodePolicySwarm -> NodePolicySwarm -> Flag :=
+  fun (captured : NodePolicySwarm) (current : NodePolicySwarm) =>
+    case captured as first in NodePolicySwarm return Flag with
+    | primaryPolicySwarm => (case current as second in NodePolicySwarm return Flag with
+      | primaryPolicySwarm => on | indexedWorkerPolicySwarm index => off)
+    | indexedWorkerPolicySwarm capturedIndex => (case current as second in NodePolicySwarm return Flag with
+      | primaryPolicySwarm => off | indexedWorkerPolicySwarm currentIndex => sameCount capturedIndex currentIndex)
+
+mu UnionRevisionReceipt : Type 0 with
+| unionRevisionReceipt : Count -> NodePolicyRole -> NodePolicySwarm -> Count -> UnionRevisionReceipt
+
+def captureUnionRevision : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> UnionRevisionReceipt :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count) =>
+    unionRevisionReceipt (authoritativeUnionGeneration current) role swarm identity
+
+def unionRevisionMatches : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> UnionRevisionReceipt -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (identity : Count) (receipt : UnionRevisionReceipt) =>
+    case receipt as captured in UnionRevisionReceipt return Flag with
+    | unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity =>
+      both (sameCount generation (authoritativeUnionGeneration current))
+        (both (sameUnionRole capturedRole role)
+          (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity)))
+
+mu InboundUnionDecision : Type 0 with
+| inboundUnionRefused : InboundUnionDecision
+| inboundUnionAccepted : UnionRevisionReceipt -> InboundUnionDecision
+
+mu OutboundUnionDialDecision : Type 0 with
+| outboundUnionDialRefused : OutboundUnionDialDecision
+| outboundUnionDialApproved : UnionRevisionReceipt -> OutboundUnionDialDecision
+
+mu OutboundUnionEstablishedDecision : Type 0 with
+| outboundUnionEstablishedRefused : OutboundUnionEstablishedDecision
+| outboundUnionEstablishedApproved : UnionRevisionReceipt -> OutboundUnionEstablishedDecision
+
+def selectInboundUnionDecision : UnionRevisionReceipt -> Flag -> InboundUnionDecision :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as decision in Flag return InboundUnionDecision with
+    | off => inboundUnionRefused | on => inboundUnionAccepted receipt
+
+def selectOutboundUnionDialDecision : UnionRevisionReceipt -> Flag -> OutboundUnionDialDecision :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as decision in Flag return OutboundUnionDialDecision with
+    | off => outboundUnionDialRefused | on => outboundUnionDialApproved receipt
+
+def selectOutboundUnionEstablishedDecision : UnionRevisionReceipt -> Flag -> OutboundUnionEstablishedDecision :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as decision in Flag return OutboundUnionEstablishedDecision with
+    | off => outboundUnionEstablishedRefused | on => outboundUnionEstablishedApproved receipt
+
+def inboundUnionAdmission : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count -> InboundUnionDecision :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    selectInboundUnionDecision (captureUnionRevision role swarm current identity)
+      (authoritativeUnionQuery role swarm current authenticated identity)
+
+def outboundUnionDial : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count -> OutboundUnionDialDecision :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    selectOutboundUnionDialDecision (captureUnionRevision role swarm current identity)
+      (authoritativeUnionQuery role swarm current authenticated identity)
+
+def outboundUnionEstablished : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count ->
+    OutboundUnionDialDecision -> OutboundUnionEstablishedDecision :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (dial : OutboundUnionDialDecision) =>
+    case dial as previous in OutboundUnionDialDecision return OutboundUnionEstablishedDecision with
+    | outboundUnionDialRefused => outboundUnionEstablishedRefused
+    | outboundUnionDialApproved receipt =>
+      selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+        (both (unionRevisionMatches role swarm current identity receipt)
+          (authoritativeUnionQuery role swarm current authenticated identity))
+
+def inboundUnionAllowed : InboundUnionDecision -> Flag :=
+  fun (decision : InboundUnionDecision) =>
+    case decision as self in InboundUnionDecision return Flag with
+    | inboundUnionRefused => off | inboundUnionAccepted receipt => on
+
+def outboundUnionDialAllowed : OutboundUnionDialDecision -> Flag :=
+  fun (decision : OutboundUnionDialDecision) =>
+    case decision as self in OutboundUnionDialDecision return Flag with
+    | outboundUnionDialRefused => off | outboundUnionDialApproved receipt => on
+
+def outboundUnionEstablishedAllowed : OutboundUnionEstablishedDecision -> Flag :=
+  fun (decision : OutboundUnionEstablishedDecision) =>
+    case decision as self in OutboundUnionEstablishedDecision return Flag with
+    | outboundUnionEstablishedRefused => off | outboundUnionEstablishedApproved receipt => on
+
+def sameUnionRoleReflexive : (role : NodePolicyRole) -> Equal Flag (sameUnionRole role role) on :=
+  fun (role : NodePolicyRole) =>
+    case role as self in NodePolicyRole return Equal Flag (sameUnionRole self self) on with
+    | validatorPolicyRole => equalRefl Flag on
+    | hubPolicyRole => equalRefl Flag on
+    | observerPolicyRole => equalRefl Flag on
+
+def sameUnionSwarmReflexive : (swarm : NodePolicySwarm) -> Equal Flag (sameUnionSwarm swarm swarm) on :=
+  fun (swarm : NodePolicySwarm) =>
+    case swarm as self in NodePolicySwarm return Equal Flag (sameUnionSwarm self self) on with
+    | primaryPolicySwarm => equalRefl Flag on
+    | indexedWorkerPolicySwarm index => sameCountReflexive index
+
+def matchingUnionRoute : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    Equal Flag (both (sameUnionRole role role) (both (sameUnionSwarm swarm swarm) (sameCount identity identity))) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) =>
+    equalTransitivity Flag
+      (both (sameUnionRole role role) (both (sameUnionSwarm swarm swarm) (sameCount identity identity)))
+      (both (sameUnionSwarm swarm swarm) (sameCount identity identity)) on
+      (congruent Flag Flag (fun (matches : Flag) => both matches (both (sameUnionSwarm swarm swarm) (sameCount identity identity)))
+        (sameUnionRole role role) on (sameUnionRoleReflexive role))
+      (equalTransitivity Flag (both (sameUnionSwarm swarm swarm) (sameCount identity identity)) (sameCount identity identity) on
+        (congruent Flag Flag (fun (matches : Flag) => both matches (sameCount identity identity))
+          (sameUnionSwarm swarm swarm) on (sameUnionSwarmReflexive swarm)) (sameCountReflexive identity))
+
+def freshUnionRevisionMatches : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (unionRevisionMatches role swarm current identity (captureUnionRevision role swarm current identity)) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count) =>
+    equalTransitivity Flag
+      (unionRevisionMatches role swarm current identity (captureUnionRevision role swarm current identity))
+      (both (sameUnionRole role role) (both (sameUnionSwarm swarm swarm) (sameCount identity identity))) on
+      (congruent Flag Flag (fun (matches : Flag) =>
+        both matches (both (sameUnionRole role role) (both (sameUnionSwarm swarm swarm) (sameCount identity identity))))
+        (sameCount (authoritativeUnionGeneration current) (authoritativeUnionGeneration current)) on
+        (sameCountReflexive (authoritativeUnionGeneration current))) (matchingUnionRoute role swarm identity)
+
+def inboundUnionSelectionAllowed : (receipt : UnionRevisionReceipt) -> (allowed : Flag) ->
+    Equal Flag (inboundUnionAllowed (selectInboundUnionDecision receipt allowed)) allowed :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as self in Flag return Equal Flag (inboundUnionAllowed (selectInboundUnionDecision receipt self)) self with
+    | off => equalRefl Flag off | on => equalRefl Flag on
+
+def outboundUnionDialSelectionAllowed : (receipt : UnionRevisionReceipt) -> (allowed : Flag) ->
+    Equal Flag (outboundUnionDialAllowed (selectOutboundUnionDialDecision receipt allowed)) allowed :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as self in Flag return Equal Flag (outboundUnionDialAllowed (selectOutboundUnionDialDecision receipt self)) self with
+    | off => equalRefl Flag off | on => equalRefl Flag on
+
+def outboundUnionEstablishedSelectionAllowed : (receipt : UnionRevisionReceipt) -> (allowed : Flag) ->
+    Equal Flag (outboundUnionEstablishedAllowed (selectOutboundUnionEstablishedDecision receipt allowed)) allowed :=
+  fun (receipt : UnionRevisionReceipt) (allowed : Flag) =>
+    case allowed as self in Flag return Equal Flag (outboundUnionEstablishedAllowed (selectOutboundUnionEstablishedDecision receipt self)) self with
+    | off => equalRefl Flag off | on => equalRefl Flag on
+
+def inboundUnionChecksCurrent : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (inboundUnionAllowed (inboundUnionAdmission role swarm current authenticated identity))
+      (authoritativeUnionQuery role swarm current authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    inboundUnionSelectionAllowed (captureUnionRevision role swarm current identity)
+      (authoritativeUnionQuery role swarm current authenticated identity)
+
+def outboundUnionDialChecksCurrent : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (outboundUnionDialAllowed (outboundUnionDial role swarm current authenticated identity))
+      (authoritativeUnionQuery role swarm current authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    outboundUnionDialSelectionAllowed (captureUnionRevision role swarm current identity)
+      (authoritativeUnionQuery role swarm current authenticated identity)
+
+def outboundUnionEstablishedChecksCurrent : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->
+    Equal Flag (outboundUnionEstablishedAllowed
+      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)))
+      (both (unionRevisionMatches role swarm current identity receipt) (authoritativeUnionQuery role swarm current authenticated identity)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (receipt : UnionRevisionReceipt) =>
+    outboundUnionEstablishedSelectionAllowed (captureUnionRevision role swarm current identity)
+      (both (unionRevisionMatches role swarm current identity receipt) (authoritativeUnionQuery role swarm current authenticated identity))
+
+def refusedUnionDialCannotEstablish : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current authenticated identity outboundUnionDialRefused) outboundUnionEstablishedRefused :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    equalRefl OutboundUnionEstablishedDecision outboundUnionEstablishedRefused
+
+def mismatchedUnionRevisionCannotEstablish : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->
+    Equal Flag (unionRevisionMatches role swarm current identity receipt) off ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (receipt : UnionRevisionReceipt)
+      (mismatch : Equal Flag (unionRevisionMatches role swarm current identity receipt) off) =>
+    congruent Flag OutboundUnionEstablishedDecision
+      (fun (matches : Flag) => selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+        (both matches (authoritativeUnionQuery role swarm current authenticated identity)))
+      (unionRevisionMatches role swarm current identity receipt) off mismatch
+
+def deniedCurrentUnionCannotEstablish : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->
+    Equal Flag (authoritativeUnionQuery role swarm current authenticated identity) off ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (receipt : UnionRevisionReceipt)
+      (denied : Equal Flag (authoritativeUnionQuery role swarm current authenticated identity) off) =>
+    equalTransitivity OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current authenticated identity (outboundUnionDialApproved receipt))
+      (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+        (both (unionRevisionMatches role swarm current identity receipt) off)) outboundUnionEstablishedRefused
+      (congruent Flag OutboundUnionEstablishedDecision
+        (fun (allowed : Flag) => selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+          (both (unionRevisionMatches role swarm current identity receipt) allowed))
+        (authoritativeUnionQuery role swarm current authenticated identity) off denied)
+      (congruent Flag OutboundUnionEstablishedDecision
+        (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity))
+        (both (unionRevisionMatches role swarm current identity receipt) off) off
+        (bothRightOff (unionRevisionMatches role swarm current identity receipt)))
+
+def unauthenticatedUnionCannotEstablish : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (identity : Count) -> (receipt : UnionRevisionReceipt) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current off identity (outboundUnionDialApproved receipt)) outboundUnionEstablishedRefused :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count) (receipt : UnionRevisionReceipt) =>
+    deniedCurrentUnionCannotEstablish role swarm current off identity receipt (authoritativeUnionRequiresIdentity role swarm current identity)
+
+def mismatchedUnionGeneration : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->
+    Equal Flag (sameCount generation (authoritativeUnionGeneration current)) off ->
+    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count)
+      (generation : Count) (capturedRole : NodePolicyRole) (capturedSwarm : NodePolicySwarm) (capturedIdentity : Count)
+      (mismatch : Equal Flag (sameCount generation (authoritativeUnionGeneration current)) off) =>
+    congruent Flag Flag (fun (matches : Flag) => both matches
+      (both (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity))))
+      (sameCount generation (authoritativeUnionGeneration current)) off mismatch
+
+def currentUnionReceiptEstablishesDecision : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm current authenticated identity
+        (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))
+      (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+        (authoritativeUnionQuery role swarm current authenticated identity)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    congruent Flag OutboundUnionEstablishedDecision
+      (fun (matches : Flag) => selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+        (both matches (authoritativeUnionQuery role swarm current authenticated identity)))
+      (unionRevisionMatches role swarm current identity (captureUnionRevision role swarm current identity)) on
+      (freshUnionRevisionMatches role swarm current identity)
+
+mu UnionLifecyclePoint : Type 0 with
+| inboundUnionPoint : UnionLifecyclePoint
+| outboundUnionDialPoint : UnionLifecyclePoint
+| outboundUnionEstablishedPoint : UnionLifecyclePoint
+
+def freshUnionLifecycleAllowed : UnionLifecyclePoint -> NodePolicyRole -> NodePolicySwarm ->
+    AuthoritativeUnionPolicy -> Flag -> Count -> Flag :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    case point as gate in UnionLifecyclePoint return Flag with
+    | inboundUnionPoint => inboundUnionAllowed (inboundUnionAdmission role swarm current authenticated identity)
+    | outboundUnionDialPoint => outboundUnionDialAllowed (outboundUnionDial role swarm current authenticated identity)
+    | outboundUnionEstablishedPoint => outboundUnionEstablishedAllowed
+        (outboundUnionEstablished role swarm current authenticated identity
+          (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))
+
+def allUnionLifecyclePointsCheckCurrent : (point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)
+      (authoritativeUnionQuery role swarm current authenticated identity) :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    case point as gate in UnionLifecyclePoint return
+      Equal Flag (freshUnionLifecycleAllowed gate role swarm current authenticated identity)
+        (authoritativeUnionQuery role swarm current authenticated identity) with
+    | inboundUnionPoint => inboundUnionChecksCurrent role swarm current authenticated identity
+    | outboundUnionDialPoint => outboundUnionDialChecksCurrent role swarm current authenticated identity
+    | outboundUnionEstablishedPoint => equalTransitivity Flag
+        (freshUnionLifecycleAllowed outboundUnionEstablishedPoint role swarm current authenticated identity)
+        (outboundUnionEstablishedAllowed (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+          (authoritativeUnionQuery role swarm current authenticated identity)))
+        (authoritativeUnionQuery role swarm current authenticated identity)
+        (congruent OutboundUnionEstablishedDecision Flag outboundUnionEstablishedAllowed
+          (outboundUnionEstablished role swarm current authenticated identity
+            (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))
+          (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+            (authoritativeUnionQuery role swarm current authenticated identity))
+          (currentUnionReceiptEstablishesDecision role swarm current authenticated identity))
+        (outboundUnionEstablishedSelectionAllowed (captureUnionRevision role swarm current identity)
+          (authoritativeUnionQuery role swarm current authenticated identity))
+
+def allUnionLifecyclePointsRequireIdentity : (point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm current off identity) off :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count) =>
+    equalTransitivity Flag (freshUnionLifecycleAllowed point role swarm current off identity)
+      (authoritativeUnionQuery role swarm current off identity) off
+      (allUnionLifecyclePointsCheckCurrent point role swarm current off identity) (authoritativeUnionRequiresIdentity role swarm current identity)
+
+def allUnionLifecycleClosedUsesExactUnion : (point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) closedProfile ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)
+      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm current))) :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (closed : Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) closedProfile) =>
+    equalTransitivity Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)
+      (authoritativeUnionQuery role swarm current authenticated identity)
+      (both authenticated (committeeUnionMember identity (authoritativeUnionAt role swarm current)))
+      (allUnionLifecyclePointsCheckCurrent point role swarm current authenticated identity)
+      (authoritativeClosedUsesExactUnion role swarm current authenticated identity closed)
+
+def allUnionLifecycleOpenKeepsAuthentication : (point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) openProfile ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity) authenticated :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (openEvidence : Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) openProfile) =>
+    equalTransitivity Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)
+      (authoritativeUnionQuery role swarm current authenticated identity) authenticated
+      (allUnionLifecyclePointsCheckCurrent point role swarm current authenticated identity)
+      (authoritativeOpenKeepsAuthentication role swarm current authenticated identity openEvidence)
+
+def allUnionLifecycleGraceKeepsAuthentication : (point : UnionLifecyclePoint) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) graceProfile ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity) authenticated :=
+  fun (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (grace : Equal Profile (roleUnionProfile (authoritativeRolePolicy role current)) graceProfile) =>
+    equalTransitivity Flag (freshUnionLifecycleAllowed point role swarm current authenticated identity)
+      (authoritativeUnionQuery role swarm current authenticated identity) authenticated
+      (allUnionLifecyclePointsCheckCurrent point role swarm current authenticated identity)
+      (authoritativeGraceKeepsAuthentication role swarm current authenticated identity grace)
+
+def rec unionChangesRevisionCount : AuthoritativeUnionChanges -> Count :=
+  fun (changes : AuthoritativeUnionChanges) =>
+    case changes as trace in AuthoritativeUnionChanges return Count with
+    | noAuthoritativeUnionChanges => zero
+    | authoritativeUnionChange change rest =>
+      (case change as event in AuthoritativeUnionChange return Count with
+      | committeeUnionChange verified role swarm incoming =>
+        (case verified as checked in Flag return Count with
+        | off => unionChangesRevisionCount rest | on => next (unionChangesRevisionCount rest))
+      | unionProfileChange role requested => next (unionChangesRevisionCount rest))
+
+def unionTraceAdvancedGeneration : (before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->
+    (changes : AuthoritativeUnionChanges) ->
+    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->
+    Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+      (add (authoritativeUnionGeneration after) (unionChangesRevisionCount changes)) ->
+    Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+      (add (authoritativeUnionGeneration before) (next (unionChangesRevisionCount changes))) :=
+  fun (before : AuthoritativeUnionPolicy) (after : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges)
+      (advanced : Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)))
+      (tail : Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+        (add (authoritativeUnionGeneration after) (unionChangesRevisionCount changes))) =>
+    equalTransitivity Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+      (add (authoritativeUnionGeneration after) (unionChangesRevisionCount changes))
+      (add (authoritativeUnionGeneration before) (next (unionChangesRevisionCount changes))) tail
+      (equalTransitivity Count (add (authoritativeUnionGeneration after) (unionChangesRevisionCount changes))
+        (next (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))
+        (add (authoritativeUnionGeneration before) (next (unionChangesRevisionCount changes)))
+        (congruent Count Count (fun (generation : Count) => add generation (unionChangesRevisionCount changes))
+          (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) advanced)
+        (equalSymmetry Count (add (authoritativeUnionGeneration before) (next (unionChangesRevisionCount changes)))
+          (next (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))
+          (addRightNext (authoritativeUnionGeneration before) (unionChangesRevisionCount changes))))
+
+def rec unionChangesGeneration : (changes : AuthoritativeUnionChanges) -> (current : AuthoritativeUnionPolicy) ->
+    Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes current))
+      (add (authoritativeUnionGeneration current) (unionChangesRevisionCount changes)) :=
+  fun (changes : AuthoritativeUnionChanges) (current : AuthoritativeUnionPolicy) =>
+    case changes as trace in AuthoritativeUnionChanges return
+      Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges trace current))
+        (add (authoritativeUnionGeneration current) (unionChangesRevisionCount trace)) with
+    | noAuthoritativeUnionChanges => equalSymmetry Count (add (authoritativeUnionGeneration current) zero)
+        (authoritativeUnionGeneration current) (addRightZero (authoritativeUnionGeneration current))
+    | authoritativeUnionChange change rest =>
+      (case change as event in AuthoritativeUnionChange return
+        Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges rest (applyAuthoritativeUnionChange event current)))
+          (add (authoritativeUnionGeneration current) (unionChangesRevisionCount (authoritativeUnionChange event rest))) with
+      | committeeUnionChange verified role swarm incoming =>
+        (case verified as checked in Flag return
+          Equal Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges rest (verifiedCommitteeUnionUpdate checked role swarm incoming current)))
+            (add (authoritativeUnionGeneration current)
+              (unionChangesRevisionCount (authoritativeUnionChange (committeeUnionChange checked role swarm incoming) rest))) with
+        | off => unionChangesGeneration rest current
+        | on => unionTraceAdvancedGeneration current (verifiedCommitteeUnionUpdate on role swarm incoming current) rest
+            (verifiedCommitteeUpdateAdvancesGeneration role swarm incoming current)
+            (unionChangesGeneration rest (verifiedCommitteeUnionUpdate on role swarm incoming current)))
+      | unionProfileChange role requested => unionTraceAdvancedGeneration current (configureUnionProfile role requested current) rest
+          (roleReplacementAdvancesGeneration role
+            (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role current))) current)
+          (unionChangesGeneration rest (configureUnionProfile role requested current)))
+
+def advancedUnionReceiptAfterTraceMismatch : (before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->
+    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->
+    Equal Flag (unionRevisionMatches role swarm (runAuthoritativeUnionChanges changes after) identity
+      (captureUnionRevision role swarm before identity)) off :=
+  fun (before : AuthoritativeUnionPolicy) (after : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (advanced : Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before))) =>
+    mismatchedUnionGeneration role swarm (runAuthoritativeUnionChanges changes after) identity
+      (authoritativeUnionGeneration before) role swarm identity
+      (equalTransitivity Flag
+        (sameCount (authoritativeUnionGeneration before) (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after)))
+        (sameCount (authoritativeUnionGeneration before) (next (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))) off
+        (congruent Count Flag (sameCount (authoritativeUnionGeneration before))
+          (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+          (next (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))
+          (equalTransitivity Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes after))
+            (add (authoritativeUnionGeneration before) (next (unionChangesRevisionCount changes)))
+            (next (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))
+            (unionTraceAdvancedGeneration before after changes advanced (unionChangesGeneration changes after))
+            (addRightNext (authoritativeUnionGeneration before) (unionChangesRevisionCount changes))))
+        (sameCountBeyondOff (authoritativeUnionGeneration before) (unionChangesRevisionCount changes)))
+
+def advancedUnionReceiptAfterTraceCannotEstablish : (before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->
+    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes after) authenticated identity
+        (outboundUnionDialApproved (captureUnionRevision role swarm before identity))) outboundUnionEstablishedRefused :=
+  fun (before : AuthoritativeUnionPolicy) (after : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (advanced : Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before))) =>
+    mismatchedUnionRevisionCannotEstablish role swarm (runAuthoritativeUnionChanges changes after) authenticated identity
+      (captureUnionRevision role swarm before identity)
+      (advancedUnionReceiptAfterTraceMismatch before after changes role swarm identity advanced)
+
+def verifiedUnionUpdateAndTraceCannotEstablish : (current : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->
+    (updateRole : NodePolicyRole) -> (updateSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes (verifiedCommitteeUnionUpdate on updateRole updateSwarm incoming current))
+        authenticated identity (outboundUnionDialApproved (captureUnionRevision role swarm current identity))) outboundUnionEstablishedRefused :=
+  fun (current : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges) (updateRole : NodePolicyRole)
+      (updateSwarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (authenticated : Flag) (identity : Count) =>
+    advancedUnionReceiptAfterTraceCannotEstablish current (verifiedCommitteeUnionUpdate on updateRole updateSwarm incoming current)
+      changes role swarm authenticated identity (verifiedCommitteeUpdateAdvancesGeneration updateRole updateSwarm incoming current)
+
+def unionProfileUpdateAndTraceCannotEstablish : (current : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->
+    (updateRole : NodePolicyRole) -> (requested : Profile) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes (configureUnionProfile updateRole requested current))
+        authenticated identity (outboundUnionDialApproved (captureUnionRevision role swarm current identity))) outboundUnionEstablishedRefused :=
+  fun (current : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges) (updateRole : NodePolicyRole) (requested : Profile)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    advancedUnionReceiptAfterTraceCannotEstablish current (configureUnionProfile updateRole requested current) changes role swarm authenticated identity
+      (roleReplacementAdvancesGeneration updateRole (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy updateRole current))) current)
+
+def allUnionLifecyclePointsAfterChangesCheckCurrent : (changes : AuthoritativeUnionChanges) -> (point : UnionLifecyclePoint) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (freshUnionLifecycleAllowed point role swarm (runAuthoritativeUnionChanges changes current) authenticated identity)
+      (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges changes current) authenticated identity) :=
+  fun (changes : AuthoritativeUnionChanges) (point : UnionLifecyclePoint) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    allUnionLifecyclePointsCheckCurrent point role swarm (runAuthoritativeUnionChanges changes current) authenticated identity
+
+def runUnionOutboundExchange : AuthoritativeUnionChanges -> AuthoritativeUnionChanges -> NodePolicyRole -> NodePolicySwarm ->
+    AuthoritativeUnionPolicy -> Flag -> Flag -> Count -> OutboundUnionEstablishedDecision :=
+  fun (before : AuthoritativeUnionChanges) (between : AuthoritativeUnionChanges) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (dialAuthenticated : Flag) (establishedAuthenticated : Flag) (identity : Count) =>
+    outboundUnionEstablished role swarm (runAuthoritativeUnionChanges between (runAuthoritativeUnionChanges before current))
+      establishedAuthenticated identity
+      (outboundUnionDial role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity)
+
+def unionOutboundExchangeUsesInterveningChanges : (before : AuthoritativeUnionChanges) -> (between : AuthoritativeUnionChanges) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (runUnionOutboundExchange before between role swarm current dialAuthenticated establishedAuthenticated identity)
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges between (runAuthoritativeUnionChanges before current))
+        establishedAuthenticated identity (outboundUnionDial role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity)) :=
+  fun (before : AuthoritativeUnionChanges) (between : AuthoritativeUnionChanges) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (dialAuthenticated : Flag) (establishedAuthenticated : Flag) (identity : Count) =>
+    equalRefl OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges between (runAuthoritativeUnionChanges before current))
+        establishedAuthenticated identity (outboundUnionDial role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity))
+
+def unionBothSecondDenied : (first : Flag) -> (second : Flag) -> Equal Flag second off -> Equal Flag (both first second) off :=
+  fun (first : Flag) (second : Flag) (denied : Equal Flag second off) =>
+    equalTransitivity Flag (both first second) (both first off) off
+      (congruent Flag Flag (both first) second off denied) (bothRightOff first)
+
+def mismatchedUnionRole : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->
+    Equal Flag (sameUnionRole capturedRole role) off ->
+    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count)
+      (generation : Count) (capturedRole : NodePolicyRole) (capturedSwarm : NodePolicySwarm) (capturedIdentity : Count)
+      (mismatch : Equal Flag (sameUnionRole capturedRole role) off) =>
+    unionBothSecondDenied (sameCount generation (authoritativeUnionGeneration current))
+      (both (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity)))
+      (congruent Flag Flag (fun (matches : Flag) => both matches (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity)))
+        (sameUnionRole capturedRole role) off mismatch)
+
+def mismatchedUnionSwarm : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->
+    Equal Flag (sameUnionSwarm capturedSwarm swarm) off ->
+    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count)
+      (generation : Count) (capturedRole : NodePolicyRole) (capturedSwarm : NodePolicySwarm) (capturedIdentity : Count)
+      (mismatch : Equal Flag (sameUnionSwarm capturedSwarm swarm) off) =>
+    unionBothSecondDenied (sameCount generation (authoritativeUnionGeneration current))
+      (both (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity)))
+      (unionBothSecondDenied (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity))
+        (congruent Flag Flag (fun (matches : Flag) => both matches (sameCount capturedIdentity identity))
+          (sameUnionSwarm capturedSwarm swarm) off mismatch))
+
+def mismatchedUnionIdentity : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (identity : Count) -> (generation : Count) -> (capturedRole : NodePolicyRole) -> (capturedSwarm : NodePolicySwarm) -> (capturedIdentity : Count) ->
+    Equal Flag (sameCount capturedIdentity identity) off ->
+    Equal Flag (unionRevisionMatches role swarm current identity (unionRevisionReceipt generation capturedRole capturedSwarm capturedIdentity)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count)
+      (generation : Count) (capturedRole : NodePolicyRole) (capturedSwarm : NodePolicySwarm) (capturedIdentity : Count)
+      (mismatch : Equal Flag (sameCount capturedIdentity identity) off) =>
+    unionBothSecondDenied (sameCount generation (authoritativeUnionGeneration current))
+      (both (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity)))
+      (unionBothSecondDenied (sameUnionRole capturedRole role) (both (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity))
+        (unionBothSecondDenied (sameUnionSwarm capturedSwarm swarm) (sameCount capturedIdentity identity) mismatch))
+
+def selectedUnionDialAfterAdvanceCannotEstablish : (before : AuthoritativeUnionPolicy) -> (after : AuthoritativeUnionPolicy) ->
+    (changes : AuthoritativeUnionChanges) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) -> (allowed : Flag) ->
+    Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before)) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes after) authenticated identity
+        (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) allowed)) outboundUnionEstablishedRefused :=
+  fun (before : AuthoritativeUnionPolicy) (after : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) (allowed : Flag)
+      (advanced : Equal Count (authoritativeUnionGeneration after) (next (authoritativeUnionGeneration before))) =>
+    case allowed as decision in Flag return
+      Equal OutboundUnionEstablishedDecision
+        (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes after) authenticated identity
+          (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) decision)) outboundUnionEstablishedRefused with
+    | off => refusedUnionDialCannotEstablish role swarm (runAuthoritativeUnionChanges changes after) authenticated identity
+    | on => advancedUnionReceiptAfterTraceCannotEstablish before after changes role swarm authenticated identity advanced
+
+def unionOutboundExchangeAfterVerifiedUpdateRefused : (before : AuthoritativeUnionChanges) -> (after : AuthoritativeUnionChanges) ->
+    (updateRole : NodePolicyRole) -> (updateSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->
+    Equal OutboundUnionEstablishedDecision
+      (runUnionOutboundExchange before (authoritativeUnionChange (committeeUnionChange on updateRole updateSwarm incoming) after)
+        role swarm current dialAuthenticated establishedAuthenticated identity) outboundUnionEstablishedRefused :=
+  fun (before : AuthoritativeUnionChanges) (after : AuthoritativeUnionChanges) (updateRole : NodePolicyRole)
+      (updateSwarm : NodePolicySwarm) (incoming : CommitteePolicyUnion) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (current : AuthoritativeUnionPolicy) (dialAuthenticated : Flag) (establishedAuthenticated : Flag) (identity : Count) =>
+    selectedUnionDialAfterAdvanceCannotEstablish (runAuthoritativeUnionChanges before current)
+      (verifiedCommitteeUnionUpdate on updateRole updateSwarm incoming (runAuthoritativeUnionChanges before current)) after
+      role swarm establishedAuthenticated identity
+      (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity)
+      (verifiedCommitteeUpdateAdvancesGeneration updateRole updateSwarm incoming (runAuthoritativeUnionChanges before current))
+
+def effectiveUnionTraceReceiptMismatch : (before : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->
+    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    Equal Count (unionChangesRevisionCount changes) (next remaining) ->
+    Equal Flag (unionRevisionMatches role swarm (runAuthoritativeUnionChanges changes before) identity
+      (captureUnionRevision role swarm before identity)) off :=
+  fun (before : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges) (remaining : Count)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (effective : Equal Count (unionChangesRevisionCount changes) (next remaining)) =>
+    mismatchedUnionGeneration role swarm (runAuthoritativeUnionChanges changes before) identity
+      (authoritativeUnionGeneration before) role swarm identity
+      (equalTransitivity Flag
+        (sameCount (authoritativeUnionGeneration before) (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes before)))
+        (sameCount (authoritativeUnionGeneration before) (next (add (authoritativeUnionGeneration before) remaining))) off
+        (congruent Count Flag (sameCount (authoritativeUnionGeneration before))
+          (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes before))
+          (next (add (authoritativeUnionGeneration before) remaining))
+          (equalTransitivity Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes before))
+            (add (authoritativeUnionGeneration before) (next remaining))
+            (next (add (authoritativeUnionGeneration before) remaining))
+            (equalTransitivity Count (authoritativeUnionGeneration (runAuthoritativeUnionChanges changes before))
+              (add (authoritativeUnionGeneration before) (unionChangesRevisionCount changes))
+              (add (authoritativeUnionGeneration before) (next remaining))
+              (unionChangesGeneration changes before)
+              (congruent Count Count (add (authoritativeUnionGeneration before))
+                (unionChangesRevisionCount changes) (next remaining) effective))
+            (addRightNext (authoritativeUnionGeneration before) remaining)))
+        (sameCountBeyondOff (authoritativeUnionGeneration before) remaining))
+
+def selectedUnionDialAfterEffectiveChangesCannotEstablish : (before : AuthoritativeUnionPolicy) -> (changes : AuthoritativeUnionChanges) ->
+    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) -> (allowed : Flag) ->
+    Equal Count (unionChangesRevisionCount changes) (next remaining) ->
+    Equal OutboundUnionEstablishedDecision
+      (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes before) authenticated identity
+        (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) allowed)) outboundUnionEstablishedRefused :=
+  fun (before : AuthoritativeUnionPolicy) (changes : AuthoritativeUnionChanges) (remaining : Count)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) (allowed : Flag)
+      (effective : Equal Count (unionChangesRevisionCount changes) (next remaining)) =>
+    case allowed as decision in Flag return
+      Equal OutboundUnionEstablishedDecision
+        (outboundUnionEstablished role swarm (runAuthoritativeUnionChanges changes before) authenticated identity
+          (selectOutboundUnionDialDecision (captureUnionRevision role swarm before identity) decision)) outboundUnionEstablishedRefused with
+    | off => refusedUnionDialCannotEstablish role swarm (runAuthoritativeUnionChanges changes before) authenticated identity
+    | on => mismatchedUnionRevisionCannotEstablish role swarm (runAuthoritativeUnionChanges changes before) authenticated identity
+        (captureUnionRevision role swarm before identity)
+        (effectiveUnionTraceReceiptMismatch before changes remaining role swarm identity effective)
+
+def unionOutboundExchangeAfterEffectiveChangesRefused : (before : AuthoritativeUnionChanges) -> (between : AuthoritativeUnionChanges) ->
+    (remaining : Count) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (current : AuthoritativeUnionPolicy) ->
+    (dialAuthenticated : Flag) -> (establishedAuthenticated : Flag) -> (identity : Count) ->
+    Equal Count (unionChangesRevisionCount between) (next remaining) ->
+    Equal OutboundUnionEstablishedDecision
+      (runUnionOutboundExchange before between role swarm current dialAuthenticated establishedAuthenticated identity)
+      outboundUnionEstablishedRefused :=
+  fun (before : AuthoritativeUnionChanges) (between : AuthoritativeUnionChanges) (remaining : Count)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy)
+      (dialAuthenticated : Flag) (establishedAuthenticated : Flag) (identity : Count)
+      (effective : Equal Count (unionChangesRevisionCount between) (next remaining)) =>
+    selectedUnionDialAfterEffectiveChangesCannotEstablish (runAuthoritativeUnionChanges before current) between remaining
+      role swarm establishedAuthenticated identity
+      (authoritativeUnionQuery role swarm (runAuthoritativeUnionChanges before current) dialAuthenticated identity)
+      effective
+
+
+def freshUnionDialCanEstablish : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (current : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery role swarm current on identity) on ->
+    Equal OutboundUnionEstablishedDecision
+      (runUnionOutboundExchange noAuthoritativeUnionChanges noAuthoritativeUnionChanges role swarm current on on identity)
+      (outboundUnionEstablishedApproved (captureUnionRevision role swarm current identity)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (current : AuthoritativeUnionPolicy) (identity : Count)
+      (allowed : Equal Flag (authoritativeUnionQuery role swarm current on identity) on) =>
+    equalTransitivity OutboundUnionEstablishedDecision
+      (runUnionOutboundExchange noAuthoritativeUnionChanges noAuthoritativeUnionChanges role swarm current on on identity)
+      (outboundUnionEstablished role swarm current on identity
+        (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))
+      (outboundUnionEstablishedApproved (captureUnionRevision role swarm current identity))
+      (congruent Flag OutboundUnionEstablishedDecision
+        (fun (decision : Flag) => outboundUnionEstablished role swarm current on identity
+          (selectOutboundUnionDialDecision (captureUnionRevision role swarm current identity) decision))
+        (authoritativeUnionQuery role swarm current on identity) on allowed)
+      (equalTransitivity OutboundUnionEstablishedDecision
+        (outboundUnionEstablished role swarm current on identity
+          (outboundUnionDialApproved (captureUnionRevision role swarm current identity)))
+        (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity)
+          (authoritativeUnionQuery role swarm current on identity))
+        (outboundUnionEstablishedApproved (captureUnionRevision role swarm current identity))
+        (currentUnionReceiptEstablishesDecision role swarm current on identity)
+        (congruent Flag OutboundUnionEstablishedDecision
+          (selectOutboundUnionEstablishedDecision (captureUnionRevision role swarm current identity))
+          (authoritativeUnionQuery role swarm current on identity) on allowed))
+
+def unionRoleTag : NodePolicyRole -> Count :=
+  fun (role : NodePolicyRole) =>
+    case role as selected in NodePolicyRole return Count with
+    | validatorPolicyRole => zero
+    | hubPolicyRole => next zero
+    | observerPolicyRole => next (next zero)
+
+def sameUnionRoleUsesDistinctTags : (captured : NodePolicyRole) -> (current : NodePolicyRole) ->
+    Equal Flag (sameUnionRole captured current) (sameCount (unionRoleTag captured) (unionRoleTag current)) :=
+  fun (captured : NodePolicyRole) (current : NodePolicyRole) =>
+    case captured as first in NodePolicyRole return
+      Equal Flag (sameUnionRole first current) (sameCount (unionRoleTag first) (unionRoleTag current)) with
+    | validatorPolicyRole => (case current as second in NodePolicyRole return
+        Equal Flag (sameUnionRole validatorPolicyRole second) (sameCount (zero) (unionRoleTag second)) with
+      | validatorPolicyRole => equalRefl Flag on
+      | hubPolicyRole => equalRefl Flag off
+      | observerPolicyRole => equalRefl Flag off)
+    | hubPolicyRole => (case current as second in NodePolicyRole return
+        Equal Flag (sameUnionRole hubPolicyRole second) (sameCount (next zero) (unionRoleTag second)) with
+      | validatorPolicyRole => equalRefl Flag off
+      | hubPolicyRole => equalRefl Flag on
+      | observerPolicyRole => equalRefl Flag off)
+    | observerPolicyRole => (case current as second in NodePolicyRole return
+        Equal Flag (sameUnionRole observerPolicyRole second) (sameCount (next (next zero)) (unionRoleTag second)) with
+      | validatorPolicyRole => equalRefl Flag off
+      | hubPolicyRole => equalRefl Flag off
+      | observerPolicyRole => equalRefl Flag on)
+
+def sameUnionWorkerSwarmUsesExactIndex : (captured : Count) -> (current : Count) ->
+    Equal Flag (sameUnionSwarm (indexedWorkerPolicySwarm captured) (indexedWorkerPolicySwarm current)) (sameCount captured current) :=
+  fun (captured : Count) (current : Count) => equalRefl Flag (sameCount captured current)
+
+def unionPrimaryNeverMatchesWorker : (index : Count) -> Equal Flag (sameUnionSwarm primaryPolicySwarm (indexedWorkerPolicySwarm index)) off :=
+  fun (index : Count) => equalRefl Flag off
+
+def unionWorkerNeverMatchesPrimary : (index : Count) -> Equal Flag (sameUnionSwarm (indexedWorkerPolicySwarm index) primaryPolicySwarm) off :=
+  fun (index : Count) => equalRefl Flag off

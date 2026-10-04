@@ -76,17 +76,17 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "e493ea112485521f2934a10ba87c2faf9762835687c34c8faa7b1567496cf6dd"
+          "sha256": "9d6eb5a4b4bde65760e23b2a8433563ef9a4df871ec4ee7475ab5a9b6871c35d"
         },
         {
           "criterion": 1,
           "path": "docs/R02-AUDIT.md",
-          "sha256": "a8e05f7dc47cbcb388d62f358c9caa5870ffee934cf5810017e10a9c3b943c1f"
+          "sha256": "0567e7db7c7f33e9f91c9ed150fbe97f97e6c4e60aab6283c45f987c34c974f6"
         },
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "e493ea112485521f2934a10ba87c2faf9762835687c34c8faa7b1567496cf6dd"
+          "sha256": "9d6eb5a4b4bde65760e23b2a8433563ef9a4df871ec4ee7475ab5a9b6871c35d"
         }
       ]
     },
@@ -111,17 +111,17 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "e493ea112485521f2934a10ba87c2faf9762835687c34c8faa7b1567496cf6dd"
+          "sha256": "9d6eb5a4b4bde65760e23b2a8433563ef9a4df871ec4ee7475ab5a9b6871c35d"
         },
         {
           "criterion": 1,
           "path": "proof-audit.json",
-          "sha256": "e493ea112485521f2934a10ba87c2faf9762835687c34c8faa7b1567496cf6dd"
+          "sha256": "9d6eb5a4b4bde65760e23b2a8433563ef9a4df871ec4ee7475ab5a9b6871c35d"
         },
         {
           "criterion": 2,
           "path": "tools/check.py",
-          "sha256": "d21bd32b22f367d90f2acf122e00a80d74a6d75cbcbf9a881f66e56a1bebd60a"
+          "sha256": "3c50502234097d4d12f40be1ae82ad44bdaa53ffac6deb24c432348f34524170"
         }
       ]
     },
@@ -129,7 +129,7 @@
       "id": "R04",
       "title": "Close policy, source churn and recovery models",
       "planned_turns": 5,
-      "turns_spent": 1,
+      "turns_spent": 2,
       "status": "active",
       "depends_on": [
         "R03"

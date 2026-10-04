@@ -1,10 +1,11 @@
 # R04 policy, source churn and recovery
 
-R04 turn 1 closes M022 in the sealed source-obligation ledger. Module
-[91-authoritative-policy-union.mech](../proofs/91-authoritative-policy-union.mech)
-adds 37 general proof declarations and 34 semantic weakening controls. R04
-remains active: its other 24 model obligations retain their recorded gaps.
-The repository has used 26 of its 50 execution turns. This turn does not change
+R04 turn 2 closes M023 in the sealed source-obligation ledger. Module
+[92-policy-lifecycle-revisions.mech](../proofs/92-policy-lifecycle-revisions.mech)
+adds 44 proof declarations and 32 semantic weakening controls. M022 was closed
+in turn 1 by module 91. R04 remains active: its other 23 model obligations retain
+their recorded gaps. The repository has used 27 of its 50 execution turns.
+This turn does not change
 the sealed scope, packet allocations or external-obligation boundary. R02 and
 R03 used 12 turns more than planned. This is two more than the ten-turn
 reserve. The R04 to R10 allocations still project 52 of 50 turns. The owner
@@ -65,7 +66,7 @@ the modified plan, especially lines 21, 27, 65 and 121, and the reconciled A5
 unit U1168. [proof-audit.json](../proof-audit.json) retains the earlier flat-list
 witnesses with their local limitations and adds the new exact statements,
 premises, scope classifications and controls. Both M022 criteria are witnessed.
-The current census is 12 covered and 71 partial model obligations.
+The turn-1 census was 12 covered and 71 partial model obligations.
 
 | Ledger criterion | Principal general witnesses (the audit records the complete witness list of each criterion) |
 |---|---|
@@ -84,7 +85,7 @@ crashes do not count.
 
 The combined full gate is `python3 -I tools/check_gate.py --jobs 4`. It runs
 `tools/check.py --require-complete --jobs 4`, checks the complete corpus and
-requires the expected qualification-blocked exit 2. Its checked receipt is
+requires the expected qualification-blocked exit 2. Its turn-1 checked receipt is
 [r04-authoritative-policy-union-check.json](../evidence/r04-authoritative-policy-union-check.json):
 74 modules, 1478 explicit proof declarations, empty axiom disclosure and 1388
 rejected negative checks, including all 34 new controls. The disposition,
@@ -98,15 +99,79 @@ events. These are explicit model premises, not cryptographic or runtime proofs.
 E029 retains runtime policy/record validation and projection obligations.
 E030 retains launch deployment qualification.
 
-This module queries the current immutable view. A policy snapshot is one
+Module 91 queries the current immutable view. A policy snapshot is one
 immutable `AuthoritativeUnionPolicy` value. `authoritativeUnionQuery` does not
-read the generation counter. The module does not model inbound,
-outbound-dial or outbound-established lifecycle gates, receipt provenance or
-compare-and-publish races. Those are M023. It also does not discharge M006's
+read the generation counter. Module 91 does not model inbound,
+outbound-dial or outbound-established lifecycle gates; module 92 adds them in
+turn 2. E029 retains receipt provenance and compare-and-publish races. Module 91
+also does not discharge M006's
 fault isolation, M026's cold-start connectivity, M039's recovery threshold or
 M042's reload/removal lifecycle. All 43 external obligations remain open, and
 full implementation/deployment qualification remains blocked.
 
-The next R04 work should compose these exact membership views with M023's three
-decision points and intervening revisions, then preserve the independent
-authentication, fallback, resource and source-lifetime premises.
+## Lifecycle decision revisions (turn 2)
+
+Module 92 implements distinct `InboundUnionDecision`, `OutboundUnionDialDecision`
+and `OutboundUnionEstablishedDecision` result types. Inbound admission and
+outbound dialing query the current immutable authority selected by node role
+and swarm. An approved dial carries its generation, role, swarm and identity.
+Establishment first checks all four fields against the current authority and
+query context, then independently reruns the current authentication and policy
+query. Every refusal branch produces an explicit refusal result.
+
+`allUnionLifecyclePointsCheckCurrent` relates all three implementations to the
+same current authority for every role and primary/arbitrary-index worker swarm.
+Its established branch uses a supplied current-context approved receipt. The
+Closed, Open and Grace theorems retain exact union membership and independent
+authentication as appropriate. Open/Grace allow authenticated nonmembers;
+neither fallback authorizes an unauthenticated identity or a stale receipt.
+Generation, role, swarm and identity mismatch theorems cover arbitrary receipt
+fields. The worker comparison uses the complete natural-number index.
+
+`unionChangesGeneration` proves the exact revision count of any finite mixed
+roster/profile trace. Verified roster and authorized profile changes each
+advance generation. Provisional roster changes leave it unchanged. After an
+effective revision and any following mixed trace, a previously captured receipt
+remains stale and cannot establish. This includes revisions to another role or
+swarm, deliberately using conservative global invalidation.
+
+`runUnionOutboundExchange` is an executable dial/establish composition. It dials
+after an arbitrary prefix, then establishes after the intervening trace using
+separate authentication inputs. Its ordering theorem pins both policy values
+and inputs. `unionOutboundExchangeAfterEffectiveChangesRefused` refuses the
+actual dial result for every intervening trace that holds a verified roster
+update or an authorized profile change at any position, for both dial branches.
+`unionOutboundExchangeAfterVerifiedUpdateRefused` is the first-event case.
+`freshUnionDialCanEstablish` proves a fresh allowed authenticated dial succeeds,
+so the lifecycle is not always refusing.
+
+Both sealed M023 criteria are witnessed by 35 new audited statements. The older
+module-33 witnesses retain their supplied-snapshot limitations. The current
+census is 13 covered and 70 partial model obligations. The 44 declarations
+include supporting equality and selection lemmas; those do not independently
+receive source-obligation closure credit. The 32 new controls remove stamp
+checks, corrupt captured receipt fields, alias roles/workers, query the default
+policy or a wrong role or swarm, bypass authentication or
+policy, drop successful branches, grant refusals, reorder/drop intervening
+events, reuse dial authentication and miscount revisions. Every control must
+produce a type mismatch; parser errors and crashes do not count.
+
+The full qualification guard and checked receipt
+[r04-policy-lifecycle-revisions-check.json](../evidence/r04-policy-lifecycle-revisions-check.json)
+record 75 modules, 1522 proof declarations, no disclosed axioms and 1420 rejected
+negative checks. Disposition, scope and witness-audit regressions also pass.
+
+Each decision atomically receives its current immutable authority in the model's
+ordered execution. Runtime authority capture and publication linearization are
+E029. Authentication and source-verification flags are correctly classified
+current judgments; profile changes are authorized operator events. Generations
+are unbounded natural numbers. Runtime wrapping, persistence and rollback
+refinement remain external. An approved dial constructor is not a receipt
+provenance certificate; E029 retains runtime receipt provenance. Independent
+bounded privileges and live-connection sweeps remain M024/M040. Fault isolation,
+source/resource attribution, expiry and reload/removal keep their separate
+ledger gaps. All 43 external obligations remain open.
+
+The next R04 work is M024 independent bounded privileges and M025 trusted
+startup dialing/lifetime redial, preserving the authentication, fallback,
+resource and source lifetime premises.

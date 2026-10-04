@@ -738,9 +738,28 @@ judgment. Profile-change events represent authorized operator configuration.
 
 Generation advances on every role replacement and on every verified roster
 update, but the module has no receipt or compare-and-publish protocol. It queries
-a current immutable view in a serialized model. M023 still owns distinct
-inbound/outbound gates and intervening revisions.
+a current immutable view in a serialized model. Module 92 adds the distinct
+inbound/outbound gates and intervening revisions in R04 turn 2 (see below).
 M006, M039 and M042 retain fallback isolation, recovery closure and consistent
 reload/removal lifecycles. Extending the finite worker configuration does not
 prove a bounded runtime allocation cost. E029 retains policy and record
-refinement. M022 is covered; R04 and all external obligations remain open.
+refinement. Turn 1 covers M022; R04 and all external obligations remain open.
+
+## R04 turn 2 lifecycle-revision boundary
+
+Module 92 checks distinct inbound admission, outbound dial and outbound
+established decisions against the current immutable authority. Each decision
+receives that authority atomically in an ordered model execution. An approved
+dial carries its generation, role, swarm and identity. Establishment refuses a
+receipt that does not match the current generation and query context, and it
+queries the current authenticated policy again.
+
+The runtime must capture the current authority atomically and publish views
+without a stale-use race. It must keep identity indexing faithful, supply
+current authentication, classify roster updates correctly and authorize profile
+events. Model generations are unbounded natural numbers. The runtime must
+persist generations and must not wrap or roll them back. An approved dial
+constructor is not a receipt provenance certificate. E029 retains these runtime
+obligations. M024 retains independent bounded privileges. M040 retains
+live-connection sweeps. M022 and M023 are covered; R04 and all external
+obligations remain open.
