@@ -786,3 +786,20 @@ change. Runtime authority capture, identity mapping, allocation authorization,
 cause classification, capacity selection and privilege enforcement require E029.
 M022, M023 and M024 are covered; startup/redial, live sweeps and the other R04
 obligations retain their own gaps. All 43 external obligations remain open.
+
+## R04 turn 4 trusted startup and redial boundary
+
+Module 94 closes M025's configured startup selection and lifetime redial
+eligibility. Failed or exhausted attempts do not remove trusted membership.
+The reconnection witnesses consume an explicit reset followed by an
+authenticated successful timer event, under a positive attempt cap. Timer
+scheduling, eventual transport delivery and elapsed-time bounds are not proved.
+A failure can exhaust the episode and does not guarantee another retry.
+
+The work cap bounds a standalone supplied-demand helper, not the work of the
+presence transition. Attempt, backoff and work caps are unversioned parameters.
+E029 retains runtime accounting, identity mapping, authentication, authority
+capture and budget selection/versioning. E010 retains wall-clock reconnect
+bounds and M038 retains backoff schedule conformance. M022 through M025 are
+covered; live sweeps and the other R04 gaps, together with all 43 external
+obligations, remain open.

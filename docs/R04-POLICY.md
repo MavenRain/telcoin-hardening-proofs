@@ -230,3 +230,29 @@ unbounded naturals; wrapping, persistence and rollback remain external. Genuine
 protocol violations and load causes are correctly classified judgments. All 43
 external obligations remain open. M025 startup and lifetime redial is next;
 M040 live sweeps and the other policy/source/resource gaps remain unchanged.
+
+## Turn 4: trusted startup and lifetime redial
+
+Module 94 closes both M025 criteria with 51 audited witnesses and 52 semantic
+weakening controls. Startup selection contains exactly the configured trusted
+and bootstrap identities for each role and primary/worker swarm. The current
+M023 outbound gate enforces authentication. Configuration membership and
+connection presence remain separate state. Any finite presence trace preserves
+membership, and mixed configuration traces preserve eligibility whenever the
+identity remains configured. Presence, spent attempts and backoff do not affect
+eligibility. A verified removal from the selected trusted slots ends it.
+
+Reconnection requires a positive attempt cap, an explicit episode reset and an
+authenticated fired timer with successful transport. The witnesses establish
+the result of this supplied suffix after any membership-preserving prefix;
+they do not prove that the suffix is scheduled. A failure updates capped attempt
+and backoff state and may exhaust the episode. Further attempts then require
+a reset. The standalone work helper caps supplied demand, but presence
+transitions do not account for that charge. M038 retains backoff schedule
+conformance, E010 retains wall-clock bounds, and E029 retains authentication,
+identity mapping, authority capture, budget selection/versioning and runtime
+work accounting. Launch seeding, discovery and live sweeps keep their separate
+obligations. All 43 external obligations remain open.
+
+The census is now 15 covered and 68 partial model obligations. R04 remains active
+at turn 4, with 29 of the overall 50 execution turns used.

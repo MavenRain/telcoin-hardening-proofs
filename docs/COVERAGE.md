@@ -16,14 +16,14 @@ The fixed proof-only checklist is in [proof-roadmap.json](../proof-roadmap.json)
 
 **Closure checklist: 3/10 packets (30%).** This measures audited packet closure, not total effort or deployment qualification.
 
-Execution turns used: 28/50. Allocation: 40 planned + 10 reserve. Budget status: within budget.
+Execution turns used: 29/50. Allocation: 40 planned + 10 reserve. Budget status: within budget.
 
 | Packet | Closure task | Planned turns | Actual turns | Status |
 |---|---|---:|---:|---|
 | R01 | Seal the semantic ledger and proof boundary | 5 | 5 | closed |
 | R02 | Audit and reuse the existing proof corpus | 3 | 5 | closed |
 | R03 | Close admission, ownership and rate accounting | 5 | 15 | closed |
-| R04 | Close policy, source churn and recovery models | 5 | 3 | active |
+| R04 | Close policy, source churn and recovery models | 5 | 4 | active |
 | R05 | Close queue, capacity and schedule composition | 5 | 0 | pending |
 | R06 | Close event-loop progress and conditional service | 4 | 0 | pending |
 | R07 | Close authentication and optimization boundaries | 4 | 0 | pending |
@@ -35,7 +35,7 @@ Evidence hashes check freshness. Each exit criterion still requires an audit of 
 
 ## Frozen model witness audit
 
-83/83 model obligations have a first witness review: 14 covered, 69 partial, 0 unreviewed. 0 acceptance criteria still need audit.
+83/83 model obligations have a first witness review: 15 covered, 68 partial, 0 unreviewed. 0 acceptance criteria still need audit.
 
 The pinned corpus contains 1611 explicit proof declarations in 77 modules. [proof-audit.json](../proof-audit.json) records exact statements, premises, scope limits and outstanding criterion work. See [the R02 audit](R02-AUDIT.md). Statement and hash checks do not establish semantic entailment. Finite examples receive no general coverage credit; external obligations remain open.
 

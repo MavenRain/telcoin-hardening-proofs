@@ -11368,24 +11368,1077 @@
       "id": "M025",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Module 94 adds configured-peer startup selection, membership-preserving presence traces, and finite-episode retry/backoff transitions. Its statements have not yet been assigned source-to-witness coverage or semantic weakening controls. Reconnection is conditional on a successful authenticated timer event before the attempt cap; this is not a temporal eventual-redial theorem. M025 remains partial in R04.",
-      "witnesses": [],
-      "controls": [],
+      "scope_complete": true,
+      "scope_review": "R04 turn 4 closes the trusted startup and lifetime redial obligation. Module 94 keeps configuration membership and connection presence as separate state for every configured primary and worker identity of each role and swarm. Startup dialing selects exactly the configured trusted and bootstrap identities of the selected authoritative union, behind the M023 outbound gate. Unauthenticated dials are refused. After any finite trace of disconnects, failed dials, timer events, episode resets and module 91 to 93 configuration changes that keep the identity configured, the identity stays redial eligible, dial approved and a startup dial member. Eligibility never reads presence or spent attempts. A failed attempt drops presence, spends one capped attempt and grows a capped backoff. The standalone redialAttemptWork helper caps a supplied work demand; presence transitions do not account for this charge. An exhausted episode refuses attempts until an explicit episode reset. Timer fairness and transport success are runtime premises, represented by supplied fired-timer events and transport judgments. An authenticated fired timer inside the budget connects when transport succeeds. A transport failure preserves eligibility and updates bounded retry state, but can exhaust the episode and does not establish that another retry is scheduled. After any membership-preserving prefix, an explicit episode reset and a successful authenticated fired timer restore presence if the attempt cap is positive. Only an authorized verified removal ends eligibility. Attempt, backoff and work caps are supplied unversioned parameters. E029 owns runtime identity mapping, authentication, budget selection, work accounting and versioning. E010 retains wall-clock timer and reconnect bounds; M038 retains backoff schedule conformance. Unconditional temporal liveness, discovery, launch seeding (M026) and live sweeps are not credited.",
+      "witnesses": [
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialEitherLeftOn",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag (either first second) on",
+          "scope_kind": "general_transition",
+          "establishes": "A set left operand makes the startup source union set for every second operand.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialEitherRightOn",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag second on -> Equal Flag (either first second) on",
+          "scope_kind": "general_transition",
+          "establishes": "A set right operand makes the startup source union set for every first operand.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialBothOn",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag second on ->\n    Equal Flag (both first second) on",
+          "scope_kind": "general_transition",
+          "establishes": "Two set operands make the conjunction of a dial gate set.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialMemberAllowedOn",
+          "statement": "(profile : Profile) -> Equal Flag (memberAllowed profile on) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every modeled profile allows a configured member, so no profile empties the startup dial set.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "startupDialExactSelection",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (startupDialMember role swarm authority identity)\n      (either (policyMemberAt identity (configuredTrustedSlots (authoritativeUnionAt role swarm authority)))\n        (policyMemberAt identity (configuredBootstrapSlots (authoritativeUnionAt role swarm authority))))",
+          "scope_kind": "general_transition",
+          "establishes": "For every role, swarm, authority and identity, startup dial membership equals membership in the configured trusted slots or the configured bootstrap slots of the selected authoritative union.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "trustedConfiguredStartupDial",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm authority identity) on ->\n    Equal Flag (startupDialMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every configured trusted identity of every primary and worker swarm is a startup dial member.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "bootstrapConfiguredStartupDial",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (bootstrapConfigured role swarm authority identity) on ->\n    Equal Flag (startupDialMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every configured bootstrap identity is a startup dial member, which gives the fallback dial set.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "trustedMemberInCommitteeUnion",
+          "statement": "(identity : Count) -> (members : CommitteePolicyUnion) ->\n    Equal Flag (policyMemberAt identity (configuredTrustedSlots members)) on ->\n    Equal Flag (committeeUnionMember identity members) on",
+          "scope_kind": "general_transition",
+          "establishes": "A configured trusted identity is a member of the authoritative committee union that the M023 gate reads.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "trustedConfiguredDialApproved",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm authority identity) on ->\n    Equal Flag (trustedDialGate role swarm identity authority on) on",
+          "scope_kind": "general_transition",
+          "establishes": "An authenticated configured trusted identity passes the M023 outbound dial gate of the current authority.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "trustedStartupDialApproved",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm authority identity) on ->\n    Equal Flag (startupDialApproved role swarm authority on identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "An authenticated configured trusted identity receives an approved startup dial.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "unauthenticatedDialRefused",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (authority : AuthoritativeUnionPolicy) -> Equal Flag (trustedDialGate role swarm identity authority off) off",
+          "scope_kind": "general_transition",
+          "establishes": "The outbound dial gate refuses every unauthenticated identity for every role, swarm and authority.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "unauthenticatedStartupDialRefused",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (startupDialApproved role swarm authority off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Startup dialing refuses every unauthenticated identity, including configured trusted identities.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialTraceAuthority",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal AuthoritativeUnionPolicy\n      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite redial event trace, the authority equals the original authority with only the configuration changes of that trace applied.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "presenceTraceHasNoConfigurationChanges",
+          "statement": "(events : PresenceEvents) ->\n    Equal AuthoritativeUnionChanges (redialConfigurationChanges (lowerPresenceEvents events)) noAuthoritativeUnionChanges",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A lowered presence trace of any length contains no configuration change.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "presenceTraceKeepsAuthority",
+          "statement": "(events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal AuthoritativeUnionPolicy\n      (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm identity budget\n        (trustedPeerState authority redial))) authority",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Any finite trace of disconnects, failed dials, timer events and episode resets keeps the authority unchanged.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "presenceTraceKeepsEligibility",
+          "statement": "(events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag\n      (trustedRedialEligible role swarm identity (runRedialEvents (lowerPresenceEvents events) role swarm identity budget\n        (trustedPeerState authority redial)))\n      (trustedConfigured role swarm authority identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite presence trace, redial eligibility equals configured trusted membership, so a disconnect never ends eligibility.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "presenceTraceKeepsStartupDial",
+          "statement": "(events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag\n      (startupDialMember role swarm (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm\n        identity budget (trustedPeerState authority redial))) identity)\n      (startupDialMember role swarm authority identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite presence trace, startup dial membership is unchanged.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "lifetimeRedialEligible",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag (trustedConfigured role swarm\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->\n    Equal Flag (trustedRedialEligible role swarm identity\n      (runRedialEvents events role swarm identity budget (trustedPeerState authority redial))) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite mixed presence and configuration trace that keeps the identity configured, the identity stays redial eligible. No attempt count ends eligibility.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "lifetimeRedialDialApproved",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag (trustedConfigured role swarm\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->\n    Equal Flag (trustedDialGate role swarm identity\n      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial))) on) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite mixed trace that keeps the identity configured, an authenticated redial passes the outbound gate of the resulting authority.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "lifetimeStartupDialMember",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag (trustedConfigured role swarm\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->\n    Equal Flag (startupDialMember role swarm\n      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))\n      identity) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite mixed trace that keeps the identity configured, the identity stays a startup dial member of the resulting authority.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "retryStateKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (authority : AuthoritativeUnionPolicy) -> (first : RedialState) -> (second : RedialState) ->\n    Equal Flag (trustedRedialEligible role swarm identity (trustedPeerState authority first))\n      (trustedRedialEligible role swarm identity (trustedPeerState authority second))",
+          "scope_kind": "general_transition",
+          "establishes": "Redial eligibility is equal for every two redial states, so presence, spent attempts and backoff never change it.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "disconnectKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal Flag (trustedRedialEligible role swarm identity (applyRedialEvent role swarm identity budget\n      (presenceRedialEvent peerDisconnected) (trustedPeerState authority redial)))\n      (trustedConfigured role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "After a disconnect from any state, redial eligibility equals configured trusted membership.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "disconnectChangesPresenceOnly",
+          "statement": "(budget : RedialBudget) -> (gate : Flag -> Flag) -> (state : RedialState) ->\n    Equal RedialState (stepPresence budget gate peerDisconnected state)\n      (redialState peerAbsent (redialAttempts state) (redialBackoff state))",
+          "scope_kind": "general_transition",
+          "establishes": "A disconnect sets presence to absent and keeps the spent attempts and backoff, for every budget and gate.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "configurationChangeKeepsPresence",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (change : AuthoritativeUnionChange) -> (authority : AuthoritativeUnionPolicy) ->\n    (redial : RedialState) ->\n    Equal RedialState (trustedPeerRedial (applyRedialEvent role swarm identity budget\n      (configurationRedialEvent change) (trustedPeerState authority redial))) redial",
+          "scope_kind": "general_transition",
+          "establishes": "A configuration event keeps the presence, attempt and backoff state unchanged.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "failedRedialDropsPresence",
+          "statement": "(budget : RedialBudget) -> (state : RedialState) ->\n    Equal PeerPresence (redialPresence (failedRedialState budget state)) peerAbsent",
+          "scope_kind": "general_transition",
+          "establishes": "A failed redial always leaves the peer absent.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "failedRedialAttemptBound",
+          "statement": "(budget : RedialBudget) -> (state : RedialState) ->\n    AtMost (redialAttempts (failedRedialState budget state)) (redialAttemptCap budget)",
+          "scope_kind": "general_transition",
+          "establishes": "After a failed redial, spent attempts stay at most the attempt cap of the budget.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "failedRedialBackoffBound",
+          "statement": "(budget : RedialBudget) -> (state : RedialState) ->\n    AtMost (redialBackoff (failedRedialState budget state)) (redialBackoffCap budget)",
+          "scope_kind": "general_transition",
+          "establishes": "After a failed redial, the backoff stays at most the backoff cap of the budget.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "redialAttemptWorkBound",
+          "statement": "(budget : RedialBudget) -> (demand : Count) ->\n    AtMost (redialAttemptWork budget demand) (redialWorkCap budget)",
+          "scope_kind": "general_transition",
+          "establishes": "The standalone redialAttemptWork helper returns at most the work cap for every supplied demand. Presence transitions do not consume or account for this charge; runtime work accounting remains E029.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "exhaustedEpisodeRefuses",
+          "statement": "(cap : Count) -> Equal Flag (attemptsRemain cap cap) off",
+          "scope_kind": "general_transition",
+          "establishes": "An episode that has spent its full attempt cap allows no further attempt.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "freshEpisodeAllowsAttempt",
+          "statement": "(cap : Count) -> Equal Flag (attemptsRemain (next cap) zero) on",
+          "scope_kind": "general_transition",
+          "establishes": "A fresh episode with a positive attempt cap allows an attempt.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "zeroAttemptCapRefuses",
+          "statement": "(used : Count) -> Equal Flag (attemptsRemain zero used) off",
+          "scope_kind": "general_transition",
+          "establishes": "A zero attempt cap allows no attempt for every spent count.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "exhaustedAttemptIsNoOp",
+          "statement": "(connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->\n    Equal RedialState (attemptOutcome off connected budget state) state",
+          "scope_kind": "general_transition",
+          "establishes": "An attempt outside the episode budget keeps the redial state unchanged for every transport result.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "episodeResetClearsAttempts",
+          "statement": "(budget : RedialBudget) -> (gate : Flag -> Flag) -> (state : RedialState) ->\n    Equal Count (redialAttempts (stepPresence budget gate retryEpisodeReset state)) zero",
+          "scope_kind": "general_transition",
+          "establishes": "An explicit episode reset sets the spent attempts to zero for every budget, gate and state.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "attemptOutcomeConnects",
+          "statement": "(remaining : Flag) -> (connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->\n    Equal Flag remaining on -> Equal Flag connected on ->\n    Equal RedialState (attemptOutcome remaining connected budget state) connectedRedialState",
+          "scope_kind": "general_transition",
+          "establishes": "An attempt inside the budget with a delivered transport gives the connected state.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "attemptOutcomeFails",
+          "statement": "(remaining : Flag) -> (connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->\n    Equal Flag remaining on -> Equal Flag connected off ->\n    Equal RedialState (attemptOutcome remaining connected budget state) (failedRedialState budget state)",
+          "scope_kind": "general_transition",
+          "establishes": "An attempt inside the budget with a failed transport gives the failed redial state.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "refusedAttemptKeepsAbsent",
+          "statement": "(remaining : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->\n    Equal PeerPresence (redialPresence state) peerAbsent ->\n    Equal PeerPresence (redialPresence (attemptOutcome remaining off budget state)) peerAbsent",
+          "scope_kind": "general_transition",
+          "establishes": "An attempt without a delivered transport keeps an absent peer absent.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "fairTimerTransportConnects",
+          "statement": "(budget : RedialBudget) -> (gate : Flag -> Flag) -> (presence : PeerPresence) ->\n    (attempts : Count) -> (backoff : Count) -> (authenticated : Flag) -> (transported : Flag) ->\n    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on ->\n    Equal Flag (gate authenticated) on -> Equal Flag transported on ->\n    Equal RedialState (stepPresence budget gate (redialTimerFired authenticated transported)\n      (redialState presence attempts backoff)) connectedRedialState",
+          "scope_kind": "general_transition",
+          "establishes": "Under the fair timer premise, a fired timer inside the budget with an approved gate and a delivered transport connects the peer from every presence, attempt and backoff state.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "trustedFairRedialConnects",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (presence : PeerPresence) ->\n    (attempts : Count) -> (backoff : Count) -> (transported : Flag) ->\n    Equal Flag (trustedConfigured role swarm authority identity) on ->\n    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on -> Equal Flag transported on ->\n    Equal RedialState (trustedPeerRedial (applyRedialEvent role swarm identity budget\n      (presenceRedialEvent (redialTimerFired on transported))\n      (trustedPeerState authority (redialState presence attempts backoff)))) connectedRedialState",
+          "scope_kind": "general_transition",
+          "establishes": "Under the fair timer and transport premises, an authenticated configured trusted identity reconnects inside its attempt budget.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "transportFailureSchedulesRetry",
+          "statement": "(budget : RedialBudget) -> (gate : Flag -> Flag) -> (presence : PeerPresence) ->\n    (attempts : Count) -> (backoff : Count) -> (authenticated : Flag) ->\n    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on ->\n    Equal RedialState (stepPresence budget gate (redialTimerFired authenticated off)\n      (redialState presence attempts backoff)) (failedRedialState budget (redialState presence attempts backoff))",
+          "scope_kind": "general_transition",
+          "establishes": "A fired timer inside the budget with a failed transport gives the failed state with one more capped attempt and a capped backoff.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "transportFailureKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) -> (authenticated : Flag) ->\n    Equal Flag (trustedRedialEligible role swarm identity (applyRedialEvent role swarm identity budget\n      (presenceRedialEvent (redialTimerFired authenticated off)) (trustedPeerState authority redial)))\n      (trustedConfigured role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "After a transport failure, redial eligibility equals configured trusted membership.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "unauthenticatedRedialNeverConnects",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) -> (transported : Flag) ->\n    Equal PeerPresence (redialPresence redial) peerAbsent ->\n    Equal PeerPresence (redialPresence (trustedPeerRedial (applyRedialEvent role swarm identity budget\n      (presenceRedialEvent (redialTimerFired off transported)) (trustedPeerState authority redial)))) peerAbsent",
+          "scope_kind": "general_transition",
+          "establishes": "A fired timer with failed authentication never connects an absent peer, for every transport result.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "unverifiedUpdateKeepsTrustedMembership",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority) identity)\n      (trustedConfigured role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified roster update keeps configured trusted membership for every role, swarm and identity.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "profileChangeKeepsTrustedMembership",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (requested : Profile) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm (configureUnionProfile role requested authority) identity)\n      (trustedConfigured role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "A profile change keeps configured trusted membership for every role, swarm and identity.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "authorizedRemovalEndsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) off ->\n    Equal Flag (trustedConfigured role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A verified update for the selected role and swarm whose trusted slots omit the identity ends its configured trusted membership.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "authorizedAdditionEntersStartupDial",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) on ->\n    Equal Flag (startupDialMember role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "A verified update for the selected role and swarm whose trusted slots name the identity makes it a startup dial member.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "bootstrapListedStartupDial",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    (previous : Slots) -> (current : Slots) -> (following : Slots) -> (trusted : Slots) -> (bootstrap : Slots) ->\n    Equal CommitteePolicyUnion (authoritativeUnionAt role swarm authority)\n      (committeePolicyUnion previous current following trusted bootstrap) ->\n    Equal Flag (policyMemberAt identity bootstrap) on ->\n    Equal Flag (startupDialMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "For every concrete selected union, an identity in its bootstrap slots is a startup dial member.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "pendingTimerKeepsRedialState",
+          "statement": "(budget : RedialBudget) -> (gate : Flag -> Flag) -> (state : RedialState) ->\n    Equal RedialState (stepPresence budget gate redialTimerPending state) state",
+          "scope_kind": "general_transition",
+          "establishes": "A pending timer keeps the presence, attempt and backoff state unchanged.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "presenceTraceRunsEveryStep",
+          "statement": "(events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    Equal RedialState\n      (trustedPeerRedial (runRedialEvents (lowerPresenceEvents events) role swarm identity budget\n        (trustedPeerState authority redial)))\n      (runPresenceEvents events budget (trustedDialGate role swarm identity authority) redial)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A lowered presence trace of any length runs every presence step in order under the gate of the current authority.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "episodeResetFairRedialConnects",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (budget : RedialBudget) -> (state : TrustedPeerState) -> (transported : Flag) ->\n    Equal Flag (attemptsRemain (redialAttemptCap budget) zero) on ->\n    Equal Flag (trustedRedialEligible role swarm identity state) on -> Equal Flag transported on ->\n    Equal RedialState (trustedPeerRedial (runRedialEvents\n      (redialEvent (presenceRedialEvent retryEpisodeReset)\n        (redialEvent (presenceRedialEvent (redialTimerFired on transported)) noRedialEvents))\n      role swarm identity budget state)) connectedRedialState",
+          "scope_kind": "conditional_liveness",
+          "establishes": "From every trusted peer state, a redial eligible identity with a positive attempt cap reconnects after an episode reset and an authenticated fired timer with a delivered transport.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "eventualRedialConnects",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    (transported : Flag) -> Equal Flag (attemptsRemain (redialAttemptCap budget) zero) on ->\n    Equal Flag (trustedConfigured role swarm\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->\n    Equal Flag transported on ->\n    Equal RedialState (trustedPeerRedial (runRedialEvents\n      (redialEvent (presenceRedialEvent retryEpisodeReset)\n        (redialEvent (presenceRedialEvent (redialTimerFired on transported)) noRedialEvents))\n      role swarm identity budget (runRedialEvents events role swarm identity budget (trustedPeerState authority redial))))\n      connectedRedialState",
+          "scope_kind": "conditional_liveness",
+          "establishes": "After any finite redial prefix that keeps the identity configured, an episode reset followed by an authenticated fired timer with a delivered transport gives the connected state.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/94-trusted-startup-redial.mech",
+          "name": "eventualRedialRestoresPresence",
+          "statement": "(events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->\n    (transported : Flag) -> Equal Flag (attemptsRemain (redialAttemptCap budget) zero) on ->\n    Equal Flag (trustedConfigured role swarm\n      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->\n    Equal Flag transported on ->\n    Equal PeerPresence (redialPresence (trustedPeerRedial (runRedialEvents\n      (redialEvent (presenceRedialEvent retryEpisodeReset)\n        (redialEvent (presenceRedialEvent (redialTimerFired on transported)) noRedialEvents))\n      role swarm identity budget (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))))\n      peerPresent",
+          "scope_kind": "conditional_liveness",
+          "establishes": "After any finite redial prefix that keeps the identity configured, the same reset and fair timer restore peer presence.",
+          "premises": [
+            "Each startup or redial decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Authentication is the independent runtime verification judgment of each startup query and fired timer. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "Timer fairness and transport success are explicit premises. A fired timer and a delivered transport are runtime inputs that this module does not prove. E010 retains wall-clock timer and reconnect bounds, and M038 retains backoff schedule conformance.",
+            "The attempt, backoff and per-attempt work caps are supplied RedialBudget parameters. They are not policy state, no modeled event changes them and the sources give no numeric values. E029 owns runtime budget selection and versioning.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic configuration, presence and retry model with supplied budgets. No runtime refinement, wall-clock liveness, unconditional eventual reconnection, discovery protocol, launch seeding, live-connection sweep or deployment qualification is established."
+        }
+      ],
+      "controls": [
+        {
+          "name": "redial_trusted_slots_read_bootstrap",
+          "sha256": "94da239c17c95f634fc64eaa8fb73d12be6acce2f7051d29464906fded1886ca"
+        },
+        {
+          "name": "redial_trusted_reads_fixed_identity",
+          "sha256": "8b38a8d7f484b163d2c368e26c559983e49987d59c0c0c3833100b05eb3aa4cc"
+        },
+        {
+          "name": "redial_trusted_reads_primary_only",
+          "sha256": "cf0aa9ee4e8e940c8788d3fcdd0b2c759181c977ec3aa636ff6c3fd816b47309"
+        },
+        {
+          "name": "redial_trusted_reads_validator_only",
+          "sha256": "e9f7fc8bfabe36874b2c9df114d9cf5601579bcef7324cb73fa3bc1800ae34e2"
+        },
+        {
+          "name": "redial_startup_drops_trusted",
+          "sha256": "34b6e78bf824cda31062bf1f37fbec68868312acf960daf5285738e67c719a28"
+        },
+        {
+          "name": "redial_startup_drops_bootstrap_fallback",
+          "sha256": "cb5897aca084294fbd1af5138d310de7cd3621086163b492a02db693abeb9a46"
+        },
+        {
+          "name": "redial_startup_intersects_sources",
+          "sha256": "596843b4152327a81faa75067b5a29a6f51243055f29d9748ab41ae5f0241c64"
+        },
+        {
+          "name": "redial_startup_always_empty",
+          "sha256": "c45646212bf584b7c486b29fa6c9c386d470f63ad44a6411ab3a2f51e0880545"
+        },
+        {
+          "name": "redial_gate_ignores_authentication",
+          "sha256": "f9985491c24b2e0c13e07521c3987bd7c2d2ae0360b7aded4b9ec421ecd8ad75"
+        },
+        {
+          "name": "redial_gate_always_open",
+          "sha256": "b73d968fe568ae96842c0d2b95de0f6bbabb7423518acc3c2bc7845b55de6784"
+        },
+        {
+          "name": "redial_gate_always_closed",
+          "sha256": "ba103b5c8bc519c0babfe1b56d035ff6c834f7e650cb72055a3ff3e496492c14"
+        },
+        {
+          "name": "redial_startup_skips_gate",
+          "sha256": "6ad1045223d936de359a30de87c00979ffea33e002db9a815680ded3699836ac"
+        },
+        {
+          "name": "redial_startup_gate_reads_fixed_identity",
+          "sha256": "d214e33d5604425a03406e317514b531e55b69f7879db56f09bd69fcc8ff55d5"
+        },
+        {
+          "name": "redial_failed_attempts_use_backoff_cap",
+          "sha256": "ae1a0503128662a243ea8bc8383299407b4e8bf97205b06c749fce95b446fdc0"
+        },
+        {
+          "name": "redial_failed_backoff_uses_attempt_cap",
+          "sha256": "f1a15cd4ae3d654c57bd515a0dd2d0fdd3ccf694e350f9b9133652f529d74a0a"
+        },
+        {
+          "name": "redial_failed_attempts_uncapped",
+          "sha256": "975ff398fd4443bdcda230b5e9ea15c7b882e208874a4350229821b353eb73ec"
+        },
+        {
+          "name": "redial_failed_backoff_uncapped",
+          "sha256": "677f205a07f184f79c09e54965de065962f720f33e6bf263a81753ff4df19374"
+        },
+        {
+          "name": "redial_failed_keeps_presence",
+          "sha256": "d52e834dd9441db8bd6583b1d33ab7596edcb0dfdca82c96e6a984e0d22fd392"
+        },
+        {
+          "name": "redial_work_uncapped",
+          "sha256": "1a08807896e29438b53ed0499a4ad1fd6a6f228ea52455003c44058a474dd9db"
+        },
+        {
+          "name": "redial_work_uses_backoff_cap",
+          "sha256": "16e1cb5704dd1e8aaea5804423b0beef49037611daf12d8dd7ae04f54daf1332"
+        },
+        {
+          "name": "redial_attempts_never_exhaust",
+          "sha256": "933d1ff6f4629ab015417b0aea2900fcf2c6a2f3630701171b37a008da381908"
+        },
+        {
+          "name": "redial_attempts_forget_spent",
+          "sha256": "32240de689fe1cb44515ade137048f3a4491c8599662eab6c1f110f48fcfe3b4"
+        },
+        {
+          "name": "redial_fresh_episode_refuses",
+          "sha256": "72da26041dc37ad7484a019fdf6ef6b978a4f9bdcf1cfbebc29f04f5d2665ec5"
+        },
+        {
+          "name": "redial_exhausted_attempt_still_dials",
+          "sha256": "da3281b34721ad947aa73d741873a88af678b919b17c87ffecf3b5861f3cc909"
+        },
+        {
+          "name": "redial_refused_attempt_connects",
+          "sha256": "56638a8abd08dee8d99b60babaa66fd01b4b694f6529e71720345bd7d1c9d513"
+        },
+        {
+          "name": "redial_success_marks_failed",
+          "sha256": "790abc064c068ac517546fe89e117ec536f93f26e140bde17a2980b9e5d624e9"
+        },
+        {
+          "name": "redial_disconnect_keeps_presence",
+          "sha256": "f74ef0781e9eed91292b3d86bd9d6bfc39674a43d70e8a8f3137d1a7c0c4f35d"
+        },
+        {
+          "name": "redial_disconnect_resets_attempts",
+          "sha256": "39287364ce123246c430fa04338861dbec88508184ac1b6c963235f58fe8a0a1"
+        },
+        {
+          "name": "redial_timer_ignores_gate",
+          "sha256": "4e9f6aeeada1e27a23f6607d366b62802b61fd0f9c10f36694fac537ece1cf23"
+        },
+        {
+          "name": "redial_timer_ignores_transport",
+          "sha256": "fd48aed0692901cea6134561bcaa9c8ee1dae5570285ff98e24db7bf853c922a"
+        },
+        {
+          "name": "redial_timer_skips_attempt_cap",
+          "sha256": "5a074728452ce2747c88ebb69c672705d518587ac872b14c697ccbeb3258006a"
+        },
+        {
+          "name": "redial_timer_overruns_attempt_cap",
+          "sha256": "d09d6f4a220c3defca5cf397edf7751d360068d53ac1b850663c6a647e3057c3"
+        },
+        {
+          "name": "redial_episode_reset_keeps_attempts",
+          "sha256": "1babc2473f4cee5c53645af538ea4a52463c65c6f7058da11ef51122d6b9b25d"
+        },
+        {
+          "name": "redial_eligibility_expires_after_attempt",
+          "sha256": "69b22c1c25e14a1eef31ee295eadc46d06d98f1c0f64c379a019d8a38ffdb928"
+        },
+        {
+          "name": "redial_eligibility_reads_bootstrap",
+          "sha256": "7311da5c66875bb7f6868d8bdf175f3e700204d1f7f60f40f10d785db331e33a"
+        },
+        {
+          "name": "redial_presence_event_forgets_configuration",
+          "sha256": "63c1c7b8ea78eea7502e73da06afcfb70aabb3125a181d620facfa77eaec073a"
+        },
+        {
+          "name": "redial_presence_gate_reads_fixed_identity",
+          "sha256": "95b3620a0fccb1b63a665be9bf0b36686f530d3c35b8a8f634a316d6f13ba14e"
+        },
+        {
+          "name": "redial_presence_gate_always_open",
+          "sha256": "19283b46bcb5951814d84bc4e58ca1dc3082b656ae7f85c4a5d581f82b6bd242"
+        },
+        {
+          "name": "redial_configuration_event_ignored",
+          "sha256": "961c7bdc677b03c74707a38272b452106247b8f98a0a7b70436bdb06f3a817ff"
+        },
+        {
+          "name": "redial_configuration_event_resets_presence",
+          "sha256": "dbbed6ba4b84afee31637c61a3b9056fd70137bc4dbf08bc60f8fe368c837e10"
+        },
+        {
+          "name": "redial_trace_drops_head",
+          "sha256": "d66ca860f7c4111ccb50280a13bb4330bb6bc6d0278464f5a95c9e0df53dad15"
+        },
+        {
+          "name": "redial_trace_stops_after_head",
+          "sha256": "f265df016d06429a0fb603545d9fa7cd642e30b48f142236b272da7a6ca7d530"
+        },
+        {
+          "name": "redial_configuration_changes_drop_change",
+          "sha256": "818437c30a235c0e6dfae1dbc97b4cab17de7e35b0fefdd58bc718f17965e579"
+        },
+        {
+          "name": "redial_lower_presence_drops_tail",
+          "sha256": "17381b4a0d05e4b32e076769648edcd222b0de7b7158aa3717de64fe59c05e66"
+        },
+        {
+          "name": "redial_fair_redial_without_authentication",
+          "sha256": "7898f017771d02991b1d42a7aa6e4b524a1213cf1ac302c766a384f2e6cd2606"
+        },
+        {
+          "name": "redial_bootstrap_slots_read_trusted",
+          "sha256": "7828a3f6b25d1668e43a467cb1f29a6dadb004edc9bd8dbc7ccc4db911664154"
+        },
+        {
+          "name": "redial_bootstrap_reads_fixed_identity",
+          "sha256": "262830f5bb1c89c418204526e520f4671e02a002fb5192d4d16eaf18eb91d35b"
+        },
+        {
+          "name": "redial_connected_state_absent",
+          "sha256": "dc4b661e9fdc88731abd4f5810d8a592977f3e99c4f36f60a259661e7ac7892f"
+        },
+        {
+          "name": "redial_pending_timer_disconnects",
+          "sha256": "8f232b7c0408596ea702c31f4890852030197bea3ffccfa66830a05b8ee3dd3d"
+        },
+        {
+          "name": "redial_pending_timer_resets_attempts",
+          "sha256": "e231d7136d915a1952bf61c212301be6804b4298b9eb53c632173160437d6ee3"
+        },
+        {
+          "name": "redial_lower_presence_drops_head",
+          "sha256": "b5a5ba4d467d60bcef437dd57f9d2857cd5aedaddd4b187b5c7844df02dc91e1"
+        },
+        {
+          "name": "redial_presence_run_drops_step",
+          "sha256": "00cd247d4789b6ba66459a05f366a411298c8fcd9acbcdf60e11976d731c9eda"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "Module 94 contains general startup-selection and post-disconnection eligibility statements. Source-to-witness assignments and semantic weakening controls are still required before this criterion receives coverage credit.",
-          "remaining": "R04: Audit and assign the configured primary/worker startup and lifetime-eligibility witnesses in module 94, including their premises, and add semantic weakening controls."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/94-trusted-startup-redial.mech#redialEitherLeftOn",
+            "proofs/94-trusted-startup-redial.mech#redialEitherRightOn",
+            "proofs/94-trusted-startup-redial.mech#redialBothOn",
+            "proofs/94-trusted-startup-redial.mech#redialMemberAllowedOn",
+            "proofs/94-trusted-startup-redial.mech#startupDialExactSelection",
+            "proofs/94-trusted-startup-redial.mech#trustedConfiguredStartupDial",
+            "proofs/94-trusted-startup-redial.mech#bootstrapConfiguredStartupDial",
+            "proofs/94-trusted-startup-redial.mech#trustedMemberInCommitteeUnion",
+            "proofs/94-trusted-startup-redial.mech#trustedConfiguredDialApproved",
+            "proofs/94-trusted-startup-redial.mech#trustedStartupDialApproved",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedDialRefused",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedStartupDialRefused",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsAuthority",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsStartupDial",
+            "proofs/94-trusted-startup-redial.mech#lifetimeRedialEligible",
+            "proofs/94-trusted-startup-redial.mech#lifetimeRedialDialApproved",
+            "proofs/94-trusted-startup-redial.mech#lifetimeStartupDialMember",
+            "proofs/94-trusted-startup-redial.mech#retryStateKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#disconnectKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#disconnectChangesPresenceOnly",
+            "proofs/94-trusted-startup-redial.mech#configurationChangeKeepsPresence",
+            "proofs/94-trusted-startup-redial.mech#attemptOutcomeConnects",
+            "proofs/94-trusted-startup-redial.mech#fairTimerTransportConnects",
+            "proofs/94-trusted-startup-redial.mech#trustedFairRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#transportFailureKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedRedialNeverConnects",
+            "proofs/94-trusted-startup-redial.mech#unverifiedUpdateKeepsTrustedMembership",
+            "proofs/94-trusted-startup-redial.mech#profileChangeKeepsTrustedMembership",
+            "proofs/94-trusted-startup-redial.mech#authorizedRemovalEndsEligibility",
+            "proofs/94-trusted-startup-redial.mech#authorizedAdditionEntersStartupDial",
+            "proofs/94-trusted-startup-redial.mech#bootstrapListedStartupDial",
+            "proofs/94-trusted-startup-redial.mech#episodeResetFairRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#eventualRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#eventualRedialRestoresPresence"
+          ],
+          "rationale": "Module 94 proves exact startup selection of the configured trusted and bootstrap identities for every role and swarm, authenticated startup and redial approval, and lifetime redial eligibility after any finite disconnect, retry, timer and membership-preserving configuration trace. Eligibility reads membership only. Only an authorized verified removal ends it. Positive startup, approval and reconnection witnesses exclude always-refuse and always-empty models.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "Module 94 bounds individual failed-attempt/backoff updates and proves reconnection for a delivered successful timer event within the attempt budget. Conditional eventual redial across retry episodes has not been established or assigned audited coverage.",
-          "remaining": "R04: Prove conditional eventual redial with finite retry/backoff budgets and explicit fair timer/transport premises."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/94-trusted-startup-redial.mech#startupDialExactSelection",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedDialRefused",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedStartupDialRefused",
+            "proofs/94-trusted-startup-redial.mech#redialTraceAuthority",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceHasNoConfigurationChanges",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsAuthority",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceKeepsStartupDial",
+            "proofs/94-trusted-startup-redial.mech#lifetimeRedialEligible",
+            "proofs/94-trusted-startup-redial.mech#lifetimeRedialDialApproved",
+            "proofs/94-trusted-startup-redial.mech#lifetimeStartupDialMember",
+            "proofs/94-trusted-startup-redial.mech#retryStateKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#disconnectKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#disconnectChangesPresenceOnly",
+            "proofs/94-trusted-startup-redial.mech#configurationChangeKeepsPresence",
+            "proofs/94-trusted-startup-redial.mech#failedRedialDropsPresence",
+            "proofs/94-trusted-startup-redial.mech#failedRedialAttemptBound",
+            "proofs/94-trusted-startup-redial.mech#failedRedialBackoffBound",
+            "proofs/94-trusted-startup-redial.mech#redialAttemptWorkBound",
+            "proofs/94-trusted-startup-redial.mech#exhaustedEpisodeRefuses",
+            "proofs/94-trusted-startup-redial.mech#freshEpisodeAllowsAttempt",
+            "proofs/94-trusted-startup-redial.mech#zeroAttemptCapRefuses",
+            "proofs/94-trusted-startup-redial.mech#exhaustedAttemptIsNoOp",
+            "proofs/94-trusted-startup-redial.mech#episodeResetClearsAttempts",
+            "proofs/94-trusted-startup-redial.mech#attemptOutcomeConnects",
+            "proofs/94-trusted-startup-redial.mech#attemptOutcomeFails",
+            "proofs/94-trusted-startup-redial.mech#refusedAttemptKeepsAbsent",
+            "proofs/94-trusted-startup-redial.mech#fairTimerTransportConnects",
+            "proofs/94-trusted-startup-redial.mech#trustedFairRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#transportFailureSchedulesRetry",
+            "proofs/94-trusted-startup-redial.mech#transportFailureKeepsEligibility",
+            "proofs/94-trusted-startup-redial.mech#unauthenticatedRedialNeverConnects",
+            "proofs/94-trusted-startup-redial.mech#unverifiedUpdateKeepsTrustedMembership",
+            "proofs/94-trusted-startup-redial.mech#profileChangeKeepsTrustedMembership",
+            "proofs/94-trusted-startup-redial.mech#authorizedRemovalEndsEligibility",
+            "proofs/94-trusted-startup-redial.mech#authorizedAdditionEntersStartupDial",
+            "proofs/94-trusted-startup-redial.mech#pendingTimerKeepsRedialState",
+            "proofs/94-trusted-startup-redial.mech#presenceTraceRunsEveryStep",
+            "proofs/94-trusted-startup-redial.mech#episodeResetFairRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#eventualRedialConnects",
+            "proofs/94-trusted-startup-redial.mech#eventualRedialRestoresPresence"
+          ],
+          "rationale": "The witnesses quantify over every role, swarm, identity, budget, authority, redial state and finite event trace. Authentication, supplied fired-timer events and transport success remain explicit premises. Failed, refused, exhausted, pending and unauthenticated branches have their own witnesses, including bounds on failed-state attempts and backoff and an explicit episode reset. The separate work helper is bounded, but its charge is not coupled to presence transitions. Reconnection is conditional on a positive attempt cap, an explicit reset, an authenticated fired timer and a delivered transport after any membership-preserving prefix; scheduling that suffix is not proved.",
+          "remaining": ""
         }
       ]
     },

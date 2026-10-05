@@ -52,8 +52,13 @@ invalidates prior dial receipts. Provisional updates alone do not. A fresh
 allowed dial can establish. Turn 3 closes M024 with independent finite admission,
 retention/mesh and load-penalty allocations. Current authentication and membership,
 protocol-violation bans, and reserved CPU/memory/bulk service limits survive every
-mixed policy revision trace. Fourteen obligations are covered and 69 retain
-model gaps. R04 remains active at execution turn 28 of 50.
+mixed policy revision trace. Turn 4 closes M025 with configured trusted/bootstrap
+startup selection and trusted redial eligibility across arbitrary finite
+presence and membership-preserving configuration traces. Reconnection requires
+a positive attempt cap, an explicit episode reset and a successful authenticated
+timer event. Scheduling those events and runtime work accounting remain external.
+Fifteen obligations are covered and 68 retain model gaps. R04 remains active at
+execution turn 29 of 50.
 
 ## Run locally
 
@@ -73,7 +78,7 @@ make qualify
 ```
 
 `check` checks every model declaration, requires empty axiom disclosure, verifies
-source hashes and coverage freshness, and requires 1460 deliberately invalid
+source hashes and coverage freshness, and requires 1512 deliberately invalid
 proof/model variants to be rejected. `gate-regression` checks the blocked result.
 `qualify` exits **2** because full qualification is incomplete. Exit **1** means
 validation itself failed. A passing `check` is only a model-checking result.

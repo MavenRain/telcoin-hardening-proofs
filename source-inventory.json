@@ -17,19 +17,19 @@
   "witness_audit": {
     "audit_valid": true,
     "proof_scope_sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
-    "audit_sha256": "055aceb972be4941e31769c082b37cbdad195462d822b0cdf9fcdc4ea99d5f01",
+    "audit_sha256": "2141b1fccb484d3ec2ad53eeace71765ddea20a7a6aeaa10d4f444e3ecae2c88",
     "modules": 77,
     "proof_declarations": 1611,
     "model_obligations": 83,
     "reviewed_obligations": 83,
-    "covered_obligations": 14,
-    "partial_obligations": 69,
+    "covered_obligations": 15,
+    "partial_obligations": 68,
     "unreviewed_obligations": 0,
     "witness_scope_counts": {
-      "arbitrary_trace": 112,
-      "conditional_liveness": 5,
+      "arbitrary_trace": 121,
+      "conditional_liveness": 8,
       "finite_example": 9,
-      "general_transition": 516
+      "general_transition": 555
     },
     "unaudited_criteria": 0,
     "witness_audit_complete": true,
