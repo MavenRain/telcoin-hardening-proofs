@@ -315,9 +315,35 @@ Each model decision atomically receives its current immutable authority.
 Authentication, source verification and operator authorization are supplied
 judgments; natural-number generations cannot wrap or roll back in this model.
 Runtime authority capture, publication and generation discipline remain E029.
-Runtime receipt provenance also remains E029. Independent bounded privileges,
-live-connection sweeps, fault isolation, resource attribution and reload/removal
-retain their separate model obligations.
+Runtime receipt provenance also remains E029. Module 93 supplies independent
+bounded privileges below. Live-connection sweeps, fault isolation, resource
+attribution and reload/removal retain their separate model obligations.
+
+[93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
+closes M024 with three independent finite recipient lists and allocation limits.
+Lists contain arbitrary symbolic identities; duplicate entries consume capacity.
+Truncation bounds each effective allocation. Every effective privilege checks
+current authentication and the current authoritative union of the selected
+role/swarm: previous, current and next committee, configured trusted and
+bootstrap identities. Ordinary Open/Grace admission remains the
+module-91/92 contract; these lists control privileged treatment.
+
+An authorized update changes one allocation and advances the authoritative
+generation. Six general equalities show that the other two effective privileges
+are unchanged. Unauthorized allocation changes leave the entire policy intact.
+Roster and profile events use the existing authoritative transition and retain
+the allocation lists. Their effective privileges still recheck membership, so a
+retained allocation cannot keep a removed member privileged.
+
+Across every finite mixed revision trace, all three classes remain finite and
+unauthenticated peers receive neither privileges nor privileged service.
+Load exemption suppresses a load-pressure ban; genuine protocol violations
+always remain bannable. Successful service returns the minimum of demand and
+the selected CPU, memory or bulk limit; refusal returns zero. These are already
+reserved service-turn allocations. The model does not replenish budgets or
+claim cumulative service without the separate M012 reservation boundary.
+Runtime enforcement and cost domination remain E022, and atomic authority,
+verification, authorization and identity mapping remain E029.
 
 ## Policy and resource interleavings
 

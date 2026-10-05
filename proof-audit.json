@@ -78,7 +78,8 @@
     "proofs/89-general-stage-promotion.mech": "d5089b777cc5d154d77d774dfd0078f87b8bbfc3a333535d417ea480ce926bb4",
     "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c",
     "proofs/91-authoritative-policy-union.mech": "25bffdaf514e59b72bab34e20e31606f64320909200f74545bf2d6a8d7cdf4db",
-    "proofs/92-policy-lifecycle-revisions.mech": "aefd607e54917314abb84f8b0ac9f9ee07cf8925a5618fe83c15f4d378f42cb6"
+    "proofs/92-policy-lifecycle-revisions.mech": "aefd607e54917314abb84f8b0ac9f9ee07cf8925a5618fe83c15f4d378f42cb6",
+    "proofs/93-independent-bounded-privileges.mech": "c83a9e3ddee58d207ffd20669a840a6b7c2f37440869852592936609b1a82adf"
   },
   "obligations": [
     {
@@ -10466,8 +10467,8 @@
       "id": "M024",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The frozen required scope remains a model obligation in R04.",
+      "scope_complete": true,
+      "scope_review": "R04 turn 3 closes the independent bounded privilege obligation. Module 93 represents admission, retention/mesh preference and load-penalty exemption as separately selected finite recipient allocations. Six actual-event noninterference theorems and exact selected-update witnesses separate the classes. Every effective query requires current authentication and membership in the current authoritative role/swarm union of previous/current/next committee, configured trusted and bootstrap identities. All finite mixed revisions preserve those gates, finite allocation bounds, genuine protocol-violation bans and supplied CPU/memory/bulk service-turn limits. Successful and refused paths are witnessed. Recipient capacities are fixed query parameters. No modeled event revises them; E029 owns runtime capacity selection and versioning. These are reserved per-service limits; aggregate reservation and cost domination retain the M012/E022 boundary. Existing module-30 scalar statements retain their narrower scope. Startup/redial, live sweeps and other R04 obligations are not credited.",
       "witnesses": [
         {
           "path": "proofs/30-admission-and-service.mech",
@@ -10501,31 +10502,864 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. These local statements do not establish: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege. Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "boundedPrivilegeRecipientCount",
+          "statement": "(capacity : Count) -> (recipients : PrivilegeRecipients) ->\n    AtMost (privilegeRecipientCount (boundedPrivilegeRecipients capacity recipients)) capacity",
+          "scope_kind": "general_transition",
+          "establishes": "Truncating any finite recipient list establishes the selected finite allocation cap, including zero capacity and duplicate identities.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "replacedPrivilegeSelected",
+          "statement": "(kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) ->\n    (allocations : PrivilegeAllocations) ->\n    Equal PrivilegeRecipients (privilegeAllocationAt kind (replacePrivilegeAllocation kind incoming allocations)) incoming",
+          "scope_kind": "general_transition",
+          "establishes": "Replacing any selected privilege allocation returns exactly the supplied recipient list at that coordinate.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeAllocationBound",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) ->\n    AtMost (privilegeRecipientCount (allocatedPrivilegeRecipients kind limits (runSplitPrivilegeChanges changes policy)))\n      (privilegeLimitAt kind limits)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any mixed policy and allocation revision trace, each effective recipient list stays within its independently supplied capacity.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeNeverUnauthenticated",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) ->\n    Equal Flag (splitPrivilege kind limits role swarm (runSplitPrivilegeChanges changes policy) off identity) off",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "No privilege class can be granted without current authentication after any mixed policy revision trace.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeNeedsCurrentMembership",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) off ->\n    Equal Flag (splitPrivilege kind limits role swarm policy authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A peer absent from the currently selected authoritative committee/configured/bootstrap union has no privilege, even with a retained allocation.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeNeedsAllocation",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) off ->\n    Equal Flag (splitPrivilege kind limits role swarm policy authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "Current membership and authentication cannot bypass the selected finite privilege allocation.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeCanGrant",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) on ->\n    Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) on ->\n    Equal Flag (splitPrivilege kind limits role swarm policy on identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every class grants a privilege when current membership, current authentication and the selected bounded allocation allow it.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitProtocolViolationAlwaysBanned",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (splitPrivilegeBan protocolViolation limits role swarm\n      (runSplitPrivilegeChanges changes policy) authenticated identity) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every genuine protocol violation remains bannable after arbitrary policy and allocation revisions, independently of every privilege.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeWorkBound",
+          "statement": "(axis : PrivilegeResourceAxis) -> (limits : PrivilegeResources) ->\n    (demand : PrivilegeResources) -> (allowed : Flag) ->\n    AtMost (splitPrivilegeWork axis limits demand allowed) (privilegeResourceAt axis limits)",
+          "scope_kind": "general_transition",
+          "establishes": "Both successful and refused work paths respect the selected CPU, memory or bulk service-turn limit.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeServiceBound",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (kind : PrivilegeKind) -> (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->\n    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->\n    AtMost (splitPrivilegeService kind allocations role swarm (runSplitPrivilegeChanges changes policy)\n      authenticated identity axis limits demand) (privilegeResourceAt axis limits)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Actual privilege-gated service after any mixed revision trace stays within the supplied hard limit for every resource axis and every peer.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeUnauthenticatedWorkZero",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (kind : PrivilegeKind) -> (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (axis : PrivilegeResourceAxis) -> (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->\n    Equal Count (splitPrivilegeService kind allocations role swarm (runSplitPrivilegeChanges changes policy)\n      off identity axis limits demand) zero",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Actual privilege-gated service returns zero for unauthenticated identities after every revision trace.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "unauthorizedPrivilegeChangeNoOp",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (incoming : PrivilegeRecipients) ->\n    Equal SplitPrivilegePolicy (applySplitPrivilegeChange (splitAllocationChange off kind incoming) policy) policy",
+          "scope_kind": "general_transition",
+          "establishes": "An unauthorized allocation event leaves the entire authoritative policy and all privilege allocations unchanged.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "authorityChangeKeepsPrivilegeAllocations",
+          "statement": "(change : AuthoritativeUnionChange) -> (policy : SplitPrivilegePolicy) ->\n    Equal PrivilegeAllocations (splitPrivilegeAllocations (applySplitPrivilegeChange (splitAuthorityChange change) policy))\n      (splitPrivilegeAllocations policy)",
+          "scope_kind": "general_transition",
+          "establishes": "Roster/profile revisions do not silently rewrite privilege allocation lists; effective privileges still recheck current membership.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "privilegeChangeAdvancesRevision",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) ->\n    Equal Count (authoritativeUnionGeneration (splitPrivilegeAuthority\n      (applySplitPrivilegeChange (splitAllocationChange on kind incoming) (splitPrivilegePolicy authority allocations))))\n      (next (authoritativeUnionGeneration authority))",
+          "scope_kind": "general_transition",
+          "establishes": "Every authorized allocation revision increments the authoritative generation, including idempotent replacements.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "authorizedPrivilegeAllocationSelected",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) ->\n    Equal PrivilegeRecipients (allocatedPrivilegeRecipients kind limits\n      (applySplitPrivilegeChange (splitAllocationChange on kind incoming) (splitPrivilegePolicy authority allocations)))\n      (boundedPrivilegeRecipients (privilegeLimitAt kind limits) incoming)",
+          "scope_kind": "general_transition",
+          "establishes": "The actual authorized allocation event installs exactly the bounded incoming recipients at its selected class.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "boundedPrivilegeHeadMember",
+          "statement": "(identity : Count) -> (capacity : Count) -> (rest : PrivilegeRecipients) ->\n    Equal Flag (privilegeRecipientMember identity\n      (boundedPrivilegeRecipients (next capacity) (privilegeRecipient identity rest))) on",
+          "scope_kind": "general_transition",
+          "establishes": "A positive capacity includes an arbitrary head identity, so bounded allocation membership is not always refusing.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "privilegeMemberSkipsDifferentHead",
+          "statement": "(identity : Count) -> (other : Count) -> (rest : PrivilegeRecipients) ->\n    Equal Flag (sameCount identity other) off ->\n    Equal Flag (privilegeRecipientMember identity (privilegeRecipient other rest)) (privilegeRecipientMember identity rest)",
+          "scope_kind": "general_transition",
+          "establishes": "Recipient lookup continues past a different identity without dropping the remaining recipients.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "zeroPrivilegeAllocationCannotGrant",
+          "statement": "(identity : Count) -> (recipients : PrivilegeRecipients) ->\n    Equal Flag (privilegeRecipientMember identity (boundedPrivilegeRecipients zero recipients)) off",
+          "scope_kind": "general_transition",
+          "establishes": "Zero capacity excludes every identity regardless of the requested allocation.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "loadPrivilegeSuppressesOnlyLoadBan",
+          "statement": "(policy : SplitPrivilegePolicy) -> (limits : PrivilegeLimits) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) on ->\n    Equal Flag (splitPrivilegeBan loadPressure limits role swarm policy authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A granted load-penalty exemption suppresses a load-pressure ban.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "noLoadPrivilegePreservesLoadBan",
+          "statement": "(policy : SplitPrivilegePolicy) -> (limits : PrivilegeLimits) ->\n    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) off ->\n    Equal Flag (splitPrivilegeBan loadPressure limits role swarm policy authenticated identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "An absent load-penalty exemption preserves a load-pressure ban.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "grantedPrivilegeServiceExact",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->\n    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->\n    Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) on ->\n    Equal Count (splitPrivilegeService kind allocations role swarm policy authenticated identity axis limits demand)\n      (boundedWork (privilegeResourceAt axis limits) (privilegeResourceAt axis demand))",
+          "scope_kind": "general_transition",
+          "establishes": "Granted service returns exactly the smaller of the resource request and hard service-turn limit, ruling out always-zero service.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "deniedPrivilegeServiceZero",
+          "statement": "(policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->\n    (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->\n    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->\n    Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) off ->\n    Equal Count (splitPrivilegeService kind allocations role swarm policy authenticated identity axis limits demand) zero",
+          "scope_kind": "general_transition",
+          "establishes": "Refused privilege-gated service returns zero for every resource axis.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeRunHead",
+          "statement": "(change : SplitPrivilegeChange) -> (rest : SplitPrivilegeChanges) ->\n    (policy : SplitPrivilegePolicy) ->\n    Equal SplitPrivilegePolicy (runSplitPrivilegeChanges (splitPrivilegeChange change rest) policy)\n      (runSplitPrivilegeChanges rest (applySplitPrivilegeChange change policy))",
+          "scope_kind": "general_transition",
+          "establishes": "The mixed trace runner applies each head event before its remaining suffix.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeRunEmpty",
+          "statement": "(policy : SplitPrivilegePolicy) ->\n    Equal SplitPrivilegePolicy (runSplitPrivilegeChanges noSplitPrivilegeChanges policy) policy",
+          "scope_kind": "general_transition",
+          "establishes": "An empty mixed revision trace preserves the entire policy.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitAuthorityUpdateExact",
+          "statement": "(change : AuthoritativeUnionChange) -> (policy : SplitPrivilegePolicy) ->\n    Equal AuthoritativeUnionPolicy (splitPrivilegeAuthority (applySplitPrivilegeChange (splitAuthorityChange change) policy))\n      (applyAuthoritativeUnionChange change (splitPrivilegeAuthority policy))",
+          "scope_kind": "general_transition",
+          "establishes": "The actual mixed event applies the existing authoritative union update, including its source verification and profile semantics.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "splitPrivilegeAfterRemoval",
+          "statement": "(changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->\n    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm\n      (splitPrivilegeAuthority (runSplitPrivilegeChanges changes policy)))) off ->\n    Equal Flag (splitPrivilege kind limits role swarm (runSplitPrivilegeChanges changes policy) authenticated identity) off",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any trace ending in current membership removal, even retained allocations cannot grant any privilege.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "admissionChangeKeepsRetention",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege retentionPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized admission allocation revision leaves the effective retention privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "admissionChangeKeepsLoadPenalty",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege loadPenaltyPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized admission allocation revision leaves the effective loadPenalty privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "retentionChangeKeepsAdmission",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege admissionPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized retention allocation revision leaves the effective admission privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "retentionChangeKeepsLoadPenalty",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege loadPenaltyPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized retention allocation revision leaves the effective loadPenalty privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "loadPenaltyChangeKeepsAdmission",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege admissionPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized loadPenalty allocation revision leaves the effective admission privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "loadPenaltyChangeKeepsRetention",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->\n    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (splitPrivilege retentionPrivilege limits role swarm\n        (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy authority allocations))\n        authenticated identity)\n      (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An actual authorized loadPenalty allocation revision leaves the effective retention privilege unchanged for all identities, authentication judgments, roles and swarms.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "privilegeCpuCoordinate",
+          "statement": "(cpu : Count) -> (memory : Count) -> (bulk : Count) ->\n    Equal Count (privilegeResourceAt privilegeCpu (privilegeResources cpu memory bulk)) cpu",
+          "scope_kind": "general_transition",
+          "establishes": "The CPU coordinate selects its own resource limit or demand without aliasing another axis.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "privilegeMemoryCoordinate",
+          "statement": "(cpu : Count) -> (memory : Count) -> (bulk : Count) ->\n    Equal Count (privilegeResourceAt privilegeMemory (privilegeResources cpu memory bulk)) memory",
+          "scope_kind": "general_transition",
+          "establishes": "The memory coordinate selects its own resource limit or demand without aliasing another axis.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "privilegeBulkCoordinate",
+          "statement": "(cpu : Count) -> (memory : Count) -> (bulk : Count) ->\n    Equal Count (privilegeResourceAt privilegeBulk (privilegeResources cpu memory bulk)) bulk",
+          "scope_kind": "general_transition",
+          "establishes": "The bulk coordinate selects its own resource limit or demand without aliasing another axis.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "admissionPrivilegeLimitSelected",
+          "statement": "(admission : Count) -> (retention : Count) -> (load : Count) ->\n    Equal Count (privilegeLimitAt admissionPrivilege (privilegeLimits admission retention load)) admission",
+          "scope_kind": "general_transition",
+          "establishes": "The admission class selects its own finite allocation capacity without aliasing another privilege.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "retentionPrivilegeLimitSelected",
+          "statement": "(admission : Count) -> (retention : Count) -> (load : Count) ->\n    Equal Count (privilegeLimitAt retentionPrivilege (privilegeLimits admission retention load)) retention",
+          "scope_kind": "general_transition",
+          "establishes": "The retention class selects its own finite allocation capacity without aliasing another privilege.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/93-independent-bounded-privileges.mech",
+          "name": "loadPenaltyPrivilegeLimitSelected",
+          "statement": "(admission : Count) -> (retention : Count) -> (load : Count) ->\n    Equal Count (privilegeLimitAt loadPenaltyPrivilege (privilegeLimits admission retention load)) load",
+          "scope_kind": "general_transition",
+          "establishes": "The loadPenalty class selects its own finite allocation capacity without aliasing another privilege.",
+          "premises": [
+            "Each decision receives the current immutable authoritative policy at its atomic model decision point. Runtime authority capture, publication linearization and identity mapping remain E029.",
+            "Authentication is the independent current verification judgment. Roster verification and allocation authorization flags are faithful classifications; profile events are authorized operator configuration. E029 owns the runtime refinement of these judgments and events.",
+            "The three finite recipient capacities are supplied independently. Recipient lists name arbitrary symbolic identities; duplicate entries consume slots. Supplied capacities remain the limits for the queried decision after any finite revision trace. Capacities are query parameters, not policy state. No modeled event changes them. A larger capacity can make truncated entries effective without a generation change. E029 owns runtime capacity selection and versioning.",
+            "CPU, memory and bulk limits are already reserved finite service-turn allocations. M012 supplies the separate process reservation boundary; runtime cost domination, enforcement and routing remain E022. This module does not issue or replenish aggregate budgets.",
+            "Genuine protocol violations and load-pressure causes are classified correctly. A load exemption does not waive protocol-violation handling or hard resource accounting. E029 owns the runtime refinement of this classification.",
+            "Any Equal premise in the exact statement is required. Policy generations are unbounded natural numbers; runtime wrapping, persistence and rollback are external."
+          ],
+          "limits": "Finite symbolic policy/privilege model and per-service reserved resource allocations. No runtime refinement, cumulative unreserved service, wall-clock liveness, redial, live-connection sweep or deployment qualification is established."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "split_privilege_recipient_count_zero",
+          "sha256": "09da749137cac66264fc7dbd8cbfb4ff45b25b3233bcfb5fe4a4b5b4b418c689"
+        },
+        {
+          "name": "split_privilege_allocation_unbounded",
+          "sha256": "63e938a84002007d5368b220268cff700d2312bbe3f1782170cb60f6733749e0"
+        },
+        {
+          "name": "split_privilege_zero_allocation_grants",
+          "sha256": "9ff01c45cbe84c23c2c419307e016c43b9bc780338d8e3f6bdd33140bd441877"
+        },
+        {
+          "name": "split_privilege_allocation_always_empty",
+          "sha256": "da020ed04fe78b83c371558beacb203086223ced0981aa5045abb6dbefd64cbf"
+        },
+        {
+          "name": "split_privilege_recipient_always_matches",
+          "sha256": "ef1441fd51289636de49d6e824eb0dae44674137030dd76cd2ca8c60a04c8b37"
+        },
+        {
+          "name": "split_privilege_recipient_never_matches",
+          "sha256": "6c477e789d28985f727afbf7ec0ad74ab5d4c0cacc33f82ce30b07f63421c040"
+        },
+        {
+          "name": "split_privilege_recipient_drops_tail",
+          "sha256": "1bade0fbd7845746d3cf1ae194ee111dc2d9f989957c22dea661838c57287b3a"
+        },
+        {
+          "name": "split_privilege_recipient_wrong_identity",
+          "sha256": "a589db299c5ec7974dec7e88dadf0eea9159fe6872ef90895642393796463a95"
+        },
+        {
+          "name": "split_privilege_admission_reads_retention",
+          "sha256": "d7479cca4e8cd220813590e0d56c58e1544fccb8cdc8263006f93110e2aa2439"
+        },
+        {
+          "name": "split_privilege_retention_reads_load",
+          "sha256": "8fb3f589419fadd89f00dd1bac024b8ac0ddac7d1802ef6d5d4392b75ab2a453"
+        },
+        {
+          "name": "split_privilege_load_reads_admission",
+          "sha256": "f217d5debfa00f99af47b78a7141ce49b75103d49f90d62b02f6ef54aa3dc2db"
+        },
+        {
+          "name": "split_privilege_admission_changes_retention",
+          "sha256": "d3c848034c2aa7817685d39376b1b21def0adcc317f8188cff6eb525785c2205"
+        },
+        {
+          "name": "split_privilege_retention_changes_load",
+          "sha256": "dbba5d6a89c58aecd26ba4b9a699c688eee7ecac591699eb0e0212f248b41950"
+        },
+        {
+          "name": "split_privilege_load_changes_admission",
+          "sha256": "5cae0eb46ad5e1daea44a6e9cdbbd369842ee1b584383ffe1dc49287cfe428d1"
+        },
+        {
+          "name": "split_privilege_admission_wrong_limit",
+          "sha256": "0ef84d0c847f00789e1a6323d32732865f6395882687556f39e84208c9452ab7"
+        },
+        {
+          "name": "split_privilege_retention_wrong_limit",
+          "sha256": "4289e1d981e78c1ab765cf6b4ebc66d894bfe2aa267a2b2691304544a67fa28a"
+        },
+        {
+          "name": "split_privilege_load_wrong_limit",
+          "sha256": "1e09725575ac1fc7b9b615a01e5c23e8029c70e7d57d9a5dc4868487c2a12d30"
+        },
+        {
+          "name": "split_privilege_unauthenticated_grants",
+          "sha256": "091a0cab88c8c6cbd114248596014f936e4bfea8d47202fb396b83e137e954e4"
+        },
+        {
+          "name": "split_privilege_missing_membership_grants",
+          "sha256": "a46a5f8a5737fe9cde673d50ebeb1aab7f86e25df984865a334e2eb2630cc1de"
+        },
+        {
+          "name": "split_privilege_missing_allocation_grants",
+          "sha256": "4dab8d9457c05fec4c374253561675d8a93ea02029bb3a1ebcf285c060902041"
+        },
+        {
+          "name": "split_privilege_wrong_role_authority",
+          "sha256": "75b5315c04481b801ed6c43ba8c133afa57d9d10d3cf46c072fc0651c0f40e0a"
+        },
+        {
+          "name": "split_privilege_wrong_swarm_authority",
+          "sha256": "8c45b8eace0bd868d2dd7b625752eff8891e628084b8b47ee23a8f477a7b8a99"
+        },
+        {
+          "name": "split_privilege_default_authority",
+          "sha256": "fdd80800595899c75184c614eaa0070f9825ea7047559e547a0b91567aa212c9"
+        },
+        {
+          "name": "split_privilege_always_refuse",
+          "sha256": "74f9bab1c82d6556757b51f62c9fe2c8cf59d3d9762ed30db3c6bdb3b4a755dc"
+        },
+        {
+          "name": "split_privilege_revision_not_advanced",
+          "sha256": "398fad113c334745ea9801a217bcdc818d6d1b1d818dc78718d23c3f755954a7"
+        },
+        {
+          "name": "split_privilege_unverified_allocation_applied",
+          "sha256": "0af74df16437dd4607792e55afe5fbb018e34b82354de2ff39e40bfbefbcd866"
+        },
+        {
+          "name": "split_privilege_verified_allocation_ignored",
+          "sha256": "df5635c307e8132b65749e73128e8a4c6ff2a0b9e15c854e9bdfa9267430423a"
+        },
+        {
+          "name": "split_privilege_authority_update_ignored",
+          "sha256": "1e32e1e8f8ca3b7b623264de7697886cf27b0cc6a197500fe0fcc2f55f3d8bac"
+        },
+        {
+          "name": "split_privilege_trace_drops_head",
+          "sha256": "2a57902ad9c2a3936f78a9c564f0f8dcbda051eb91a130ce9fad9f56577918a3"
+        },
+        {
+          "name": "split_privilege_trace_drops_tail",
+          "sha256": "0f3b6f6abc005799933fa79e6c79ba215d5723accd2d2fa896a584fb07057798"
+        },
+        {
+          "name": "split_privilege_protocol_violation_exempted",
+          "sha256": "9762d35b12f2e62f80d3b4ce8c23cc4ffd8b06326f6bcadf201b71248548ab0b"
+        },
+        {
+          "name": "split_privilege_ban_uses_retention",
+          "sha256": "e8ea5c0ae11f79256aa47e8e28681c051d3e88802aa9862ba00771a6206b90fd"
+        },
+        {
+          "name": "split_privilege_ban_always_applied",
+          "sha256": "eff8225a3cf695b73e3b16903dec3e3f49247159a1990805d19299171c0d1380"
+        },
+        {
+          "name": "split_privilege_cpu_aliases_memory",
+          "sha256": "a04689a4595124d24eec5a392276e6fa3463500719787cafe4a062e4122a1264"
+        },
+        {
+          "name": "split_privilege_memory_aliases_bulk",
+          "sha256": "0f07a3d20a65641a8b5be72800b5a242ee7324d52ad6dc07e3e9289d5fc0700d"
+        },
+        {
+          "name": "split_privilege_bulk_aliases_cpu",
+          "sha256": "98e8cff70e96acb5ef41b76174f15a4ee150b40069e832f40e9be75cb58b0e2d"
+        },
+        {
+          "name": "split_privilege_denied_work_granted",
+          "sha256": "4a12a65de1a7bf345b3c4bdd17a2b96f4bd780f966e8a61e78c4b8b86db99b5e"
+        },
+        {
+          "name": "split_privilege_work_unbounded",
+          "sha256": "e5826ed916c630c864a8bc07b96f8e715ddb7f73f6e444f5629763544109ac5f"
+        },
+        {
+          "name": "split_privilege_work_always_zero",
+          "sha256": "cc752210fc17219ea3861d79ca8c0be32b8a269c5ee52d3aebb8f3f9e817f066"
+        },
+        {
+          "name": "split_privilege_service_bypasses_decision",
+          "sha256": "2d8fb15522a4809ad491d3efd7c50c808d23d1993dee5bcf6a9ba81bcd3df19b"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
-            "proofs/30-admission-and-service.mech#everyProfileBudget",
-            "proofs/30-admission-and-service.mech#trustedViolationStillBanned",
-            "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
+            "proofs/93-independent-bounded-privileges.mech#boundedPrivilegeRecipientCount",
+            "proofs/93-independent-bounded-privileges.mech#replacedPrivilegeSelected",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeAllocationBound",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeverUnauthenticated",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeedsCurrentMembership",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeedsAllocation",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeCanGrant",
+            "proofs/93-independent-bounded-privileges.mech#unauthorizedPrivilegeChangeNoOp",
+            "proofs/93-independent-bounded-privileges.mech#authorityChangeKeepsPrivilegeAllocations",
+            "proofs/93-independent-bounded-privileges.mech#privilegeChangeAdvancesRevision",
+            "proofs/93-independent-bounded-privileges.mech#authorizedPrivilegeAllocationSelected",
+            "proofs/93-independent-bounded-privileges.mech#boundedPrivilegeHeadMember",
+            "proofs/93-independent-bounded-privileges.mech#privilegeMemberSkipsDifferentHead",
+            "proofs/93-independent-bounded-privileges.mech#zeroPrivilegeAllocationCannotGrant",
+            "proofs/93-independent-bounded-privileges.mech#loadPrivilegeSuppressesOnlyLoadBan",
+            "proofs/93-independent-bounded-privileges.mech#noLoadPrivilegePreservesLoadBan",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeRunHead",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeRunEmpty",
+            "proofs/93-independent-bounded-privileges.mech#splitAuthorityUpdateExact",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeAfterRemoval",
+            "proofs/93-independent-bounded-privileges.mech#admissionChangeKeepsRetention",
+            "proofs/93-independent-bounded-privileges.mech#admissionChangeKeepsLoadPenalty",
+            "proofs/93-independent-bounded-privileges.mech#retentionChangeKeepsAdmission",
+            "proofs/93-independent-bounded-privileges.mech#retentionChangeKeepsLoadPenalty",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyChangeKeepsAdmission",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyChangeKeepsRetention",
+            "proofs/93-independent-bounded-privileges.mech#admissionPrivilegeLimitSelected",
+            "proofs/93-independent-bounded-privileges.mech#retentionPrivilegeLimitSelected",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyPrivilegeLimitSelected"
           ],
-          "rationale": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Model separate admission, retention/mesh and load-penalty privileges with finite allocations; prove each changes only its selected privilege."
+          "rationale": "Separate finite recipient lists and limits, exact class selectors, authorized selected updates, all six effective-query noninterference directions and positive/negative query branches establish the three-way bounded privilege split for arbitrary roles, swarms and identities. Current authority changes may intentionally affect eligibility across classes; changing one allocation cannot silently change another allocation or effective privilege.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
+            "proofs/93-independent-bounded-privileges.mech#boundedPrivilegeRecipientCount",
+            "proofs/93-independent-bounded-privileges.mech#replacedPrivilegeSelected",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeAllocationBound",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeverUnauthenticated",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeedsCurrentMembership",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeNeedsAllocation",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeCanGrant",
+            "proofs/93-independent-bounded-privileges.mech#splitProtocolViolationAlwaysBanned",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeWorkBound",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeServiceBound",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeUnauthenticatedWorkZero",
+            "proofs/93-independent-bounded-privileges.mech#unauthorizedPrivilegeChangeNoOp",
+            "proofs/93-independent-bounded-privileges.mech#authorityChangeKeepsPrivilegeAllocations",
+            "proofs/93-independent-bounded-privileges.mech#privilegeChangeAdvancesRevision",
+            "proofs/93-independent-bounded-privileges.mech#authorizedPrivilegeAllocationSelected",
+            "proofs/93-independent-bounded-privileges.mech#boundedPrivilegeHeadMember",
+            "proofs/93-independent-bounded-privileges.mech#privilegeMemberSkipsDifferentHead",
+            "proofs/93-independent-bounded-privileges.mech#zeroPrivilegeAllocationCannotGrant",
+            "proofs/93-independent-bounded-privileges.mech#loadPrivilegeSuppressesOnlyLoadBan",
+            "proofs/93-independent-bounded-privileges.mech#noLoadPrivilegePreservesLoadBan",
+            "proofs/93-independent-bounded-privileges.mech#grantedPrivilegeServiceExact",
+            "proofs/93-independent-bounded-privileges.mech#deniedPrivilegeServiceZero",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeRunHead",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeRunEmpty",
+            "proofs/93-independent-bounded-privileges.mech#splitAuthorityUpdateExact",
+            "proofs/93-independent-bounded-privileges.mech#splitPrivilegeAfterRemoval",
+            "proofs/93-independent-bounded-privileges.mech#admissionChangeKeepsRetention",
+            "proofs/93-independent-bounded-privileges.mech#admissionChangeKeepsLoadPenalty",
+            "proofs/93-independent-bounded-privileges.mech#retentionChangeKeepsAdmission",
+            "proofs/93-independent-bounded-privileges.mech#retentionChangeKeepsLoadPenalty",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyChangeKeepsAdmission",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyChangeKeepsRetention",
+            "proofs/93-independent-bounded-privileges.mech#privilegeCpuCoordinate",
+            "proofs/93-independent-bounded-privileges.mech#privilegeMemoryCoordinate",
+            "proofs/93-independent-bounded-privileges.mech#privilegeBulkCoordinate",
+            "proofs/93-independent-bounded-privileges.mech#admissionPrivilegeLimitSelected",
+            "proofs/93-independent-bounded-privileges.mech#retentionPrivilegeLimitSelected",
+            "proofs/93-independent-bounded-privileges.mech#loadPenaltyPrivilegeLimitSelected",
             "proofs/30-admission-and-service.mech#everyProfileBudget",
             "proofs/30-admission-and-service.mech#trustedViolationStillBanned",
             "proofs/30-admission-and-service.mech#authenticationAlwaysRequired"
           ],
-          "rationale": "Scalar work remains capped and protocol violations are banned for every load-exemption flag; independent privilege state is absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Prove all policy revisions preserve authentication, genuine protocol-violation bans and hard bulk/resource budgets for every committee/configured peer."
+          "rationale": "R04 turn 3 closes the independent bounded privilege obligation. Module 93 represents admission, retention/mesh preference and load-penalty exemption as separately selected finite recipient allocations. Six actual-event noninterference theorems and exact selected-update witnesses separate the classes. Every effective query requires current authentication and membership in the current authoritative role/swarm union of previous/current/next committee, configured trusted and bootstrap identities. All finite mixed revisions preserve those gates, finite allocation bounds, genuine protocol-violation bans and supplied CPU/memory/bulk service-turn limits. Successful and refused paths are witnessed. Recipient capacities are fixed query parameters. No modeled event revises them; E029 owns runtime capacity selection and versioning. These are reserved per-service limits; aggregate reservation and cost domination retain the M012/E022 boundary. Existing module-30 scalar statements retain their narrower scope. Startup/redial, live sweeps and other R04 obligations are not credited.",
+          "remaining": ""
         }
       ]
     },

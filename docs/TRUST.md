@@ -760,6 +760,29 @@ current authentication, classify roster updates correctly and authorize profile
 events. Model generations are unbounded natural numbers. The runtime must
 persist generations and must not wrap or roll them back. An approved dial
 constructor is not a receipt provenance certificate. E029 retains these runtime
-obligations. M024 retains independent bounded privileges. M040 retains
-live-connection sweeps. M022 and M023 are covered; R04 and all external
-obligations remain open.
+obligations. Module 93 closes M024 as described below. M040 retains
+live-connection sweeps. R04 and all external obligations remain open.
+
+## R04 turn 3 independent-privilege boundary
+
+Module 93 separates admission, retention/mesh and load-penalty allocations.
+Their finite recipient lists and limits are supplied independently. Current
+authentication and current authoritative union membership gate every class.
+Allocation changes are authorized model events, and roster/profile changes
+retain the verification and operator-authorization assumptions of module 91.
+Advancing the generation for allocation revisions does not prove runtime
+publication or receipt provenance.
+
+The CPU, memory and bulk limits are already reserved service-turn allocations,
+not new resources issued by trust. Every successful request is capped and every
+refusal returns zero. Aggregate reservation, actual cost domination and runtime
+enforcement retain the M012/E022 boundary. Finite revision traces contain policy
+events, not repeated uncharged work. The theorem makes no cumulative service or
+wall-clock claim. Load-pressure and protocol-violation causes are correctly
+classified supplied judgments; exemption affects only the former. Recipient
+capacities are query parameters. No modeled event revises or versions them, so
+a larger capacity can make truncated entries effective without a generation
+change. Runtime authority capture, identity mapping, allocation authorization,
+cause classification, capacity selection and privilege enforcement require E029.
+M022, M023 and M024 are covered; startup/redial, live sweeps and the other R04
+obligations retain their own gaps. All 43 external obligations remain open.

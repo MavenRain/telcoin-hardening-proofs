@@ -1,8 +1,8 @@
 # R02 existing proof audit, complete witness census
 
 This document records the R02 closure baseline. [R03 turn 15](R03-ADMISSION.md)
-subsequently closes M012 and R03. [R04 turn 1](R04-POLICY.md) closes M022, and R04 turn 2 closes M023;
-the current ledger covers thirteen obligations and retains 70 gaps. The R02 receipt keeps its original corpus and
+subsequently closes M012 and R03. [R04 turn 1](R04-POLICY.md) closes M022, R04 turn 2 closes M023, and R04 turn 3 closes M024;
+the current ledger covers fourteen obligations and retains 69 gaps. The R02 receipt keeps its original corpus and
 82-gap scope.
 
 R02 closes after five execution turns, within the user's five-turn cap.

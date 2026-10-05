@@ -1330,8 +1330,25 @@ policy bypass, refusal and success branches, intervening events and revision
 counts.
 
 Both M023 criteria are witnessed by general role/swarm/revision proofs and
-arbitrary-trace results. The current audit covers 13 of 83 model obligations;
-70 retain gaps. R04 is active at turn 2, using execution turn 27 of 50. The
-turn-1 receipt is now historical. The [turn record](../docs/R04-POLICY.md)
+arbitrary-trace results. At turn 2 the audit covered 13 of 83 model obligations;
+70 retained gaps. R04 was active at turn 2, using execution turn 27 of 50. The
+turn-1 receipt is historical. The [turn record](../docs/R04-POLICY.md)
 states the model premises and remaining obligations. All 43 external
 obligations and full qualification remain open.
+
+## R04 turn 3: independent bounded privileges
+
+[r04-independent-bounded-privileges-check.json](r04-independent-bounded-privileges-check.json)
+records the full gate for module 93: 76 modules, 1560 explicit equality/order
+proofs, empty axiom disclosure and 1460 rejected negative checks. The 40 new
+`split_privilege_*` controls require semantic type rejection. They cover class
+selection, allocation truncation, membership lookup, authorization,
+authentication, current role/swarm authority, revision advancement, trace
+execution, load-only exemptions, resource-coordinate selection and
+successful/refused service branches.
+
+Both M024 criteria are witnessed. The current audit covers 14 of 83 model
+obligations; 69 retain gaps. R04 is active at turn 3, using execution turn 28
+of 50. The turn-2 receipt is now historical. The
+[turn record](../docs/R04-POLICY.md) states the model premises and remaining
+obligations. All 43 external obligations and full qualification remain open.

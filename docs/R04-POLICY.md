@@ -1,10 +1,10 @@
 # R04 policy, source churn and recovery
 
-R04 turn 2 closes M023 in the sealed source-obligation ledger. Module
-[92-policy-lifecycle-revisions.mech](../proofs/92-policy-lifecycle-revisions.mech)
-adds 44 proof declarations and 32 semantic weakening controls. M022 was closed
-in turn 1 by module 91. R04 remains active: its other 23 model obligations retain
-their recorded gaps. The repository has used 27 of its 50 execution turns.
+R04 turn 3 closes M024 in the sealed source-obligation ledger. Module
+[93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
+adds 38 proof declarations and 40 semantic weakening controls. M022 and M023 were
+closed in turns 1 and 2. R04 remains active: its other 22 model obligations retain
+their recorded gaps. The repository has used 28 of its 50 execution turns.
 This turn does not change
 the sealed scope, packet allocations or external-obligation boundary. R02 and
 R03 used 12 turns more than planned. This is two more than the ten-turn
@@ -146,8 +146,8 @@ update or an authorized profile change at any position, for both dial branches.
 so the lifecycle is not always refusing.
 
 Both sealed M023 criteria are witnessed by 35 new audited statements. The older
-module-33 witnesses retain their supplied-snapshot limitations. The current
-census is 13 covered and 70 partial model obligations. The 44 declarations
+module-33 witnesses retain their supplied-snapshot limitations. The turn-2
+census was 13 covered and 70 partial model obligations. The 44 declarations
 include supporting equality and selection lemmas; those do not independently
 receive source-obligation closure credit. The 32 new controls remove stamp
 checks, corrupt captured receipt fields, alias roles/workers, query the default
@@ -172,6 +172,61 @@ bounded privileges and live-connection sweeps remain M024/M040. Fault isolation,
 source/resource attribution, expiry and reload/removal keep their separate
 ledger gaps. All 43 external obligations remain open.
 
-The next R04 work is M024 independent bounded privileges and M025 trusted
-startup dialing/lifetime redial, preserving the authentication, fallback,
-resource and source lifetime premises.
+Turn 3 closes M024 below. The next R04 work is M025 trusted startup
+dialing/lifetime redial, preserving authentication, fallback, finite retry
+budgets and explicit fair timer/transport premises.
+
+## Independent bounded privileges (turn 3)
+
+Module 93 represents admission, retention/mesh preference and exemption from
+load-induced penalties as three separate finite recipient lists with independent
+capacities. Truncation bounds each effective list. An entry contains an arbitrary
+symbolic identity, so capacity does not restrict the numeric identity range.
+Duplicate entries consume capacity. Every query also checks current authentication
+and the current authoritative union of the selected role/swarm. This union contains
+the previous, current and next committee, configured trusted and bootstrap identities.
+Ordinary Open/Grace admission remains the existing authority contract.
+
+An authorized allocation event replaces exactly one class and advances the
+authority generation. All six cross-class equalities quantify over arbitrary
+roles, primary/worker swarms, identities, authentication judgments and allocations:
+the other two effective privileges are unchanged. An unauthorized allocation
+event leaves the entire state unchanged. Mixed traces also execute the existing
+authoritative roster/profile transitions. They retain the allocation lists while
+rechecking current membership, so removing membership revokes effective privileges
+even when allocation entries remain. Positive head-membership and successful-query
+witnesses rule out an always-refuse model.
+
+After every finite mixed revision trace, allocations remain finite and
+unauthenticated identities receive no privilege or privileged service. Load
+exemption suppresses only a load-pressure ban. Genuine protocol violations remain
+bannable. Every successful service request returns the smaller of demand and its
+CPU, memory or bulk service-turn limit; refusal returns zero. Resource-coordinate
+witnesses rule out aliasing one limit to another. These limits are previously
+reserved allocations. Aggregate reservation and runtime cost domination keep
+their M012/E022 boundary; this model does not mint budgets or prove cumulative
+uncharged service.
+
+The source audit covers the trust split in U0918/U1166, authenticated current-policy
+updates in U0913/U0941/U1080/U1323, bounded trusted traffic and genuine violations
+in U1062/U1174/U1291, and the same privilege boundary for the role/QoS clauses
+U1210/U1274. Broader source clauses retain their separately assigned obligations.
+Both M024 criteria are witnessed by 38 new audited general statements; the older
+module-30 scalar witnesses retain their narrower scope. The census is now
+14 covered and 69 partial model obligations.
+
+The 40 new semantic controls weaken class selection, allocation truncation,
+membership lookup, authorization, authentication, current role/swarm authority,
+revision advancement, trace execution, load-only exemptions, resource-coordinate
+selection and successful/refused service branches. Every one must fail with a
+type mismatch; parser failures and crashes do not count. The full qualification
+guard and [checked receipt](../evidence/r04-independent-bounded-privileges-check.json)
+record 76 modules, 1560 proof declarations, no disclosed axioms and 1460 rejected
+negative checks. Disposition, scope and witness-audit regressions also pass.
+
+Atomic authority capture, identity mapping, verification and authorization remain
+E029. Runtime enforcement and cost domination remain E022. Generations are
+unbounded naturals; wrapping, persistence and rollback remain external. Genuine
+protocol violations and load causes are correctly classified judgments. All 43
+external obligations remain open. M025 startup and lifetime redial is next;
+M040 live sweeps and the other policy/source/resource gaps remain unchanged.

@@ -1,0 +1,614 @@
+-- M024: independent finite allocations selected against current authority.
+-- Recipient identities are symbolic verified network identities. Duplicate
+-- entries consume allocation slots; they cannot increase the finite bound.
+mu PrivilegeKind : Type 0 with
+| admissionPrivilege : PrivilegeKind
+| retentionPrivilege : PrivilegeKind
+| loadPenaltyPrivilege : PrivilegeKind
+
+mu PrivilegeRecipients : Type 0 with
+| noPrivilegeRecipients : PrivilegeRecipients
+| privilegeRecipient : Count -> PrivilegeRecipients -> PrivilegeRecipients
+
+def rec privilegeRecipientCount : PrivilegeRecipients -> Count :=
+  fun (recipients : PrivilegeRecipients) =>
+    case recipients as self in PrivilegeRecipients return Count with
+    | noPrivilegeRecipients => zero
+    | privilegeRecipient identity rest => next (privilegeRecipientCount rest)
+
+def rec boundedPrivilegeRecipients : Count -> PrivilegeRecipients -> PrivilegeRecipients :=
+  fun (capacity : Count) (recipients : PrivilegeRecipients) =>
+    case capacity as self in Count return PrivilegeRecipients with
+    | zero => noPrivilegeRecipients
+    | next remaining =>
+      case recipients as roster in PrivilegeRecipients return PrivilegeRecipients with
+      | noPrivilegeRecipients => noPrivilegeRecipients
+      | privilegeRecipient identity rest =>
+        privilegeRecipient identity (boundedPrivilegeRecipients remaining rest)
+
+def rec boundedPrivilegeRecipientCount : (capacity : Count) -> (recipients : PrivilegeRecipients) ->
+    AtMost (privilegeRecipientCount (boundedPrivilegeRecipients capacity recipients)) capacity :=
+  fun (capacity : Count) (recipients : PrivilegeRecipients) =>
+    case capacity as self in Count return
+        AtMost (privilegeRecipientCount (boundedPrivilegeRecipients self recipients)) self with
+    | zero => least zero
+    | next remaining =>
+      case recipients as roster in PrivilegeRecipients return
+          AtMost (privilegeRecipientCount (boundedPrivilegeRecipients (next remaining) roster)) (next remaining) with
+      | noPrivilegeRecipients => least (next remaining)
+      | privilegeRecipient identity rest =>
+        lift (privilegeRecipientCount (boundedPrivilegeRecipients remaining rest)) remaining
+          (boundedPrivilegeRecipientCount remaining rest)
+
+def rec privilegeRecipientMember : Count -> PrivilegeRecipients -> Flag :=
+  fun (identity : Count) (recipients : PrivilegeRecipients) =>
+    case recipients as self in PrivilegeRecipients return Flag with
+    | noPrivilegeRecipients => off
+    | privilegeRecipient listed rest =>
+      either (sameCount identity listed) (privilegeRecipientMember identity rest)
+
+mu PrivilegeAllocations : Type 0 with
+| privilegeAllocations : PrivilegeRecipients -> PrivilegeRecipients -> PrivilegeRecipients -> PrivilegeAllocations
+
+def privilegeAllocationAt : PrivilegeKind -> PrivilegeAllocations -> PrivilegeRecipients :=
+  fun (kind : PrivilegeKind) (allocations : PrivilegeAllocations) =>
+    case allocations as self in PrivilegeAllocations return PrivilegeRecipients with
+    | privilegeAllocations admission retention load =>
+      case kind as selected in PrivilegeKind return PrivilegeRecipients with
+      | admissionPrivilege => admission
+      | retentionPrivilege => retention
+      | loadPenaltyPrivilege => load
+
+def replacePrivilegeAllocation : PrivilegeKind -> PrivilegeRecipients -> PrivilegeAllocations -> PrivilegeAllocations :=
+  fun (kind : PrivilegeKind) (incoming : PrivilegeRecipients) (allocations : PrivilegeAllocations) =>
+    case allocations as self in PrivilegeAllocations return PrivilegeAllocations with
+    | privilegeAllocations admission retention load =>
+      case kind as selected in PrivilegeKind return PrivilegeAllocations with
+      | admissionPrivilege => privilegeAllocations incoming retention load
+      | retentionPrivilege => privilegeAllocations admission incoming load
+      | loadPenaltyPrivilege => privilegeAllocations admission retention incoming
+
+def replacedPrivilegeSelected : (kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) ->
+    (allocations : PrivilegeAllocations) ->
+    Equal PrivilegeRecipients (privilegeAllocationAt kind (replacePrivilegeAllocation kind incoming allocations)) incoming :=
+  fun (kind : PrivilegeKind) (incoming : PrivilegeRecipients) (allocations : PrivilegeAllocations) =>
+    case allocations as self in PrivilegeAllocations return
+        Equal PrivilegeRecipients (privilegeAllocationAt kind (replacePrivilegeAllocation kind incoming self)) incoming with
+    | privilegeAllocations admission retention load =>
+      case kind as selected in PrivilegeKind return
+          Equal PrivilegeRecipients
+            (privilegeAllocationAt selected (replacePrivilegeAllocation selected incoming (privilegeAllocations admission retention load))) incoming with
+      | admissionPrivilege => same
+      | retentionPrivilege => same
+      | loadPenaltyPrivilege => same
+
+mu PrivilegeLimits : Type 0 with
+| privilegeLimits : Count -> Count -> Count -> PrivilegeLimits
+
+def privilegeLimitAt : PrivilegeKind -> PrivilegeLimits -> Count :=
+  fun (kind : PrivilegeKind) (limits : PrivilegeLimits) =>
+    case limits as self in PrivilegeLimits return Count with
+    | privilegeLimits admission retention load =>
+      case kind as selected in PrivilegeKind return Count with
+      | admissionPrivilege => admission
+      | retentionPrivilege => retention
+      | loadPenaltyPrivilege => load
+
+mu SplitPrivilegePolicy : Type 0 with
+| splitPrivilegePolicy : AuthoritativeUnionPolicy -> PrivilegeAllocations -> SplitPrivilegePolicy
+
+def splitPrivilegeAuthority : SplitPrivilegePolicy -> AuthoritativeUnionPolicy :=
+  fun (policy : SplitPrivilegePolicy) =>
+    case policy as self in SplitPrivilegePolicy return AuthoritativeUnionPolicy with
+    | splitPrivilegePolicy authority allocations => authority
+
+def splitPrivilegeAllocations : SplitPrivilegePolicy -> PrivilegeAllocations :=
+  fun (policy : SplitPrivilegePolicy) =>
+    case policy as self in SplitPrivilegePolicy return PrivilegeAllocations with
+    | splitPrivilegePolicy authority allocations => allocations
+
+def allocatedPrivilegeRecipients : PrivilegeKind -> PrivilegeLimits -> SplitPrivilegePolicy -> PrivilegeRecipients :=
+  fun (kind : PrivilegeKind) (limits : PrivilegeLimits) (policy : SplitPrivilegePolicy) =>
+    boundedPrivilegeRecipients (privilegeLimitAt kind limits)
+      (privilegeAllocationAt kind (splitPrivilegeAllocations policy))
+
+-- Eligibility uses the exact current previous/current/next committee, configured trusted and bootstrap union.
+-- Open/grace admission of ordinary peers is separate from privileged treatment.
+def splitPrivilege : PrivilegeKind -> PrivilegeLimits -> NodePolicyRole -> NodePolicySwarm ->
+    SplitPrivilegePolicy -> Flag -> Count -> Flag :=
+  fun (kind : PrivilegeKind) (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (policy : SplitPrivilegePolicy) (authenticated : Flag) (identity : Count) =>
+    both authenticated
+      (both (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy)))
+        (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)))
+
+def advancePrivilegeRevision : AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (authority : AuthoritativeUnionPolicy) =>
+    case authority as self in AuthoritativeUnionPolicy return AuthoritativeUnionPolicy with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      authoritativeUnionPolicy (next generation) validator hub observer
+
+mu SplitPrivilegeChange : Type 0 with
+| splitAuthorityChange : AuthoritativeUnionChange -> SplitPrivilegeChange
+| splitAllocationChange : Flag -> PrivilegeKind -> PrivilegeRecipients -> SplitPrivilegeChange
+
+def applySplitPrivilegeChange : SplitPrivilegeChange -> SplitPrivilegePolicy -> SplitPrivilegePolicy :=
+  fun (change : SplitPrivilegeChange) (policy : SplitPrivilegePolicy) =>
+    case policy as self in SplitPrivilegePolicy return SplitPrivilegePolicy with
+    | splitPrivilegePolicy authority allocations =>
+      case change as event in SplitPrivilegeChange return SplitPrivilegePolicy with
+      | splitAuthorityChange update =>
+        splitPrivilegePolicy (applyAuthoritativeUnionChange update authority) allocations
+      | splitAllocationChange authorized kind incoming =>
+        case authorized as verified in Flag return SplitPrivilegePolicy with
+        | off => splitPrivilegePolicy authority allocations
+        | on => splitPrivilegePolicy (advancePrivilegeRevision authority)
+          (replacePrivilegeAllocation kind incoming allocations)
+
+mu SplitPrivilegeChanges : Type 0 with
+| noSplitPrivilegeChanges : SplitPrivilegeChanges
+| splitPrivilegeChange : SplitPrivilegeChange -> SplitPrivilegeChanges -> SplitPrivilegeChanges
+
+def rec runSplitPrivilegeChanges : SplitPrivilegeChanges -> SplitPrivilegePolicy -> SplitPrivilegePolicy :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) =>
+    case changes as self in SplitPrivilegeChanges return SplitPrivilegePolicy with
+    | noSplitPrivilegeChanges => policy
+    | splitPrivilegeChange change rest => runSplitPrivilegeChanges rest (applySplitPrivilegeChange change policy)
+
+def splitPrivilegeAllocationBound : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) ->
+    AtMost (privilegeRecipientCount (allocatedPrivilegeRecipients kind limits (runSplitPrivilegeChanges changes policy)))
+      (privilegeLimitAt kind limits) :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (limits : PrivilegeLimits) =>
+    boundedPrivilegeRecipientCount (privilegeLimitAt kind limits)
+      (privilegeAllocationAt kind (splitPrivilegeAllocations (runSplitPrivilegeChanges changes policy)))
+
+def splitPrivilegeNeverUnauthenticated : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) ->
+    Equal Flag (splitPrivilege kind limits role swarm (runSplitPrivilegeChanges changes policy) off identity) off :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (kind : PrivilegeKind)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) => same
+
+def splitPrivilegeNeedsCurrentMembership : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) off ->
+    Equal Flag (splitPrivilege kind limits role swarm policy authenticated identity) off :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (limits : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (absent : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) off) =>
+    unionBothSecondDenied authenticated
+      (both (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy)))
+        (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)))
+      (congruent Flag Flag
+        (fun (member : Flag) => both member (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)))
+        (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) off absent)
+
+def splitPrivilegeNeedsAllocation : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) off ->
+    Equal Flag (splitPrivilege kind limits role swarm policy authenticated identity) off :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (limits : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (absent : Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) off) =>
+    unionBothSecondDenied authenticated
+      (both (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy)))
+        (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)))
+      (unionBothSecondDenied
+        (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy)))
+        (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) absent)
+
+def splitPrivilegeCanGrant : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) on ->
+    Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) on ->
+    Equal Flag (splitPrivilege kind limits role swarm policy on identity) on :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (limits : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (member : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) on)
+      (allocated : Equal Flag (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) on) =>
+    equalTransitivity Flag
+      (splitPrivilege kind limits role swarm policy on identity)
+      (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)) on
+      (congruent Flag Flag
+        (fun (eligible : Flag) => both eligible (privilegeRecipientMember identity (allocatedPrivilegeRecipients kind limits policy)))
+        (committeeUnionMember identity (authoritativeUnionAt role swarm (splitPrivilegeAuthority policy))) on member) allocated
+
+def splitPrivilegeBan : PenaltyCause -> PrivilegeLimits -> NodePolicyRole -> NodePolicySwarm ->
+    SplitPrivilegePolicy -> Flag -> Count -> Flag :=
+  fun (cause : PenaltyCause) (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (policy : SplitPrivilegePolicy) (authenticated : Flag) (identity : Count) =>
+    ban cause (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity)
+
+def splitProtocolViolationAlwaysBanned : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (splitPrivilegeBan protocolViolation limits role swarm
+      (runSplitPrivilegeChanges changes policy) authenticated identity) on :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (limits : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) => same
+
+-- Hard limits are supplied service-turn allocations, not privilege grants.
+-- Runtime cost domination and aggregate reservations remain E022 and M012.
+mu PrivilegeResourceAxis : Type 0 with
+| privilegeCpu : PrivilegeResourceAxis
+| privilegeMemory : PrivilegeResourceAxis
+| privilegeBulk : PrivilegeResourceAxis
+
+mu PrivilegeResources : Type 0 with
+| privilegeResources : Count -> Count -> Count -> PrivilegeResources
+
+def privilegeResourceAt : PrivilegeResourceAxis -> PrivilegeResources -> Count :=
+  fun (axis : PrivilegeResourceAxis) (resources : PrivilegeResources) =>
+    case resources as self in PrivilegeResources return Count with
+    | privilegeResources cpu memory bulk =>
+      case axis as selected in PrivilegeResourceAxis return Count with
+      | privilegeCpu => cpu
+      | privilegeMemory => memory
+      | privilegeBulk => bulk
+
+def splitPrivilegeWork : PrivilegeResourceAxis -> PrivilegeResources -> PrivilegeResources -> Flag -> Count :=
+  fun (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources) (allowed : Flag) =>
+    case allowed as decision in Flag return Count with
+    | off => zero
+    | on => boundedWork (privilegeResourceAt axis limits) (privilegeResourceAt axis demand)
+
+def splitPrivilegeService : PrivilegeKind -> PrivilegeLimits -> NodePolicyRole -> NodePolicySwarm ->
+    SplitPrivilegePolicy -> Flag -> Count -> PrivilegeResourceAxis -> PrivilegeResources -> PrivilegeResources -> Count :=
+  fun (kind : PrivilegeKind) (allocations : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (policy : SplitPrivilegePolicy) (authenticated : Flag) (identity : Count)
+      (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources) =>
+    splitPrivilegeWork axis limits demand (splitPrivilege kind allocations role swarm policy authenticated identity)
+
+def splitPrivilegeWorkBound : (axis : PrivilegeResourceAxis) -> (limits : PrivilegeResources) ->
+    (demand : PrivilegeResources) -> (allowed : Flag) ->
+    AtMost (splitPrivilegeWork axis limits demand allowed) (privilegeResourceAt axis limits) :=
+  fun (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources) (allowed : Flag) =>
+    case allowed as decision in Flag return
+        AtMost (splitPrivilegeWork axis limits demand decision) (privilegeResourceAt axis limits) with
+    | off => least (privilegeResourceAt axis limits)
+    | on => workBound (privilegeResourceAt axis limits) (privilegeResourceAt axis demand)
+
+def splitPrivilegeServiceBound : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (kind : PrivilegeKind) -> (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->
+    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->
+    AtMost (splitPrivilegeService kind allocations role swarm (runSplitPrivilegeChanges changes policy)
+      authenticated identity axis limits demand) (privilegeResourceAt axis limits) :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (kind : PrivilegeKind)
+      (allocations : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (authenticated : Flag) (identity : Count) (axis : PrivilegeResourceAxis)
+      (limits : PrivilegeResources) (demand : PrivilegeResources) =>
+    splitPrivilegeWorkBound axis limits demand
+      (splitPrivilege kind allocations role swarm (runSplitPrivilegeChanges changes policy) authenticated identity)
+
+def splitPrivilegeUnauthenticatedWorkZero : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (kind : PrivilegeKind) -> (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (axis : PrivilegeResourceAxis) -> (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->
+    Equal Count (splitPrivilegeService kind allocations role swarm (runSplitPrivilegeChanges changes policy)
+      off identity axis limits demand) zero :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (kind : PrivilegeKind)
+      (allocations : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources) => same
+
+
+def admissionChangeKeepsRetention : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege retentionPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege retentionPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege retentionPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege retentionPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def admissionChangeKeepsLoadPenalty : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege loadPenaltyPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege loadPenaltyPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege loadPenaltyPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on admissionPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege loadPenaltyPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def retentionChangeKeepsAdmission : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege admissionPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege admissionPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege admissionPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege admissionPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def retentionChangeKeepsLoadPenalty : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege loadPenaltyPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege loadPenaltyPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege loadPenaltyPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege loadPenaltyPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on retentionPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege loadPenaltyPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def loadPenaltyChangeKeepsAdmission : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege admissionPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege admissionPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege admissionPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege admissionPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege admissionPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def loadPenaltyChangeKeepsRetention : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (splitPrivilege retentionPrivilege limits role swarm
+        (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy authority allocations))
+        authenticated identity)
+      (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy authority allocations) authenticated identity) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (incoming : PrivilegeRecipients)
+      (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) =>
+    case authority as current in AuthoritativeUnionPolicy return
+        Equal Flag
+          (splitPrivilege retentionPrivilege limits role swarm
+            (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming) (splitPrivilegePolicy current allocations))
+            authenticated identity)
+          (splitPrivilege retentionPrivilege limits role swarm (splitPrivilegePolicy current allocations) authenticated identity) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case allocations as self in PrivilegeAllocations return
+          Equal Flag
+            (splitPrivilege retentionPrivilege limits role swarm
+              (applySplitPrivilegeChange (splitAllocationChange on loadPenaltyPrivilege incoming)
+                (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self)) authenticated identity)
+            (splitPrivilege retentionPrivilege limits role swarm
+              (splitPrivilegePolicy (authoritativeUnionPolicy generation validator hub observer) self) authenticated identity) with
+      | privilegeAllocations admission retention load => same
+
+def unauthorizedPrivilegeChangeNoOp : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (incoming : PrivilegeRecipients) ->
+    Equal SplitPrivilegePolicy (applySplitPrivilegeChange (splitAllocationChange off kind incoming) policy) policy :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (incoming : PrivilegeRecipients) =>
+    case policy as self in SplitPrivilegePolicy return
+        Equal SplitPrivilegePolicy (applySplitPrivilegeChange (splitAllocationChange off kind incoming) self) self with
+    | splitPrivilegePolicy authority allocations => same
+
+def authorityChangeKeepsPrivilegeAllocations : (change : AuthoritativeUnionChange) -> (policy : SplitPrivilegePolicy) ->
+    Equal PrivilegeAllocations (splitPrivilegeAllocations (applySplitPrivilegeChange (splitAuthorityChange change) policy))
+      (splitPrivilegeAllocations policy) :=
+  fun (change : AuthoritativeUnionChange) (policy : SplitPrivilegePolicy) =>
+    case policy as self in SplitPrivilegePolicy return
+        Equal PrivilegeAllocations (splitPrivilegeAllocations (applySplitPrivilegeChange (splitAuthorityChange change) self))
+          (splitPrivilegeAllocations self) with
+    | splitPrivilegePolicy authority allocations => same
+
+def privilegeChangeAdvancesRevision : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) ->
+    Equal Count (authoritativeUnionGeneration (splitPrivilegeAuthority
+      (applySplitPrivilegeChange (splitAllocationChange on kind incoming) (splitPrivilegePolicy authority allocations))))
+      (next (authoritativeUnionGeneration authority)) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (kind : PrivilegeKind)
+      (incoming : PrivilegeRecipients) =>
+    case authority as self in AuthoritativeUnionPolicy return
+        Equal Count (authoritativeUnionGeneration (splitPrivilegeAuthority
+          (applySplitPrivilegeChange (splitAllocationChange on kind incoming) (splitPrivilegePolicy self allocations))))
+          (next (authoritativeUnionGeneration self)) with
+    | authoritativeUnionPolicy generation validator hub observer => same
+
+def authorizedPrivilegeAllocationSelected : (authority : AuthoritativeUnionPolicy) -> (allocations : PrivilegeAllocations) ->
+    (kind : PrivilegeKind) -> (incoming : PrivilegeRecipients) -> (limits : PrivilegeLimits) ->
+    Equal PrivilegeRecipients (allocatedPrivilegeRecipients kind limits
+      (applySplitPrivilegeChange (splitAllocationChange on kind incoming) (splitPrivilegePolicy authority allocations)))
+      (boundedPrivilegeRecipients (privilegeLimitAt kind limits) incoming) :=
+  fun (authority : AuthoritativeUnionPolicy) (allocations : PrivilegeAllocations) (kind : PrivilegeKind)
+      (incoming : PrivilegeRecipients) (limits : PrivilegeLimits) =>
+    congruent PrivilegeRecipients PrivilegeRecipients (boundedPrivilegeRecipients (privilegeLimitAt kind limits))
+      (privilegeAllocationAt kind (replacePrivilegeAllocation kind incoming allocations)) incoming
+      (replacedPrivilegeSelected kind incoming allocations)
+
+def boundedPrivilegeHeadMember : (identity : Count) -> (capacity : Count) -> (rest : PrivilegeRecipients) ->
+    Equal Flag (privilegeRecipientMember identity
+      (boundedPrivilegeRecipients (next capacity) (privilegeRecipient identity rest))) on :=
+  fun (identity : Count) (capacity : Count) (rest : PrivilegeRecipients) =>
+    congruent Flag Flag
+      (fun (matched : Flag) => either matched (privilegeRecipientMember identity (boundedPrivilegeRecipients capacity rest)))
+      (sameCount identity identity) on (sameCountReflexive identity)
+
+def privilegeMemberSkipsDifferentHead : (identity : Count) -> (other : Count) -> (rest : PrivilegeRecipients) ->
+    Equal Flag (sameCount identity other) off ->
+    Equal Flag (privilegeRecipientMember identity (privilegeRecipient other rest)) (privilegeRecipientMember identity rest) :=
+  fun (identity : Count) (other : Count) (rest : PrivilegeRecipients)
+      (different : Equal Flag (sameCount identity other) off) =>
+    congruent Flag Flag (fun (matched : Flag) => either matched (privilegeRecipientMember identity rest))
+      (sameCount identity other) off different
+
+def zeroPrivilegeAllocationCannotGrant : (identity : Count) -> (recipients : PrivilegeRecipients) ->
+    Equal Flag (privilegeRecipientMember identity (boundedPrivilegeRecipients zero recipients)) off :=
+  fun (identity : Count) (recipients : PrivilegeRecipients) => same
+
+def loadPrivilegeSuppressesOnlyLoadBan : (policy : SplitPrivilegePolicy) -> (limits : PrivilegeLimits) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) on ->
+    Equal Flag (splitPrivilegeBan loadPressure limits role swarm policy authenticated identity) off :=
+  fun (policy : SplitPrivilegePolicy) (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (authenticated : Flag) (identity : Count)
+      (exempt : Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) on) =>
+    congruent Flag Flag (ban loadPressure)
+      (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) on exempt
+
+def noLoadPrivilegePreservesLoadBan : (policy : SplitPrivilegePolicy) -> (limits : PrivilegeLimits) ->
+    (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) off ->
+    Equal Flag (splitPrivilegeBan loadPressure limits role swarm policy authenticated identity) on :=
+  fun (policy : SplitPrivilegePolicy) (limits : PrivilegeLimits) (role : NodePolicyRole) (swarm : NodePolicySwarm)
+      (authenticated : Flag) (identity : Count)
+      (ordinary : Equal Flag (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) off) =>
+    congruent Flag Flag (ban loadPressure)
+      (splitPrivilege loadPenaltyPrivilege limits role swarm policy authenticated identity) off ordinary
+
+def grantedPrivilegeServiceExact : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->
+    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->
+    Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) on ->
+    Equal Count (splitPrivilegeService kind allocations role swarm policy authenticated identity axis limits demand)
+      (boundedWork (privilegeResourceAt axis limits) (privilegeResourceAt axis demand)) :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (allocations : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources)
+      (granted : Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) on) =>
+    congruent Flag Count (splitPrivilegeWork axis limits demand)
+      (splitPrivilege kind allocations role swarm policy authenticated identity) on granted
+
+def deniedPrivilegeServiceZero : (policy : SplitPrivilegePolicy) -> (kind : PrivilegeKind) ->
+    (allocations : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) -> (axis : PrivilegeResourceAxis) ->
+    (limits : PrivilegeResources) -> (demand : PrivilegeResources) ->
+    Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) off ->
+    Equal Count (splitPrivilegeService kind allocations role swarm policy authenticated identity axis limits demand) zero :=
+  fun (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (allocations : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (axis : PrivilegeResourceAxis) (limits : PrivilegeResources) (demand : PrivilegeResources)
+      (denied : Equal Flag (splitPrivilege kind allocations role swarm policy authenticated identity) off) =>
+    congruent Flag Count (splitPrivilegeWork axis limits demand)
+      (splitPrivilege kind allocations role swarm policy authenticated identity) off denied
+
+def privilegeCpuCoordinate : (cpu : Count) -> (memory : Count) -> (bulk : Count) ->
+    Equal Count (privilegeResourceAt privilegeCpu (privilegeResources cpu memory bulk)) cpu :=
+  fun (cpu : Count) (memory : Count) (bulk : Count) => same
+
+def privilegeMemoryCoordinate : (cpu : Count) -> (memory : Count) -> (bulk : Count) ->
+    Equal Count (privilegeResourceAt privilegeMemory (privilegeResources cpu memory bulk)) memory :=
+  fun (cpu : Count) (memory : Count) (bulk : Count) => same
+
+def privilegeBulkCoordinate : (cpu : Count) -> (memory : Count) -> (bulk : Count) ->
+    Equal Count (privilegeResourceAt privilegeBulk (privilegeResources cpu memory bulk)) bulk :=
+  fun (cpu : Count) (memory : Count) (bulk : Count) => same
+
+def splitPrivilegeRunHead : (change : SplitPrivilegeChange) -> (rest : SplitPrivilegeChanges) ->
+    (policy : SplitPrivilegePolicy) ->
+    Equal SplitPrivilegePolicy (runSplitPrivilegeChanges (splitPrivilegeChange change rest) policy)
+      (runSplitPrivilegeChanges rest (applySplitPrivilegeChange change policy)) :=
+  fun (change : SplitPrivilegeChange) (rest : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) => same
+
+def splitPrivilegeRunEmpty : (policy : SplitPrivilegePolicy) ->
+    Equal SplitPrivilegePolicy (runSplitPrivilegeChanges noSplitPrivilegeChanges policy) policy :=
+  fun (policy : SplitPrivilegePolicy) => same
+
+def splitAuthorityUpdateExact : (change : AuthoritativeUnionChange) -> (policy : SplitPrivilegePolicy) ->
+    Equal AuthoritativeUnionPolicy (splitPrivilegeAuthority (applySplitPrivilegeChange (splitAuthorityChange change) policy))
+      (applyAuthoritativeUnionChange change (splitPrivilegeAuthority policy)) :=
+  fun (change : AuthoritativeUnionChange) (policy : SplitPrivilegePolicy) =>
+    case policy as self in SplitPrivilegePolicy return
+        Equal AuthoritativeUnionPolicy (splitPrivilegeAuthority (applySplitPrivilegeChange (splitAuthorityChange change) self))
+          (applyAuthoritativeUnionChange change (splitPrivilegeAuthority self)) with
+    | splitPrivilegePolicy authority allocations => same
+
+def splitPrivilegeAfterRemoval : (changes : SplitPrivilegeChanges) -> (policy : SplitPrivilegePolicy) ->
+    (kind : PrivilegeKind) -> (limits : PrivilegeLimits) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm
+      (splitPrivilegeAuthority (runSplitPrivilegeChanges changes policy)))) off ->
+    Equal Flag (splitPrivilege kind limits role swarm (runSplitPrivilegeChanges changes policy) authenticated identity) off :=
+  fun (changes : SplitPrivilegeChanges) (policy : SplitPrivilegePolicy) (kind : PrivilegeKind) (limits : PrivilegeLimits)
+      (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (removed : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm
+        (splitPrivilegeAuthority (runSplitPrivilegeChanges changes policy)))) off) =>
+    splitPrivilegeNeedsCurrentMembership (runSplitPrivilegeChanges changes policy) kind limits role swarm authenticated identity removed
+
+def admissionPrivilegeLimitSelected : (admission : Count) -> (retention : Count) -> (load : Count) ->
+    Equal Count (privilegeLimitAt admissionPrivilege (privilegeLimits admission retention load)) admission :=
+  fun (admission : Count) (retention : Count) (load : Count) => same
+
+def retentionPrivilegeLimitSelected : (admission : Count) -> (retention : Count) -> (load : Count) ->
+    Equal Count (privilegeLimitAt retentionPrivilege (privilegeLimits admission retention load)) retention :=
+  fun (admission : Count) (retention : Count) (load : Count) => same
+
+def loadPenaltyPrivilegeLimitSelected : (admission : Count) -> (retention : Count) -> (load : Count) ->
+    Equal Count (privilegeLimitAt loadPenaltyPrivilege (privilegeLimits admission retention load)) load :=
+  fun (admission : Count) (retention : Count) (load : Count) => same
