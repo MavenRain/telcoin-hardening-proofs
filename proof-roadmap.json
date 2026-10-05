@@ -121,7 +121,7 @@
         {
           "criterion": 2,
           "path": "tools/check.py",
-          "sha256": "afd0f66d1868add2216727b7d672e667bc80489f9d2e08f60a5477f40c59a1c8"
+          "sha256": "d62b15cc94df5fff537a3e1c2620f42c2e4058f64f0fa73fd8a436ff9feae1c0"
         }
       ]
     },
