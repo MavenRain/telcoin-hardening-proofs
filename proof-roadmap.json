@@ -76,7 +76,7 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
+          "sha256": "055aceb972be4941e31769c082b37cbdad195462d822b0cdf9fcdc4ea99d5f01"
         },
         {
           "criterion": 1,
@@ -86,7 +86,7 @@
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
+          "sha256": "055aceb972be4941e31769c082b37cbdad195462d822b0cdf9fcdc4ea99d5f01"
         }
       ]
     },
@@ -111,17 +111,17 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
+          "sha256": "055aceb972be4941e31769c082b37cbdad195462d822b0cdf9fcdc4ea99d5f01"
         },
         {
           "criterion": 1,
           "path": "proof-audit.json",
-          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
+          "sha256": "055aceb972be4941e31769c082b37cbdad195462d822b0cdf9fcdc4ea99d5f01"
         },
         {
           "criterion": 2,
           "path": "tools/check.py",
-          "sha256": "d62b15cc94df5fff537a3e1c2620f42c2e4058f64f0fa73fd8a436ff9feae1c0"
+          "sha256": "5e4d84cc08536bea64605137bc10abb241c0c3980ae1dc4e9435a5ad8a1f8bf6"
         }
       ]
     },

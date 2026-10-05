@@ -3152,6 +3152,13 @@ MUTATIONS += [
     ('redial_configuration_changes_drop_change', '      | configurationRedialEvent change => authoritativeUnionChange change (redialConfigurationChanges rest)\n', '      | configurationRedialEvent change => redialConfigurationChanges rest\n'),
     ('redial_lower_presence_drops_tail', '    | presenceEvent event rest => redialEvent (presenceRedialEvent event) (lowerPresenceEvents rest)\n', '    | presenceEvent event rest => redialEvent (presenceRedialEvent event) noRedialEvents\n'),
     ('redial_fair_redial_without_authentication', '      (presenceRedialEvent (redialTimerFired on transported))\n', '      (presenceRedialEvent (redialTimerFired off transported))\n'),
+    ('redial_bootstrap_slots_read_trusted', '    | committeePolicyUnion previous current following trusted bootstrap => bootstrap\n\ndef trustedConfigured', '    | committeePolicyUnion previous current following trusted bootstrap => trusted\n\ndef trustedConfigured'),
+    ('redial_bootstrap_reads_fixed_identity', '    policyMemberAt identity (configuredBootstrapSlots (authoritativeUnionAt role swarm authority))\n', '    policyMemberAt zero (configuredBootstrapSlots (authoritativeUnionAt role swarm authority))\n'),
+    ('redial_connected_state_absent', 'def connectedRedialState : RedialState := redialState peerPresent zero zero\n', 'def connectedRedialState : RedialState := redialState peerAbsent zero zero\n'),
+    ('redial_pending_timer_disconnects', '      | redialTimerPending => redialState presence attempts backoff\n', '      | redialTimerPending => redialState peerAbsent attempts backoff\n'),
+    ('redial_pending_timer_resets_attempts', '      | redialTimerPending => redialState presence attempts backoff\n', '      | redialTimerPending => redialState presence zero backoff\n'),
+    ('redial_lower_presence_drops_head', '    | presenceEvent event rest => redialEvent (presenceRedialEvent event) (lowerPresenceEvents rest)\n', '    | presenceEvent event rest => lowerPresenceEvents rest\n'),
+    ('redial_presence_run_drops_step', '    | presenceEvent event rest => runPresenceEvents rest budget gate (stepPresence budget gate event state)\n', '    | presenceEvent event rest => runPresenceEvents rest budget gate state\n'),
 ]
 
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
