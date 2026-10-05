@@ -116,7 +116,7 @@ which code was inspected; they do not establish program refinement.
 All proof terms and models are `.mech` source. Python handles reproducibility,
 bookkeeping and checker invocation. There are no source axioms, admitted proofs,
 imported Lean proofs, or external solver assertions. The current bundle contains
-1560 explicit equality and order proof declarations across 76 modules. This count
+1605 explicit equality and order proof declarations across 77 modules. This count
 includes supporting lemmas; it is not a count of hardening claims proved.
 
 | Module | Checked model properties |
@@ -197,6 +197,7 @@ includes supporting lemmas; it is not a count of hardening claims proved.
 | `91-authoritative-policy-union.mech` | Exact five-source membership union for every node role and primary/worker swarm, authenticated Closed admission, Open defaults, targeted verified updates and provisional/mixed trace boundaries. |
 | `92-policy-lifecycle-revisions.mech` | Distinct inbound/dial/established decisions, current revision and context checks, explicit Open/Grace authentication, arbitrary mixed revision traces and an executable dial/establish exchange. |
 | `93-independent-bounded-privileges.mech` | Independent finite admission, retention/mesh and load-penalty allocations, six noninterference directions, current authentication/membership, protocol bans and reserved CPU/memory/bulk service bounds under mixed revisions. |
+| `94-trusted-startup-redial.mech` | Configured trusted/bootstrap startup selection, membership-preserving presence traces, finite retry/backoff updates and conditional reconnection on a successful authenticated timer event within the attempt budget. M025 coverage and eventual-redial closure remain incomplete. |
 
 These statements quantify over model inputs, including arbitrary natural-number
 caps and event lists. An abstract finite poll trace is not an operating-system

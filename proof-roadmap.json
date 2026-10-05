@@ -76,7 +76,7 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "e315e6dada3dd34863a3fc4903b68bdefdede03f8160dafc95f58dc30328146a"
+          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
         },
         {
           "criterion": 1,
@@ -86,7 +86,7 @@
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "e315e6dada3dd34863a3fc4903b68bdefdede03f8160dafc95f58dc30328146a"
+          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
         }
       ]
     },
@@ -111,12 +111,12 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "e315e6dada3dd34863a3fc4903b68bdefdede03f8160dafc95f58dc30328146a"
+          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
         },
         {
           "criterion": 1,
           "path": "proof-audit.json",
-          "sha256": "e315e6dada3dd34863a3fc4903b68bdefdede03f8160dafc95f58dc30328146a"
+          "sha256": "fa2feb38e4f532173ab7c07a7e8ddd87ed0187f5ccfd3089dfc4750a9501e51f"
         },
         {
           "criterion": 2,

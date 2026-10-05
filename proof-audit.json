@@ -79,7 +79,8 @@
     "proofs/90-protected-critical-service.mech": "16041dc8fee118874873218891412b935a2514e93ebaf00eb48bb692326e745c",
     "proofs/91-authoritative-policy-union.mech": "25bffdaf514e59b72bab34e20e31606f64320909200f74545bf2d6a8d7cdf4db",
     "proofs/92-policy-lifecycle-revisions.mech": "aefd607e54917314abb84f8b0ac9f9ee07cf8925a5618fe83c15f4d378f42cb6",
-    "proofs/93-independent-bounded-privileges.mech": "c83a9e3ddee58d207ffd20669a840a6b7c2f37440869852592936609b1a82adf"
+    "proofs/93-independent-bounded-privileges.mech": "c83a9e3ddee58d207ffd20669a840a6b7c2f37440869852592936609b1a82adf",
+    "proofs/94-trusted-startup-redial.mech": "ae97cdff827eed30a11e9bc10d7599b5cd75d47e8c3f43c6224f9ac29beefc01"
   },
   "obligations": [
     {
@@ -11368,7 +11369,7 @@
       "closure_packet": "R04",
       "reviewed": true,
       "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. No configured-peer startup/lifetime redial and retry/backoff state machine is present. The frozen required scope remains a model obligation in R04.",
+      "scope_review": "Module 94 adds configured-peer startup selection, membership-preserving presence traces, and finite-episode retry/backoff transitions. Its statements have not yet been assigned source-to-witness coverage or semantic weakening controls. Reconnection is conditional on a successful authenticated timer event before the attempt cap; this is not a temporal eventual-redial theorem. M025 remains partial in R04.",
       "witnesses": [],
       "controls": [],
       "criteria": [
@@ -11376,14 +11377,14 @@
           "index": 0,
           "status": "gap",
           "witnesses": [],
-          "rationale": "No configured-peer startup/lifetime redial and retry/backoff state machine is present. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R04: Model configured primary/worker membership independently from connection presence and prove startup dialing and post-disconnection redial eligibility."
+          "rationale": "Module 94 contains general startup-selection and post-disconnection eligibility statements. Source-to-witness assignments and semantic weakening controls are still required before this criterion receives coverage credit.",
+          "remaining": "R04: Audit and assign the configured primary/worker startup and lifetime-eligibility witnesses in module 94, including their premises, and add semantic weakening controls."
         },
         {
           "index": 1,
           "status": "gap",
           "witnesses": [],
-          "rationale": "No configured-peer startup/lifetime redial and retry/backoff state machine is present. No existing statement witnesses this criterion at the frozen scope.",
+          "rationale": "Module 94 bounds individual failed-attempt/backoff updates and proves reconnection for a delivered successful timer event within the attempt budget. Conditional eventual redial across retry episodes has not been established or assigned audited coverage.",
           "remaining": "R04: Prove conditional eventual redial with finite retry/backoff budgets and explicit fair timer/transport premises."
         }
       ]

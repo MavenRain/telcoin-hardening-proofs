@@ -1,0 +1,663 @@
+-- M025: configured trusted peers stay eligible for startup dialing and lifetime redial.
+-- Configuration membership and connection presence are separate state. Disconnects,
+-- failed dials, timer events and episode resets change presence and retry state only.
+-- Identity mapping, verification, timer fairness and transport success are runtime
+-- premises; retry, backoff and work budgets are unversioned parameters.
+
+def configuredTrustedSlots : CommitteePolicyUnion -> Slots :=
+  fun (members : CommitteePolicyUnion) =>
+    case members as self in CommitteePolicyUnion return Slots with
+    | committeePolicyUnion previous current following trusted bootstrap => trusted
+
+def configuredBootstrapSlots : CommitteePolicyUnion -> Slots :=
+  fun (members : CommitteePolicyUnion) =>
+    case members as self in CommitteePolicyUnion return Slots with
+    | committeePolicyUnion previous current following trusted bootstrap => bootstrap
+
+def trustedConfigured : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    policyMemberAt identity (configuredTrustedSlots (authoritativeUnionAt role swarm authority))
+
+def bootstrapConfigured : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    policyMemberAt identity (configuredBootstrapSlots (authoritativeUnionAt role swarm authority))
+
+-- Startup dialing selects every configured trusted and bootstrap identity of the selected swarm.
+def startupDialMember : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    either (trustedConfigured role swarm authority identity) (bootstrapConfigured role swarm authority identity)
+
+-- Every dial and redial passes the M023 outbound gate of the current authority.
+def trustedDialGate : NodePolicyRole -> NodePolicySwarm -> Count -> AuthoritativeUnionPolicy -> Flag -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (authority : AuthoritativeUnionPolicy) (authenticated : Flag) =>
+    outboundUnionDialAllowed (outboundUnionDial role swarm authority authenticated identity)
+
+def startupDialApproved : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    both (startupDialMember role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)
+
+mu PeerPresence : Type 0 with
+| peerAbsent : PeerPresence
+| peerPresent : PeerPresence
+
+mu RedialBudget : Type 0 with
+| redialBudget : Count -> Count -> Count -> RedialBudget
+
+def redialAttemptCap : RedialBudget -> Count :=
+  fun (budget : RedialBudget) =>
+    case budget as self in RedialBudget return Count with
+    | redialBudget attempts backoff work => attempts
+
+def redialBackoffCap : RedialBudget -> Count :=
+  fun (budget : RedialBudget) =>
+    case budget as self in RedialBudget return Count with
+    | redialBudget attempts backoff work => backoff
+
+def redialWorkCap : RedialBudget -> Count :=
+  fun (budget : RedialBudget) =>
+    case budget as self in RedialBudget return Count with
+    | redialBudget attempts backoff work => work
+
+def redialAttemptWork : RedialBudget -> Count -> Count :=
+  fun (budget : RedialBudget) (demand : Count) => boundedWork (redialWorkCap budget) demand
+
+mu RedialState : Type 0 with
+| redialState : PeerPresence -> Count -> Count -> RedialState
+
+def redialPresence : RedialState -> PeerPresence :=
+  fun (state : RedialState) =>
+    case state as self in RedialState return PeerPresence with
+    | redialState presence attempts backoff => presence
+
+def redialAttempts : RedialState -> Count :=
+  fun (state : RedialState) =>
+    case state as self in RedialState return Count with
+    | redialState presence attempts backoff => attempts
+
+def redialBackoff : RedialState -> Count :=
+  fun (state : RedialState) =>
+    case state as self in RedialState return Count with
+    | redialState presence attempts backoff => backoff
+
+-- An episode allows an attempt only while its spent attempts stay below the cap.
+def rec attemptsRemain : Count -> Count -> Flag :=
+  fun (cap : Count) (used : Count) =>
+    case cap as self in Count return Flag with
+    | zero => off
+    | next smaller =>
+      case used as spent in Count return Flag with
+      | zero => on
+      | next earlier => attemptsRemain smaller earlier
+
+-- A failed or refused attempt drops presence, spends one capped attempt and grows the capped backoff.
+def failedRedialState : RedialBudget -> RedialState -> RedialState :=
+  fun (budget : RedialBudget) (state : RedialState) =>
+    case state as current in RedialState return RedialState with
+    | redialState presence attempts backoff =>
+      redialState peerAbsent (boundedWork (redialAttemptCap budget) (next attempts))
+        (boundedWork (redialBackoffCap budget) (next (add backoff backoff)))
+
+def connectedRedialState : RedialState := redialState peerPresent zero zero
+
+def attemptOutcome : Flag -> Flag -> RedialBudget -> RedialState -> RedialState :=
+  fun (remaining : Flag) (connected : Flag) (budget : RedialBudget) (state : RedialState) =>
+    case remaining as allowed in Flag return RedialState with
+    | off => state
+    | on => (case connected as outcome in Flag return RedialState with
+      | off => failedRedialState budget state
+      | on => connectedRedialState)
+
+-- A fired timer carries the runtime authentication and transport judgments of one attempt.
+mu PresenceEvent : Type 0 with
+| peerDisconnected : PresenceEvent
+| redialTimerPending : PresenceEvent
+| redialTimerFired : Flag -> Flag -> PresenceEvent
+| retryEpisodeReset : PresenceEvent
+
+def stepPresence : RedialBudget -> (Flag -> Flag) -> PresenceEvent -> RedialState -> RedialState :=
+  fun (budget : RedialBudget) (gate : Flag -> Flag) (event : PresenceEvent) (state : RedialState) =>
+    case state as current in RedialState return RedialState with
+    | redialState presence attempts backoff =>
+      case event as self in PresenceEvent return RedialState with
+      | peerDisconnected => redialState peerAbsent attempts backoff
+      | redialTimerPending => redialState presence attempts backoff
+      | redialTimerFired authenticated transported =>
+        attemptOutcome (attemptsRemain (redialAttemptCap budget) attempts)
+          (both (gate authenticated) transported) budget (redialState presence attempts backoff)
+      | retryEpisodeReset => redialState presence zero backoff
+
+mu TrustedPeerState : Type 0 with
+| trustedPeerState : AuthoritativeUnionPolicy -> RedialState -> TrustedPeerState
+
+def trustedPeerAuthority : TrustedPeerState -> AuthoritativeUnionPolicy :=
+  fun (state : TrustedPeerState) =>
+    case state as self in TrustedPeerState return AuthoritativeUnionPolicy with
+    | trustedPeerState authority redial => authority
+
+def trustedPeerRedial : TrustedPeerState -> RedialState :=
+  fun (state : TrustedPeerState) =>
+    case state as self in TrustedPeerState return RedialState with
+    | trustedPeerState authority redial => redial
+
+-- Redial eligibility reads configuration membership only, never presence or spent attempts.
+def trustedRedialEligible : NodePolicyRole -> NodePolicySwarm -> Count -> TrustedPeerState -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (state : TrustedPeerState) =>
+    trustedConfigured role swarm (trustedPeerAuthority state) identity
+
+mu RedialEvent : Type 0 with
+| presenceRedialEvent : PresenceEvent -> RedialEvent
+| configurationRedialEvent : AuthoritativeUnionChange -> RedialEvent
+
+mu RedialEvents : Type 0 with
+| noRedialEvents : RedialEvents
+| redialEvent : RedialEvent -> RedialEvents -> RedialEvents
+
+def applyRedialEvent : NodePolicyRole -> NodePolicySwarm -> Count -> RedialBudget -> RedialEvent ->
+    TrustedPeerState -> TrustedPeerState :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (event : RedialEvent) (state : TrustedPeerState) =>
+    case state as current in TrustedPeerState return TrustedPeerState with
+    | trustedPeerState authority redial =>
+      case event as self in RedialEvent return TrustedPeerState with
+      | presenceRedialEvent presence =>
+        trustedPeerState authority (stepPresence budget (trustedDialGate role swarm identity authority) presence redial)
+      | configurationRedialEvent change => trustedPeerState (applyAuthoritativeUnionChange change authority) redial
+
+def rec runRedialEvents : RedialEvents -> NodePolicyRole -> NodePolicySwarm -> Count -> RedialBudget ->
+    TrustedPeerState -> TrustedPeerState :=
+  fun (events : RedialEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (state : TrustedPeerState) =>
+    case events as self in RedialEvents return TrustedPeerState with
+    | noRedialEvents => state
+    | redialEvent event rest =>
+      runRedialEvents rest role swarm identity budget (applyRedialEvent role swarm identity budget event state)
+
+def rec redialConfigurationChanges : RedialEvents -> AuthoritativeUnionChanges :=
+  fun (events : RedialEvents) =>
+    case events as self in RedialEvents return AuthoritativeUnionChanges with
+    | noRedialEvents => noAuthoritativeUnionChanges
+    | redialEvent event rest =>
+      case event as step in RedialEvent return AuthoritativeUnionChanges with
+      | presenceRedialEvent presence => redialConfigurationChanges rest
+      | configurationRedialEvent change => authoritativeUnionChange change (redialConfigurationChanges rest)
+
+mu PresenceEvents : Type 0 with
+| noPresenceEvents : PresenceEvents
+| presenceEvent : PresenceEvent -> PresenceEvents -> PresenceEvents
+
+def rec lowerPresenceEvents : PresenceEvents -> RedialEvents :=
+  fun (events : PresenceEvents) =>
+    case events as self in PresenceEvents return RedialEvents with
+    | noPresenceEvents => noRedialEvents
+    | presenceEvent event rest => redialEvent (presenceRedialEvent event) (lowerPresenceEvents rest)
+
+def redialEitherLeftOn : (first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag (either first second) on :=
+  fun (first : Flag) (second : Flag) (proof : Equal Flag first on) =>
+    congruent Flag Flag (fun (value : Flag) => either value second) first on proof
+
+def redialEitherRightOn : (first : Flag) -> (second : Flag) -> Equal Flag second on -> Equal Flag (either first second) on :=
+  fun (first : Flag) (second : Flag) (proof : Equal Flag second on) =>
+    case first as self in Flag return Equal Flag (either self second) on with
+    | off => proof
+    | on => same
+
+def redialBothOn : (first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag second on ->
+    Equal Flag (both first second) on :=
+  fun (first : Flag) (second : Flag) (left : Equal Flag first on) (right : Equal Flag second on) =>
+    equalTransitivity Flag (both first second) (both on second) on
+      (congruent Flag Flag (fun (value : Flag) => both value second) first on left) right
+
+def redialMemberAllowedOn : (profile : Profile) -> Equal Flag (memberAllowed profile on) on :=
+  fun (profile : Profile) =>
+    case profile as self in Profile return Equal Flag (memberAllowed self on) on with
+    | openProfile => same
+    | graceProfile => same
+    | closedProfile => same
+
+def startupDialExactSelection : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (startupDialMember role swarm authority identity)
+      (either (policyMemberAt identity (configuredTrustedSlots (authoritativeUnionAt role swarm authority)))
+        (policyMemberAt identity (configuredBootstrapSlots (authoritativeUnionAt role swarm authority)))) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def trustedConfiguredStartupDial : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm authority identity) on ->
+    Equal Flag (startupDialMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (trustedConfigured role swarm authority identity) on) =>
+    redialEitherLeftOn (trustedConfigured role swarm authority identity)
+      (bootstrapConfigured role swarm authority identity) configured
+
+def bootstrapConfiguredStartupDial : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (bootstrapConfigured role swarm authority identity) on ->
+    Equal Flag (startupDialMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (bootstrapConfigured role swarm authority identity) on) =>
+    redialEitherRightOn (trustedConfigured role swarm authority identity)
+      (bootstrapConfigured role swarm authority identity) configured
+
+def trustedMemberInCommitteeUnion : (identity : Count) -> (members : CommitteePolicyUnion) ->
+    Equal Flag (policyMemberAt identity (configuredTrustedSlots members)) on ->
+    Equal Flag (committeeUnionMember identity members) on :=
+  fun (identity : Count) (members : CommitteePolicyUnion) =>
+    case members as self in CommitteePolicyUnion return
+        Equal Flag (policyMemberAt identity (configuredTrustedSlots self)) on ->
+        Equal Flag (committeeUnionMember identity self) on with
+    | committeePolicyUnion previous current following trusted bootstrap =>
+      fun (listed : Equal Flag (policyMemberAt identity trusted) on) =>
+        redialEitherRightOn (policyMemberAt identity previous)
+          (either (policyMemberAt identity current)
+            (either (policyMemberAt identity following)
+              (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap))))
+          (redialEitherRightOn (policyMemberAt identity current)
+            (either (policyMemberAt identity following)
+              (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap)))
+            (redialEitherRightOn (policyMemberAt identity following)
+              (either (policyMemberAt identity trusted) (policyMemberAt identity bootstrap))
+              (redialEitherLeftOn (policyMemberAt identity trusted) (policyMemberAt identity bootstrap) listed)))
+
+def trustedConfiguredDialApproved : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm authority identity) on ->
+    Equal Flag (trustedDialGate role swarm identity authority on) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (trustedConfigured role swarm authority identity) on) =>
+    equalTransitivity Flag (trustedDialGate role swarm identity authority on)
+      (authoritativeUnionQuery role swarm authority on identity) on
+      (outboundUnionDialSelectionAllowed (captureUnionRevision role swarm authority identity)
+        (authoritativeUnionQuery role swarm authority on identity))
+      (equalTransitivity Flag
+        (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority))
+          (committeeUnionMember identity (authoritativeUnionAt role swarm authority)))
+        (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority)) on) on
+        (congruent Flag Flag (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority)))
+          (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) on
+          (trustedMemberInCommitteeUnion identity (authoritativeUnionAt role swarm authority) configured))
+        (redialMemberAllowedOn (roleUnionProfile (authoritativeRolePolicy role authority))))
+
+def trustedStartupDialApproved : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm authority identity) on ->
+    Equal Flag (startupDialApproved role swarm authority on identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (trustedConfigured role swarm authority identity) on) =>
+    redialBothOn (startupDialMember role swarm authority identity) (trustedDialGate role swarm identity authority on)
+      (trustedConfiguredStartupDial role swarm authority identity configured)
+      (trustedConfiguredDialApproved role swarm authority identity configured)
+
+def unauthenticatedDialRefused : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (authority : AuthoritativeUnionPolicy) -> Equal Flag (trustedDialGate role swarm identity authority off) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (authority : AuthoritativeUnionPolicy) => same
+
+def unauthenticatedStartupDialRefused : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (startupDialApproved role swarm authority off identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    unionBothSecondDenied (startupDialMember role swarm authority identity)
+      (trustedDialGate role swarm identity authority off) (unauthenticatedDialRefused role swarm identity authority)
+
+def rec redialTraceAuthority : (events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal AuthoritativeUnionPolicy
+      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) :=
+  fun (events : RedialEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState) =>
+    case events as self in RedialEvents return
+        Equal AuthoritativeUnionPolicy
+          (trustedPeerAuthority (runRedialEvents self role swarm identity budget (trustedPeerState authority redial)))
+          (runAuthoritativeUnionChanges (redialConfigurationChanges self) authority) with
+    | noRedialEvents => same
+    | redialEvent event rest =>
+      case event as step in RedialEvent return
+          Equal AuthoritativeUnionPolicy
+            (trustedPeerAuthority (runRedialEvents (redialEvent step rest) role swarm identity budget
+              (trustedPeerState authority redial)))
+            (runAuthoritativeUnionChanges (redialConfigurationChanges (redialEvent step rest)) authority) with
+      | presenceRedialEvent presence =>
+        redialTraceAuthority rest role swarm identity budget authority
+          (stepPresence budget (trustedDialGate role swarm identity authority) presence redial)
+      | configurationRedialEvent change =>
+        redialTraceAuthority rest role swarm identity budget (applyAuthoritativeUnionChange change authority) redial
+
+def rec presenceTraceHasNoConfigurationChanges : (events : PresenceEvents) ->
+    Equal AuthoritativeUnionChanges (redialConfigurationChanges (lowerPresenceEvents events)) noAuthoritativeUnionChanges :=
+  fun (events : PresenceEvents) =>
+    case events as self in PresenceEvents return
+        Equal AuthoritativeUnionChanges (redialConfigurationChanges (lowerPresenceEvents self)) noAuthoritativeUnionChanges with
+    | noPresenceEvents => same
+    | presenceEvent event rest => presenceTraceHasNoConfigurationChanges rest
+
+def presenceTraceKeepsAuthority : (events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal AuthoritativeUnionPolicy
+      (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm identity budget
+        (trustedPeerState authority redial))) authority :=
+  fun (events : PresenceEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState) =>
+    equalTransitivity AuthoritativeUnionPolicy
+      (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm identity budget
+        (trustedPeerState authority redial)))
+      (runAuthoritativeUnionChanges (redialConfigurationChanges (lowerPresenceEvents events)) authority) authority
+      (redialTraceAuthority (lowerPresenceEvents events) role swarm identity budget authority redial)
+      (congruent AuthoritativeUnionChanges AuthoritativeUnionPolicy
+        (fun (changes : AuthoritativeUnionChanges) => runAuthoritativeUnionChanges changes authority)
+        (redialConfigurationChanges (lowerPresenceEvents events)) noAuthoritativeUnionChanges
+        (presenceTraceHasNoConfigurationChanges events))
+
+def presenceTraceKeepsEligibility : (events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag
+      (trustedRedialEligible role swarm identity (runRedialEvents (lowerPresenceEvents events) role swarm identity budget
+        (trustedPeerState authority redial)))
+      (trustedConfigured role swarm authority identity) :=
+  fun (events : PresenceEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState) =>
+    congruent AuthoritativeUnionPolicy Flag
+      (fun (current : AuthoritativeUnionPolicy) => trustedConfigured role swarm current identity)
+      (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm identity budget
+        (trustedPeerState authority redial))) authority
+      (presenceTraceKeepsAuthority events role swarm identity budget authority redial)
+
+def presenceTraceKeepsStartupDial : (events : PresenceEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag
+      (startupDialMember role swarm (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm
+        identity budget (trustedPeerState authority redial))) identity)
+      (startupDialMember role swarm authority identity) :=
+  fun (events : PresenceEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState) =>
+    congruent AuthoritativeUnionPolicy Flag
+      (fun (current : AuthoritativeUnionPolicy) => startupDialMember role swarm current identity)
+      (trustedPeerAuthority (runRedialEvents (lowerPresenceEvents events) role swarm identity budget
+        (trustedPeerState authority redial))) authority
+      (presenceTraceKeepsAuthority events role swarm identity budget authority redial)
+
+def lifetimeRedialEligible : (events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag (trustedConfigured role swarm
+      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->
+    Equal Flag (trustedRedialEligible role swarm identity
+      (runRedialEvents events role swarm identity budget (trustedPeerState authority redial))) on :=
+  fun (events : RedialEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState)
+      (kept : Equal Flag (trustedConfigured role swarm
+        (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on) =>
+    equalTransitivity Flag
+      (trustedRedialEligible role swarm identity
+        (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+      (trustedConfigured role swarm (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on
+      (congruent AuthoritativeUnionPolicy Flag
+        (fun (current : AuthoritativeUnionPolicy) => trustedConfigured role swarm current identity)
+        (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+        (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority)
+        (redialTraceAuthority events role swarm identity budget authority redial))
+      kept
+
+def lifetimeRedialDialApproved : (events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag (trustedConfigured role swarm
+      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->
+    Equal Flag (trustedDialGate role swarm identity
+      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial))) on) on :=
+  fun (events : RedialEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState)
+      (kept : Equal Flag (trustedConfigured role swarm
+        (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on) =>
+    trustedConfiguredDialApproved role swarm
+      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+      identity (lifetimeRedialEligible events role swarm identity budget authority redial kept)
+
+def lifetimeStartupDialMember : (events : RedialEvents) -> (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag (trustedConfigured role swarm
+      (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on ->
+    Equal Flag (startupDialMember role swarm
+      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+      identity) on :=
+  fun (events : RedialEvents) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (budget : RedialBudget) (authority : AuthoritativeUnionPolicy) (redial : RedialState)
+      (kept : Equal Flag (trustedConfigured role swarm
+        (runAuthoritativeUnionChanges (redialConfigurationChanges events) authority) identity) on) =>
+    trustedConfiguredStartupDial role swarm
+      (trustedPeerAuthority (runRedialEvents events role swarm identity budget (trustedPeerState authority redial)))
+      identity (lifetimeRedialEligible events role swarm identity budget authority redial kept)
+
+def retryStateKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (authority : AuthoritativeUnionPolicy) -> (first : RedialState) -> (second : RedialState) ->
+    Equal Flag (trustedRedialEligible role swarm identity (trustedPeerState authority first))
+      (trustedRedialEligible role swarm identity (trustedPeerState authority second)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (authority : AuthoritativeUnionPolicy)
+      (first : RedialState) (second : RedialState) => same
+
+def disconnectKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) ->
+    Equal Flag (trustedRedialEligible role swarm identity (applyRedialEvent role swarm identity budget
+      (presenceRedialEvent peerDisconnected) (trustedPeerState authority redial)))
+      (trustedConfigured role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (authority : AuthoritativeUnionPolicy) (redial : RedialState) => same
+
+def disconnectChangesPresenceOnly : (budget : RedialBudget) -> (gate : Flag -> Flag) -> (state : RedialState) ->
+    Equal RedialState (stepPresence budget gate peerDisconnected state)
+      (redialState peerAbsent (redialAttempts state) (redialBackoff state)) :=
+  fun (budget : RedialBudget) (gate : Flag -> Flag) (state : RedialState) =>
+    case state as self in RedialState return
+        Equal RedialState (stepPresence budget gate peerDisconnected self)
+          (redialState peerAbsent (redialAttempts self) (redialBackoff self)) with
+    | redialState presence attempts backoff => same
+
+def configurationChangeKeepsPresence : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (budget : RedialBudget) -> (change : AuthoritativeUnionChange) -> (authority : AuthoritativeUnionPolicy) ->
+    (redial : RedialState) ->
+    Equal RedialState (trustedPeerRedial (applyRedialEvent role swarm identity budget
+      (configurationRedialEvent change) (trustedPeerState authority redial))) redial :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (change : AuthoritativeUnionChange) (authority : AuthoritativeUnionPolicy) (redial : RedialState) => same
+
+def failedRedialDropsPresence : (budget : RedialBudget) -> (state : RedialState) ->
+    Equal PeerPresence (redialPresence (failedRedialState budget state)) peerAbsent :=
+  fun (budget : RedialBudget) (state : RedialState) =>
+    case state as self in RedialState return
+        Equal PeerPresence (redialPresence (failedRedialState budget self)) peerAbsent with
+    | redialState presence attempts backoff => same
+
+def failedRedialAttemptBound : (budget : RedialBudget) -> (state : RedialState) ->
+    AtMost (redialAttempts (failedRedialState budget state)) (redialAttemptCap budget) :=
+  fun (budget : RedialBudget) (state : RedialState) =>
+    case state as self in RedialState return
+        AtMost (redialAttempts (failedRedialState budget self)) (redialAttemptCap budget) with
+    | redialState presence attempts backoff => workBound (redialAttemptCap budget) (next attempts)
+
+def failedRedialBackoffBound : (budget : RedialBudget) -> (state : RedialState) ->
+    AtMost (redialBackoff (failedRedialState budget state)) (redialBackoffCap budget) :=
+  fun (budget : RedialBudget) (state : RedialState) =>
+    case state as self in RedialState return
+        AtMost (redialBackoff (failedRedialState budget self)) (redialBackoffCap budget) with
+    | redialState presence attempts backoff => workBound (redialBackoffCap budget) (next (add backoff backoff))
+
+def redialAttemptWorkBound : (budget : RedialBudget) -> (demand : Count) ->
+    AtMost (redialAttemptWork budget demand) (redialWorkCap budget) :=
+  fun (budget : RedialBudget) (demand : Count) => workBound (redialWorkCap budget) demand
+
+def rec exhaustedEpisodeRefuses : (cap : Count) -> Equal Flag (attemptsRemain cap cap) off :=
+  fun (cap : Count) =>
+    case cap as self in Count return Equal Flag (attemptsRemain self self) off with
+    | zero => same
+    | next smaller => exhaustedEpisodeRefuses smaller
+
+def freshEpisodeAllowsAttempt : (cap : Count) -> Equal Flag (attemptsRemain (next cap) zero) on :=
+  fun (cap : Count) => same
+
+def zeroAttemptCapRefuses : (used : Count) -> Equal Flag (attemptsRemain zero used) off :=
+  fun (used : Count) => same
+
+def exhaustedAttemptIsNoOp : (connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->
+    Equal RedialState (attemptOutcome off connected budget state) state :=
+  fun (connected : Flag) (budget : RedialBudget) (state : RedialState) => same
+
+def episodeResetClearsAttempts : (budget : RedialBudget) -> (gate : Flag -> Flag) -> (state : RedialState) ->
+    Equal Count (redialAttempts (stepPresence budget gate retryEpisodeReset state)) zero :=
+  fun (budget : RedialBudget) (gate : Flag -> Flag) (state : RedialState) =>
+    case state as self in RedialState return
+        Equal Count (redialAttempts (stepPresence budget gate retryEpisodeReset self)) zero with
+    | redialState presence attempts backoff => same
+
+def attemptOutcomeConnects : (remaining : Flag) -> (connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->
+    Equal Flag remaining on -> Equal Flag connected on ->
+    Equal RedialState (attemptOutcome remaining connected budget state) connectedRedialState :=
+  fun (remaining : Flag) (connected : Flag) (budget : RedialBudget) (state : RedialState)
+      (allowed : Equal Flag remaining on) (established : Equal Flag connected on) =>
+    equalTransitivity RedialState (attemptOutcome remaining connected budget state)
+      (attemptOutcome on connected budget state) connectedRedialState
+      (congruent Flag RedialState (fun (value : Flag) => attemptOutcome value connected budget state) remaining on allowed)
+      (congruent Flag RedialState (fun (value : Flag) => attemptOutcome on value budget state) connected on established)
+
+def attemptOutcomeFails : (remaining : Flag) -> (connected : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->
+    Equal Flag remaining on -> Equal Flag connected off ->
+    Equal RedialState (attemptOutcome remaining connected budget state) (failedRedialState budget state) :=
+  fun (remaining : Flag) (connected : Flag) (budget : RedialBudget) (state : RedialState)
+      (allowed : Equal Flag remaining on) (refused : Equal Flag connected off) =>
+    equalTransitivity RedialState (attemptOutcome remaining connected budget state)
+      (attemptOutcome on connected budget state) (failedRedialState budget state)
+      (congruent Flag RedialState (fun (value : Flag) => attemptOutcome value connected budget state) remaining on allowed)
+      (congruent Flag RedialState (fun (value : Flag) => attemptOutcome on value budget state) connected off refused)
+
+def refusedAttemptKeepsAbsent : (remaining : Flag) -> (budget : RedialBudget) -> (state : RedialState) ->
+    Equal PeerPresence (redialPresence state) peerAbsent ->
+    Equal PeerPresence (redialPresence (attemptOutcome remaining off budget state)) peerAbsent :=
+  fun (remaining : Flag) (budget : RedialBudget) (state : RedialState) =>
+    case remaining as self in Flag return
+        Equal PeerPresence (redialPresence state) peerAbsent ->
+        Equal PeerPresence (redialPresence (attemptOutcome self off budget state)) peerAbsent with
+    | off => fun (absent : Equal PeerPresence (redialPresence state) peerAbsent) => absent
+    | on => fun (absent : Equal PeerPresence (redialPresence state) peerAbsent) => failedRedialDropsPresence budget state
+
+-- Fair timer and transport premises: a fired timer with an approved gate and a delivered
+-- transport inside the episode budget establishes the connection.
+def fairTimerTransportConnects : (budget : RedialBudget) -> (gate : Flag -> Flag) -> (presence : PeerPresence) ->
+    (attempts : Count) -> (backoff : Count) -> (authenticated : Flag) -> (transported : Flag) ->
+    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on ->
+    Equal Flag (gate authenticated) on -> Equal Flag transported on ->
+    Equal RedialState (stepPresence budget gate (redialTimerFired authenticated transported)
+      (redialState presence attempts backoff)) connectedRedialState :=
+  fun (budget : RedialBudget) (gate : Flag -> Flag) (presence : PeerPresence) (attempts : Count) (backoff : Count)
+      (authenticated : Flag) (transported : Flag)
+      (remaining : Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on)
+      (approved : Equal Flag (gate authenticated) on) (delivered : Equal Flag transported on) =>
+    attemptOutcomeConnects (attemptsRemain (redialAttemptCap budget) attempts) (both (gate authenticated) transported)
+      budget (redialState presence attempts backoff) remaining
+      (redialBothOn (gate authenticated) transported approved delivered)
+
+def trustedFairRedialConnects : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (presence : PeerPresence) ->
+    (attempts : Count) -> (backoff : Count) -> (transported : Flag) ->
+    Equal Flag (trustedConfigured role swarm authority identity) on ->
+    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on -> Equal Flag transported on ->
+    Equal RedialState (trustedPeerRedial (applyRedialEvent role swarm identity budget
+      (presenceRedialEvent (redialTimerFired on transported))
+      (trustedPeerState authority (redialState presence attempts backoff)))) connectedRedialState :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (authority : AuthoritativeUnionPolicy) (presence : PeerPresence) (attempts : Count) (backoff : Count)
+      (transported : Flag) (configured : Equal Flag (trustedConfigured role swarm authority identity) on)
+      (remaining : Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on)
+      (delivered : Equal Flag transported on) =>
+    fairTimerTransportConnects budget (trustedDialGate role swarm identity authority) presence attempts backoff
+      on transported remaining (trustedConfiguredDialApproved role swarm authority identity configured) delivered
+
+-- Transport failure keeps eligibility and schedules one bounded retry.
+def transportFailureSchedulesRetry : (budget : RedialBudget) -> (gate : Flag -> Flag) -> (presence : PeerPresence) ->
+    (attempts : Count) -> (backoff : Count) -> (authenticated : Flag) ->
+    Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on ->
+    Equal RedialState (stepPresence budget gate (redialTimerFired authenticated off)
+      (redialState presence attempts backoff)) (failedRedialState budget (redialState presence attempts backoff)) :=
+  fun (budget : RedialBudget) (gate : Flag -> Flag) (presence : PeerPresence) (attempts : Count) (backoff : Count)
+      (authenticated : Flag) (remaining : Equal Flag (attemptsRemain (redialAttemptCap budget) attempts) on) =>
+    attemptOutcomeFails (attemptsRemain (redialAttemptCap budget) attempts) (both (gate authenticated) off)
+      budget (redialState presence attempts backoff) remaining (bothRightOff (gate authenticated))
+
+def transportFailureKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) -> (authenticated : Flag) ->
+    Equal Flag (trustedRedialEligible role swarm identity (applyRedialEvent role swarm identity budget
+      (presenceRedialEvent (redialTimerFired authenticated off)) (trustedPeerState authority redial)))
+      (trustedConfigured role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (authority : AuthoritativeUnionPolicy) (redial : RedialState) (authenticated : Flag) => same
+
+def unauthenticatedRedialNeverConnects : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (budget : RedialBudget) -> (authority : AuthoritativeUnionPolicy) -> (redial : RedialState) -> (transported : Flag) ->
+    Equal PeerPresence (redialPresence redial) peerAbsent ->
+    Equal PeerPresence (redialPresence (trustedPeerRedial (applyRedialEvent role swarm identity budget
+      (presenceRedialEvent (redialTimerFired off transported)) (trustedPeerState authority redial)))) peerAbsent :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (budget : RedialBudget)
+      (authority : AuthoritativeUnionPolicy) (redial : RedialState) (transported : Flag) =>
+    case redial as self in RedialState return
+        Equal PeerPresence (redialPresence self) peerAbsent ->
+        Equal PeerPresence (redialPresence (trustedPeerRedial (applyRedialEvent role swarm identity budget
+          (presenceRedialEvent (redialTimerFired off transported)) (trustedPeerState authority self)))) peerAbsent with
+    | redialState presence attempts backoff =>
+      fun (absent : Equal PeerPresence presence peerAbsent) =>
+        refusedAttemptKeepsAbsent (attemptsRemain (redialAttemptCap budget) attempts) budget
+          (redialState presence attempts backoff) absent
+
+-- Only an authorized configuration change moves membership; an unverified update is a no-op.
+def unverifiedUpdateKeepsTrustedMembership : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority) identity)
+      (trustedConfigured role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (selectedRole : NodePolicyRole) (selectedSwarm : NodePolicySwarm)
+      (incoming : CommitteePolicyUnion) (authority : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def profileChangeKeepsTrustedMembership : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (requested : Profile) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm (configureUnionProfile role requested authority) identity)
+      (trustedConfigured role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (requested : Profile)
+      (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    congruent RoleUnionPolicy Flag
+      (fun (view : RoleUnionPolicy) =>
+        policyMemberAt identity (configuredTrustedSlots (swarmPolicyUnionAt swarm (roleUnionSwarms view))))
+      (authoritativeRolePolicy role (replaceAuthoritativeRolePolicy role
+        (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role authority))) authority))
+      (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role authority)))
+      (replacedRolePolicySelected role (roleUnionPolicy requested (roleUnionSwarms (authoritativeRolePolicy role authority)))
+        authority)
+
+def authorizedRemovalEndsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) off ->
+    Equal Flag (trustedConfigured role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion)
+      (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (removed : Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) off) =>
+    equalTransitivity Flag
+      (trustedConfigured role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity)
+      (policyMemberAt identity (configuredTrustedSlots incoming)) off
+      (congruent CommitteePolicyUnion Flag
+        (fun (members : CommitteePolicyUnion) => policyMemberAt identity (configuredTrustedSlots members))
+        (authoritativeUnionAt role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority)) incoming
+        (verifiedCommitteeUpdateSelectsExactUnion role swarm incoming authority))
+      removed
+
+def authorizedAdditionEntersStartupDial : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) on ->
+    Equal Flag (startupDialMember role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion)
+      (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (added : Equal Flag (policyMemberAt identity (configuredTrustedSlots incoming)) on) =>
+    trustedConfiguredStartupDial role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity
+      (equalTransitivity Flag
+        (trustedConfigured role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority) identity)
+        (policyMemberAt identity (configuredTrustedSlots incoming)) on
+        (congruent CommitteePolicyUnion Flag
+          (fun (members : CommitteePolicyUnion) => policyMemberAt identity (configuredTrustedSlots members))
+          (authoritativeUnionAt role swarm (verifiedCommitteeUnionUpdate on role swarm incoming authority)) incoming
+          (verifiedCommitteeUpdateSelectsExactUnion role swarm incoming authority))
+        added)
