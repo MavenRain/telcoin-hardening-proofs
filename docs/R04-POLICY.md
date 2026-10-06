@@ -1,10 +1,10 @@
 # R04 policy, source churn and recovery
 
-R04 turn 3 closes M024 in the sealed source-obligation ledger. Module
-[93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
-adds 38 proof declarations and 40 semantic weakening controls. M022 and M023 were
-closed in turns 1 and 2. R04 remains active: its other 22 model obligations retain
-their recorded gaps. The repository has used 28 of its 50 execution turns.
+R04 turn 4 closes M025 in the sealed source-obligation ledger. Module
+[94-trusted-startup-redial.mech](../proofs/94-trusted-startup-redial.mech)
+adds 51 proof declarations and 52 semantic weakening controls. M022, M023 and M024
+were closed in turns 1 to 3. R04 remains active: its other 21 model obligations retain
+their recorded gaps. The repository has used 29 of its 50 execution turns.
 This turn does not change
 the sealed scope, packet allocations or external-obligation boundary. R02 and
 R03 used 12 turns more than planned. This is two more than the ten-turn
@@ -212,7 +212,7 @@ updates in U0913/U0941/U1080/U1323, bounded trusted traffic and genuine violatio
 in U1062/U1174/U1291, and the same privilege boundary for the role/QoS clauses
 U1210/U1274. Broader source clauses retain their separately assigned obligations.
 Both M024 criteria are witnessed by 38 new audited general statements; the older
-module-30 scalar witnesses retain their narrower scope. The census is now
+module-30 scalar witnesses retain their narrower scope. The turn-3 census was
 14 covered and 69 partial model obligations.
 
 The 40 new semantic controls weaken class selection, allocation truncation,
@@ -228,8 +228,8 @@ Atomic authority capture, identity mapping, verification and authorization remai
 E029. Runtime enforcement and cost domination remain E022. Generations are
 unbounded naturals; wrapping, persistence and rollback remain external. Genuine
 protocol violations and load causes are correctly classified judgments. All 43
-external obligations remain open. M025 startup and lifetime redial is next;
-M040 live sweeps and the other policy/source/resource gaps remain unchanged.
+external obligations remain open. Turn 4 closes M025 below. M040 live sweeps
+and the other policy/source/resource gaps remain unchanged.
 
 ## Turn 4: trusted startup and lifetime redial
 
@@ -254,5 +254,27 @@ identity mapping, authority capture, budget selection/versioning and runtime
 work accounting. Launch seeding, discovery and live sweeps keep their separate
 obligations. All 43 external obligations remain open.
 
+The source audit covers the A2 trusted-peer anchor U1165, the configured trusted
+and bootstrap peers of the primary and every worker swarm in U0889, the retained
+launch work in U0940 and the trusted-peer redial step in U0983. The cold-start
+clauses U0895 and U1350 are covered only for startup selection from configured
+identities. Their launch seeding part, with U1167/U1172, remains M026. Failed-dial
+backoff in U0942/U1179 remains M038, the reconnect bounds in U1289 remain E010 and
+reload/removal in U1187 remains M042. The sources give no numeric retry or backoff
+constants, so the attempt, backoff and work caps are model parameters. Both M025
+criteria are witnessed by 51 new audited statements: 39 general transitions,
+9 arbitrary-trace results and 3 conditional reconnection results.
+
+The 52 new semantic controls weaken startup selection and its bootstrap fallback,
+trusted and bootstrap slot lookup, role and primary/worker selection, the
+authentication gate, presence and configuration event handling, trace execution,
+attempt and backoff caps, episode reset and exhaustion, timer and transport
+branches, pending-timer state and the work cap. Every one must fail with a type
+mismatch; parser failures and crashes do not count. The full qualification guard
+and [checked receipt](../evidence/r04-trusted-startup-redial-check.json) record
+77 modules, 1611 proof declarations, no disclosed axioms and 1512 rejected
+negative checks. Disposition, scope and witness-audit regressions also pass.
+
 The census is now 15 covered and 68 partial model obligations. R04 remains active
-at turn 4, with 29 of the overall 50 execution turns used.
+at turn 4, with 29 of the overall 50 execution turns used. The next R04 work is
+M026 launch seeding and the bootstrap union with every hub unavailable.

@@ -1347,8 +1347,25 @@ authentication, current role/swarm authority, revision advancement, trace
 execution, load-only exemptions, resource-coordinate selection and
 successful/refused service branches.
 
-Both M024 criteria are witnessed. The current audit covers 14 of 83 model
-obligations; 69 retain gaps. R04 is active at turn 3, using execution turn 28
-of 50. The turn-2 receipt is now historical. The
+Both M024 criteria are witnessed. At turn 3 the audit covered 14 of 83 model
+obligations; 69 retained gaps. R04 was active at turn 3, using execution turn 28
+of 50. The turn-2 receipt is historical. The
+[turn record](../docs/R04-POLICY.md) states the model premises and remaining
+obligations. All 43 external obligations and full qualification remain open.
+
+## R04 turn 4: trusted startup and lifetime redial
+
+[r04-trusted-startup-redial-check.json](r04-trusted-startup-redial-check.json)
+records the full gate for module 94: 77 modules, 1611 explicit equality/order
+proofs, empty axiom disclosure and 1512 rejected negative checks. The 52 new
+`redial_*` controls require semantic type rejection. They cover startup
+selection and bootstrap fallback, trusted and bootstrap slot lookup, role and
+primary/worker selection, the authentication gate, presence and configuration
+events, trace execution, attempt and backoff caps, episode reset and
+exhaustion, timer and transport branches, pending-timer state and the work cap.
+
+Both M025 criteria are witnessed. The current audit covers 15 of 83 model
+obligations; 68 retain gaps. R04 is active at turn 4, using execution turn 29
+of 50. The turn-3 receipt is now historical. The
 [turn record](../docs/R04-POLICY.md) states the model premises and remaining
 obligations. All 43 external obligations and full qualification remain open.

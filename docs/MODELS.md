@@ -315,9 +315,10 @@ Each model decision atomically receives its current immutable authority.
 Authentication, source verification and operator authorization are supplied
 judgments; natural-number generations cannot wrap or roll back in this model.
 Runtime authority capture, publication and generation discipline remain E029.
-Runtime receipt provenance also remains E029. Module 93 supplies independent
-bounded privileges below. Live-connection sweeps, fault isolation, resource
-attribution and reload/removal retain their separate model obligations.
+Runtime receipt provenance also remains E029. Modules 93 and 94 supply
+independent bounded privileges and trusted startup/redial below. Live-connection
+sweeps, fault isolation, resource attribution and reload/removal retain their
+separate model obligations.
 
 [93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
 closes M024 with three independent finite recipient lists and allocation limits.
@@ -344,6 +345,31 @@ reserved service-turn allocations. The model does not replenish budgets or
 claim cumulative service without the separate M012 reservation boundary.
 Runtime enforcement and cost domination remain E022, and atomic authority,
 verification, authorization and identity mapping remain E029.
+
+[94-trusted-startup-redial.mech](../proofs/94-trusted-startup-redial.mech)
+closes M025 with configuration membership and connection presence as separate
+state. The startup dial set of a role and primary/worker swarm contains exactly
+its configured trusted and bootstrap identities. Each dial passes the M023
+outbound gate, so an unauthenticated startup dial or redial is refused.
+
+Presence events are a disconnect, a failed attempt, a timer event and an episode
+reset. A disconnect changes presence only. A failed attempt removes presence,
+spends one capped attempt and increases a capped backoff. After every finite
+trace of presence events and membership-preserving configuration events, the
+identity stays redial eligible, dial approved and in the startup dial set.
+Eligibility does not read presence, spent attempts or backoff. A verified removal
+from the selected trusted slots ends it.
+
+An exhausted episode refuses more attempts until an explicit reset. With a
+positive attempt cap, a reset followed by a fired timer with successful
+authenticated transport gives the connected state after any membership-preserving
+prefix. These results are conditional: the model does not schedule the reset, the
+timer or the transport. A transport failure keeps eligibility and updates the
+capped retry state. The attempt, backoff and work caps are unversioned parameters.
+The work helper caps a supplied demand, and presence transitions do not charge it.
+E029 retains authentication, identity mapping, authority capture, budget
+selection/versioning and runtime work accounting. E010 retains wall-clock
+reconnect bounds and M038 retains backoff schedule conformance.
 
 ## Policy and resource interleavings
 
