@@ -12447,24 +12447,1142 @@
       "id": "M026",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. The frozen required scope remains a model obligation in R04.",
-      "witnesses": [],
-      "controls": [],
+      "scope_complete": true,
+      "scope_review": "R04 turn 5 closes the launch seeding and bootstrap union obligation. Module 95 supplies a seed record (address, key) for every committee identity of the selected authoritative union of each role and primary/worker swarm from a seed table parameter. Launch seeding equals committee union membership, a seeded identity has a provided seed target whose address and key come from the table, and an unseeded identity falls back. The bootstrap union is launch seeding or the module 94 startup dial set, so every configured trusted and bootstrap identity is a member. Launch peers are the bootstrap union plus hub discovery, and every bootstrap union member is a launch peer for every hub report list. Hubs are up or down reports; a down, silenced or absent hub discovers nothing. Cold start silences every hub and keeps the authority, and at cold start the launch peers are exactly the bootstrap union. Direct committee eligibility is launch seeding behind the M023 outbound gate, so an authenticated configured identity is eligible at cold start with every hub unavailable, and unauthenticated or unconfigured identities are refused. Hub snapshot and silence events keep the authority, seeding, bootstrap union and eligibility after any finite hub trace, also from cold start, and a launch trace changes eligibility only through the authority its configuration changes produce. Only a verified roster update changes seeding. The seed table and the hub reports are supplied parameters. E029 owns runtime identity mapping, address and key resolution and authentication. Discovery protocol, epoch reseeding (M032), hub deployment (E038, E030) and live sweeps are not credited.",
+      "witnesses": [
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchBothOnLeft",
+          "statement": "(second : Flag) -> Equal Flag (both on second) second",
+          "scope_kind": "general_transition",
+          "establishes": "A set left operand makes a conjunction equal to its right operand.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchBothOffLeft",
+          "statement": "(second : Flag) -> Equal Flag (both off second) off",
+          "scope_kind": "general_transition",
+          "establishes": "A clear left operand makes a conjunction clear for every right operand.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchEitherOffRight",
+          "statement": "(first : Flag) -> Equal Flag (either first off) first",
+          "scope_kind": "general_transition",
+          "establishes": "A clear right operand makes a disjunction equal to its left operand.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchBothFirstOff",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag first off -> Equal Flag (both first second) off",
+          "scope_kind": "general_transition",
+          "establishes": "A conjunction with a clear first operand is clear.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchEitherBothOff",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag first off -> Equal Flag second off ->\n    Equal Flag (either first second) off",
+          "scope_kind": "general_transition",
+          "establishes": "A disjunction of two clear operands is clear.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchSeededExactUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity)\n      (committeeUnionMember identity (authoritativeUnionAt role swarm authority))",
+          "scope_kind": "general_transition",
+          "establishes": "For every role, swarm, authority and identity, launch seeding equals committee membership in the selected authoritative union.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "seedTargetOfProvided",
+          "statement": "(identity : Count) -> (seeds : Count -> SeedRecord) -> (seeded : Flag) ->\n    Equal Flag (seedTargetProvided (seedTargetOf identity seeds seeded)) seeded",
+          "scope_kind": "general_transition",
+          "establishes": "The seed target of an identity is provided exactly when the identity is seeded, for every seed table.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "seededIdentityHasTarget",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (seeds : Count -> SeedRecord) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every committee identity of the selected authoritative union has a provided seed target for every seed table.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unseededIdentityHasNoTarget",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (seeds : Count -> SeedRecord) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) off ->\n    Equal Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity)) off",
+          "scope_kind": "general_transition",
+          "establishes": "An identity outside the selected authoritative union has no provided seed target.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "seededAddressFromInputs",
+          "statement": "(identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->\n    Equal Count (seedTargetAddress (seedTargetOf identity seeds on) fallback) (seedRecordAddress (seeds identity))",
+          "scope_kind": "general_transition",
+          "establishes": "The address of a seeded target is the seed table address of the identity, not the fallback.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "seededKeyFromInputs",
+          "statement": "(identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->\n    Equal Count (seedTargetKey (seedTargetOf identity seeds on) fallback) (seedRecordKey (seeds identity))",
+          "scope_kind": "general_transition",
+          "establishes": "The key of a seeded target is the seed table key of the identity, not the fallback.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unseededAddressFallsBack",
+          "statement": "(identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->\n    Equal Count (seedTargetAddress (seedTargetOf identity seeds off) fallback) fallback",
+          "scope_kind": "general_transition",
+          "establishes": "The address of an unseeded target is the fallback for every seed table.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "bootstrapUnionExact",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity)\n      (either (committeeUnionMember identity (authoritativeUnionAt role swarm authority))\n        (startupDialMember role swarm authority identity))",
+          "scope_kind": "general_transition",
+          "establishes": "For every role, swarm, authority and identity, bootstrap union membership equals launch seeding or module 94 startup dial membership.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "seededInBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every launch-seeded identity is a bootstrap union member.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "startupDialInBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (startupDialMember role swarm authority identity) on ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every module 94 startup dial member is a bootstrap union member.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "trustedConfiguredInBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (trustedConfigured role swarm authority identity) on ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every configured trusted identity of every primary and worker swarm is a bootstrap union member.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "bootstrapConfiguredInBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (bootstrapConfigured role swarm authority identity) on ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every configured bootstrap identity is a bootstrap union member.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "configuredIdentityInLaunchPeers",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (launchPeerMember role swarm authority hubs identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every committee identity of the selected authoritative union is a launch peer for every hub report list, so no hub discovery is required.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "bootstrapUnionInLaunchPeers",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (bootstrapUnionMember role swarm authority identity) on ->\n    Equal Flag (launchPeerMember role swarm authority hubs identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every bootstrap union member is a launch peer for every hub report list.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "discoveredInLaunchPeers",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchHubsDiscover hubs identity) on ->\n    Equal Flag (launchPeerMember role swarm authority hubs identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "An identity discovered by the hub reports is a launch peer, so discovery only adds peers.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "upHubDiscoversListed",
+          "statement": "(identity : Count) -> (slots : Slots) ->\n    Equal Flag (launchHubDiscovers identity (launchHubReport launchHubUp slots)) (policyMemberAt identity slots)",
+          "scope_kind": "general_transition",
+          "establishes": "An up hub discovers exactly the identities in its slots.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "downHubDiscoversNothing",
+          "statement": "(identity : Count) -> (slots : Slots) ->\n    Equal Flag (launchHubDiscovers identity (launchHubReport launchHubDown slots)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A down hub discovers no identity for every slot list.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "noHubsDiscoverNothing",
+          "statement": "(identity : Count) -> Equal Flag (launchHubsDiscover noLaunchHubReports identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "An empty hub report list discovers no identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "silencedHubDiscoversNothing",
+          "statement": "(report : LaunchHubReport) -> (identity : Count) ->\n    Equal Flag (launchHubDiscovers identity (silenceLaunchHub report)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A silenced hub report discovers no identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "silencedHubsDiscoverNothing",
+          "statement": "(hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchHubsDiscover (silenceLaunchHubs hubs) identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "A silenced hub report list of any length discovers no identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "silencedHubsAllDown",
+          "statement": "(hubs : LaunchHubReports) -> Equal Flag (launchHubsAllDown (silenceLaunchHubs hubs)) on",
+          "scope_kind": "general_transition",
+          "establishes": "A silenced hub report list of any length has every hub down.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartAuthorityExact",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->\n    Equal AuthoritativeUnionPolicy (launchAuthority (coldStart authority hubs)) authority",
+          "scope_kind": "general_transition",
+          "establishes": "Cold start keeps the authoritative union unchanged for every hub report list.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartHubsAllDown",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->\n    Equal Flag (launchHubsAllDown (launchHubs (coldStart authority hubs))) on",
+          "scope_kind": "general_transition",
+          "establishes": "At cold start every configured hub is down.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartHubsDiscoverNothing",
+          "statement": "(authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchHubsDiscover (launchHubs (coldStart authority hubs)) identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "At cold start the hubs discover no identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartPeersFromBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchPeerAt role swarm identity (coldStart authority hubs)) (bootstrapUnionMember role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "At cold start, launch peer membership equals bootstrap union membership for every role, swarm, authority, hub report list and identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "directCommitteeEligibleExact",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (directCommitteeEligible role swarm authority authenticated identity)\n      (both (committeeUnionMember identity (authoritativeUnionAt role swarm authority))\n        (trustedDialGate role swarm identity authority authenticated))",
+          "scope_kind": "general_transition",
+          "establishes": "Direct committee eligibility equals launch seeding behind the M023 outbound dial gate of the selected authority.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "committeeMemberDialApproved",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) on ->\n    Equal Flag (trustedDialGate role swarm identity authority on) on",
+          "scope_kind": "general_transition",
+          "establishes": "An authenticated committee member of the selected authoritative union passes the M023 outbound dial gate.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "configuredIdentityEligible",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (directCommitteeEligible role swarm authority on identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "An authenticated committee identity of the selected authoritative union is directly eligible.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unauthenticatedIdentityNotEligible",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (directCommitteeEligible role swarm authority off identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unauthenticated identity is never directly eligible, for every role, swarm and authority.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unconfiguredIdentityNotEligible",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) off ->\n    Equal Flag (directCommitteeEligible role swarm authority authenticated identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "An identity outside the selected authoritative union is never directly eligible.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartEligibilityExact",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->\n    Equal Flag (launchEligible role swarm authenticated identity (coldStart authority hubs))\n      (directCommitteeEligible role swarm authority authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "Direct eligibility in the cold-start state equals direct eligibility under its authority, so the silenced hubs play no part.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartConfiguredIdentityEligible",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (launchEligible role swarm on identity (coldStart authority hubs)) on",
+          "scope_kind": "general_transition",
+          "establishes": "An authenticated committee identity is directly eligible at cold start with every hub unavailable.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubSnapshotKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (state : LaunchState) -> (reports : LaunchHubReports) ->\n    Equal Flag (launchEligible role swarm authenticated identity (applyLaunchEvent (hubStep (launchHubSnapshot reports)) state))\n      (launchEligible role swarm authenticated identity state)",
+          "scope_kind": "general_transition",
+          "establishes": "A hub snapshot event keeps direct eligibility unchanged for every state.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubSilenceKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (state : LaunchState) ->\n    Equal Flag (launchEligible role swarm authenticated identity (applyLaunchEvent (hubStep launchHubSilence) state))\n      (launchEligible role swarm authenticated identity state)",
+          "scope_kind": "general_transition",
+          "establishes": "A hub silence event keeps direct eligibility unchanged for every state.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "launchTraceAuthority",
+          "statement": "(events : LaunchEvents) -> (state : LaunchState) ->\n    Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents events state))\n      (runAuthoritativeUnionChanges (launchConfigurationChanges events) (launchAuthority state))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite launch event trace, the authority equals the original authority with only the configuration changes of that trace applied.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceHasNoConfigurationChanges",
+          "statement": "(events : LaunchHubEvents) ->\n    Equal AuthoritativeUnionChanges (launchConfigurationChanges (lowerLaunchHubEvents events)) noAuthoritativeUnionChanges",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A lowered hub trace of any length contains no configuration change.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceKeepsAuthority",
+          "statement": "(events : LaunchHubEvents) -> (state : LaunchState) ->\n    Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) (launchAuthority state)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Any finite trace of hub snapshot and silence events keeps the authority unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (events : LaunchHubEvents) -> (state : LaunchState) ->\n    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents (lowerLaunchHubEvents events) state))\n      (launchEligible role swarm authenticated identity state)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite hub trace, direct eligibility is unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceKeepsSeedTarget",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (seeds : Count -> SeedRecord) ->\n    (identity : Count) -> (events : LaunchHubEvents) -> (state : LaunchState) ->\n    Equal SeedTarget\n      (launchSeedTarget role swarm (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) seeds identity)\n      (launchSeedTarget role swarm (launchAuthority state) seeds identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite hub trace, the seed target of every identity is unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceKeepsBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (events : LaunchHubEvents) -> (state : LaunchState) ->\n    Equal Flag (bootstrapUnionMember role swarm (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) identity)\n      (bootstrapUnionMember role swarm (launchAuthority state) identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite hub trace, bootstrap union membership is unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartHubTraceKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->\n    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents (lowerLaunchHubEvents events) (coldStart authority hubs)))\n      (directCommitteeEligible role swarm authority authenticated identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "From cold start, after any finite hub trace, direct eligibility equals direct eligibility under the authority.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "coldStartConfiguredIdentityStaysEligible",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->\n    Equal Flag (launchSeeded role swarm authority identity) on ->\n    Equal Flag (launchEligible role swarm on identity (runLaunchEvents (lowerLaunchHubEvents events) (coldStart authority hubs))) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "An authenticated committee identity stays directly eligible from cold start after any finite hub trace.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "configurationTraceEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->\n    (identity : Count) -> (events : LaunchEvents) -> (state : LaunchState) ->\n    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents events state))\n      (directCommitteeEligible role swarm\n        (runAuthoritativeUnionChanges (launchConfigurationChanges events) (launchAuthority state)) authenticated identity)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "After any finite launch trace, direct eligibility equals direct eligibility under the authority that the trace's configuration changes produce.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unverifiedUpdateKeepsSeeding",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->\n    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    Equal Flag (launchSeeded role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority) identity)\n      (launchSeeded role swarm authority identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified roster update keeps launch seeding for every role, swarm and identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "unverifiedUpdateKeepsEligibility",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->\n    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->\n    Equal Flag\n      (directCommitteeEligible role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority)\n        authenticated identity)\n      (directCommitteeEligible role swarm authority authenticated identity)",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified roster update keeps direct eligibility for every role, swarm and identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "silenceStepHubsAllDown",
+          "statement": "(hubs : LaunchHubReports) ->\n    Equal Flag (launchHubsAllDown (applyLaunchHubEvent launchHubSilence hubs)) on",
+          "scope_kind": "general_transition",
+          "establishes": "A silence hub event leaves every hub down from every hub report list.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "silenceStepDiscoversNothing",
+          "statement": "(hubs : LaunchHubReports) -> (identity : Count) ->\n    Equal Flag (launchHubsDiscover (applyLaunchHubEvent launchHubSilence hubs) identity) off",
+          "scope_kind": "general_transition",
+          "establishes": "After a silence hub event the hubs discover no identity.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "snapshotStepReplacesHubs",
+          "statement": "(reports : LaunchHubReports) -> (hubs : LaunchHubReports) ->\n    Equal LaunchHubReports (applyLaunchHubEvent (launchHubSnapshot reports) hubs) reports",
+          "scope_kind": "general_transition",
+          "establishes": "A snapshot hub event replaces the hub report list with the snapshot.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubStepAppliesHubEvent",
+          "statement": "(event : LaunchHubEvent) -> (state : LaunchState) ->\n    Equal LaunchHubReports (launchHubs (applyLaunchEvent (hubStep event) state)) (applyLaunchHubEvent event (launchHubs state))",
+          "scope_kind": "general_transition",
+          "establishes": "A hub step applies its hub event to the hub reports of the state.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubStepKeepsAuthority",
+          "statement": "(event : LaunchHubEvent) -> (state : LaunchState) ->\n    Equal AuthoritativeUnionPolicy (launchAuthority (applyLaunchEvent (hubStep event) state)) (launchAuthority state)",
+          "scope_kind": "general_transition",
+          "establishes": "A hub step keeps the authority of the state unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "configurationStepKeepsHubs",
+          "statement": "(change : AuthoritativeUnionChange) -> (state : LaunchState) ->\n    Equal LaunchHubReports (launchHubs (applyLaunchEvent (configurationStep change) state)) (launchHubs state)",
+          "scope_kind": "general_transition",
+          "establishes": "A configuration step keeps the hub reports of the state unchanged.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubSilenceStepPeersFromBootstrapUnion",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (identity : Count) -> (state : LaunchState) ->\n    Equal Flag (launchPeerAt role swarm identity (applyLaunchEvent (hubStep launchHubSilence) state))\n      (bootstrapUnionMember role swarm (launchAuthority state) identity)",
+          "scope_kind": "general_transition",
+          "establishes": "After a silence hub step from any state, launch peer membership equals bootstrap union membership.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/95-launch-seeding-bootstrap-union.mech",
+          "name": "hubTraceRunsEveryStep",
+          "statement": "(events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) ->\n    (hubs : LaunchHubReports) ->\n    Equal LaunchHubReports (launchHubs (runLaunchEvents (lowerLaunchHubEvents events) (launchState authority hubs)))\n      (runLaunchHubEvents events hubs)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A hub trace of any length applies every hub event in order from every authority and hub report list.",
+          "premises": [
+            "Each launch seeding and eligibility decision reads the current immutable authoritative union at its atomic model decision point. Runtime identity mapping and authority capture remain E029.",
+            "Seed addresses and keys are a supplied seed table parameter keyed by committee identity. The sources give no seed count, address format or key format. E029 owns the runtime mapping from configured identities to transport addresses and keys, and M031 owns equality of the seeded configuration with production identities.",
+            "Hub reports are supplied runtime inputs. A hub is up or down and lists the identities it would discover; the model runs no discovery protocol. Hub deployment and population remain E038 and E030, and observer discovery through hubs remains M027 and M029.",
+            "Authentication is the independent runtime verification judgment of each dial. Roster verification flags and profile events are faithful classifications of authorized operator configuration. E029 owns the runtime refinement of these judgments and events; epoch reseeding remains M032 and configuration reload remains M042.",
+            "Any Equal premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic seeding, bootstrap union and hub report model with a supplied seed table. No runtime refinement, discovery protocol, transport liveness, epoch reseeding, configuration reload, live-connection sweep or deployment qualification is established."
+        }
+      ],
+      "controls": [
+        {
+          "name": "seed_target_on_off_swap",
+          "sha256": "39c59fbe95e06b7248c9cdfc617fd54f5e408de239bdebd5693018c6d619a306"
+        },
+        {
+          "name": "seed_target_always_empty",
+          "sha256": "4894b5ccee699a9cfa2c29bc371ddd8f1794b0a9be9d696c842d8e2ded328de3"
+        },
+        {
+          "name": "seed_address_ignores_record",
+          "sha256": "ba7eb4c702a15950bba3b37c6efc701c8b6d75eb1e3cf6f278755bc4337eaa6d"
+        },
+        {
+          "name": "seed_address_reads_key",
+          "sha256": "1ee1ba22ef4ebcb045ebd13992fd5270e6cab1931f4656a7515c1c64300311ab"
+        },
+        {
+          "name": "seed_key_ignores_record",
+          "sha256": "16249eb9245b473005df76a51ed8e0a2dc3e665ad5ccef39c756e8baf1bf5dcf"
+        },
+        {
+          "name": "seed_key_reads_address",
+          "sha256": "f7cc23de304f2f7b7a5d7788acb1bec4962b390048ac6bfc6b071c7008f0ab86"
+        },
+        {
+          "name": "launch_seeded_reads_trusted_slots",
+          "sha256": "007fbdb232ae5d4fa1e988847674bb1085c04391c3071703f54bfe6243942022"
+        },
+        {
+          "name": "launch_seeded_always_off",
+          "sha256": "b6aa683a87f867f8fdc4311f6717793db7b620e4c2f36d45044e1159afdeee4f"
+        },
+        {
+          "name": "launch_seeded_always_on",
+          "sha256": "e613ac5a95dc4ce5717041df2c929379ddc9db1063b8768d7f19041ff0c43914"
+        },
+        {
+          "name": "launch_union_drops_startup_dial",
+          "sha256": "7f705ed78614da4d78ecd89a1688403711cc20f24f3893a142eeacad61d91491"
+        },
+        {
+          "name": "launch_union_drops_seeding",
+          "sha256": "00caa900dd3bfa60b5f5201a084cc239482f5fa76c3c1acd4dc34d10b91fc6e3"
+        },
+        {
+          "name": "launch_union_intersects_sources",
+          "sha256": "3334febeed23286e355fa34744d37231eb475891899f804a7371563921cfd598"
+        },
+        {
+          "name": "launch_union_always_off",
+          "sha256": "52e37ac32444cfd75274eba845ec4635e1e394758f3a04bad71c223fdc2f4e0c"
+        },
+        {
+          "name": "launch_peers_drop_bootstrap_union",
+          "sha256": "96e95cb7ff1e7eaac5678d4b6835cb9d122b8becf55063e14fe8a77e990cd2ac"
+        },
+        {
+          "name": "launch_peers_drop_hubs",
+          "sha256": "5c232593bb4cd9377a1e6bfa96a58d3d8e39af5b89eaa5e1f22083e1178590ea"
+        },
+        {
+          "name": "launch_peers_intersect_sources",
+          "sha256": "b0dcab508988d962bbc7fde34a1992e731898ed7dafe82063eb304f047c1aba4"
+        },
+        {
+          "name": "hub_up_flag_inverted",
+          "sha256": "3b2de06fe32441f58c64c7b79307dd7530e8f76109aeb425f7b6f41b8ccc085c"
+        },
+        {
+          "name": "hub_up_flag_always_on",
+          "sha256": "ba86af2dd762eb1f546d433bf8b0a5776849b7987ce8f1181f6744a16f02742e"
+        },
+        {
+          "name": "hub_discovers_ignores_state",
+          "sha256": "077fa56b3e4afd9d81c09c0b2fa338b1f5ee004b730483560716951891f74ea0"
+        },
+        {
+          "name": "hub_discovers_ignores_slots",
+          "sha256": "55d3c41b479e115825d36ec85cc7bd547ee893ec3f9a7e154965ff23b7be9064"
+        },
+        {
+          "name": "hub_discover_intersects_reports",
+          "sha256": "f687b422f461f6058956751491d1844d98b941ca1ac49ec8f8fb5b4fd9a677d9"
+        },
+        {
+          "name": "hub_discover_always_off",
+          "sha256": "d0d78fc4b85c7289878d24b6ddb06736eb5b6f56637daac475f86c320e2c9e18"
+        },
+        {
+          "name": "hub_all_down_either",
+          "sha256": "855d02d8bd368b4b76976a186e8ce4e4626d159711dd56e7058fbf9b6f3a02e9"
+        },
+        {
+          "name": "hub_all_down_nil_off",
+          "sha256": "0378b8776b329ea947192baa0eda306f5be6a80b2fd5881afe20e3c946729e22"
+        },
+        {
+          "name": "hub_silence_keeps_state",
+          "sha256": "8d73b8de49929447eb42f3f3cc1bbe1ca27eca15f5610e8033a5d88088faa7f0"
+        },
+        {
+          "name": "launch_cold_start_keeps_hubs",
+          "sha256": "bee2f3adf2ebcb41128a7c0e455f0db4e1a4d831417665819976a4b7a2221676"
+        },
+        {
+          "name": "launch_eligible_either",
+          "sha256": "629a78905a869cc613d3dff442e1258222afca703260364046d7cb3aa682f4f1"
+        },
+        {
+          "name": "launch_eligible_drops_gate",
+          "sha256": "b28e2eb9a4a63b2341d3c4ba416f47b99ac9bf7a7ee51546d9c896324667eed2"
+        },
+        {
+          "name": "launch_eligible_drops_seeding",
+          "sha256": "8d9bb4f697bdd2679d35f31d64582f32f53d2f39cb63ed10004d66dc6ed80e9b"
+        },
+        {
+          "name": "launch_eligible_ignores_authentication",
+          "sha256": "36fdb4c94d5a4d01bf1e834e8c4d0722cfe8e87dbaec1bd2e1e2a841ffaea0c4"
+        },
+        {
+          "name": "launch_eligible_always_on",
+          "sha256": "93c348eb58dd10898b291c321f7570389a643078f2d90b4808b1d53402091717"
+        },
+        {
+          "name": "launch_configuration_step_ignores_change",
+          "sha256": "5645563557747ed317f53337d8f30668de82cad9ab8ded68fcdae940eecb40ed"
+        },
+        {
+          "name": "launch_configuration_changes_drop_change",
+          "sha256": "3f165b9b854ad49808ff276632f927599ae8f166b4c9c9904577b812214823e3"
+        },
+        {
+          "name": "launch_lower_hub_events_always_empty",
+          "sha256": "fea3f5b092063869e96a17821bc9243e36c4e2b1d708182030b019471d7edfab"
+        },
+        {
+          "name": "launch_run_events_drops_state",
+          "sha256": "4e4661f466724bd0d771fd8dadd18ac925580624233753d9f6687d511678352c"
+        },
+        {
+          "name": "launch_run_events_applies_head_only",
+          "sha256": "7198d483e7aa8dc2f10355ba2b48532e485533e1ee7c00016c3632b5136079b2"
+        },
+        {
+          "name": "launch_run_events_ignores_trace",
+          "sha256": "051c32a1ee8043b610cca651a7092afa3e546686f3b107da627f18586b2047c2"
+        },
+        {
+          "name": "hub_silence_event_keeps_hubs",
+          "sha256": "293704004febaf161a771b0fe834d17eb2c3782b34ebeb36e817712cbeb141ce"
+        },
+        {
+          "name": "hub_snapshot_event_ignored",
+          "sha256": "aa97a710bb0d86409127c8cd6904cc1eba0a711b442fba5f2bfa028b9c800789"
+        },
+        {
+          "name": "launch_hub_step_ignores_event",
+          "sha256": "cfba9d9a843ff14d7a78578a0fb53572bcc0b8600e7112049278b0d746779e2e"
+        },
+        {
+          "name": "launch_configuration_step_silences_hubs",
+          "sha256": "6ef70a302e01196d391ea8eed63ecdfe364b2e653cc16c441e5f868152019412"
+        },
+        {
+          "name": "launch_lower_hub_events_drops_head",
+          "sha256": "75dd1c9ff6e712f3e89345926c3ae3548a78a793654562804e7e392656e5a86f"
+        },
+        {
+          "name": "launch_hub_run_drops_step",
+          "sha256": "82532395911929952899b121c707ded61cf7d62297b14ca992896138c322267f"
+        },
+        {
+          "name": "launch_hub_run_empties_hubs",
+          "sha256": "622fc9a6078a2809427623d29c0122412f39eca33129f030d2dbaa52e6d6d9fb"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R04: Model primary/worker seed addresses and keys plus the bootstrap union, and prove every configured committee identity is supplied without hub discovery."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchBothOnLeft",
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchBothOffLeft",
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchEitherOffRight",
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchSeededExactUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#seedTargetOfProvided",
+            "proofs/95-launch-seeding-bootstrap-union.mech#seededIdentityHasTarget",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unseededIdentityHasNoTarget",
+            "proofs/95-launch-seeding-bootstrap-union.mech#seededAddressFromInputs",
+            "proofs/95-launch-seeding-bootstrap-union.mech#seededKeyFromInputs",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unseededAddressFallsBack",
+            "proofs/95-launch-seeding-bootstrap-union.mech#bootstrapUnionExact",
+            "proofs/95-launch-seeding-bootstrap-union.mech#seededInBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#startupDialInBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#trustedConfiguredInBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#bootstrapConfiguredInBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configuredIdentityInLaunchPeers",
+            "proofs/95-launch-seeding-bootstrap-union.mech#bootstrapUnionInLaunchPeers",
+            "proofs/95-launch-seeding-bootstrap-union.mech#discoveredInLaunchPeers",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartPeersFromBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#committeeMemberDialApproved",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configuredIdentityEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartConfiguredIdentityEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsSeedTarget",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configurationTraceEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unverifiedUpdateKeepsSeeding",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubSilenceStepPeersFromBootstrapUnion"
+          ],
+          "rationale": "Module 95 models primary and worker seed addresses and keys as a seed table over committee identities, proves launch seeding equals committee union membership for every role, swarm and authority, derives the provided seed target with its address and key for every seeded identity, and proves the bootstrap union contains every launch-seeded, configured trusted and configured bootstrap identity. Every configured committee identity is a launch peer for every hub report list, including an empty, down or silenced one, so no hub discovery is required. Positive seeding, target and membership witnesses exclude always-empty models.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
-          "witnesses": [],
-          "rationale": "A flat policy member set and record resolution do not model launch seeding or hub-independent bootstrap. No existing statement witnesses this criterion at the frozen scope.",
-          "remaining": "R04: Prove direct committee eligibility persists at cold start with every configured hub unavailable."
+          "status": "witnessed",
+          "witnesses": [
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchBothFirstOff",
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchEitherBothOff",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configuredIdentityInLaunchPeers",
+            "proofs/95-launch-seeding-bootstrap-union.mech#bootstrapUnionInLaunchPeers",
+            "proofs/95-launch-seeding-bootstrap-union.mech#upHubDiscoversListed",
+            "proofs/95-launch-seeding-bootstrap-union.mech#downHubDiscoversNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#noHubsDiscoverNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#silencedHubDiscoversNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#silencedHubsDiscoverNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#silencedHubsAllDown",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartAuthorityExact",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartHubsAllDown",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartHubsDiscoverNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartPeersFromBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#directCommitteeEligibleExact",
+            "proofs/95-launch-seeding-bootstrap-union.mech#committeeMemberDialApproved",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configuredIdentityEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unauthenticatedIdentityNotEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unconfiguredIdentityNotEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartEligibilityExact",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartConfiguredIdentityEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubSnapshotKeepsEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubSilenceKeepsEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#launchTraceAuthority",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceHasNoConfigurationChanges",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsAuthority",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsSeedTarget",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceKeepsBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartHubTraceKeepsEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#coldStartConfiguredIdentityStaysEligible",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configurationTraceEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#unverifiedUpdateKeepsEligibility",
+            "proofs/95-launch-seeding-bootstrap-union.mech#silenceStepHubsAllDown",
+            "proofs/95-launch-seeding-bootstrap-union.mech#silenceStepDiscoversNothing",
+            "proofs/95-launch-seeding-bootstrap-union.mech#snapshotStepReplacesHubs",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubStepAppliesHubEvent",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubStepKeepsAuthority",
+            "proofs/95-launch-seeding-bootstrap-union.mech#configurationStepKeepsHubs",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubSilenceStepPeersFromBootstrapUnion",
+            "proofs/95-launch-seeding-bootstrap-union.mech#hubTraceRunsEveryStep"
+          ],
+          "rationale": "Direct committee eligibility is launch seeding behind the M023 outbound gate. Cold start silences every configured hub and keeps the authority; at cold start every hub is down, discovers nothing and the launch peers are exactly the bootstrap union. An authenticated configured identity is eligible at cold start, stays eligible after any finite hub snapshot and silence trace from cold start, and after any finite launch trace is eligible exactly under the authority that trace produces. Unauthenticated and unconfigured identities have their own refusal witnesses. The witnesses quantify over every role, swarm, identity, authority, hub report list, launch state and finite event trace.",
+          "remaining": ""
         }
       ]
     },

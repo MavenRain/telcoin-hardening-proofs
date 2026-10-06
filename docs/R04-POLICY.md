@@ -1,10 +1,10 @@
 # R04 policy, source churn and recovery
 
-R04 turn 4 closes M025 in the sealed source-obligation ledger. Module
-[94-trusted-startup-redial.mech](../proofs/94-trusted-startup-redial.mech)
-adds 51 proof declarations and 52 semantic weakening controls. M022, M023 and M024
-were closed in turns 1 to 3. R04 remains active: its other 21 model obligations retain
-their recorded gaps. The repository has used 29 of its 50 execution turns.
+R04 turn 5 closes M026 in the sealed source-obligation ledger. Module
+[95-launch-seeding-bootstrap-union.mech](../proofs/95-launch-seeding-bootstrap-union.mech)
+adds 58 proof declarations and 44 semantic weakening controls. M022 to M025
+were closed in turns 1 to 4. R04 remains active: its other 20 model obligations retain
+their recorded gaps. The repository has used 30 of its 50 execution turns.
 This turn does not change
 the sealed scope, packet allocations or external-obligation boundary. R02 and
 R03 used 12 turns more than planned. This is two more than the ten-turn
@@ -275,6 +275,62 @@ and [checked receipt](../evidence/r04-trusted-startup-redial-check.json) record
 77 modules, 1611 proof declarations, no disclosed axioms and 1512 rejected
 negative checks. Disposition, scope and witness-audit regressions also pass.
 
-The census is now 15 covered and 68 partial model obligations. R04 remains active
-at turn 4, with 29 of the overall 50 execution turns used. The next R04 work is
-M026 launch seeding and the bootstrap union with every hub unavailable.
+The turn-4 census was 15 covered and 68 partial model obligations. Turn 5
+closes M026 below.
+
+## Turn 5: launch seeding and the bootstrap union
+
+Module 95 closes both M026 criteria with 58 audited witnesses and 44 semantic
+weakening controls. Every committee identity of the selected authoritative
+union of each role and primary/worker swarm is launch seeded, and a seed table
+supplies its address and key. The bootstrap union is launch seeding or the
+turn-4 startup dial set, so every configured trusted and bootstrap identity is
+a member. Every bootstrap union member is a launch peer for every hub report
+list, so hub discovery is not a prerequisite for committee connectivity. Cold
+start silences every configured hub and keeps the authority: every hub is down,
+discovers nothing, and the launch peers are exactly the bootstrap union. Direct
+committee eligibility is launch seeding behind the M023 outbound gate. An
+authenticated configured identity is eligible at cold start with every hub
+unavailable and stays eligible after any finite hub snapshot and silence trace.
+A launch trace changes eligibility only through the authority its configuration
+changes produce. Unauthenticated and unconfigured identities are refused.
+
+The seed table and the hub reports are supplied parameters. The model runs no
+discovery protocol and proves no transport liveness. E029 retains runtime
+identity mapping, address and key resolution and authentication. M031 retains
+equality of the seeded configuration with production identities, hub
+deployment and population remain E038 and E030, observer discovery through
+hubs remains M027 and M029, epoch reseeding remains M032 and configuration
+reload remains M042. All 43 external obligations remain open.
+
+The source audit covers the A4 launch seeding anchor U1167, the A9 merged
+bootstrap override and dial confirmation U1172, the seeding of every launch
+validator and its hubs with primary and all worker identities plus the
+ten-validator cold start with every hub unavailable in U0895, the direct
+connectivity and cold startup acceptance row U1350, the closed validator
+profile in U0889 and the identity provisioning step in U0983. Their
+trusted-peer redial part is M025 (turn 4). A10 epoch reseeding in U1173
+remains M032, the five-hub population in U0897 remains E038 and E030, the
+production identity equality in U0903 remains M031 and observer discovery in
+U0901 remains M027. The sources give no seed count, timeout or hub-discovery
+timeout, so the seed table and the hub population are model parameters. Both
+M026 criteria are witnessed by 58 new audited statements: 48 general
+transitions and 10 arbitrary-trace results.
+
+The 44 new semantic controls weaken seed target selection and its address and
+key fallback, launch seeding, the bootstrap union and launch peer unions, hub
+up/down flags, hub discovery and the all-down test, hub silencing, cold start,
+the eligibility conjunction and its gate, hub and configuration steps,
+configuration change lowering, hub event lowering and trace execution. Every
+one must fail with a type mismatch; parser failures and crashes do not count.
+The full qualification guard and
+[checked receipt](../evidence/r04-launch-seeding-bootstrap-union-check.json)
+record 78 modules, 1669 proof declarations, no disclosed axioms and 1556
+rejected negative checks. Disposition, scope and witness-audit regressions also
+pass.
+
+The census is now 16 covered and 67 partial model obligations. R04 remains
+active at turn 5 and has spent its five planned turns, with 30 of the overall
+50 execution turns used. Its 20 remaining model obligations, among them M039
+recovery threshold, M040 live sweeps and M042 reload and removal, retain their
+recorded gaps.

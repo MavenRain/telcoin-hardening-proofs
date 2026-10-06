@@ -1364,8 +1364,26 @@ primary/worker selection, the authentication gate, presence and configuration
 events, trace execution, attempt and backoff caps, episode reset and
 exhaustion, timer and transport branches, pending-timer state and the work cap.
 
-Both M025 criteria are witnessed. The current audit covers 15 of 83 model
-obligations; 68 retain gaps. R04 is active at turn 4, using execution turn 29
-of 50. The turn-3 receipt is now historical. The
+Both M025 criteria are witnessed. At turn 4 the audit covered 15 of 83 model
+obligations; 68 retained gaps. R04 was active at turn 4, using execution turn 29
+of 50. The turn-3 receipt is historical. The
+[turn record](../docs/R04-POLICY.md) states the model premises and remaining
+obligations. All 43 external obligations and full qualification remain open.
+
+## R04 turn 5: launch seeding and the bootstrap union
+
+[r04-launch-seeding-bootstrap-union-check.json](r04-launch-seeding-bootstrap-union-check.json)
+records the full gate for module 95: 78 modules, 1669 explicit equality/order
+proofs, empty axiom disclosure and 1556 rejected negative checks. The 44 new
+`seed_*`, `launch_*` and `hub_*` controls require semantic type rejection. They
+cover seed target selection and its address and key fallback, launch seeding,
+the bootstrap union and launch peer unions, hub up/down flags, hub discovery
+and the all-down test, hub silencing, cold start, the eligibility conjunction
+and its gate, hub and configuration steps, configuration change lowering, hub
+event lowering and trace execution.
+
+Both M026 criteria are witnessed. The current audit covers 16 of 83 model
+obligations; 67 retain gaps. R04 is active at turn 5, using execution turn 30
+of 50. The turn-4 receipt is now historical. The
 [turn record](../docs/R04-POLICY.md) states the model premises and remaining
 obligations. All 43 external obligations and full qualification remain open.

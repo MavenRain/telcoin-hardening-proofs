@@ -315,10 +315,10 @@ Each model decision atomically receives its current immutable authority.
 Authentication, source verification and operator authorization are supplied
 judgments; natural-number generations cannot wrap or roll back in this model.
 Runtime authority capture, publication and generation discipline remain E029.
-Runtime receipt provenance also remains E029. Modules 93 and 94 supply
-independent bounded privileges and trusted startup/redial below. Live-connection
-sweeps, fault isolation, resource attribution and reload/removal retain their
-separate model obligations.
+Runtime receipt provenance also remains E029. Modules 93 to 95 supply
+independent bounded privileges, trusted startup/redial and launch seeding below.
+Live-connection sweeps, fault isolation, resource attribution and reload/removal
+retain their separate model obligations.
 
 [93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
 closes M024 with three independent finite recipient lists and allocation limits.
@@ -370,6 +370,33 @@ The work helper caps a supplied demand, and presence transitions do not charge i
 E029 retains authentication, identity mapping, authority capture, budget
 selection/versioning and runtime work accounting. E010 retains wall-clock
 reconnect bounds and M038 retains backoff schedule conformance.
+
+[95-launch-seeding-bootstrap-union.mech](../proofs/95-launch-seeding-bootstrap-union.mech)
+closes M026 with a seed table over committee identities. Launch seeding of a
+role and primary/worker swarm equals membership in its selected authoritative
+union, and a seeded identity has a provided seed target whose address and key
+come from the table. The bootstrap union is launch seeding or the module 94
+startup dial set, so every configured trusted and bootstrap identity is a
+member.
+
+Hubs are up or down reports with the identities they would discover. Launch
+peers are the bootstrap union plus hub discovery, and every bootstrap union
+member is a launch peer for every hub report list. A down, silenced or absent
+hub discovers nothing. Cold start silences every hub and keeps the authority,
+so the cold-start launch peers are exactly the bootstrap union. Direct
+committee eligibility is launch seeding behind the M023 outbound gate: an
+authenticated configured identity is eligible at cold start with every hub
+unavailable, and unauthenticated or unconfigured identities are refused.
+
+Launch events are hub snapshots, hub silences and module 91 to 93
+configuration changes. Hub events keep the authority, seeding, bootstrap union
+and eligibility after any finite trace, also from cold start, and a launch
+trace changes eligibility only through the authority its configuration changes
+produce. The seed table and the hub reports are supplied parameters; the model
+runs no discovery protocol. E029 retains identity mapping, address and key
+resolution and authentication. M031 retains production identity equality, E038
+and E030 retain hub deployment, M027 and M029 retain observer discovery and
+M032 retains epoch reseeding.
 
 ## Policy and resource interleavings
 

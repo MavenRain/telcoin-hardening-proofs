@@ -803,3 +803,22 @@ capture and budget selection/versioning. E010 retains wall-clock reconnect
 bounds and M038 retains backoff schedule conformance. M022 through M025 are
 covered; live sweeps and the other R04 gaps, together with all 43 external
 obligations, remain open.
+
+## R04 turn 5 launch seeding and bootstrap union boundary
+
+Module 95 closes M026's launch seeding, bootstrap union and cold-start
+eligibility. The seed table and the hub reports are supplied parameters: the
+model does not resolve addresses or keys, run a discovery protocol or prove
+that a seeded dial is delivered. A hub report lists the identities a hub would
+discover; hub deployment, population and liveness are not proved. Cold start
+is the state with every hub silenced, not an elapsed-time or restart model.
+
+Eligibility is launch seeding behind the M023 outbound gate under a supplied
+authentication judgment. Hub traces keep eligibility, configuration traces
+change it only through the authority they produce, and a verified removal ends
+it. E029 retains identity mapping, address and key resolution, authentication
+and authority capture. M031 retains production identity equality, E038 and
+E030 retain hub deployment, M027 and M029 retain observer discovery, M032
+retains epoch reseeding and M042 retains reload and removal. M022 through M026
+are covered; live sweeps and the other R04 gaps, together with all 43 external
+obligations, remain open.
