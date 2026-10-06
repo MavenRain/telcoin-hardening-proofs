@@ -1,0 +1,835 @@
+-- M042: trusted and bootstrap additions and removals reach every peer policy decision point
+-- through one installed view, every worker identity is restamped consistently on each reload,
+-- and reload success, reload failure and rollback preserve verified privileges and bounded
+-- allocations across configuration revisions.
+-- Model: an installed reload view carries a revision and the trusted and bootstrap slot sets.
+-- A reload delta adds or removes one peer in one set. A successful reload folds its deltas over
+-- the installed view, advances the revision, keeps the old view as the rollback target and
+-- stamps every worker identity with the new revision. A failed reload keeps the node unchanged,
+-- so the installed view stays the fallback. Rollback reinstalls the previous view and restamps
+-- every worker with its revision. Inbound admission and the outbound established check read the
+-- trusted set; outbound dial selection reads the trusted and bootstrap union as in module 94.
+-- A verified privilege needs authentication and current trusted membership. The allocation
+-- bound and charge are node terms that no reload event rewrites. Peer identities, revisions and
+-- budgets are model parameters.
+
+def rec reloadSameIdentity : Count -> Count -> Flag :=
+  fun (first : Count) (second : Count) =>
+    case first as self in Count return Flag with
+    | zero => (case second as other in Count return Flag with
+      | zero => on
+      | next rest => off)
+    | next remaining => (case second as other in Count return Flag with
+      | zero => off
+      | next rest => reloadSameIdentity remaining rest)
+
+def reloadPick : Flag -> Flag -> Flag -> Flag :=
+  fun (choose : Flag) (first : Flag) (second : Flag) =>
+    case choose as self in Flag return Flag with
+    | off => second
+    | on => first
+
+def rec reloadSetSlot : Count -> Flag -> Slots -> Slots :=
+  fun (index : Count) (value : Flag) (members : Slots) =>
+    case index as self in Count return Slots with
+    | zero => (case members as roster in Slots return Slots with
+      | noSlots => slot value noSlots
+      | slot allowed rest => slot value rest)
+    | next remaining => (case members as roster in Slots return Slots with
+      | noSlots => slot off (reloadSetSlot remaining value noSlots)
+      | slot allowed rest => slot allowed (reloadSetSlot remaining value rest))
+
+def reloadMemberAtEmpty : (index : Count) -> Equal Flag (policyMemberAt index noSlots) off :=
+  fun (index : Count) =>
+    case index as self in Count return Equal Flag (policyMemberAt self noSlots) off with
+    | zero => same
+    | next remaining => same
+
+-- Setting a slot makes its own index read the new value.
+def rec reloadSetSlotReads : (index : Count) -> (value : Flag) -> (members : Slots) ->
+    Equal Flag (policyMemberAt index (reloadSetSlot index value members)) value :=
+  fun (index : Count) (value : Flag) =>
+    case index as self in Count return
+        (members : Slots) -> Equal Flag (policyMemberAt self (reloadSetSlot self value members)) value with
+    | zero => fun (members : Slots) =>
+      (case members as roster in Slots return Equal Flag (policyMemberAt zero (reloadSetSlot zero value roster)) value with
+      | noSlots => same
+      | slot allowed rest => same)
+    | next remaining => fun (members : Slots) =>
+      (case members as roster in Slots return
+          Equal Flag (policyMemberAt (next remaining) (reloadSetSlot (next remaining) value roster)) value with
+      | noSlots => reloadSetSlotReads remaining value noSlots
+      | slot allowed rest => reloadSetSlotReads remaining value rest)
+
+-- Every index reads the new value when it names the set slot and its old value otherwise.
+def rec reloadSetSlotFrame : (index : Count) -> (other : Count) -> (value : Flag) -> (members : Slots) ->
+    Equal Flag (policyMemberAt other (reloadSetSlot index value members))
+      (reloadPick (reloadSameIdentity index other) value (policyMemberAt other members)) :=
+  fun (index : Count) =>
+    case index as self in Count return
+        (other : Count) -> (value : Flag) -> (members : Slots) ->
+        Equal Flag (policyMemberAt other (reloadSetSlot self value members))
+          (reloadPick (reloadSameIdentity self other) value (policyMemberAt other members)) with
+    | zero => fun (other : Count) =>
+      (case other as target in Count return
+          (value : Flag) -> (members : Slots) ->
+          Equal Flag (policyMemberAt target (reloadSetSlot zero value members))
+            (reloadPick (reloadSameIdentity zero target) value (policyMemberAt target members)) with
+      | zero => fun (value : Flag) (members : Slots) =>
+        (case members as roster in Slots return
+            Equal Flag (policyMemberAt zero (reloadSetSlot zero value roster))
+              (reloadPick (reloadSameIdentity zero zero) value (policyMemberAt zero roster)) with
+        | noSlots => same
+        | slot allowed rest => same)
+      | next later => fun (value : Flag) (members : Slots) =>
+        (case members as roster in Slots return
+            Equal Flag (policyMemberAt (next later) (reloadSetSlot zero value roster))
+              (reloadPick (reloadSameIdentity zero (next later)) value (policyMemberAt (next later) roster)) with
+        | noSlots => reloadMemberAtEmpty later
+        | slot allowed rest => same))
+    | next remaining => fun (other : Count) =>
+      (case other as target in Count return
+          (value : Flag) -> (members : Slots) ->
+          Equal Flag (policyMemberAt target (reloadSetSlot (next remaining) value members))
+            (reloadPick (reloadSameIdentity (next remaining) target) value (policyMemberAt target members)) with
+      | zero => fun (value : Flag) (members : Slots) =>
+        (case members as roster in Slots return
+            Equal Flag (policyMemberAt zero (reloadSetSlot (next remaining) value roster))
+              (reloadPick (reloadSameIdentity (next remaining) zero) value (policyMemberAt zero roster)) with
+        | noSlots => same
+        | slot allowed rest => same)
+      | next later => fun (value : Flag) (members : Slots) =>
+        (case members as roster in Slots return
+            Equal Flag (policyMemberAt (next later) (reloadSetSlot (next remaining) value roster))
+              (reloadPick (reloadSameIdentity (next remaining) (next later)) value
+                (policyMemberAt (next later) roster)) with
+        | noSlots =>
+          equalTransitivity Flag (policyMemberAt later (reloadSetSlot remaining value noSlots))
+            (reloadPick (reloadSameIdentity remaining later) value (policyMemberAt later noSlots))
+            (reloadPick (reloadSameIdentity remaining later) value off)
+            (reloadSetSlotFrame remaining later value noSlots)
+            (congruent Flag Flag (fun (current : Flag) => reloadPick (reloadSameIdentity remaining later) value current)
+              (policyMemberAt later noSlots) off (reloadMemberAtEmpty later))
+        | slot allowed rest => reloadSetSlotFrame remaining later value rest))
+
+def reloadSetSlotKeepsOther : (index : Count) -> (other : Count) -> (value : Flag) -> (members : Slots) ->
+    Equal Flag (reloadSameIdentity index other) off ->
+    Equal Flag (policyMemberAt other (reloadSetSlot index value members)) (policyMemberAt other members) :=
+  fun (index : Count) (other : Count) (value : Flag) (members : Slots)
+      (distinct : Equal Flag (reloadSameIdentity index other) off) =>
+    equalTransitivity Flag (policyMemberAt other (reloadSetSlot index value members))
+      (reloadPick (reloadSameIdentity index other) value (policyMemberAt other members))
+      (policyMemberAt other members)
+      (reloadSetSlotFrame index other value members)
+      (congruent Flag Flag (fun (choose : Flag) => reloadPick choose value (policyMemberAt other members))
+        (reloadSameIdentity index other) off distinct)
+
+def rec reloadSameIdentityReflexive : (identity : Count) -> Equal Flag (reloadSameIdentity identity identity) on :=
+  fun (identity : Count) =>
+    case identity as self in Count return Equal Flag (reloadSameIdentity self self) on with
+    | zero => same
+    | next remaining => reloadSameIdentityReflexive remaining
+
+def reloadEitherOnRight : (first : Flag) -> Equal Flag (either first on) on :=
+  fun (first : Flag) =>
+    case first as self in Flag return Equal Flag (either self on) on with
+    | off => same
+    | on => same
+
+def reloadBothOffRight : (first : Flag) -> Equal Flag (both first off) off :=
+  fun (first : Flag) =>
+    case first as self in Flag return Equal Flag (both self off) off with
+    | off => same
+    | on => same
+
+def reloadEitherOffLeft : (first : Flag) -> (second : Flag) -> Equal Flag (either first second) off ->
+    Equal Flag first off :=
+  fun (first : Flag) (second : Flag) =>
+    case first as self in Flag return Equal Flag (either self second) off -> Equal Flag self off with
+    | off => fun (denied : Equal Flag (either off second) off) => same
+    | on => fun (denied : Equal Flag (either on second) off) => denied
+
+def reloadEitherOffRight : (first : Flag) -> (second : Flag) -> Equal Flag (either first second) off ->
+    Equal Flag second off :=
+  fun (first : Flag) (second : Flag) =>
+    case first as self in Flag return Equal Flag (either self second) off -> Equal Flag second off with
+    | off => fun (denied : Equal Flag (either off second) off) => denied
+    | on => fun (denied : Equal Flag (either on second) off) =>
+      congruent Flag Flag (fun (value : Flag) => both value second) on off denied
+
+mu ReloadView : Type 0 with
+| reloadView : Count -> Slots -> Slots -> ReloadView
+
+def reloadRevision : ReloadView -> Count :=
+  fun (view : ReloadView) =>
+    case view as self in ReloadView return Count with
+    | reloadView revision trusted bootstrap => revision
+
+def reloadTrusted : ReloadView -> Slots :=
+  fun (view : ReloadView) =>
+    case view as self in ReloadView return Slots with
+    | reloadView revision trusted bootstrap => trusted
+
+def reloadBootstrap : ReloadView -> Slots :=
+  fun (view : ReloadView) =>
+    case view as self in ReloadView return Slots with
+    | reloadView revision trusted bootstrap => bootstrap
+
+def reloadSetTrusted : Count -> Flag -> ReloadView -> ReloadView :=
+  fun (peer : Count) (value : Flag) (view : ReloadView) =>
+    reloadView (reloadRevision view) (reloadSetSlot peer value (reloadTrusted view)) (reloadBootstrap view)
+
+def reloadSetBootstrap : Count -> Flag -> ReloadView -> ReloadView :=
+  fun (peer : Count) (value : Flag) (view : ReloadView) =>
+    reloadView (reloadRevision view) (reloadTrusted view) (reloadSetSlot peer value (reloadBootstrap view))
+
+def reloadBumpRevision : ReloadView -> ReloadView :=
+  fun (view : ReloadView) => reloadView (next (reloadRevision view)) (reloadTrusted view) (reloadBootstrap view)
+
+mu ReloadDelta : Type 0 with
+| reloadAddTrusted : Count -> ReloadDelta
+| reloadRemoveTrusted : Count -> ReloadDelta
+| reloadAddBootstrap : Count -> ReloadDelta
+| reloadRemoveBootstrap : Count -> ReloadDelta
+
+def reloadDeltaPeer : ReloadDelta -> Count :=
+  fun (delta : ReloadDelta) =>
+    case delta as self in ReloadDelta return Count with
+    | reloadAddTrusted peer => peer
+    | reloadRemoveTrusted peer => peer
+    | reloadAddBootstrap peer => peer
+    | reloadRemoveBootstrap peer => peer
+
+def applyReloadDelta : ReloadDelta -> ReloadView -> ReloadView :=
+  fun (delta : ReloadDelta) (view : ReloadView) =>
+    case delta as self in ReloadDelta return ReloadView with
+    | reloadAddTrusted peer => reloadSetTrusted peer on view
+    | reloadRemoveTrusted peer => reloadSetTrusted peer off view
+    | reloadAddBootstrap peer => reloadSetBootstrap peer on view
+    | reloadRemoveBootstrap peer => reloadSetBootstrap peer off view
+
+mu ReloadDeltas : Type 0 with
+| noReloadDeltas : ReloadDeltas
+| reloadDeltaEntry : ReloadDelta -> ReloadDeltas -> ReloadDeltas
+
+-- A revision applies its deltas in order, the head first.
+def rec applyReloadDeltas : ReloadDeltas -> ReloadView -> ReloadView :=
+  fun (deltas : ReloadDeltas) (view : ReloadView) =>
+    case deltas as self in ReloadDeltas return ReloadView with
+    | noReloadDeltas => view
+    | reloadDeltaEntry delta rest => applyReloadDeltas rest (applyReloadDelta delta view)
+
+def rec reloadDeltasMention : Count -> ReloadDeltas -> Flag :=
+  fun (peer : Count) (deltas : ReloadDeltas) =>
+    case deltas as self in ReloadDeltas return Flag with
+    | noReloadDeltas => off
+    | reloadDeltaEntry delta rest =>
+      either (reloadSameIdentity (reloadDeltaPeer delta) peer) (reloadDeltasMention peer rest)
+
+def stagedReloadView : ReloadDeltas -> ReloadView -> ReloadView :=
+  fun (deltas : ReloadDeltas) (view : ReloadView) => reloadBumpRevision (applyReloadDeltas deltas view)
+
+mu ReloadDecisionPoint : Type 0 with
+| reloadInbound : ReloadDecisionPoint
+| reloadOutboundDial : ReloadDecisionPoint
+| reloadOutboundEstablished : ReloadDecisionPoint
+
+def reloadTrustedMember : ReloadView -> Count -> Flag :=
+  fun (view : ReloadView) (peer : Count) => policyMemberAt peer (reloadTrusted view)
+
+def reloadBootstrapMember : ReloadView -> Count -> Flag :=
+  fun (view : ReloadView) (peer : Count) => policyMemberAt peer (reloadBootstrap view)
+
+-- Every decision point is a read of the one installed view.
+def reloadProjection : ReloadDecisionPoint -> ReloadView -> Count -> Flag :=
+  fun (point : ReloadDecisionPoint) (view : ReloadView) (peer : Count) =>
+    case point as self in ReloadDecisionPoint return Flag with
+    | reloadInbound => reloadTrustedMember view peer
+    | reloadOutboundDial => either (reloadTrustedMember view peer) (reloadBootstrapMember view peer)
+    | reloadOutboundEstablished => reloadTrustedMember view peer
+
+mu ReloadWorkers : Type 0 with
+| noReloadWorkers : ReloadWorkers
+| reloadWorker : Count -> Count -> ReloadWorkers -> ReloadWorkers
+
+def rec stampReloadWorkers : Count -> ReloadWorkers -> ReloadWorkers :=
+  fun (revision : Count) (workers : ReloadWorkers) =>
+    case workers as self in ReloadWorkers return ReloadWorkers with
+    | noReloadWorkers => noReloadWorkers
+    | reloadWorker identity stamp rest => reloadWorker identity revision (stampReloadWorkers revision rest)
+
+def rec reloadWorkersAt : Count -> ReloadWorkers -> Flag :=
+  fun (revision : Count) (workers : ReloadWorkers) =>
+    case workers as self in ReloadWorkers return Flag with
+    | noReloadWorkers => on
+    | reloadWorker identity stamp rest => both (reloadSameIdentity stamp revision) (reloadWorkersAt revision rest)
+
+def rec reloadWorkerListed : Count -> ReloadWorkers -> Flag :=
+  fun (identity : Count) (workers : ReloadWorkers) =>
+    case workers as self in ReloadWorkers return Flag with
+    | noReloadWorkers => off
+    | reloadWorker worker stamp rest => either (reloadSameIdentity worker identity) (reloadWorkerListed identity rest)
+
+mu ReloadNode : Type 0 with
+| reloadNode : ReloadView -> ReloadView -> ReloadWorkers -> Count -> Count -> ReloadNode
+
+def reloadInstalled : ReloadNode -> ReloadView :=
+  fun (node : ReloadNode) =>
+    case node as self in ReloadNode return ReloadView with
+    | reloadNode installed previous workers bound charge => installed
+
+def reloadPrevious : ReloadNode -> ReloadView :=
+  fun (node : ReloadNode) =>
+    case node as self in ReloadNode return ReloadView with
+    | reloadNode installed previous workers bound charge => previous
+
+def reloadNodeWorkers : ReloadNode -> ReloadWorkers :=
+  fun (node : ReloadNode) =>
+    case node as self in ReloadNode return ReloadWorkers with
+    | reloadNode installed previous workers bound charge => workers
+
+def reloadNodeBound : ReloadNode -> Count :=
+  fun (node : ReloadNode) =>
+    case node as self in ReloadNode return Count with
+    | reloadNode installed previous workers bound charge => bound
+
+def reloadNodeCharge : ReloadNode -> Count :=
+  fun (node : ReloadNode) =>
+    case node as self in ReloadNode return Count with
+    | reloadNode installed previous workers bound charge => charge
+
+mu ReloadOutcome : Type 0 with
+| reloadSucceeded : ReloadOutcome
+| reloadFailed : ReloadOutcome
+
+def reloadNodeStep : ReloadOutcome -> ReloadDeltas -> ReloadNode -> ReloadNode :=
+  fun (outcome : ReloadOutcome) (deltas : ReloadDeltas) (node : ReloadNode) =>
+    case outcome as self in ReloadOutcome return ReloadNode with
+    | reloadSucceeded =>
+      reloadNode (stagedReloadView deltas (reloadInstalled node)) (reloadInstalled node)
+        (stampReloadWorkers (reloadRevision (stagedReloadView deltas (reloadInstalled node))) (reloadNodeWorkers node))
+        (reloadNodeBound node) (reloadNodeCharge node)
+    | reloadFailed => node
+
+def rollbackReloadNode : ReloadNode -> ReloadNode :=
+  fun (node : ReloadNode) =>
+    reloadNode (reloadPrevious node) (reloadPrevious node)
+      (stampReloadWorkers (reloadRevision (reloadPrevious node)) (reloadNodeWorkers node))
+      (reloadNodeBound node) (reloadNodeCharge node)
+
+def reloadNodeProjection : ReloadDecisionPoint -> ReloadNode -> Count -> Flag :=
+  fun (point : ReloadDecisionPoint) (node : ReloadNode) (peer : Count) =>
+    reloadProjection point (reloadInstalled node) peer
+
+def reloadVerifiedPrivilege : ReloadView -> Count -> Flag -> Flag :=
+  fun (view : ReloadView) (peer : Count) (authenticated : Flag) => both authenticated (reloadTrustedMember view peer)
+
+def reloadNodePrivilege : ReloadNode -> Count -> Flag -> Flag :=
+  fun (node : ReloadNode) (peer : Count) (authenticated : Flag) =>
+    reloadVerifiedPrivilege (reloadInstalled node) peer authenticated
+
+mu ReloadEvent : Type 0 with
+| reloadAttempt : ReloadOutcome -> ReloadDeltas -> ReloadEvent
+| reloadRollback : ReloadEvent
+
+def applyReloadEvent : ReloadEvent -> ReloadNode -> ReloadNode :=
+  fun (event : ReloadEvent) (node : ReloadNode) =>
+    case event as self in ReloadEvent return ReloadNode with
+    | reloadAttempt outcome deltas => reloadNodeStep outcome deltas node
+    | reloadRollback => rollbackReloadNode node
+
+mu ReloadEvents : Type 0 with
+| noReloadEvents : ReloadEvents
+| reloadEventEntry : ReloadEvent -> ReloadEvents -> ReloadEvents
+
+def rec runReloadEvents : ReloadEvents -> ReloadNode -> ReloadNode :=
+  fun (events : ReloadEvents) (node : ReloadNode) =>
+    case events as self in ReloadEvents return ReloadNode with
+    | noReloadEvents => node
+    | reloadEventEntry event rest => runReloadEvents rest (applyReloadEvent event node)
+
+mu ReloadFailures : Type 0 with
+| noReloadFailures : ReloadFailures
+| reloadFailure : ReloadDeltas -> ReloadFailures -> ReloadFailures
+
+def rec lowerReloadFailures : ReloadFailures -> ReloadEvents :=
+  fun (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return ReloadEvents with
+    | noReloadFailures => noReloadEvents
+    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadFailed deltas) (lowerReloadFailures rest)
+
+-- Decision points over one view.
+
+def reloadInboundEstablishedAgree : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadInbound view peer) (reloadProjection reloadOutboundEstablished view peer) :=
+  fun (view : ReloadView) (peer : Count) => same
+
+def reloadDialIncludesInbound : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadInbound view peer) on ->
+    Equal Flag (reloadProjection reloadOutboundDial view peer) on :=
+  fun (view : ReloadView) (peer : Count) (allowed : Equal Flag (reloadProjection reloadInbound view peer) on) =>
+    congruent Flag Flag (fun (first : Flag) => either first (reloadBootstrapMember view peer))
+      (reloadTrustedMember view peer) on allowed
+
+def reloadAddedTrustedAllowedEverywhere : (point : ReloadDecisionPoint) -> (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection point (applyReloadDelta (reloadAddTrusted peer) view) peer) on :=
+  fun (point : ReloadDecisionPoint) (view : ReloadView) (peer : Count) =>
+    case point as self in ReloadDecisionPoint return
+        Equal Flag (reloadProjection self (applyReloadDelta (reloadAddTrusted peer) view) peer) on with
+    | reloadInbound => reloadSetSlotReads peer on (reloadTrusted view)
+    | reloadOutboundDial =>
+      congruent Flag Flag (fun (first : Flag) => either first (policyMemberAt peer (reloadBootstrap view)))
+        (policyMemberAt peer (reloadSetSlot peer on (reloadTrusted view))) on
+        (reloadSetSlotReads peer on (reloadTrusted view))
+    | reloadOutboundEstablished => reloadSetSlotReads peer on (reloadTrusted view)
+
+def reloadRemovedTrustedDeniedInbound : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadInbound (applyReloadDelta (reloadRemoveTrusted peer) view) peer) off :=
+  fun (view : ReloadView) (peer : Count) => reloadSetSlotReads peer off (reloadTrusted view)
+
+def reloadRemovedTrustedDeniedEstablished : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadOutboundEstablished (applyReloadDelta (reloadRemoveTrusted peer) view) peer) off :=
+  fun (view : ReloadView) (peer : Count) => reloadSetSlotReads peer off (reloadTrusted view)
+
+-- A trusted removal leaves outbound dial selection to the bootstrap set alone.
+def reloadRemovedTrustedDialFallsToBootstrap : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadOutboundDial (applyReloadDelta (reloadRemoveTrusted peer) view) peer)
+      (reloadBootstrapMember view peer) :=
+  fun (view : ReloadView) (peer : Count) =>
+    congruent Flag Flag (fun (first : Flag) => either first (policyMemberAt peer (reloadBootstrap view)))
+      (policyMemberAt peer (reloadSetSlot peer off (reloadTrusted view))) off
+      (reloadSetSlotReads peer off (reloadTrusted view))
+
+def reloadAddedBootstrapSelectedForDial : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection reloadOutboundDial (applyReloadDelta (reloadAddBootstrap peer) view) peer) on :=
+  fun (view : ReloadView) (peer : Count) =>
+    equalTransitivity Flag
+      (either (policyMemberAt peer (reloadTrusted view)) (policyMemberAt peer (reloadSetSlot peer on (reloadBootstrap view))))
+      (either (policyMemberAt peer (reloadTrusted view)) on) on
+      (congruent Flag Flag (either (policyMemberAt peer (reloadTrusted view)))
+        (policyMemberAt peer (reloadSetSlot peer on (reloadBootstrap view))) on
+        (reloadSetSlotReads peer on (reloadBootstrap view)))
+      (reloadEitherOnRight (policyMemberAt peer (reloadTrusted view)))
+
+-- Bootstrap changes never reach inbound admission or the outbound established check.
+def reloadBootstrapUpdateKeepsInbound : (peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->
+    Equal Flag (reloadProjection reloadInbound (reloadSetBootstrap peer value view) target)
+      (reloadProjection reloadInbound view target) :=
+  fun (peer : Count) (value : Flag) (view : ReloadView) (target : Count) => same
+
+def reloadBootstrapUpdateKeepsEstablished : (peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->
+    Equal Flag (reloadProjection reloadOutboundEstablished (reloadSetBootstrap peer value view) target)
+      (reloadProjection reloadOutboundEstablished view target) :=
+  fun (peer : Count) (value : Flag) (view : ReloadView) (target : Count) => same
+
+def reloadRemovedEverywhereDenied : (point : ReloadDecisionPoint) -> (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadProjection point
+      (applyReloadDeltas (reloadDeltaEntry (reloadRemoveTrusted peer) (reloadDeltaEntry (reloadRemoveBootstrap peer)
+        noReloadDeltas)) view) peer) off :=
+  fun (point : ReloadDecisionPoint) (view : ReloadView) (peer : Count) =>
+    case point as self in ReloadDecisionPoint return
+        Equal Flag (reloadProjection self
+          (applyReloadDeltas (reloadDeltaEntry (reloadRemoveTrusted peer) (reloadDeltaEntry (reloadRemoveBootstrap peer)
+            noReloadDeltas)) view) peer) off with
+    | reloadInbound => reloadSetSlotReads peer off (reloadTrusted view)
+    | reloadOutboundDial =>
+      launchEitherBothOff (policyMemberAt peer (reloadSetSlot peer off (reloadTrusted view)))
+        (policyMemberAt peer (reloadSetSlot peer off (reloadBootstrap view)))
+        (reloadSetSlotReads peer off (reloadTrusted view))
+        (reloadSetSlotReads peer off (reloadBootstrap view))
+    | reloadOutboundEstablished => reloadSetSlotReads peer off (reloadTrusted view)
+
+def reloadTrustedUpdateKeepsOther : (point : ReloadDecisionPoint) -> (peer : Count) -> (other : Count) ->
+    (value : Flag) -> (view : ReloadView) -> Equal Flag (reloadSameIdentity peer other) off ->
+    Equal Flag (reloadProjection point (reloadSetTrusted peer value view) other) (reloadProjection point view other) :=
+  fun (point : ReloadDecisionPoint) (peer : Count) (other : Count) (value : Flag) (view : ReloadView)
+      (distinct : Equal Flag (reloadSameIdentity peer other) off) =>
+    case point as self in ReloadDecisionPoint return
+        Equal Flag (reloadProjection self (reloadSetTrusted peer value view) other) (reloadProjection self view other) with
+    | reloadInbound => reloadSetSlotKeepsOther peer other value (reloadTrusted view) distinct
+    | reloadOutboundDial =>
+      congruent Flag Flag (fun (first : Flag) => either first (policyMemberAt other (reloadBootstrap view)))
+        (policyMemberAt other (reloadSetSlot peer value (reloadTrusted view))) (policyMemberAt other (reloadTrusted view))
+        (reloadSetSlotKeepsOther peer other value (reloadTrusted view) distinct)
+    | reloadOutboundEstablished => reloadSetSlotKeepsOther peer other value (reloadTrusted view) distinct
+
+def reloadBootstrapUpdateKeepsOther : (point : ReloadDecisionPoint) -> (peer : Count) -> (other : Count) ->
+    (value : Flag) -> (view : ReloadView) -> Equal Flag (reloadSameIdentity peer other) off ->
+    Equal Flag (reloadProjection point (reloadSetBootstrap peer value view) other) (reloadProjection point view other) :=
+  fun (point : ReloadDecisionPoint) (peer : Count) (other : Count) (value : Flag) (view : ReloadView)
+      (distinct : Equal Flag (reloadSameIdentity peer other) off) =>
+    case point as self in ReloadDecisionPoint return
+        Equal Flag (reloadProjection self (reloadSetBootstrap peer value view) other) (reloadProjection self view other) with
+    | reloadInbound => same
+    | reloadOutboundDial =>
+      congruent Flag Flag (either (policyMemberAt other (reloadTrusted view)))
+        (policyMemberAt other (reloadSetSlot peer value (reloadBootstrap view))) (policyMemberAt other (reloadBootstrap view))
+        (reloadSetSlotKeepsOther peer other value (reloadBootstrap view) distinct)
+    | reloadOutboundEstablished => same
+
+-- A delta for one peer leaves every decision point unchanged for every other peer.
+def reloadDeltaKeepsOther : (delta : ReloadDelta) -> (point : ReloadDecisionPoint) -> (other : Count) ->
+    (view : ReloadView) -> Equal Flag (reloadSameIdentity (reloadDeltaPeer delta) other) off ->
+    Equal Flag (reloadProjection point (applyReloadDelta delta view) other) (reloadProjection point view other) :=
+  fun (delta : ReloadDelta) (point : ReloadDecisionPoint) (other : Count) (view : ReloadView) =>
+    case delta as self in ReloadDelta return
+        Equal Flag (reloadSameIdentity (reloadDeltaPeer self) other) off ->
+        Equal Flag (reloadProjection point (applyReloadDelta self view) other) (reloadProjection point view other) with
+    | reloadAddTrusted peer => reloadTrustedUpdateKeepsOther point peer other on view
+    | reloadRemoveTrusted peer => reloadTrustedUpdateKeepsOther point peer other off view
+    | reloadAddBootstrap peer => reloadBootstrapUpdateKeepsOther point peer other on view
+    | reloadRemoveBootstrap peer => reloadBootstrapUpdateKeepsOther point peer other off view
+
+-- Over an arbitrary delta list, a peer that no delta names keeps every decision point.
+def rec reloadDeltasKeepUnmentioned : (deltas : ReloadDeltas) -> (point : ReloadDecisionPoint) -> (peer : Count) ->
+    (view : ReloadView) -> Equal Flag (reloadDeltasMention peer deltas) off ->
+    Equal Flag (reloadProjection point (applyReloadDeltas deltas view) peer) (reloadProjection point view peer) :=
+  fun (deltas : ReloadDeltas) (point : ReloadDecisionPoint) (peer : Count) =>
+    case deltas as self in ReloadDeltas return
+        (view : ReloadView) -> Equal Flag (reloadDeltasMention peer self) off ->
+        Equal Flag (reloadProjection point (applyReloadDeltas self view) peer) (reloadProjection point view peer) with
+    | noReloadDeltas => fun (view : ReloadView) (unmentioned : Equal Flag off off) => same
+    | reloadDeltaEntry delta rest =>
+      fun (view : ReloadView)
+          (unmentioned : Equal Flag (either (reloadSameIdentity (reloadDeltaPeer delta) peer) (reloadDeltasMention peer rest)) off) =>
+        equalTransitivity Flag (reloadProjection point (applyReloadDeltas rest (applyReloadDelta delta view)) peer)
+          (reloadProjection point (applyReloadDelta delta view) peer) (reloadProjection point view peer)
+          (reloadDeltasKeepUnmentioned rest point peer (applyReloadDelta delta view)
+            (reloadEitherOffRight (reloadSameIdentity (reloadDeltaPeer delta) peer) (reloadDeltasMention peer rest) unmentioned))
+          (reloadDeltaKeepsOther delta point peer view
+            (reloadEitherOffLeft (reloadSameIdentity (reloadDeltaPeer delta) peer) (reloadDeltasMention peer rest) unmentioned))
+
+-- Revisions and worker identities.
+
+def reloadDeltaKeepsRevision : (delta : ReloadDelta) -> (view : ReloadView) ->
+    Equal Count (reloadRevision (applyReloadDelta delta view)) (reloadRevision view) :=
+  fun (delta : ReloadDelta) (view : ReloadView) =>
+    case delta as self in ReloadDelta return Equal Count (reloadRevision (applyReloadDelta self view)) (reloadRevision view) with
+    | reloadAddTrusted peer => same
+    | reloadRemoveTrusted peer => same
+    | reloadAddBootstrap peer => same
+    | reloadRemoveBootstrap peer => same
+
+def rec reloadDeltasKeepRevision : (deltas : ReloadDeltas) -> (view : ReloadView) ->
+    Equal Count (reloadRevision (applyReloadDeltas deltas view)) (reloadRevision view) :=
+  fun (deltas : ReloadDeltas) =>
+    case deltas as self in ReloadDeltas return
+        (view : ReloadView) -> Equal Count (reloadRevision (applyReloadDeltas self view)) (reloadRevision view) with
+    | noReloadDeltas => fun (view : ReloadView) => same
+    | reloadDeltaEntry delta rest => fun (view : ReloadView) =>
+      equalTransitivity Count (reloadRevision (applyReloadDeltas rest (applyReloadDelta delta view)))
+        (reloadRevision (applyReloadDelta delta view)) (reloadRevision view)
+        (reloadDeltasKeepRevision rest (applyReloadDelta delta view))
+        (reloadDeltaKeepsRevision delta view)
+
+-- After a successful reload every decision point reads the folded deltas over the old installed view.
+def reloadStepReadsStagedView : (point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    (peer : Count) ->
+    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadSucceeded deltas node) peer)
+      (reloadProjection point (applyReloadDeltas deltas (reloadInstalled node)) peer) :=
+  fun (point : ReloadDecisionPoint) (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) =>
+    case point as self in ReloadDecisionPoint return
+        Equal Flag (reloadNodeProjection self (reloadNodeStep reloadSucceeded deltas node) peer)
+          (reloadProjection self (applyReloadDeltas deltas (reloadInstalled node)) peer) with
+    | reloadInbound => same
+    | reloadOutboundDial => same
+    | reloadOutboundEstablished => same
+
+def reloadKeepsUnmentionedProjection : (point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    (peer : Count) -> Equal Flag (reloadDeltasMention peer deltas) off ->
+    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadSucceeded deltas node) peer)
+      (reloadNodeProjection point node peer) :=
+  fun (point : ReloadDecisionPoint) (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count)
+      (unmentioned : Equal Flag (reloadDeltasMention peer deltas) off) =>
+    equalTransitivity Flag (reloadNodeProjection point (reloadNodeStep reloadSucceeded deltas node) peer)
+      (reloadProjection point (applyReloadDeltas deltas (reloadInstalled node)) peer)
+      (reloadNodeProjection point node peer)
+      (reloadStepReadsStagedView point deltas node peer)
+      (reloadDeltasKeepUnmentioned deltas point peer (reloadInstalled node) unmentioned)
+
+def reloadAdvancesRevision : (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    Equal Count (reloadRevision (reloadInstalled (reloadNodeStep reloadSucceeded deltas node)))
+      (next (reloadRevision (reloadInstalled node))) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) =>
+    congruent Count Count (fun (value : Count) => next value)
+      (reloadRevision (applyReloadDeltas deltas (reloadInstalled node))) (reloadRevision (reloadInstalled node))
+      (reloadDeltasKeepRevision deltas (reloadInstalled node))
+
+-- A failed reload falls back to the installed node.
+def reloadFailureKeepsNode : (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    Equal ReloadNode (reloadNodeStep reloadFailed deltas node) node :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) => same
+
+def reloadFailureKeepsEveryProjection : (point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) ->
+    (node : ReloadNode) -> (peer : Count) ->
+    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadFailed deltas node) peer)
+      (reloadNodeProjection point node peer) :=
+  fun (point : ReloadDecisionPoint) (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) => same
+
+def reloadKeepsPreviousView : (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    Equal ReloadView (reloadPrevious (reloadNodeStep reloadSucceeded deltas node)) (reloadInstalled node) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) => same
+
+def rec reloadStampedWorkersUniform : (revision : Count) -> (workers : ReloadWorkers) ->
+    Equal Flag (reloadWorkersAt revision (stampReloadWorkers revision workers)) on :=
+  fun (revision : Count) (workers : ReloadWorkers) =>
+    case workers as self in ReloadWorkers return
+        Equal Flag (reloadWorkersAt revision (stampReloadWorkers revision self)) on with
+    | noReloadWorkers => same
+    | reloadWorker identity stamp rest =>
+      equalTransitivity Flag
+        (both (reloadSameIdentity revision revision) (reloadWorkersAt revision (stampReloadWorkers revision rest)))
+        (both on (reloadWorkersAt revision (stampReloadWorkers revision rest))) on
+        (congruent Flag Flag (fun (value : Flag) => both value (reloadWorkersAt revision (stampReloadWorkers revision rest)))
+          (reloadSameIdentity revision revision) on (reloadSameIdentityReflexive revision))
+        (reloadStampedWorkersUniform revision rest)
+
+def rec reloadStampKeepsWorkerListing : (revision : Count) -> (identity : Count) -> (workers : ReloadWorkers) ->
+    Equal Flag (reloadWorkerListed identity (stampReloadWorkers revision workers)) (reloadWorkerListed identity workers) :=
+  fun (revision : Count) (identity : Count) (workers : ReloadWorkers) =>
+    case workers as self in ReloadWorkers return
+        Equal Flag (reloadWorkerListed identity (stampReloadWorkers revision self)) (reloadWorkerListed identity self) with
+    | noReloadWorkers => same
+    | reloadWorker worker stamp rest =>
+      congruent Flag Flag (either (reloadSameIdentity worker identity))
+        (reloadWorkerListed identity (stampReloadWorkers revision rest)) (reloadWorkerListed identity rest)
+        (reloadStampKeepsWorkerListing revision identity rest)
+
+-- A successful reload stamps every worker identity with the new installed revision.
+def reloadStampsEveryWorker : (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (reloadNodeStep reloadSucceeded deltas node)))
+      (reloadNodeWorkers (reloadNodeStep reloadSucceeded deltas node))) on :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) =>
+    reloadStampedWorkersUniform (reloadRevision (stagedReloadView deltas (reloadInstalled node))) (reloadNodeWorkers node)
+
+def reloadStepKeepsWorkerListing : (outcome : ReloadOutcome) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    (identity : Count) ->
+    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (reloadNodeStep outcome deltas node)))
+      (reloadWorkerListed identity (reloadNodeWorkers node)) :=
+  fun (outcome : ReloadOutcome) (deltas : ReloadDeltas) (node : ReloadNode) (identity : Count) =>
+    case outcome as self in ReloadOutcome return
+        Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (reloadNodeStep self deltas node)))
+          (reloadWorkerListed identity (reloadNodeWorkers node)) with
+    | reloadSucceeded =>
+      reloadStampKeepsWorkerListing (reloadRevision (stagedReloadView deltas (reloadInstalled node))) identity
+        (reloadNodeWorkers node)
+    | reloadFailed => same
+
+-- Rollback after a successful reload reinstalls the old view at every decision point.
+def reloadRollbackRestoresView : (deltas : ReloadDeltas) -> (node : ReloadNode) ->
+    Equal ReloadView (reloadInstalled (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)))
+      (reloadInstalled node) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) => same
+
+def reloadRollbackRestoresEveryProjection : (point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) ->
+    (node : ReloadNode) -> (peer : Count) ->
+    Equal Flag (reloadNodeProjection point (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)) peer)
+      (reloadNodeProjection point node peer) :=
+  fun (point : ReloadDecisionPoint) (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) => same
+
+def reloadRollbackStampsEveryWorker : (node : ReloadNode) ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (rollbackReloadNode node)))
+      (reloadNodeWorkers (rollbackReloadNode node))) on :=
+  fun (node : ReloadNode) => reloadStampedWorkersUniform (reloadRevision (reloadPrevious node)) (reloadNodeWorkers node)
+
+-- Verified privileges.
+
+def reloadUnauthenticatedUnprivileged : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadVerifiedPrivilege view peer off) off :=
+  fun (view : ReloadView) (peer : Count) => same
+
+def reloadTrustedAdditionGrantsPrivilege : (view : ReloadView) -> (peer : Count) ->
+    Equal Flag (reloadVerifiedPrivilege (applyReloadDelta (reloadAddTrusted peer) view) peer on) on :=
+  fun (view : ReloadView) (peer : Count) => reloadSetSlotReads peer on (reloadTrusted view)
+
+def reloadTrustedRemovalRevokesPrivilege : (view : ReloadView) -> (peer : Count) -> (authenticated : Flag) ->
+    Equal Flag (reloadVerifiedPrivilege (applyReloadDelta (reloadRemoveTrusted peer) view) peer authenticated) off :=
+  fun (view : ReloadView) (peer : Count) (authenticated : Flag) =>
+    equalTransitivity Flag (both authenticated (policyMemberAt peer (reloadSetSlot peer off (reloadTrusted view))))
+      (both authenticated off) off
+      (congruent Flag Flag (both authenticated) (policyMemberAt peer (reloadSetSlot peer off (reloadTrusted view))) off
+        (reloadSetSlotReads peer off (reloadTrusted view)))
+      (reloadBothOffRight authenticated)
+
+-- A bootstrap addition or removal never grants or revokes a verified privilege.
+def reloadBootstrapUpdateKeepsPrivilege : (peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->
+    (authenticated : Flag) ->
+    Equal Flag (reloadVerifiedPrivilege (reloadSetBootstrap peer value view) target authenticated)
+      (reloadVerifiedPrivilege view target authenticated) :=
+  fun (peer : Count) (value : Flag) (view : ReloadView) (target : Count) (authenticated : Flag) => same
+
+def reloadFailureKeepsPrivilege : (deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->
+    (authenticated : Flag) ->
+    Equal Flag (reloadNodePrivilege (reloadNodeStep reloadFailed deltas node) peer authenticated)
+      (reloadNodePrivilege node peer authenticated) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) (authenticated : Flag) => same
+
+def reloadRollbackRestoresPrivilege : (deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->
+    (authenticated : Flag) ->
+    Equal Flag (reloadNodePrivilege (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)) peer authenticated)
+      (reloadNodePrivilege node peer authenticated) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) (authenticated : Flag) => same
+
+def reloadKeepsUnmentionedPrivilege : (deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->
+    (authenticated : Flag) -> Equal Flag (reloadDeltasMention peer deltas) off ->
+    Equal Flag (reloadNodePrivilege (reloadNodeStep reloadSucceeded deltas node) peer authenticated)
+      (reloadNodePrivilege node peer authenticated) :=
+  fun (deltas : ReloadDeltas) (node : ReloadNode) (peer : Count) (authenticated : Flag)
+      (unmentioned : Equal Flag (reloadDeltasMention peer deltas) off) =>
+    congruent Flag Flag (both authenticated)
+      (reloadProjection reloadInbound (applyReloadDeltas deltas (reloadInstalled node)) peer)
+      (reloadProjection reloadInbound (reloadInstalled node) peer)
+      (reloadDeltasKeepUnmentioned deltas reloadInbound peer (reloadInstalled node) unmentioned)
+
+-- Allocation terms, worker stamps and worker identities over arbitrary reload traces.
+
+def reloadEventKeepsAllocationBound : (event : ReloadEvent) -> (node : ReloadNode) ->
+    Equal Count (reloadNodeBound (applyReloadEvent event node)) (reloadNodeBound node) :=
+  fun (event : ReloadEvent) (node : ReloadNode) =>
+    case event as self in ReloadEvent return Equal Count (reloadNodeBound (applyReloadEvent self node)) (reloadNodeBound node) with
+    | reloadAttempt outcome deltas =>
+      (case outcome as result in ReloadOutcome return
+          Equal Count (reloadNodeBound (applyReloadEvent (reloadAttempt result deltas) node)) (reloadNodeBound node) with
+      | reloadSucceeded => same
+      | reloadFailed => same)
+    | reloadRollback => same
+
+def rec reloadTraceKeepsAllocationBound : (events : ReloadEvents) -> (node : ReloadNode) ->
+    Equal Count (reloadNodeBound (runReloadEvents events node)) (reloadNodeBound node) :=
+  fun (events : ReloadEvents) =>
+    case events as self in ReloadEvents return
+        (node : ReloadNode) -> Equal Count (reloadNodeBound (runReloadEvents self node)) (reloadNodeBound node) with
+    | noReloadEvents => fun (node : ReloadNode) => same
+    | reloadEventEntry event rest => fun (node : ReloadNode) =>
+      equalTransitivity Count (reloadNodeBound (runReloadEvents rest (applyReloadEvent event node)))
+        (reloadNodeBound (applyReloadEvent event node)) (reloadNodeBound node)
+        (reloadTraceKeepsAllocationBound rest (applyReloadEvent event node))
+        (reloadEventKeepsAllocationBound event node)
+
+def reloadEventKeepsAllocationAdmission : (event : ReloadEvent) -> (node : ReloadNode) ->
+    AtMost (reloadNodeCharge node) (reloadNodeBound node) ->
+    AtMost (reloadNodeCharge (applyReloadEvent event node)) (reloadNodeBound (applyReloadEvent event node)) :=
+  fun (event : ReloadEvent) (node : ReloadNode) =>
+    case event as self in ReloadEvent return
+        AtMost (reloadNodeCharge node) (reloadNodeBound node) ->
+        AtMost (reloadNodeCharge (applyReloadEvent self node)) (reloadNodeBound (applyReloadEvent self node)) with
+    | reloadAttempt outcome deltas =>
+      (case outcome as result in ReloadOutcome return
+          AtMost (reloadNodeCharge node) (reloadNodeBound node) ->
+          AtMost (reloadNodeCharge (applyReloadEvent (reloadAttempt result deltas) node))
+            (reloadNodeBound (applyReloadEvent (reloadAttempt result deltas) node)) with
+      | reloadSucceeded => fun (bounded : AtMost (reloadNodeCharge node) (reloadNodeBound node)) => bounded
+      | reloadFailed => fun (bounded : AtMost (reloadNodeCharge node) (reloadNodeBound node)) => bounded)
+    | reloadRollback => fun (bounded : AtMost (reloadNodeCharge node) (reloadNodeBound node)) => bounded
+
+-- An admitted allocation stays admitted after every reload, failure and rollback of a trace.
+def rec reloadTraceKeepsAllocationAdmission : (events : ReloadEvents) -> (node : ReloadNode) ->
+    AtMost (reloadNodeCharge node) (reloadNodeBound node) ->
+    AtMost (reloadNodeCharge (runReloadEvents events node)) (reloadNodeBound (runReloadEvents events node)) :=
+  fun (events : ReloadEvents) =>
+    case events as self in ReloadEvents return
+        (node : ReloadNode) -> AtMost (reloadNodeCharge node) (reloadNodeBound node) ->
+        AtMost (reloadNodeCharge (runReloadEvents self node)) (reloadNodeBound (runReloadEvents self node)) with
+    | noReloadEvents => fun (node : ReloadNode) (bounded : AtMost (reloadNodeCharge node) (reloadNodeBound node)) => bounded
+    | reloadEventEntry event rest =>
+      fun (node : ReloadNode) (bounded : AtMost (reloadNodeCharge node) (reloadNodeBound node)) =>
+        reloadTraceKeepsAllocationAdmission rest (applyReloadEvent event node)
+          (reloadEventKeepsAllocationAdmission event node bounded)
+
+def reloadEventKeepsWorkersUniform : (event : ReloadEvent) -> (node : ReloadNode) ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (applyReloadEvent event node)))
+      (reloadNodeWorkers (applyReloadEvent event node))) on :=
+  fun (event : ReloadEvent) (node : ReloadNode) =>
+    case event as self in ReloadEvent return
+        Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->
+        Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (applyReloadEvent self node)))
+          (reloadNodeWorkers (applyReloadEvent self node))) on with
+    | reloadAttempt outcome deltas =>
+      (case outcome as result in ReloadOutcome return
+          Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->
+          Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (applyReloadEvent (reloadAttempt result deltas) node)))
+            (reloadNodeWorkers (applyReloadEvent (reloadAttempt result deltas) node))) on with
+      | reloadSucceeded =>
+        fun (uniform : Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on) =>
+          reloadStampsEveryWorker deltas node
+      | reloadFailed =>
+        fun (uniform : Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on) =>
+          uniform)
+    | reloadRollback =>
+      fun (uniform : Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on) =>
+        reloadRollbackStampsEveryWorker node
+
+-- Every worker identity carries the installed revision after an arbitrary reload trace.
+def rec reloadTraceKeepsWorkersUniform : (events : ReloadEvents) -> (node : ReloadNode) ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->
+    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (runReloadEvents events node)))
+      (reloadNodeWorkers (runReloadEvents events node))) on :=
+  fun (events : ReloadEvents) =>
+    case events as self in ReloadEvents return
+        (node : ReloadNode) ->
+        Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->
+        Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (runReloadEvents self node)))
+          (reloadNodeWorkers (runReloadEvents self node))) on with
+    | noReloadEvents =>
+      fun (node : ReloadNode)
+          (uniform : Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on) =>
+        uniform
+    | reloadEventEntry event rest =>
+      fun (node : ReloadNode)
+          (uniform : Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on) =>
+        reloadTraceKeepsWorkersUniform rest (applyReloadEvent event node)
+          (reloadEventKeepsWorkersUniform event node uniform)
+
+def reloadEventKeepsWorkerListing : (event : ReloadEvent) -> (node : ReloadNode) -> (identity : Count) ->
+    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (applyReloadEvent event node)))
+      (reloadWorkerListed identity (reloadNodeWorkers node)) :=
+  fun (event : ReloadEvent) (node : ReloadNode) (identity : Count) =>
+    case event as self in ReloadEvent return
+        Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (applyReloadEvent self node)))
+          (reloadWorkerListed identity (reloadNodeWorkers node)) with
+    | reloadAttempt outcome deltas => reloadStepKeepsWorkerListing outcome deltas node identity
+    | reloadRollback =>
+      reloadStampKeepsWorkerListing (reloadRevision (reloadPrevious node)) identity (reloadNodeWorkers node)
+
+-- No reload event adds or drops a worker identity.
+def rec reloadTraceKeepsWorkerListing : (events : ReloadEvents) -> (node : ReloadNode) -> (identity : Count) ->
+    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (runReloadEvents events node)))
+      (reloadWorkerListed identity (reloadNodeWorkers node)) :=
+  fun (events : ReloadEvents) =>
+    case events as self in ReloadEvents return
+        (node : ReloadNode) -> (identity : Count) ->
+        Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (runReloadEvents self node)))
+          (reloadWorkerListed identity (reloadNodeWorkers node)) with
+    | noReloadEvents => fun (node : ReloadNode) (identity : Count) => same
+    | reloadEventEntry event rest => fun (node : ReloadNode) (identity : Count) =>
+      equalTransitivity Flag (reloadWorkerListed identity (reloadNodeWorkers (runReloadEvents rest (applyReloadEvent event node))))
+        (reloadWorkerListed identity (reloadNodeWorkers (applyReloadEvent event node)))
+        (reloadWorkerListed identity (reloadNodeWorkers node))
+        (reloadTraceKeepsWorkerListing rest (applyReloadEvent event node) identity)
+        (reloadEventKeepsWorkerListing event node identity)
+
+-- A lowered trace of failed reloads leaves the node, so every projection and privilege, unchanged.
+def rec reloadFailedTraceKeepsNode : (failures : ReloadFailures) -> (node : ReloadNode) ->
+    Equal ReloadNode (runReloadEvents (lowerReloadFailures failures) node) node :=
+  fun (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return
+        (node : ReloadNode) -> Equal ReloadNode (runReloadEvents (lowerReloadFailures self) node) node with
+    | noReloadFailures => fun (node : ReloadNode) => same
+    | reloadFailure deltas rest => fun (node : ReloadNode) => reloadFailedTraceKeepsNode rest node
+
+def reloadFailedTraceKeepsEveryProjection : (failures : ReloadFailures) -> (point : ReloadDecisionPoint) ->
+    (node : ReloadNode) -> (peer : Count) ->
+    Equal Flag (reloadNodeProjection point (runReloadEvents (lowerReloadFailures failures) node) peer)
+      (reloadNodeProjection point node peer) :=
+  fun (failures : ReloadFailures) (point : ReloadDecisionPoint) (node : ReloadNode) (peer : Count) =>
+    congruent ReloadNode Flag (fun (current : ReloadNode) => reloadNodeProjection point current peer)
+      (runReloadEvents (lowerReloadFailures failures) node) node (reloadFailedTraceKeepsNode failures node)
+
+def reloadFailedTraceKeepsPrivilege : (failures : ReloadFailures) -> (node : ReloadNode) -> (peer : Count) ->
+    (authenticated : Flag) ->
+    Equal Flag (reloadNodePrivilege (runReloadEvents (lowerReloadFailures failures) node) peer authenticated)
+      (reloadNodePrivilege node peer authenticated) :=
+  fun (failures : ReloadFailures) (node : ReloadNode) (peer : Count) (authenticated : Flag) =>
+    congruent ReloadNode Flag (fun (current : ReloadNode) => reloadNodePrivilege current peer authenticated)
+      (runReloadEvents (lowerReloadFailures failures) node) node (reloadFailedTraceKeepsNode failures node)
