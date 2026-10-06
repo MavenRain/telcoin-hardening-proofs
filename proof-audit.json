@@ -81,7 +81,7 @@
     "proofs/92-policy-lifecycle-revisions.mech": "aefd607e54917314abb84f8b0ac9f9ee07cf8925a5618fe83c15f4d378f42cb6",
     "proofs/93-independent-bounded-privileges.mech": "c83a9e3ddee58d207ffd20669a840a6b7c2f37440869852592936609b1a82adf",
     "proofs/94-trusted-startup-redial.mech": "77c5488208625c20ac84efe9b75cb2c9b0beac91ead408ecb46e3667a5d8848f",
-    "proofs/95-launch-seeding-bootstrap-union.mech": "3b492ca63ab5d3b350f6070a1381ff352880a488bb7acfe7f1942be0f0e1970e"
+    "proofs/95-launch-seeding-bootstrap-union.mech": "a4a812eddee745e4e72ef76d0d85273cd0c8381da1e74518aa23e9c64de755cd"
   },
   "obligations": [
     {

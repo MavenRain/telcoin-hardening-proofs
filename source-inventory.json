@@ -17,9 +17,9 @@
   "witness_audit": {
     "audit_valid": true,
     "proof_scope_sha256": "29fa0f19a0a3386583d722dfe67ed2ab5728c6d18ff94a23d02f02ce57606b74",
-    "audit_sha256": "a6a8fbb5b942b41935478a5caf6d505793bf8b7b4c4598a0eac17c8396ebdbdf",
+    "audit_sha256": "6f4d8d74064c77f4f59c65e9f22234ab2b8cf58f6ea69f591b4547fb6430b81e",
     "modules": 78,
-    "proof_declarations": 1661,
+    "proof_declarations": 1669,
     "model_obligations": 83,
     "reviewed_obligations": 83,
     "covered_obligations": 15,

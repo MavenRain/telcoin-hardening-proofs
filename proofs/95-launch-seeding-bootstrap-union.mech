@@ -612,3 +612,65 @@ def unverifiedUpdateKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodeP
       (directCommitteeEligible role swarm authority authenticated identity) :=
   fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (selectedRole : NodePolicyRole) (selectedSwarm : NodePolicySwarm)
       (incoming : CommitteePolicyUnion) (authority : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) => same
+
+-- Hub steps in detail: a silence step leaves every hub down and discovering nothing, a snapshot
+-- step replaces the hub reports, a hub step applies exactly its hub event and keeps the authority,
+-- and a configuration step keeps the hub reports. After a silence step the launch peers are
+-- exactly the bootstrap union.
+def silenceStepHubsAllDown : (hubs : LaunchHubReports) ->
+    Equal Flag (launchHubsAllDown (applyLaunchHubEvent launchHubSilence hubs)) on :=
+  fun (hubs : LaunchHubReports) => silencedHubsAllDown hubs
+
+def silenceStepDiscoversNothing : (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchHubsDiscover (applyLaunchHubEvent launchHubSilence hubs) identity) off :=
+  fun (hubs : LaunchHubReports) (identity : Count) => silencedHubsDiscoverNothing hubs identity
+
+def snapshotStepReplacesHubs : (reports : LaunchHubReports) -> (hubs : LaunchHubReports) ->
+    Equal LaunchHubReports (applyLaunchHubEvent (launchHubSnapshot reports) hubs) reports :=
+  fun (reports : LaunchHubReports) (hubs : LaunchHubReports) => same
+
+def hubStepAppliesHubEvent : (event : LaunchHubEvent) -> (state : LaunchState) ->
+    Equal LaunchHubReports (launchHubs (applyLaunchEvent (hubStep event) state)) (applyLaunchHubEvent event (launchHubs state)) :=
+  fun (event : LaunchHubEvent) (state : LaunchState) => same
+
+def hubStepKeepsAuthority : (event : LaunchHubEvent) -> (state : LaunchState) ->
+    Equal AuthoritativeUnionPolicy (launchAuthority (applyLaunchEvent (hubStep event) state)) (launchAuthority state) :=
+  fun (event : LaunchHubEvent) (state : LaunchState) => same
+
+def configurationStepKeepsHubs : (change : AuthoritativeUnionChange) -> (state : LaunchState) ->
+    Equal LaunchHubReports (launchHubs (applyLaunchEvent (configurationStep change) state)) (launchHubs state) :=
+  fun (change : AuthoritativeUnionChange) (state : LaunchState) => same
+
+def hubSilenceStepPeersFromBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (identity : Count) -> (state : LaunchState) ->
+    Equal Flag (launchPeerAt role swarm identity (applyLaunchEvent (hubStep launchHubSilence) state))
+      (bootstrapUnionMember role swarm (launchAuthority state) identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (state : LaunchState) =>
+    equalTransitivity Flag (launchPeerAt role swarm identity (applyLaunchEvent (hubStep launchHubSilence) state))
+      (either (bootstrapUnionMember role swarm (launchAuthority state) identity) off)
+      (bootstrapUnionMember role swarm (launchAuthority state) identity)
+      (congruent Flag Flag (either (bootstrapUnionMember role swarm (launchAuthority state) identity))
+        (launchHubsDiscover (silenceLaunchHubs (launchHubs state)) identity) off
+        (silencedHubsDiscoverNothing (launchHubs state) identity))
+      (launchEitherOffRight (bootstrapUnionMember role swarm (launchAuthority state) identity))
+
+-- A lowered hub trace runs every hub event in order on the hub reports.
+def rec runLaunchHubEvents : LaunchHubEvents -> LaunchHubReports -> LaunchHubReports :=
+  fun (events : LaunchHubEvents) (hubs : LaunchHubReports) =>
+    case events as self in LaunchHubEvents return LaunchHubReports with
+    | noLaunchHubEvents => hubs
+    | launchHubEventEntry event rest => runLaunchHubEvents rest (applyLaunchHubEvent event hubs)
+
+def rec hubTraceRunsEveryStep : (events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) ->
+    (hubs : LaunchHubReports) ->
+    Equal LaunchHubReports (launchHubs (runLaunchEvents (lowerLaunchHubEvents events) (launchState authority hubs)))
+      (runLaunchHubEvents events hubs) :=
+  fun (events : LaunchHubEvents) =>
+    case events as self in LaunchHubEvents return
+        (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+        Equal LaunchHubReports (launchHubs (runLaunchEvents (lowerLaunchHubEvents self) (launchState authority hubs)))
+          (runLaunchHubEvents self hubs) with
+    | noLaunchHubEvents => fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => same
+    | launchHubEventEntry event rest =>
+      fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) =>
+        hubTraceRunsEveryStep rest authority (applyLaunchHubEvent event hubs)

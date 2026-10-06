@@ -3200,6 +3200,13 @@ MUTATIONS += [
     ('launch_run_events_drops_state', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => runLaunchEvents rest state'),
     ('launch_run_events_applies_head_only', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => applyLaunchEvent event state'),
     ('launch_run_events_ignores_trace', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => state'),
+    ('hub_silence_event_keeps_hubs', '    | launchHubSilence => silenceLaunchHubs hubs', '    | launchHubSilence => hubs'),
+    ('hub_snapshot_event_ignored', '    | launchHubSnapshot reports => reports', '    | launchHubSnapshot reports => hubs'),
+    ('launch_hub_step_ignores_event', '    | hubStep hubEvent => launchState (launchAuthority state) (applyLaunchHubEvent hubEvent (launchHubs state))', '    | hubStep hubEvent => state'),
+    ('launch_configuration_step_silences_hubs', '    | configurationStep change =>\n      launchState (applyAuthoritativeUnionChange change (launchAuthority state)) (launchHubs state)', '    | configurationStep change =>\n      launchState (applyAuthoritativeUnionChange change (launchAuthority state)) (silenceLaunchHubs (launchHubs state))'),
+    ('launch_lower_hub_events_drops_head', '    | launchHubEventEntry event rest => launchEventEntry (hubStep event) (lowerLaunchHubEvents rest)', '    | launchHubEventEntry event rest => lowerLaunchHubEvents rest'),
+    ('launch_hub_run_drops_step', '    | launchHubEventEntry event rest => runLaunchHubEvents rest (applyLaunchHubEvent event hubs)', '    | launchHubEventEntry event rest => runLaunchHubEvents rest hubs'),
+    ('launch_hub_run_empties_hubs', '    | noLaunchHubEvents => hubs', '    | noLaunchHubEvents => noLaunchHubReports'),
 ]
 
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
