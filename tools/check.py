@@ -3161,6 +3161,47 @@ MUTATIONS += [
     ('redial_presence_run_drops_step', '    | presenceEvent event rest => runPresenceEvents rest budget gate (stepPresence budget gate event state)\n', '    | presenceEvent event rest => runPresenceEvents rest budget gate state\n'),
 ]
 
+# Launch seeding and the bootstrap union, R04 turn 5.
+MUTATIONS += [
+    ('seed_target_on_off_swap', '    | off => noSeedTarget\n    | on => seedTarget identity (seeds identity)', '    | off => seedTarget identity (seeds identity)\n    | on => noSeedTarget'),
+    ('seed_target_always_empty', '    | off => noSeedTarget\n    | on => seedTarget identity (seeds identity)', '    | off => noSeedTarget\n    | on => noSeedTarget'),
+    ('seed_address_ignores_record', '    | seedTarget identity record => seedRecordAddress record', '    | seedTarget identity record => fallback'),
+    ('seed_address_reads_key', '    | seedTarget identity record => seedRecordAddress record', '    | seedTarget identity record => seedRecordKey record'),
+    ('seed_key_ignores_record', '    | seedTarget identity record => seedRecordKey record', '    | seedTarget identity record => fallback'),
+    ('seed_key_reads_address', '    | seedTarget identity record => seedRecordKey record', '    | seedTarget identity record => seedRecordAddress record'),
+    ('launch_seeded_reads_trusted_slots', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    committeeUnionMember identity (authoritativeUnionAt role swarm authority)', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    trustedConfigured role swarm authority identity'),
+    ('launch_seeded_always_off', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    committeeUnionMember identity (authoritativeUnionAt role swarm authority)', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    off'),
+    ('launch_seeded_always_on', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    committeeUnionMember identity (authoritativeUnionAt role swarm authority)', 'def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=\n  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>\n    on'),
+    ('launch_union_drops_startup_dial', '    either (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)', '    launchSeeded role swarm authority identity'),
+    ('launch_union_drops_seeding', '    either (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)', '    startupDialMember role swarm authority identity'),
+    ('launch_union_intersects_sources', '    either (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)', '    both (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)'),
+    ('launch_union_always_off', '    either (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)', '    off'),
+    ('launch_peers_drop_bootstrap_union', '    either (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)', '    launchHubsDiscover hubs identity'),
+    ('launch_peers_drop_hubs', '    either (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)', '    bootstrapUnionMember role swarm authority identity'),
+    ('launch_peers_intersect_sources', '    either (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)', '    both (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)'),
+    ('hub_up_flag_inverted', '    | launchHubDown => off\n    | launchHubUp => on', '    | launchHubDown => on\n    | launchHubUp => off'),
+    ('hub_up_flag_always_on', '    | launchHubDown => off\n    | launchHubUp => on', '    | launchHubDown => on\n    | launchHubUp => on'),
+    ('hub_discovers_ignores_state', '    both (launchHubUpFlag (launchHubReportState report)) (policyMemberAt identity (launchHubReportSlots report))', '    policyMemberAt identity (launchHubReportSlots report)'),
+    ('hub_discovers_ignores_slots', '    both (launchHubUpFlag (launchHubReportState report)) (policyMemberAt identity (launchHubReportSlots report))', '    launchHubUpFlag (launchHubReportState report)'),
+    ('hub_discover_intersects_reports', '    | launchHubReportEntry report rest => either (launchHubDiscovers identity report) (launchHubsDiscover rest identity)', '    | launchHubReportEntry report rest => both (launchHubDiscovers identity report) (launchHubsDiscover rest identity)'),
+    ('hub_discover_always_off', '    | launchHubReportEntry report rest => either (launchHubDiscovers identity report) (launchHubsDiscover rest identity)', '    | launchHubReportEntry report rest => off'),
+    ('hub_all_down_either', '    | launchHubReportEntry report rest => both (launchHubDownFlag (launchHubReportState report)) (launchHubsAllDown rest)', '    | launchHubReportEntry report rest => either (launchHubDownFlag (launchHubReportState report)) (launchHubsAllDown rest)'),
+    ('hub_all_down_nil_off', '    | noLaunchHubReports => on', '    | noLaunchHubReports => off'),
+    ('hub_silence_keeps_state', '  fun (report : LaunchHubReport) => launchHubReport launchHubDown (launchHubReportSlots report)', '  fun (report : LaunchHubReport) => report'),
+    ('launch_cold_start_keeps_hubs', '  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => launchState authority (silenceLaunchHubs hubs)', '  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => launchState authority hubs'),
+    ('launch_eligible_either', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)', '    either (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)'),
+    ('launch_eligible_drops_gate', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)', '    launchSeeded role swarm authority identity'),
+    ('launch_eligible_drops_seeding', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)', '    trustedDialGate role swarm identity authority authenticated'),
+    ('launch_eligible_ignores_authentication', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority on)'),
+    ('launch_eligible_always_on', '    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)', '    on'),
+    ('launch_configuration_step_ignores_change', '    | configurationStep change =>\n      launchState (applyAuthoritativeUnionChange change (launchAuthority state)) (launchHubs state)', '    | configurationStep change => state'),
+    ('launch_configuration_changes_drop_change', '      | configurationStep change => authoritativeUnionChange change (launchConfigurationChanges rest)', '      | configurationStep change => launchConfigurationChanges rest'),
+    ('launch_lower_hub_events_always_empty', '    | launchHubEventEntry event rest => launchEventEntry (hubStep event) (lowerLaunchHubEvents rest)', '    | launchHubEventEntry event rest => noLaunchEvents'),
+    ('launch_run_events_drops_state', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => runLaunchEvents rest state'),
+    ('launch_run_events_applies_head_only', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => applyLaunchEvent event state'),
+    ('launch_run_events_ignores_trace', '    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)', '    | launchEventEntry event rest => state'),
+]
+
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
     if jobs not in range(1, 9):
         raise ValueError("negative-check jobs must be between 1 and 8")
