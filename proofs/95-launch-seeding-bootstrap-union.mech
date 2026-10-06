@@ -1,0 +1,614 @@
+-- M026: launch seeding and the bootstrap union supply every configured committee identity
+-- without hub discovery, and direct committee eligibility persists at cold start with every
+-- configured hub unavailable.
+-- Model: a seed table maps each identity to a seed record (address and key). The launch seed
+-- target of an identity is provided exactly when the identity is a member of the authoritative
+-- committee union selected for the role and swarm (primary or indexed worker). The bootstrap
+-- union joins the seeded committee with the configured trusted and bootstrap peers of module 94.
+-- A hub report carries an availability state and the slots the hub would advertise; a hub
+-- discovers an identity only while it is up. A launch state pairs the authoritative union policy
+-- with the hub reports. Cold start silences every hub. Hub events never change the authority, so
+-- seeding, the bootstrap union and direct committee eligibility do not depend on hub discovery.
+-- Direct committee eligibility is committee membership together with the authenticated outbound
+-- dial gate of module 94. Seed addresses, keys and the hub population are model parameters.
+
+mu SeedRecord : Type 0 with
+| seedRecord : Count -> Count -> SeedRecord
+
+def seedRecordAddress : SeedRecord -> Count :=
+  fun (record : SeedRecord) =>
+    case record as self in SeedRecord return Count with
+    | seedRecord address key => address
+
+def seedRecordKey : SeedRecord -> Count :=
+  fun (record : SeedRecord) =>
+    case record as self in SeedRecord return Count with
+    | seedRecord address key => key
+
+def launchSeeded : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    committeeUnionMember identity (authoritativeUnionAt role swarm authority)
+
+mu SeedTarget : Type 0 with
+| noSeedTarget : SeedTarget
+| seedTarget : Count -> SeedRecord -> SeedTarget
+
+def seedTargetOf : Count -> (Count -> SeedRecord) -> Flag -> SeedTarget :=
+  fun (identity : Count) (seeds : Count -> SeedRecord) (seeded : Flag) =>
+    case seeded as self in Flag return SeedTarget with
+    | off => noSeedTarget
+    | on => seedTarget identity (seeds identity)
+
+def launchSeedTarget : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> (Count -> SeedRecord) ->
+    Count -> SeedTarget :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (seeds : Count -> SeedRecord) (identity : Count) =>
+    seedTargetOf identity seeds (launchSeeded role swarm authority identity)
+
+def seedTargetProvided : SeedTarget -> Flag :=
+  fun (target : SeedTarget) =>
+    case target as self in SeedTarget return Flag with
+    | noSeedTarget => off
+    | seedTarget identity record => on
+
+def seedTargetAddress : SeedTarget -> Count -> Count :=
+  fun (target : SeedTarget) (fallback : Count) =>
+    case target as self in SeedTarget return Count with
+    | noSeedTarget => fallback
+    | seedTarget identity record => seedRecordAddress record
+
+def seedTargetKey : SeedTarget -> Count -> Count :=
+  fun (target : SeedTarget) (fallback : Count) =>
+    case target as self in SeedTarget return Count with
+    | noSeedTarget => fallback
+    | seedTarget identity record => seedRecordKey record
+
+def launchBothOnLeft : (second : Flag) -> Equal Flag (both on second) second :=
+  fun (second : Flag) =>
+    case second as self in Flag return Equal Flag (both on self) self with
+    | off => same
+    | on => same
+
+def launchBothOffLeft : (second : Flag) -> Equal Flag (both off second) off :=
+  fun (second : Flag) =>
+    case second as self in Flag return Equal Flag (both off self) off with
+    | off => same
+    | on => same
+
+def launchEitherOffRight : (first : Flag) -> Equal Flag (either first off) first :=
+  fun (first : Flag) =>
+    case first as self in Flag return Equal Flag (either self off) self with
+    | off => same
+    | on => same
+
+def launchBothFirstOff : (first : Flag) -> (second : Flag) -> Equal Flag first off -> Equal Flag (both first second) off :=
+  fun (first : Flag) (second : Flag) (denied : Equal Flag first off) =>
+    equalTransitivity Flag (both first second) (both off second) off
+      (congruent Flag Flag (fun (value : Flag) => both value second) first off denied)
+      (launchBothOffLeft second)
+
+def launchEitherBothOff : (first : Flag) -> (second : Flag) -> Equal Flag first off -> Equal Flag second off ->
+    Equal Flag (either first second) off :=
+  fun (first : Flag) (second : Flag) (leftOff : Equal Flag first off) (rightOff : Equal Flag second off) =>
+    equalTransitivity Flag (either first second) (either off second) off
+      (congruent Flag Flag (fun (value : Flag) => either value second) first off leftOff)
+      (equalTransitivity Flag (either off second) (either off off) off
+        (congruent Flag Flag (either off) second off rightOff) same)
+
+mu LaunchHubState : Type 0 with
+| launchHubDown : LaunchHubState
+| launchHubUp : LaunchHubState
+
+def launchHubUpFlag : LaunchHubState -> Flag :=
+  fun (state : LaunchHubState) =>
+    case state as self in LaunchHubState return Flag with
+    | launchHubDown => off
+    | launchHubUp => on
+
+def launchHubDownFlag : LaunchHubState -> Flag :=
+  fun (state : LaunchHubState) =>
+    case state as self in LaunchHubState return Flag with
+    | launchHubDown => on
+    | launchHubUp => off
+
+mu LaunchHubReport : Type 0 with
+| launchHubReport : LaunchHubState -> Slots -> LaunchHubReport
+
+def launchHubReportState : LaunchHubReport -> LaunchHubState :=
+  fun (report : LaunchHubReport) =>
+    case report as self in LaunchHubReport return LaunchHubState with
+    | launchHubReport state slots => state
+
+def launchHubReportSlots : LaunchHubReport -> Slots :=
+  fun (report : LaunchHubReport) =>
+    case report as self in LaunchHubReport return Slots with
+    | launchHubReport state slots => slots
+
+def launchHubDiscovers : Count -> LaunchHubReport -> Flag :=
+  fun (identity : Count) (report : LaunchHubReport) =>
+    both (launchHubUpFlag (launchHubReportState report)) (policyMemberAt identity (launchHubReportSlots report))
+
+mu LaunchHubReports : Type 0 with
+| noLaunchHubReports : LaunchHubReports
+| launchHubReportEntry : LaunchHubReport -> LaunchHubReports -> LaunchHubReports
+
+def rec launchHubsDiscover : LaunchHubReports -> Count -> Flag :=
+  fun (hubs : LaunchHubReports) (identity : Count) =>
+    case hubs as self in LaunchHubReports return Flag with
+    | noLaunchHubReports => off
+    | launchHubReportEntry report rest => either (launchHubDiscovers identity report) (launchHubsDiscover rest identity)
+
+def rec launchHubsAllDown : LaunchHubReports -> Flag :=
+  fun (hubs : LaunchHubReports) =>
+    case hubs as self in LaunchHubReports return Flag with
+    | noLaunchHubReports => on
+    | launchHubReportEntry report rest => both (launchHubDownFlag (launchHubReportState report)) (launchHubsAllDown rest)
+
+def silenceLaunchHub : LaunchHubReport -> LaunchHubReport :=
+  fun (report : LaunchHubReport) => launchHubReport launchHubDown (launchHubReportSlots report)
+
+def rec silenceLaunchHubs : LaunchHubReports -> LaunchHubReports :=
+  fun (hubs : LaunchHubReports) =>
+    case hubs as self in LaunchHubReports return LaunchHubReports with
+    | noLaunchHubReports => noLaunchHubReports
+    | launchHubReportEntry report rest => launchHubReportEntry (silenceLaunchHub report) (silenceLaunchHubs rest)
+
+def bootstrapUnionMember : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    either (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)
+
+def launchPeerMember : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> LaunchHubReports -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) =>
+    either (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)
+
+def directCommitteeEligible : NodePolicyRole -> NodePolicySwarm -> AuthoritativeUnionPolicy -> Flag -> Count -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) =>
+    both (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority authenticated)
+
+mu LaunchState : Type 0 with
+| launchState : AuthoritativeUnionPolicy -> LaunchHubReports -> LaunchState
+
+def launchAuthority : LaunchState -> AuthoritativeUnionPolicy :=
+  fun (state : LaunchState) =>
+    case state as self in LaunchState return AuthoritativeUnionPolicy with
+    | launchState authority hubs => authority
+
+def launchHubs : LaunchState -> LaunchHubReports :=
+  fun (state : LaunchState) =>
+    case state as self in LaunchState return LaunchHubReports with
+    | launchState authority hubs => hubs
+
+def coldStart : AuthoritativeUnionPolicy -> LaunchHubReports -> LaunchState :=
+  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => launchState authority (silenceLaunchHubs hubs)
+
+def launchEligible : NodePolicyRole -> NodePolicySwarm -> Flag -> Count -> LaunchState -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) (state : LaunchState) =>
+    directCommitteeEligible role swarm (launchAuthority state) authenticated identity
+
+def launchPeerAt : NodePolicyRole -> NodePolicySwarm -> Count -> LaunchState -> Flag :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (state : LaunchState) =>
+    launchPeerMember role swarm (launchAuthority state) (launchHubs state) identity
+
+mu LaunchHubEvent : Type 0 with
+| launchHubSnapshot : LaunchHubReports -> LaunchHubEvent
+| launchHubSilence : LaunchHubEvent
+
+mu LaunchHubEvents : Type 0 with
+| noLaunchHubEvents : LaunchHubEvents
+| launchHubEventEntry : LaunchHubEvent -> LaunchHubEvents -> LaunchHubEvents
+
+def applyLaunchHubEvent : LaunchHubEvent -> LaunchHubReports -> LaunchHubReports :=
+  fun (event : LaunchHubEvent) (hubs : LaunchHubReports) =>
+    case event as self in LaunchHubEvent return LaunchHubReports with
+    | launchHubSnapshot reports => reports
+    | launchHubSilence => silenceLaunchHubs hubs
+
+mu LaunchEvent : Type 0 with
+| hubStep : LaunchHubEvent -> LaunchEvent
+| configurationStep : AuthoritativeUnionChange -> LaunchEvent
+
+mu LaunchEvents : Type 0 with
+| noLaunchEvents : LaunchEvents
+| launchEventEntry : LaunchEvent -> LaunchEvents -> LaunchEvents
+
+def applyLaunchEvent : LaunchEvent -> LaunchState -> LaunchState :=
+  fun (event : LaunchEvent) (state : LaunchState) =>
+    case event as self in LaunchEvent return LaunchState with
+    | hubStep hubEvent => launchState (launchAuthority state) (applyLaunchHubEvent hubEvent (launchHubs state))
+    | configurationStep change =>
+      launchState (applyAuthoritativeUnionChange change (launchAuthority state)) (launchHubs state)
+
+def rec runLaunchEvents : LaunchEvents -> LaunchState -> LaunchState :=
+  fun (events : LaunchEvents) (state : LaunchState) =>
+    case events as self in LaunchEvents return LaunchState with
+    | noLaunchEvents => state
+    | launchEventEntry event rest => runLaunchEvents rest (applyLaunchEvent event state)
+
+def rec launchConfigurationChanges : LaunchEvents -> AuthoritativeUnionChanges :=
+  fun (events : LaunchEvents) =>
+    case events as self in LaunchEvents return AuthoritativeUnionChanges with
+    | noLaunchEvents => noAuthoritativeUnionChanges
+    | launchEventEntry event rest =>
+      case event as step in LaunchEvent return AuthoritativeUnionChanges with
+      | hubStep hubEvent => launchConfigurationChanges rest
+      | configurationStep change => authoritativeUnionChange change (launchConfigurationChanges rest)
+
+def rec lowerLaunchHubEvents : LaunchHubEvents -> LaunchEvents :=
+  fun (events : LaunchHubEvents) =>
+    case events as self in LaunchHubEvents return LaunchEvents with
+    | noLaunchHubEvents => noLaunchEvents
+    | launchHubEventEntry event rest => launchEventEntry (hubStep event) (lowerLaunchHubEvents rest)
+
+def launchSeededExactUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity)
+      (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def seedTargetOfProvided : (identity : Count) -> (seeds : Count -> SeedRecord) -> (seeded : Flag) ->
+    Equal Flag (seedTargetProvided (seedTargetOf identity seeds seeded)) seeded :=
+  fun (identity : Count) (seeds : Count -> SeedRecord) (seeded : Flag) =>
+    case seeded as self in Flag return Equal Flag (seedTargetProvided (seedTargetOf identity seeds self)) self with
+    | off => same
+    | on => same
+
+def seededIdentityHasTarget : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (seeds : Count -> SeedRecord) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity)) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (seeds : Count -> SeedRecord) (identity : Count) (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    equalTransitivity Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity))
+      (launchSeeded role swarm authority identity) on
+      (seedTargetOfProvided identity seeds (launchSeeded role swarm authority identity)) member
+
+def unseededIdentityHasNoTarget : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (seeds : Count -> SeedRecord) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) off ->
+    Equal Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (seeds : Count -> SeedRecord) (identity : Count) (absent : Equal Flag (launchSeeded role swarm authority identity) off) =>
+    equalTransitivity Flag (seedTargetProvided (launchSeedTarget role swarm authority seeds identity))
+      (launchSeeded role swarm authority identity) off
+      (seedTargetOfProvided identity seeds (launchSeeded role swarm authority identity)) absent
+
+def seededAddressFromInputs : (identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->
+    Equal Count (seedTargetAddress (seedTargetOf identity seeds on) fallback) (seedRecordAddress (seeds identity)) :=
+  fun (identity : Count) (seeds : Count -> SeedRecord) (fallback : Count) => same
+
+def seededKeyFromInputs : (identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->
+    Equal Count (seedTargetKey (seedTargetOf identity seeds on) fallback) (seedRecordKey (seeds identity)) :=
+  fun (identity : Count) (seeds : Count -> SeedRecord) (fallback : Count) => same
+
+def unseededAddressFallsBack : (identity : Count) -> (seeds : Count -> SeedRecord) -> (fallback : Count) ->
+    Equal Count (seedTargetAddress (seedTargetOf identity seeds off) fallback) fallback :=
+  fun (identity : Count) (seeds : Count -> SeedRecord) (fallback : Count) => same
+
+def bootstrapUnionExact : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity)
+      (either (committeeUnionMember identity (authoritativeUnionAt role swarm authority))
+        (startupDialMember role swarm authority identity)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def seededInBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    redialEitherLeftOn (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity) member
+
+def startupDialInBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (startupDialMember role swarm authority identity) on ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (listed : Equal Flag (startupDialMember role swarm authority identity) on) =>
+    redialEitherRightOn (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity) listed
+
+def trustedConfiguredInBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (trustedConfigured role swarm authority identity) on ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (trustedConfigured role swarm authority identity) on) =>
+    redialEitherRightOn (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)
+      (trustedConfiguredStartupDial role swarm authority identity configured)
+
+def bootstrapConfiguredInBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (bootstrapConfigured role swarm authority identity) on ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (configured : Equal Flag (bootstrapConfigured role swarm authority identity) on) =>
+    redialEitherRightOn (launchSeeded role swarm authority identity) (startupDialMember role swarm authority identity)
+      (bootstrapConfiguredStartupDial role swarm authority identity configured)
+
+def configuredIdentityInLaunchPeers : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (launchPeerMember role swarm authority hubs identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    redialEitherLeftOn (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity)
+      (seededInBootstrapUnion role swarm authority identity member)
+
+def bootstrapUnionInLaunchPeers : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (bootstrapUnionMember role swarm authority identity) on ->
+    Equal Flag (launchPeerMember role swarm authority hubs identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) (member : Equal Flag (bootstrapUnionMember role swarm authority identity) on) =>
+    redialEitherLeftOn (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity) member
+
+def discoveredInLaunchPeers : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchHubsDiscover hubs identity) on ->
+    Equal Flag (launchPeerMember role swarm authority hubs identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) (found : Equal Flag (launchHubsDiscover hubs identity) on) =>
+    redialEitherRightOn (bootstrapUnionMember role swarm authority identity) (launchHubsDiscover hubs identity) found
+
+def upHubDiscoversListed : (identity : Count) -> (slots : Slots) ->
+    Equal Flag (launchHubDiscovers identity (launchHubReport launchHubUp slots)) (policyMemberAt identity slots) :=
+  fun (identity : Count) (slots : Slots) => launchBothOnLeft (policyMemberAt identity slots)
+
+def downHubDiscoversNothing : (identity : Count) -> (slots : Slots) ->
+    Equal Flag (launchHubDiscovers identity (launchHubReport launchHubDown slots)) off :=
+  fun (identity : Count) (slots : Slots) => launchBothOffLeft (policyMemberAt identity slots)
+
+def noHubsDiscoverNothing : (identity : Count) -> Equal Flag (launchHubsDiscover noLaunchHubReports identity) off :=
+  fun (identity : Count) => same
+
+def silencedHubDiscoversNothing : (report : LaunchHubReport) -> (identity : Count) ->
+    Equal Flag (launchHubDiscovers identity (silenceLaunchHub report)) off :=
+  fun (report : LaunchHubReport) (identity : Count) => launchBothOffLeft (policyMemberAt identity (launchHubReportSlots report))
+
+def rec silencedHubsDiscoverNothing : (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchHubsDiscover (silenceLaunchHubs hubs) identity) off :=
+  fun (hubs : LaunchHubReports) =>
+    case hubs as self in LaunchHubReports return
+        (identity : Count) -> Equal Flag (launchHubsDiscover (silenceLaunchHubs self) identity) off with
+    | noLaunchHubReports => fun (identity : Count) => same
+    | launchHubReportEntry report rest =>
+      fun (identity : Count) =>
+        launchEitherBothOff (launchHubDiscovers identity (silenceLaunchHub report))
+          (launchHubsDiscover (silenceLaunchHubs rest) identity)
+          (silencedHubDiscoversNothing report identity) (silencedHubsDiscoverNothing rest identity)
+
+def rec silencedHubsAllDown : (hubs : LaunchHubReports) -> Equal Flag (launchHubsAllDown (silenceLaunchHubs hubs)) on :=
+  fun (hubs : LaunchHubReports) =>
+    case hubs as self in LaunchHubReports return Equal Flag (launchHubsAllDown (silenceLaunchHubs self)) on with
+    | noLaunchHubReports => same
+    | launchHubReportEntry report rest =>
+      equalTransitivity Flag (both on (launchHubsAllDown (silenceLaunchHubs rest))) (launchHubsAllDown (silenceLaunchHubs rest)) on
+        (launchBothOnLeft (launchHubsAllDown (silenceLaunchHubs rest))) (silencedHubsAllDown rest)
+
+def coldStartAuthorityExact : (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+    Equal AuthoritativeUnionPolicy (launchAuthority (coldStart authority hubs)) authority :=
+  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => same
+
+def coldStartHubsAllDown : (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+    Equal Flag (launchHubsAllDown (launchHubs (coldStart authority hubs))) on :=
+  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => silencedHubsAllDown hubs
+
+def coldStartHubsDiscoverNothing : (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchHubsDiscover (launchHubs (coldStart authority hubs)) identity) off :=
+  fun (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) (identity : Count) =>
+    silencedHubsDiscoverNothing hubs identity
+
+def coldStartPeersFromBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchPeerAt role swarm identity (coldStart authority hubs)) (bootstrapUnionMember role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) =>
+    equalTransitivity Flag (launchPeerAt role swarm identity (coldStart authority hubs))
+      (either (bootstrapUnionMember role swarm authority identity) off)
+      (bootstrapUnionMember role swarm authority identity)
+      (congruent Flag Flag (either (bootstrapUnionMember role swarm authority identity))
+        (launchHubsDiscover (silenceLaunchHubs hubs) identity) off (silencedHubsDiscoverNothing hubs identity))
+      (launchEitherOffRight (bootstrapUnionMember role swarm authority identity))
+
+def directCommitteeEligibleExact : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (directCommitteeEligible role swarm authority authenticated identity)
+      (both (committeeUnionMember identity (authoritativeUnionAt role swarm authority))
+        (trustedDialGate role swarm identity authority authenticated)) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) => same
+
+def committeeMemberDialApproved : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) on ->
+    Equal Flag (trustedDialGate role swarm identity authority on) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (member : Equal Flag (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) on) =>
+    equalTransitivity Flag (trustedDialGate role swarm identity authority on)
+      (authoritativeUnionQuery role swarm authority on identity) on
+      (outboundUnionDialSelectionAllowed (captureUnionRevision role swarm authority identity)
+        (authoritativeUnionQuery role swarm authority on identity))
+      (equalTransitivity Flag
+        (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority))
+          (committeeUnionMember identity (authoritativeUnionAt role swarm authority)))
+        (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority)) on) on
+        (congruent Flag Flag (memberAllowed (roleUnionProfile (authoritativeRolePolicy role authority)))
+          (committeeUnionMember identity (authoritativeUnionAt role swarm authority)) on member)
+        (redialMemberAllowedOn (roleUnionProfile (authoritativeRolePolicy role authority))))
+
+def configuredIdentityEligible : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (directCommitteeEligible role swarm authority on identity) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count)
+      (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    redialBothOn (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority on)
+      member (committeeMemberDialApproved role swarm authority identity member)
+
+def unauthenticatedIdentityNotEligible : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (directCommitteeEligible role swarm authority off identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy) (identity : Count) =>
+    unionBothSecondDenied (launchSeeded role swarm authority identity) (trustedDialGate role swarm identity authority off)
+      (unauthenticatedDialRefused role swarm identity authority)
+
+def unconfiguredIdentityNotEligible : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) off ->
+    Equal Flag (directCommitteeEligible role swarm authority authenticated identity) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (authenticated : Flag) (identity : Count) (absent : Equal Flag (launchSeeded role swarm authority identity) off) =>
+    launchBothFirstOff (launchSeeded role swarm authority identity)
+      (trustedDialGate role swarm identity authority authenticated) absent
+
+def coldStartEligibilityExact : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+    Equal Flag (launchEligible role swarm authenticated identity (coldStart authority hubs))
+      (directCommitteeEligible role swarm authority authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) => same
+
+def coldStartConfiguredIdentityEligible : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (launchEligible role swarm on identity (coldStart authority hubs)) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authority : AuthoritativeUnionPolicy)
+      (hubs : LaunchHubReports) (identity : Count) (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    configuredIdentityEligible role swarm authority identity member
+
+def hubSnapshotKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (state : LaunchState) -> (reports : LaunchHubReports) ->
+    Equal Flag (launchEligible role swarm authenticated identity (applyLaunchEvent (hubStep (launchHubSnapshot reports)) state))
+      (launchEligible role swarm authenticated identity state) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (state : LaunchState) (reports : LaunchHubReports) => same
+
+def hubSilenceKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (state : LaunchState) ->
+    Equal Flag (launchEligible role swarm authenticated identity (applyLaunchEvent (hubStep launchHubSilence) state))
+      (launchEligible role swarm authenticated identity state) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count) (state : LaunchState) => same
+
+def rec launchTraceAuthority : (events : LaunchEvents) -> (state : LaunchState) ->
+    Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents events state))
+      (runAuthoritativeUnionChanges (launchConfigurationChanges events) (launchAuthority state)) :=
+  fun (events : LaunchEvents) =>
+    case events as self in LaunchEvents return
+        (state : LaunchState) -> Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents self state))
+          (runAuthoritativeUnionChanges (launchConfigurationChanges self) (launchAuthority state)) with
+    | noLaunchEvents => fun (state : LaunchState) => same
+    | launchEventEntry event rest =>
+      fun (state : LaunchState) =>
+        case event as step in LaunchEvent return
+            Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents rest (applyLaunchEvent step state)))
+              (runAuthoritativeUnionChanges (launchConfigurationChanges (launchEventEntry step rest)) (launchAuthority state)) with
+        | hubStep hubEvent => launchTraceAuthority rest (applyLaunchEvent (hubStep hubEvent) state)
+        | configurationStep change => launchTraceAuthority rest (applyLaunchEvent (configurationStep change) state)
+
+def rec hubTraceHasNoConfigurationChanges : (events : LaunchHubEvents) ->
+    Equal AuthoritativeUnionChanges (launchConfigurationChanges (lowerLaunchHubEvents events)) noAuthoritativeUnionChanges :=
+  fun (events : LaunchHubEvents) =>
+    case events as self in LaunchHubEvents return
+        Equal AuthoritativeUnionChanges (launchConfigurationChanges (lowerLaunchHubEvents self)) noAuthoritativeUnionChanges with
+    | noLaunchHubEvents => same
+    | launchHubEventEntry event rest => hubTraceHasNoConfigurationChanges rest
+
+def hubTraceKeepsAuthority : (events : LaunchHubEvents) -> (state : LaunchState) ->
+    Equal AuthoritativeUnionPolicy (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) (launchAuthority state) :=
+  fun (events : LaunchHubEvents) (state : LaunchState) =>
+    equalTransitivity AuthoritativeUnionPolicy
+      (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state))
+      (runAuthoritativeUnionChanges (launchConfigurationChanges (lowerLaunchHubEvents events)) (launchAuthority state))
+      (launchAuthority state)
+      (launchTraceAuthority (lowerLaunchHubEvents events) state)
+      (congruent AuthoritativeUnionChanges AuthoritativeUnionPolicy
+        (fun (changes : AuthoritativeUnionChanges) => runAuthoritativeUnionChanges changes (launchAuthority state))
+        (launchConfigurationChanges (lowerLaunchHubEvents events)) noAuthoritativeUnionChanges
+        (hubTraceHasNoConfigurationChanges events))
+
+def hubTraceKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (events : LaunchHubEvents) -> (state : LaunchState) ->
+    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents (lowerLaunchHubEvents events) state))
+      (launchEligible role swarm authenticated identity state) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (events : LaunchHubEvents) (state : LaunchState) =>
+    congruent AuthoritativeUnionPolicy Flag
+      (fun (authority : AuthoritativeUnionPolicy) => directCommitteeEligible role swarm authority authenticated identity)
+      (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) (launchAuthority state)
+      (hubTraceKeepsAuthority events state)
+
+def hubTraceKeepsSeedTarget : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (seeds : Count -> SeedRecord) ->
+    (identity : Count) -> (events : LaunchHubEvents) -> (state : LaunchState) ->
+    Equal SeedTarget
+      (launchSeedTarget role swarm (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) seeds identity)
+      (launchSeedTarget role swarm (launchAuthority state) seeds identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (seeds : Count -> SeedRecord) (identity : Count)
+      (events : LaunchHubEvents) (state : LaunchState) =>
+    congruent AuthoritativeUnionPolicy SeedTarget
+      (fun (authority : AuthoritativeUnionPolicy) => launchSeedTarget role swarm authority seeds identity)
+      (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) (launchAuthority state)
+      (hubTraceKeepsAuthority events state)
+
+def hubTraceKeepsBootstrapUnion : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (events : LaunchHubEvents) -> (state : LaunchState) ->
+    Equal Flag (bootstrapUnionMember role swarm (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) identity)
+      (bootstrapUnionMember role swarm (launchAuthority state) identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (events : LaunchHubEvents) (state : LaunchState) =>
+    congruent AuthoritativeUnionPolicy Flag
+      (fun (authority : AuthoritativeUnionPolicy) => bootstrapUnionMember role swarm authority identity)
+      (launchAuthority (runLaunchEvents (lowerLaunchHubEvents events) state)) (launchAuthority state)
+      (hubTraceKeepsAuthority events state)
+
+def coldStartHubTraceKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents (lowerLaunchHubEvents events) (coldStart authority hubs)))
+      (directCommitteeEligible role swarm authority authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (events : LaunchHubEvents) (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports) =>
+    hubTraceKeepsEligibility role swarm authenticated identity events (coldStart authority hubs)
+
+def coldStartConfiguredIdentityStaysEligible : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (events : LaunchHubEvents) -> (authority : AuthoritativeUnionPolicy) -> (hubs : LaunchHubReports) ->
+    Equal Flag (launchSeeded role swarm authority identity) on ->
+    Equal Flag (launchEligible role swarm on identity (runLaunchEvents (lowerLaunchHubEvents events) (coldStart authority hubs))) on :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (events : LaunchHubEvents)
+      (authority : AuthoritativeUnionPolicy) (hubs : LaunchHubReports)
+      (member : Equal Flag (launchSeeded role swarm authority identity) on) =>
+    equalTransitivity Flag
+      (launchEligible role swarm on identity (runLaunchEvents (lowerLaunchHubEvents events) (coldStart authority hubs)))
+      (directCommitteeEligible role swarm authority on identity) on
+      (coldStartHubTraceKeepsEligibility role swarm on identity events authority hubs)
+      (configuredIdentityEligible role swarm authority identity member)
+
+def configurationTraceEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (authenticated : Flag) ->
+    (identity : Count) -> (events : LaunchEvents) -> (state : LaunchState) ->
+    Equal Flag (launchEligible role swarm authenticated identity (runLaunchEvents events state))
+      (directCommitteeEligible role swarm
+        (runAuthoritativeUnionChanges (launchConfigurationChanges events) (launchAuthority state)) authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (authenticated : Flag) (identity : Count)
+      (events : LaunchEvents) (state : LaunchState) =>
+    congruent AuthoritativeUnionPolicy Flag
+      (fun (authority : AuthoritativeUnionPolicy) => directCommitteeEligible role swarm authority authenticated identity)
+      (launchAuthority (runLaunchEvents events state))
+      (runAuthoritativeUnionChanges (launchConfigurationChanges events) (launchAuthority state))
+      (launchTraceAuthority events state)
+
+def unverifiedUpdateKeepsSeeding : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->
+    (authority : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    Equal Flag (launchSeeded role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority) identity)
+      (launchSeeded role swarm authority identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (selectedRole : NodePolicyRole) (selectedSwarm : NodePolicySwarm)
+      (incoming : CommitteePolicyUnion) (authority : AuthoritativeUnionPolicy) (identity : Count) => same
+
+def unverifiedUpdateKeepsEligibility : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (selectedRole : NodePolicyRole) -> (selectedSwarm : NodePolicySwarm) -> (incoming : CommitteePolicyUnion) ->
+    (authority : AuthoritativeUnionPolicy) -> (authenticated : Flag) -> (identity : Count) ->
+    Equal Flag
+      (directCommitteeEligible role swarm (verifiedCommitteeUnionUpdate off selectedRole selectedSwarm incoming authority)
+        authenticated identity)
+      (directCommitteeEligible role swarm authority authenticated identity) :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (selectedRole : NodePolicyRole) (selectedSwarm : NodePolicySwarm)
+      (incoming : CommitteePolicyUnion) (authority : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) => same
