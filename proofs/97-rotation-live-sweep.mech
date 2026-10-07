@@ -1,0 +1,796 @@
+-- M040: committee rotation applies one live-connection treatment to every connection that is
+-- already live on every swarm, and stale input selects the Open or Grace fallback.
+-- Model: the admission contract does not select a live-connection treatment, so the treatment is
+-- a parameter. The recheck treatment retains a connection only when the current policy allows it
+-- and removes it otherwise. The retain until close treatment keeps every connection until it
+-- closes. In both treatments a retained connection gets the current policy generation as its
+-- stamp and the current authoritative union query as its privilege, so it keeps no privilege from
+-- the old epoch. A live connection records its role, swarm, identity, authentication, stamp,
+-- privilege and owned allocation. A sweep visits the live list once and in order, on the primary
+-- swarm and on every indexed worker swarm. A removed connection moves its allocation to the
+-- released total. A rotation event applies one authoritative union change, a stale input event
+-- moves one role to the Open or Grace fallback profile, and a periodic sweep event keeps the
+-- policy. Each event then sweeps the live list at the new policy. The allocation bound is a node
+-- term that no event rewrites. Identities, generations, allocations and budgets are model
+-- parameters.
+
+mu SweepTreatment : Type 0 with
+| sweepRecheckTreatment : SweepTreatment
+| sweepRetainUntilCloseTreatment : SweepTreatment
+
+-- The treatment decision: on retains the connection and off removes it.
+def sweepKeepFlag : SweepTreatment -> Flag -> Flag :=
+  fun (treatment : SweepTreatment) (allowed : Flag) =>
+    case treatment as self in SweepTreatment return Flag with
+    | sweepRecheckTreatment => allowed
+    | sweepRetainUntilCloseTreatment => on
+
+def sweepSameFlag : Flag -> Flag -> Flag :=
+  fun (first : Flag) (second : Flag) =>
+    case first as self in Flag return Flag with
+    | off => (case second as other in Flag return Flag with
+      | off => on
+      | on => off)
+    | on => second
+
+def sweepSameFlagReflexive : (value : Flag) -> Equal Flag (sweepSameFlag value value) on :=
+  fun (value : Flag) =>
+    case value as self in Flag return Equal Flag (sweepSameFlag self self) on with
+    | off => same
+    | on => same
+
+def sweepBothOn : (first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag second on ->
+    Equal Flag (both first second) on :=
+  fun (first : Flag) (second : Flag) (left : Equal Flag first on) (right : Equal Flag second on) =>
+    equalTransitivity Flag (both first second) (both on second) on
+      (congruent Flag Flag (fun (value : Flag) => both value second) first on left) right
+
+def sweepBothRepeat : (authenticated : Flag) -> (member : Flag) ->
+    Equal Flag (sweepSameFlag (both authenticated (both authenticated member)) (both authenticated member)) on :=
+  fun (authenticated : Flag) (member : Flag) =>
+    case authenticated as self in Flag return
+        Equal Flag (sweepSameFlag (both self (both self member)) (both self member)) on with
+    | off => same
+    | on => sweepSameFlagReflexive member
+
+def rec sweepAddAssociative : (first : Count) -> (second : Count) -> (third : Count) ->
+    Equal Count (add (add first second) third) (add first (add second third)) :=
+  fun (first : Count) =>
+    case first as self in Count return (second : Count) -> (third : Count) ->
+        Equal Count (add (add self second) third) (add self (add second third)) with
+    | zero => fun (second : Count) (third : Count) => same
+    | next smaller => fun (second : Count) (third : Count) =>
+      congruent Count Count (fun (value : Count) => next value) (add (add smaller second) third) (add smaller (add second third))
+        (sweepAddAssociative smaller second third)
+
+def rec sweepAddSwapLeft : (first : Count) -> (second : Count) -> (third : Count) ->
+    Equal Count (add first (add second third)) (add second (add first third)) :=
+  fun (first : Count) =>
+    case first as self in Count return (second : Count) -> (third : Count) ->
+        Equal Count (add self (add second third)) (add second (add self third)) with
+    | zero => fun (second : Count) (third : Count) => same
+    | next smaller => fun (second : Count) (third : Count) =>
+      equalTransitivity Count (next (add smaller (add second third))) (next (add second (add smaller third)))
+        (add second (next (add smaller third)))
+        (congruent Count Count (fun (value : Count) => next value) (add smaller (add second third)) (add second (add smaller third))
+          (sweepAddSwapLeft smaller second third))
+        (equalSymmetry Count (add second (next (add smaller third))) (next (add second (add smaller third)))
+          (addRightNext second (add smaller third)))
+
+-- Live connections.
+
+mu LiveSweepConn : Type 0 with
+| liveSweepConn : NodePolicyRole -> NodePolicySwarm -> Count -> Flag -> Count -> Flag -> Count -> LiveSweepConn
+
+def liveSweepSwarm : LiveSweepConn -> NodePolicySwarm :=
+  fun (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return NodePolicySwarm with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => swarm
+
+def liveSweepPrivilege : LiveSweepConn -> Flag :=
+  fun (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return Flag with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => privilege
+
+def liveSweepAuthentication : LiveSweepConn -> Flag :=
+  fun (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return Flag with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => authenticated
+
+def liveSweepAllocation : LiveSweepConn -> Count :=
+  fun (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return Count with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => allocation
+
+def liveSweepCurrentQuery : AuthoritativeUnionPolicy -> LiveSweepConn -> Flag :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return Flag with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      authoritativeUnionQuery role swarm policy authenticated identity
+
+def sweepDecisionFor : SweepTreatment -> AuthoritativeUnionPolicy -> LiveSweepConn -> Flag :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    sweepKeepFlag treatment (liveSweepCurrentQuery policy conn)
+
+-- A retained connection reads only the current policy: new stamp, current query as privilege.
+def restampLiveSweepConn : AuthoritativeUnionPolicy -> LiveSweepConn -> LiveSweepConn :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return LiveSweepConn with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      liveSweepConn role swarm identity authenticated (authoritativeUnionGeneration policy)
+        (authoritativeUnionQuery role swarm policy authenticated identity) allocation
+
+-- A retained connection keeps its authentication and its owned allocation.
+def restampKeepsAuthentication : (policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->
+    Equal Flag (liveSweepAuthentication (restampLiveSweepConn policy conn)) (liveSweepAuthentication conn) :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return
+        Equal Flag (liveSweepAuthentication (restampLiveSweepConn policy self)) (liveSweepAuthentication self) with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => same
+
+def restampKeepsAllocation : (policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->
+    Equal Count (liveSweepAllocation (restampLiveSweepConn policy conn)) (liveSweepAllocation conn) :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return
+        Equal Count (liveSweepAllocation (restampLiveSweepConn policy self)) (liveSweepAllocation self) with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation => same
+
+-- The old epoch view of a connection: no stamp and no privilege.
+def liveSweepEraseConn : LiveSweepConn -> LiveSweepConn :=
+  fun (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return LiveSweepConn with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      liveSweepConn role swarm identity authenticated zero off allocation
+
+-- A connection is current when its stamp names the policy generation, its privilege is the
+-- current query, and its privilege never exceeds its authentication.
+def liveSweepConnCurrent : AuthoritativeUnionPolicy -> LiveSweepConn -> Flag :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return Flag with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      both (reloadSameIdentity stamp (authoritativeUnionGeneration policy))
+        (both (sweepSameFlag privilege (authoritativeUnionQuery role swarm policy authenticated identity))
+          (sweepSameFlag (both authenticated privilege) privilege))
+
+mu LiveSweepConns : Type 0 with
+| noLiveSweepConns : LiveSweepConns
+| liveSweepEntry : LiveSweepConn -> LiveSweepConns -> LiveSweepConns
+
+def sweepKeepOrDrop : Flag -> LiveSweepConn -> LiveSweepConns -> LiveSweepConns :=
+  fun (keep : Flag) (conn : LiveSweepConn) (rest : LiveSweepConns) =>
+    case keep as self in Flag return LiveSweepConns with
+    | off => rest
+    | on => liveSweepEntry conn rest
+
+def sweepReleaseFor : Flag -> Count -> Count :=
+  fun (keep : Flag) (allocation : Count) =>
+    case keep as self in Flag return Count with
+    | off => allocation
+    | on => zero
+
+def sweepKeptCharge : Flag -> Count -> Count -> Count :=
+  fun (keep : Flag) (allocation : Count) (rest : Count) =>
+    case keep as self in Flag return Count with
+    | off => rest
+    | on => add allocation rest
+
+def sweepCountIf : Flag -> Count -> Count :=
+  fun (hit : Flag) (count : Count) =>
+    case hit as self in Flag return Count with
+    | off => count
+    | on => next count
+
+def rec sweepLiveConns : SweepTreatment -> AuthoritativeUnionPolicy -> LiveSweepConns -> LiveSweepConns :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return LiveSweepConns with
+    | noLiveSweepConns => noLiveSweepConns
+    | liveSweepEntry conn rest =>
+      sweepKeepOrDrop (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+        (sweepLiveConns treatment policy rest)
+
+def rec sweepReleased : SweepTreatment -> AuthoritativeUnionPolicy -> LiveSweepConns -> Count :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Count with
+    | noLiveSweepConns => zero
+    | liveSweepEntry conn rest =>
+      add (sweepReleaseFor (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn))
+        (sweepReleased treatment policy rest)
+
+def rec liveSweepCharge : LiveSweepConns -> Count :=
+  fun (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Count with
+    | noLiveSweepConns => zero
+    | liveSweepEntry conn rest => add (liveSweepAllocation conn) (liveSweepCharge rest)
+
+def rec liveSweepLength : LiveSweepConns -> Count :=
+  fun (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Count with
+    | noLiveSweepConns => zero
+    | liveSweepEntry conn rest => next (liveSweepLength rest)
+
+def rec liveSweepOnSwarm : NodePolicySwarm -> LiveSweepConns -> Count :=
+  fun (swarm : NodePolicySwarm) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Count with
+    | noLiveSweepConns => zero
+    | liveSweepEntry conn rest =>
+      sweepCountIf (sameUnionSwarm (liveSweepSwarm conn) swarm) (liveSweepOnSwarm swarm rest)
+
+def rec liveSweepConnsCurrent : AuthoritativeUnionPolicy -> LiveSweepConns -> Flag :=
+  fun (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Flag with
+    | noLiveSweepConns => on
+    | liveSweepEntry conn rest => both (liveSweepConnCurrent policy conn) (liveSweepConnsCurrent policy rest)
+
+def rec liveSweepConnsPrivileged : LiveSweepConns -> Flag :=
+  fun (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return Flag with
+    | noLiveSweepConns => on
+    | liveSweepEntry conn rest => both (liveSweepPrivilege conn) (liveSweepConnsPrivileged rest)
+
+def rec liveSweepEraseEpoch : LiveSweepConns -> LiveSweepConns :=
+  fun (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return LiveSweepConns with
+    | noLiveSweepConns => noLiveSweepConns
+    | liveSweepEntry conn rest => liveSweepEntry (liveSweepEraseConn conn) (liveSweepEraseEpoch rest)
+
+-- The visit log records each visited connection with its treatment outcome.
+mu SweepVisits : Type 0 with
+| noSweepVisits : SweepVisits
+| sweepVisit : LiveSweepConn -> Flag -> SweepVisits -> SweepVisits
+
+def rec sweepVisitLog : SweepTreatment -> AuthoritativeUnionPolicy -> LiveSweepConns -> SweepVisits :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return SweepVisits with
+    | noLiveSweepConns => noSweepVisits
+    | liveSweepEntry conn rest =>
+      sweepVisit conn (sweepDecisionFor treatment policy conn) (sweepVisitLog treatment policy rest)
+
+def rec sweepVisitedConns : SweepVisits -> LiveSweepConns :=
+  fun (visits : SweepVisits) =>
+    case visits as self in SweepVisits return LiveSweepConns with
+    | noSweepVisits => noLiveSweepConns
+    | sweepVisit conn outcome rest => liveSweepEntry conn (sweepVisitedConns rest)
+
+def rec sweepVisitsAgree : SweepTreatment -> AuthoritativeUnionPolicy -> SweepVisits -> Flag :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (visits : SweepVisits) =>
+    case visits as self in SweepVisits return Flag with
+    | noSweepVisits => on
+    | sweepVisit conn outcome rest =>
+      both (sweepSameFlag outcome (sweepDecisionFor treatment policy conn)) (sweepVisitsAgree treatment policy rest)
+
+-- Every live connection is visited once, in order, and on every swarm.
+
+def rec sweepVisitsEveryLiveConnOnce : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) -> Equal LiveSweepConns (sweepVisitedConns (sweepVisitLog treatment policy conns)) conns :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal LiveSweepConns (sweepVisitedConns (sweepVisitLog treatment policy self)) self with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      congruent LiveSweepConns LiveSweepConns (fun (tail : LiveSweepConns) => liveSweepEntry conn tail)
+        (sweepVisitedConns (sweepVisitLog treatment policy rest)) rest
+        (sweepVisitsEveryLiveConnOnce treatment policy rest)
+
+def rec sweepVisitOutcomesFollowCurrentPolicy : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) -> Equal Flag (sweepVisitsAgree treatment policy (sweepVisitLog treatment policy conns)) on :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Flag (sweepVisitsAgree treatment policy (sweepVisitLog treatment policy self)) on with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      sweepBothOn (sweepSameFlag (sweepDecisionFor treatment policy conn) (sweepDecisionFor treatment policy conn))
+        (sweepVisitsAgree treatment policy (sweepVisitLog treatment policy rest))
+        (sweepSameFlagReflexive (sweepDecisionFor treatment policy conn))
+        (sweepVisitOutcomesFollowCurrentPolicy treatment policy rest)
+
+def sweepCoversEverySwarm : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) -> (swarm : NodePolicySwarm) ->
+    Equal Count (liveSweepOnSwarm swarm (sweepVisitedConns (sweepVisitLog treatment policy conns)))
+      (liveSweepOnSwarm swarm conns) :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) (swarm : NodePolicySwarm) =>
+    congruent LiveSweepConns Count (fun (listed : LiveSweepConns) => liveSweepOnSwarm swarm listed)
+      (sweepVisitedConns (sweepVisitLog treatment policy conns)) conns
+      (sweepVisitsEveryLiveConnOnce treatment policy conns)
+
+-- Retained connections are current and carry no privilege from the old epoch.
+
+def restampedConnIsCurrent : (policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->
+    Equal Flag (liveSweepConnCurrent policy (restampLiveSweepConn policy conn)) on :=
+  fun (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) =>
+    case conn as self in LiveSweepConn return
+        Equal Flag (liveSweepConnCurrent policy (restampLiveSweepConn policy self)) on with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      sweepBothOn (reloadSameIdentity (authoritativeUnionGeneration policy) (authoritativeUnionGeneration policy))
+        (both (sweepSameFlag (authoritativeUnionQuery role swarm policy authenticated identity)
+            (authoritativeUnionQuery role swarm policy authenticated identity))
+          (sweepSameFlag (both authenticated (authoritativeUnionQuery role swarm policy authenticated identity))
+            (authoritativeUnionQuery role swarm policy authenticated identity)))
+        (reloadSameIdentityReflexive (authoritativeUnionGeneration policy))
+        (sweepBothOn (sweepSameFlag (authoritativeUnionQuery role swarm policy authenticated identity)
+            (authoritativeUnionQuery role swarm policy authenticated identity))
+          (sweepSameFlag (both authenticated (authoritativeUnionQuery role swarm policy authenticated identity))
+            (authoritativeUnionQuery role swarm policy authenticated identity))
+          (sweepSameFlagReflexive (authoritativeUnionQuery role swarm policy authenticated identity))
+          (sweepBothRepeat authenticated (memberAllowed (roleUnionProfile (authoritativeRolePolicy role policy))
+            (committeeUnionMember identity (authoritativeUnionAt role swarm policy)))))
+
+def sweepKeepOrDropCurrent : (policy : AuthoritativeUnionPolicy) -> (keep : Flag) -> (conn : LiveSweepConn) ->
+    (rest : LiveSweepConns) -> Equal Flag (liveSweepConnCurrent policy conn) on ->
+    Equal Flag (liveSweepConnsCurrent policy rest) on ->
+    Equal Flag (liveSweepConnsCurrent policy (sweepKeepOrDrop keep conn rest)) on :=
+  fun (policy : AuthoritativeUnionPolicy) (keep : Flag) (conn : LiveSweepConn) (rest : LiveSweepConns)
+      (head : Equal Flag (liveSweepConnCurrent policy conn) on)
+      (tail : Equal Flag (liveSweepConnsCurrent policy rest) on) =>
+    case keep as self in Flag return Equal Flag (liveSweepConnsCurrent policy (sweepKeepOrDrop self conn rest)) on with
+    | off => tail
+    | on => sweepBothOn (liveSweepConnCurrent policy conn) (liveSweepConnsCurrent policy rest) head tail
+
+-- After a sweep every retained connection has the current stamp, the current query as its
+-- privilege, and no privilege without authentication.
+def rec sweepLeavesConnsCurrent : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) -> Equal Flag (liveSweepConnsCurrent policy (sweepLiveConns treatment policy conns)) on :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Flag (liveSweepConnsCurrent policy (sweepLiveConns treatment policy self)) on with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      sweepKeepOrDropCurrent policy (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+        (sweepLiveConns treatment policy rest) (restampedConnIsCurrent policy conn)
+        (sweepLeavesConnsCurrent treatment policy rest)
+
+-- The sweep result does not depend on any old stamp or old privilege.
+def rec sweepForgetsOldEpoch : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) ->
+    Equal LiveSweepConns (sweepLiveConns treatment policy conns)
+      (sweepLiveConns treatment policy (liveSweepEraseEpoch conns)) :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal LiveSweepConns (sweepLiveConns treatment policy self)
+          (sweepLiveConns treatment policy (liveSweepEraseEpoch self)) with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      (case conn as current in LiveSweepConn return
+          Equal LiveSweepConns (sweepLiveConns treatment policy (liveSweepEntry current rest))
+            (sweepLiveConns treatment policy (liveSweepEraseEpoch (liveSweepEntry current rest))) with
+      | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+        congruent LiveSweepConns LiveSweepConns
+          (fun (tail : LiveSweepConns) =>
+            sweepKeepOrDrop (sweepKeepFlag treatment (authoritativeUnionQuery role swarm policy authenticated identity))
+              (liveSweepConn role swarm identity authenticated (authoritativeUnionGeneration policy)
+                (authoritativeUnionQuery role swarm policy authenticated identity) allocation) tail)
+          (sweepLiveConns treatment policy rest) (sweepLiveConns treatment policy (liveSweepEraseEpoch rest))
+          (sweepForgetsOldEpoch treatment policy rest))
+
+-- Under the recheck treatment every retained connection holds the current privilege.
+def rec recheckSweepKeepsOnlyPrivileged : (policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->
+    Equal Flag (liveSweepConnsPrivileged (sweepLiveConns sweepRecheckTreatment policy conns)) on :=
+  fun (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Flag (liveSweepConnsPrivileged (sweepLiveConns sweepRecheckTreatment policy self)) on with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      (case conn as current in LiveSweepConn return
+          Equal Flag (liveSweepConnsPrivileged (sweepLiveConns sweepRecheckTreatment policy (liveSweepEntry current rest))) on with
+      | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+        case authoritativeUnionQuery role swarm policy authenticated identity as allowed in Flag return
+            Equal Flag (liveSweepConnsPrivileged (sweepKeepOrDrop allowed
+              (liveSweepConn role swarm identity authenticated (authoritativeUnionGeneration policy) allowed allocation)
+              (sweepLiveConns sweepRecheckTreatment policy rest))) on with
+        | off => recheckSweepKeepsOnlyPrivileged policy rest
+        | on => recheckSweepKeepsOnlyPrivileged policy rest)
+
+-- The retain until close treatment keeps every live connection and releases nothing.
+def rec retainUntilCloseKeepsEveryConn : (policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->
+    Equal Count (liveSweepLength (sweepLiveConns sweepRetainUntilCloseTreatment policy conns)) (liveSweepLength conns) :=
+  fun (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Count (liveSweepLength (sweepLiveConns sweepRetainUntilCloseTreatment policy self)) (liveSweepLength self) with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      congruent Count Count (fun (value : Count) => next value) (liveSweepLength (sweepLiveConns sweepRetainUntilCloseTreatment policy rest))
+        (liveSweepLength rest) (retainUntilCloseKeepsEveryConn policy rest)
+
+def rec retainUntilCloseReleasesNothing : (policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->
+    Equal Count (sweepReleased sweepRetainUntilCloseTreatment policy conns) zero :=
+  fun (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Count (sweepReleased sweepRetainUntilCloseTreatment policy self) zero with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest => retainUntilCloseReleasesNothing policy rest
+
+-- Allocation: each removed connection releases its allocation once and the live charge only falls.
+
+def sweepRestampedCharge : (keep : Flag) -> (policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->
+    (rest : LiveSweepConns) ->
+    Equal Count (liveSweepCharge (sweepKeepOrDrop keep (restampLiveSweepConn policy conn) rest))
+      (sweepKeptCharge keep (liveSweepAllocation conn) (liveSweepCharge rest)) :=
+  fun (keep : Flag) (policy : AuthoritativeUnionPolicy) (conn : LiveSweepConn) (rest : LiveSweepConns) =>
+    case conn as self in LiveSweepConn return
+        Equal Count (liveSweepCharge (sweepKeepOrDrop keep (restampLiveSweepConn policy self) rest))
+          (sweepKeptCharge keep (liveSweepAllocation self) (liveSweepCharge rest)) with
+    | liveSweepConn role swarm identity authenticated stamp privilege allocation =>
+      case keep as chosen in Flag return
+          Equal Count (liveSweepCharge (sweepKeepOrDrop chosen
+            (restampLiveSweepConn policy (liveSweepConn role swarm identity authenticated stamp privilege allocation)) rest))
+            (sweepKeptCharge chosen allocation (liveSweepCharge rest)) with
+      | off => same
+      | on => same
+
+def sweepStepSplit : (keep : Flag) -> (allocation : Count) -> (released : Count) -> (kept : Count) ->
+    Equal Count (add allocation (add released kept))
+      (add (add (sweepReleaseFor keep allocation) released) (sweepKeptCharge keep allocation kept)) :=
+  fun (keep : Flag) (allocation : Count) (released : Count) (kept : Count) =>
+    case keep as self in Flag return
+        Equal Count (add allocation (add released kept))
+          (add (add (sweepReleaseFor self allocation) released) (sweepKeptCharge self allocation kept)) with
+    | off => equalSymmetry Count (add (add allocation released) kept) (add allocation (add released kept))
+        (sweepAddAssociative allocation released kept)
+    | on => sweepAddSwapLeft allocation released kept
+
+-- The live charge before a sweep equals the released total plus the charge that stays live.
+def rec sweepConservesAllocation : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) ->
+    Equal Count (liveSweepCharge conns)
+      (add (sweepReleased treatment policy conns) (liveSweepCharge (sweepLiveConns treatment policy conns))) :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    case conns as self in LiveSweepConns return
+        Equal Count (liveSweepCharge self)
+          (add (sweepReleased treatment policy self) (liveSweepCharge (sweepLiveConns treatment policy self))) with
+    | noLiveSweepConns => same
+    | liveSweepEntry conn rest =>
+      equalTransitivity Count (add (liveSweepAllocation conn) (liveSweepCharge rest))
+        (add (liveSweepAllocation conn)
+          (add (sweepReleased treatment policy rest) (liveSweepCharge (sweepLiveConns treatment policy rest))))
+        (add (add (sweepReleaseFor (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn))
+            (sweepReleased treatment policy rest))
+          (liveSweepCharge (sweepKeepOrDrop (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+            (sweepLiveConns treatment policy rest))))
+        (congruent Count Count (fun (value : Count) => add (liveSweepAllocation conn) value) (liveSweepCharge rest)
+          (add (sweepReleased treatment policy rest) (liveSweepCharge (sweepLiveConns treatment policy rest)))
+          (sweepConservesAllocation treatment policy rest))
+        (equalTransitivity Count
+          (add (liveSweepAllocation conn)
+            (add (sweepReleased treatment policy rest) (liveSweepCharge (sweepLiveConns treatment policy rest))))
+          (add (add (sweepReleaseFor (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn))
+              (sweepReleased treatment policy rest))
+            (sweepKeptCharge (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn)
+              (liveSweepCharge (sweepLiveConns treatment policy rest))))
+          (add (add (sweepReleaseFor (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn))
+              (sweepReleased treatment policy rest))
+            (liveSweepCharge (sweepKeepOrDrop (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+              (sweepLiveConns treatment policy rest))))
+          (sweepStepSplit (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn)
+            (sweepReleased treatment policy rest) (liveSweepCharge (sweepLiveConns treatment policy rest)))
+          (congruent Count Count
+            (fun (value : Count) => add (add (sweepReleaseFor (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn))
+              (sweepReleased treatment policy rest)) value)
+            (sweepKeptCharge (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn)
+              (liveSweepCharge (sweepLiveConns treatment policy rest)))
+            (liveSweepCharge (sweepKeepOrDrop (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+              (sweepLiveConns treatment policy rest)))
+            (equalSymmetry Count
+              (liveSweepCharge (sweepKeepOrDrop (sweepDecisionFor treatment policy conn) (restampLiveSweepConn policy conn)
+                (sweepLiveConns treatment policy rest)))
+              (sweepKeptCharge (sweepDecisionFor treatment policy conn) (liveSweepAllocation conn)
+                (liveSweepCharge (sweepLiveConns treatment policy rest)))
+              (sweepRestampedCharge (sweepDecisionFor treatment policy conn) policy conn
+                (sweepLiveConns treatment policy rest)))))
+
+def sweepKeepsChargeWithin : (treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->
+    (conns : LiveSweepConns) ->
+    AtMost (liveSweepCharge (sweepLiveConns treatment policy conns)) (liveSweepCharge conns) :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (conns : LiveSweepConns) =>
+    equalTransport Count (fun (limit : Count) => AtMost (liveSweepCharge (sweepLiveConns treatment policy conns)) limit)
+      (add (sweepReleased treatment policy conns) (liveSweepCharge (sweepLiveConns treatment policy conns)))
+      (liveSweepCharge conns)
+      (equalSymmetry Count (liveSweepCharge conns)
+        (add (sweepReleased treatment policy conns) (liveSweepCharge (sweepLiveConns treatment policy conns)))
+        (sweepConservesAllocation treatment policy conns))
+      (prefixBound (sweepReleased treatment policy conns) (liveSweepCharge (sweepLiveConns treatment policy conns))
+        (liveSweepCharge (sweepLiveConns treatment policy conns))
+        (reflexiveBound (liveSweepCharge (sweepLiveConns treatment policy conns))))
+
+-- Stale input: the affected role moves to the Open or Grace fallback profile.
+
+mu RotationStaleFallback : Type 0 with
+| rotationStaleOpen : RotationStaleFallback
+| rotationStaleGrace : RotationStaleFallback
+
+def rotationStaleProfile : RotationStaleFallback -> Profile :=
+  fun (fallback : RotationStaleFallback) =>
+    case fallback as self in RotationStaleFallback return Profile with
+    | rotationStaleOpen => openProfile
+    | rotationStaleGrace => graceProfile
+
+def rotationStalePolicy : NodePolicyRole -> RotationStaleFallback -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (role : NodePolicyRole) (fallback : RotationStaleFallback) (policy : AuthoritativeUnionPolicy) =>
+    configureUnionProfile role (rotationStaleProfile fallback) policy
+
+def rotationStaleSelectsFallback : (role : NodePolicyRole) -> (fallback : RotationStaleFallback) ->
+    (policy : AuthoritativeUnionPolicy) ->
+    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (rotationStalePolicy role fallback policy)))
+      (rotationStaleProfile fallback) :=
+  fun (role : NodePolicyRole) (fallback : RotationStaleFallback) (policy : AuthoritativeUnionPolicy) =>
+    congruent RoleUnionPolicy Profile roleUnionProfile
+      (authoritativeRolePolicy role (rotationStalePolicy role fallback policy))
+      (roleUnionPolicy (rotationStaleProfile fallback) (roleUnionSwarms (authoritativeRolePolicy role policy)))
+      (replacedRolePolicySelected role
+        (roleUnionPolicy (rotationStaleProfile fallback) (roleUnionSwarms (authoritativeRolePolicy role policy))) policy)
+
+-- Under the fallback the query is exactly the authentication: no admission without it.
+def rotationStaleQueryIsAuthentication : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) ->
+    (identity : Count) ->
+    Equal Flag (authoritativeUnionQuery role swarm (rotationStalePolicy role fallback policy) authenticated identity)
+      authenticated :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (fallback : RotationStaleFallback)
+      (policy : AuthoritativeUnionPolicy) (authenticated : Flag) (identity : Count) =>
+    case fallback as chosen in RotationStaleFallback return
+        Equal Flag (authoritativeUnionQuery role swarm (rotationStalePolicy role chosen policy) authenticated identity)
+          authenticated with
+    | rotationStaleOpen =>
+      authoritativeOpenKeepsAuthentication role swarm (rotationStalePolicy role rotationStaleOpen policy)
+        authenticated identity (rotationStaleSelectsFallback role rotationStaleOpen policy)
+    | rotationStaleGrace =>
+      authoritativeGraceKeepsAuthentication role swarm (rotationStalePolicy role rotationStaleGrace policy)
+        authenticated identity (rotationStaleSelectsFallback role rotationStaleGrace policy)
+
+-- A recheck sweep under the fallback retains a connection exactly when it is authenticated.
+def rotationStaleRecheckRetainsAuthenticated : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->
+    (authenticated : Flag) -> (stamp : Count) -> (privilege : Flag) -> (allocation : Count) ->
+    Equal Flag (sweepDecisionFor sweepRecheckTreatment (rotationStalePolicy role fallback policy)
+      (liveSweepConn role swarm identity authenticated stamp privilege allocation)) authenticated :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (fallback : RotationStaleFallback)
+      (policy : AuthoritativeUnionPolicy) (identity : Count) (authenticated : Flag) (stamp : Count)
+      (privilege : Flag) (allocation : Count) =>
+    rotationStaleQueryIsAuthentication role swarm fallback policy authenticated identity
+
+-- Stale input changes no membership union of any role on any swarm.
+def rotationStaleKeepsMembership : (role : NodePolicyRole) -> (other : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal CommitteePolicyUnion (authoritativeUnionAt other swarm (rotationStalePolicy role fallback policy))
+      (authoritativeUnionAt other swarm policy) :=
+  fun (role : NodePolicyRole) (other : NodePolicyRole) (swarm : NodePolicySwarm) (fallback : RotationStaleFallback)
+      (policy : AuthoritativeUnionPolicy) =>
+    case policy as state in AuthoritativeUnionPolicy return
+        Equal CommitteePolicyUnion (authoritativeUnionAt other swarm (rotationStalePolicy role fallback state))
+          (authoritativeUnionAt other swarm state) with
+    | authoritativeUnionPolicy generation validator hub observer =>
+      case role as changed in NodePolicyRole return
+          Equal CommitteePolicyUnion (authoritativeUnionAt other swarm
+            (rotationStalePolicy changed fallback (authoritativeUnionPolicy generation validator hub observer)))
+            (authoritativeUnionAt other swarm (authoritativeUnionPolicy generation validator hub observer)) with
+      | validatorPolicyRole => (case other as read in NodePolicyRole return
+          Equal CommitteePolicyUnion (authoritativeUnionAt read swarm
+            (rotationStalePolicy validatorPolicyRole fallback (authoritativeUnionPolicy generation validator hub observer)))
+            (authoritativeUnionAt read swarm (authoritativeUnionPolicy generation validator hub observer)) with
+        | validatorPolicyRole => same
+        | hubPolicyRole => same
+        | observerPolicyRole => same)
+      | hubPolicyRole => (case other as read in NodePolicyRole return
+          Equal CommitteePolicyUnion (authoritativeUnionAt read swarm
+            (rotationStalePolicy hubPolicyRole fallback (authoritativeUnionPolicy generation validator hub observer)))
+            (authoritativeUnionAt read swarm (authoritativeUnionPolicy generation validator hub observer)) with
+        | validatorPolicyRole => same
+        | hubPolicyRole => same
+        | observerPolicyRole => same)
+      | observerPolicyRole => (case other as read in NodePolicyRole return
+          Equal CommitteePolicyUnion (authoritativeUnionAt read swarm
+            (rotationStalePolicy observerPolicyRole fallback (authoritativeUnionPolicy generation validator hub observer)))
+            (authoritativeUnionAt read swarm (authoritativeUnionPolicy generation validator hub observer)) with
+        | validatorPolicyRole => same
+        | hubPolicyRole => same
+        | observerPolicyRole => same)
+
+-- Node state, events and the run fold.
+
+mu RotationSweepNode : Type 0 with
+| rotationSweepNode : AuthoritativeUnionPolicy -> LiveSweepConns -> Count -> Count -> RotationSweepNode
+
+def rotationNodePolicy : RotationSweepNode -> AuthoritativeUnionPolicy :=
+  fun (node : RotationSweepNode) =>
+    case node as self in RotationSweepNode return AuthoritativeUnionPolicy with
+    | rotationSweepNode policy conns bound released => policy
+
+def rotationNodeConns : RotationSweepNode -> LiveSweepConns :=
+  fun (node : RotationSweepNode) =>
+    case node as self in RotationSweepNode return LiveSweepConns with
+    | rotationSweepNode policy conns bound released => conns
+
+def rotationNodeBound : RotationSweepNode -> Count :=
+  fun (node : RotationSweepNode) =>
+    case node as self in RotationSweepNode return Count with
+    | rotationSweepNode policy conns bound released => bound
+
+def rotationNodeReleased : RotationSweepNode -> Count :=
+  fun (node : RotationSweepNode) =>
+    case node as self in RotationSweepNode return Count with
+    | rotationSweepNode policy conns bound released => released
+
+def rotationSweepAt : SweepTreatment -> AuthoritativeUnionPolicy -> RotationSweepNode -> RotationSweepNode :=
+  fun (treatment : SweepTreatment) (policy : AuthoritativeUnionPolicy) (node : RotationSweepNode) =>
+    rotationSweepNode policy (sweepLiveConns treatment policy (rotationNodeConns node)) (rotationNodeBound node)
+      (add (rotationNodeReleased node) (sweepReleased treatment policy (rotationNodeConns node)))
+
+mu RotationSweepEvent : Type 0 with
+| rotationCommitteeEvent : AuthoritativeUnionChange -> RotationSweepEvent
+| rotationStaleEvent : NodePolicyRole -> RotationStaleFallback -> RotationSweepEvent
+| rotationPeriodicSweep : RotationSweepEvent
+
+def rotationEventPolicy : RotationSweepEvent -> AuthoritativeUnionPolicy -> AuthoritativeUnionPolicy :=
+  fun (event : RotationSweepEvent) (policy : AuthoritativeUnionPolicy) =>
+    case event as self in RotationSweepEvent return AuthoritativeUnionPolicy with
+    | rotationCommitteeEvent change => applyAuthoritativeUnionChange change policy
+    | rotationStaleEvent role fallback => rotationStalePolicy role fallback policy
+    | rotationPeriodicSweep => policy
+
+-- Every event installs its policy and then sweeps every live connection at that policy.
+def applyRotationSweepEvent : SweepTreatment -> RotationSweepEvent -> RotationSweepNode -> RotationSweepNode :=
+  fun (treatment : SweepTreatment) (event : RotationSweepEvent) (node : RotationSweepNode) =>
+    rotationSweepAt treatment (rotationEventPolicy event (rotationNodePolicy node)) node
+
+mu RotationSweepEvents : Type 0 with
+| noRotationSweepEvents : RotationSweepEvents
+| rotationSweepEventEntry : RotationSweepEvent -> RotationSweepEvents -> RotationSweepEvents
+
+def rec runRotationSweepEvents : SweepTreatment -> RotationSweepEvents -> RotationSweepNode -> RotationSweepNode :=
+  fun (treatment : SweepTreatment) (events : RotationSweepEvents) (node : RotationSweepNode) =>
+    case events as self in RotationSweepEvents return RotationSweepNode with
+    | noRotationSweepEvents => node
+    | rotationSweepEventEntry event rest =>
+      runRotationSweepEvents treatment rest (applyRotationSweepEvent treatment event node)
+
+def rotationUnverifiedChangeKeepsPolicy : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->
+    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->
+    Equal AuthoritativeUnionPolicy
+      (rotationEventPolicy (rotationCommitteeEvent (committeeUnionChange off role swarm incoming)) policy) policy :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (incoming : CommitteePolicyUnion)
+      (policy : AuthoritativeUnionPolicy) => same
+
+def rotationEventLeavesConnsCurrent : (treatment : SweepTreatment) -> (event : RotationSweepEvent) ->
+    (node : RotationSweepNode) ->
+    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy (applyRotationSweepEvent treatment event node))
+      (rotationNodeConns (applyRotationSweepEvent treatment event node))) on :=
+  fun (treatment : SweepTreatment) (event : RotationSweepEvent) (node : RotationSweepNode) =>
+    sweepLeavesConnsCurrent treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node)
+
+def rotationEventKeepsBound : (treatment : SweepTreatment) -> (event : RotationSweepEvent) -> (node : RotationSweepNode) ->
+    Equal Count (rotationNodeBound (applyRotationSweepEvent treatment event node)) (rotationNodeBound node) :=
+  fun (treatment : SweepTreatment) (event : RotationSweepEvent) (node : RotationSweepNode) => same
+
+def rotationEventKeepsAllocationAdmission : (treatment : SweepTreatment) -> (event : RotationSweepEvent) ->
+    (node : RotationSweepNode) ->
+    AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node) ->
+    AtMost (liveSweepCharge (rotationNodeConns (applyRotationSweepEvent treatment event node)))
+      (rotationNodeBound (applyRotationSweepEvent treatment event node)) :=
+  fun (treatment : SweepTreatment) (event : RotationSweepEvent) (node : RotationSweepNode)
+      (bounded : AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node)) =>
+    boundTransitive
+      (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node)))
+      (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node)
+      (sweepKeepsChargeWithin treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+      bounded
+
+def rotationEventConservesAllocation : (treatment : SweepTreatment) -> (event : RotationSweepEvent) ->
+    (node : RotationSweepNode) ->
+    Equal Count (add (rotationNodeReleased (applyRotationSweepEvent treatment event node))
+        (liveSweepCharge (rotationNodeConns (applyRotationSweepEvent treatment event node))))
+      (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node))) :=
+  fun (treatment : SweepTreatment) (event : RotationSweepEvent) (node : RotationSweepNode) =>
+    equalTransitivity Count
+      (add (add (rotationNodeReleased node)
+          (sweepReleased treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node)))
+        (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))))
+      (add (rotationNodeReleased node)
+        (add (sweepReleased treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+          (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node)))))
+      (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node)))
+      (sweepAddAssociative (rotationNodeReleased node)
+        (sweepReleased treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+        (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))))
+      (congruent Count Count (fun (value : Count) => add (rotationNodeReleased node) value)
+        (add (sweepReleased treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+          (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))))
+        (liveSweepCharge (rotationNodeConns node))
+        (equalSymmetry Count (liveSweepCharge (rotationNodeConns node))
+          (add (sweepReleased treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+            (liveSweepCharge (sweepLiveConns treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))))
+          (sweepConservesAllocation treatment (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))))
+
+-- Arbitrary rotation, stale input and sweep traces.
+
+def rec rotationTraceKeepsConnsCurrent : (treatment : SweepTreatment) -> (events : RotationSweepEvents) ->
+    (node : RotationSweepNode) ->
+    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy node) (rotationNodeConns node)) on ->
+    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy (runRotationSweepEvents treatment events node))
+      (rotationNodeConns (runRotationSweepEvents treatment events node))) on :=
+  fun (treatment : SweepTreatment) (events : RotationSweepEvents) =>
+    case events as self in RotationSweepEvents return
+        (node : RotationSweepNode) ->
+        Equal Flag (liveSweepConnsCurrent (rotationNodePolicy node) (rotationNodeConns node)) on ->
+        Equal Flag (liveSweepConnsCurrent (rotationNodePolicy (runRotationSweepEvents treatment self node))
+          (rotationNodeConns (runRotationSweepEvents treatment self node))) on with
+    | noRotationSweepEvents =>
+      fun (node : RotationSweepNode)
+          (current : Equal Flag (liveSweepConnsCurrent (rotationNodePolicy node) (rotationNodeConns node)) on) => current
+    | rotationSweepEventEntry event rest =>
+      fun (node : RotationSweepNode)
+          (current : Equal Flag (liveSweepConnsCurrent (rotationNodePolicy node) (rotationNodeConns node)) on) =>
+        rotationTraceKeepsConnsCurrent treatment rest (applyRotationSweepEvent treatment event node)
+          (rotationEventLeavesConnsCurrent treatment event node)
+
+def rec rotationTraceKeepsBound : (treatment : SweepTreatment) -> (events : RotationSweepEvents) ->
+    (node : RotationSweepNode) ->
+    Equal Count (rotationNodeBound (runRotationSweepEvents treatment events node)) (rotationNodeBound node) :=
+  fun (treatment : SweepTreatment) (events : RotationSweepEvents) =>
+    case events as self in RotationSweepEvents return
+        (node : RotationSweepNode) ->
+        Equal Count (rotationNodeBound (runRotationSweepEvents treatment self node)) (rotationNodeBound node) with
+    | noRotationSweepEvents => fun (node : RotationSweepNode) => same
+    | rotationSweepEventEntry event rest => fun (node : RotationSweepNode) =>
+      equalTransitivity Count
+        (rotationNodeBound (runRotationSweepEvents treatment rest (applyRotationSweepEvent treatment event node)))
+        (rotationNodeBound (applyRotationSweepEvent treatment event node)) (rotationNodeBound node)
+        (rotationTraceKeepsBound treatment rest (applyRotationSweepEvent treatment event node))
+        (rotationEventKeepsBound treatment event node)
+
+-- A live charge within the bound stays within it after every rotation, stale input and sweep.
+def rec rotationTraceKeepsAllocationAdmission : (treatment : SweepTreatment) -> (events : RotationSweepEvents) ->
+    (node : RotationSweepNode) ->
+    AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node) ->
+    AtMost (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment events node)))
+      (rotationNodeBound (runRotationSweepEvents treatment events node)) :=
+  fun (treatment : SweepTreatment) (events : RotationSweepEvents) =>
+    case events as self in RotationSweepEvents return
+        (node : RotationSweepNode) ->
+        AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node) ->
+        AtMost (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment self node)))
+          (rotationNodeBound (runRotationSweepEvents treatment self node)) with
+    | noRotationSweepEvents =>
+      fun (node : RotationSweepNode) (bounded : AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node)) =>
+        bounded
+    | rotationSweepEventEntry event rest =>
+      fun (node : RotationSweepNode) (bounded : AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node)) =>
+        rotationTraceKeepsAllocationAdmission treatment rest (applyRotationSweepEvent treatment event node)
+          (rotationEventKeepsAllocationAdmission treatment event node bounded)
+
+-- Released plus live charge is constant over any trace: each allocation is released at most once.
+def rec rotationTraceConservesAllocation : (treatment : SweepTreatment) -> (events : RotationSweepEvents) ->
+    (node : RotationSweepNode) ->
+    Equal Count (add (rotationNodeReleased (runRotationSweepEvents treatment events node))
+        (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment events node))))
+      (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node))) :=
+  fun (treatment : SweepTreatment) (events : RotationSweepEvents) =>
+    case events as self in RotationSweepEvents return
+        (node : RotationSweepNode) ->
+        Equal Count (add (rotationNodeReleased (runRotationSweepEvents treatment self node))
+            (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment self node))))
+          (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node))) with
+    | noRotationSweepEvents => fun (node : RotationSweepNode) => same
+    | rotationSweepEventEntry event rest => fun (node : RotationSweepNode) =>
+      equalTransitivity Count
+        (add (rotationNodeReleased (runRotationSweepEvents treatment rest (applyRotationSweepEvent treatment event node)))
+          (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment rest (applyRotationSweepEvent treatment event node)))))
+        (add (rotationNodeReleased (applyRotationSweepEvent treatment event node))
+          (liveSweepCharge (rotationNodeConns (applyRotationSweepEvent treatment event node))))
+        (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node)))
+        (rotationTraceConservesAllocation treatment rest (applyRotationSweepEvent treatment event node))
+        (rotationEventConservesAllocation treatment event node)
+
+-- Under the recheck treatment every connection that stays live holds the current privilege.
+def rec recheckTraceKeepsOnlyPrivileged : (events : RotationSweepEvents) -> (node : RotationSweepNode) ->
+    Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on ->
+    Equal Flag (liveSweepConnsPrivileged (rotationNodeConns (runRotationSweepEvents sweepRecheckTreatment events node))) on :=
+  fun (events : RotationSweepEvents) =>
+    case events as self in RotationSweepEvents return
+        (node : RotationSweepNode) ->
+        Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on ->
+        Equal Flag (liveSweepConnsPrivileged (rotationNodeConns (runRotationSweepEvents sweepRecheckTreatment self node))) on with
+    | noRotationSweepEvents =>
+      fun (node : RotationSweepNode) (privileged : Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on) =>
+        privileged
+    | rotationSweepEventEntry event rest =>
+      fun (node : RotationSweepNode) (privileged : Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on) =>
+        recheckTraceKeepsOnlyPrivileged rest (applyRotationSweepEvent sweepRecheckTreatment event node)
+          (recheckSweepKeepsOnlyPrivileged (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))

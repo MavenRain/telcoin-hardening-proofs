@@ -76,7 +76,7 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
+          "sha256": "24660af1b3ab3300ba57584c5d07feac28b0764d54cc287228e41c747fe15772"
         },
         {
           "criterion": 1,
@@ -86,7 +86,7 @@
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
+          "sha256": "24660af1b3ab3300ba57584c5d07feac28b0764d54cc287228e41c747fe15772"
         }
       ]
     },
@@ -111,12 +111,12 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
+          "sha256": "24660af1b3ab3300ba57584c5d07feac28b0764d54cc287228e41c747fe15772"
         },
         {
           "criterion": 1,
           "path": "proof-audit.json",
-          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
+          "sha256": "24660af1b3ab3300ba57584c5d07feac28b0764d54cc287228e41c747fe15772"
         },
         {
           "criterion": 2,
