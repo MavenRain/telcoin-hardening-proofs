@@ -76,7 +76,7 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "ca936aa6444597092be4436e101241207813f2be729c57bc19ecded66221754f"
+          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
         },
         {
           "criterion": 1,
@@ -86,7 +86,7 @@
         {
           "criterion": 2,
           "path": "proof-audit.json",
-          "sha256": "ca936aa6444597092be4436e101241207813f2be729c57bc19ecded66221754f"
+          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
         }
       ]
     },
@@ -111,12 +111,12 @@
         {
           "criterion": 0,
           "path": "proof-audit.json",
-          "sha256": "ca936aa6444597092be4436e101241207813f2be729c57bc19ecded66221754f"
+          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
         },
         {
           "criterion": 1,
           "path": "proof-audit.json",
-          "sha256": "ca936aa6444597092be4436e101241207813f2be729c57bc19ecded66221754f"
+          "sha256": "4a605ee9192502b1aaa52a3019b450bde225d38c2547380af24faec5cbf03b58"
         },
         {
           "criterion": 2,
@@ -129,7 +129,7 @@
       "id": "R04",
       "title": "Close policy, source churn and recovery models",
       "planned_turns": 5,
-      "turns_spent": 5,
+      "turns_spent": 6,
       "status": "active",
       "depends_on": [
         "R03"

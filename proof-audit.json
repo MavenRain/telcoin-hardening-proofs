@@ -14278,8 +14278,8 @@
       "id": "M042",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Generic replacement resets a roster and invalidates old receipts. The three modeled policy consumers agree on one supplied view. Trusted/bootstrap additions/removals and separate decision-point projections are absent. The frozen required scope remains a model obligation in R04.",
+      "scope_complete": true,
+      "scope_review": "R04 turn 6 closes the reload and removal obligation. Module 96 models an installed view with a revision, a trusted set and a bootstrap set, trusted and bootstrap additions and removals as ordered deltas, and three separate decision points. The inbound and outbound established points read trusted membership and the outbound dial point reads the trusted or bootstrap union of the same view. A node holds the installed view, the previous view, a worker list stamped with revisions, an allocation bound and a charge. A successful reload applies the deltas in order, installs the next revision, records the replaced view and restamps every worker; a failed reload keeps the whole node; rollback reinstalls the previous view and restamps every worker. A trusted addition admits the peer at every point. A trusted removal denies inbound and established admission, while dialing follows the remaining bootstrap membership. Bootstrap updates keep inbound and established admission unchanged; a bootstrap addition selects the peer for dialing, and removal from both sets denies it everywhere. These addition and removal witnesses describe individual updates; a later delta can overwrite an earlier change to the same membership. Unmentioned peers keep every decision, and verified privilege follows trusted membership of authenticated peers. Every finite reload trace preserves the allocation bound and preserves charge admission given an initially bounded charge. It preserves worker uniformity given workers initially stamped with the installed revision. The module 33 and 34 replacement and receipt witnesses stay cited. Reload outcomes and the allocation parameters are supplied; runtime capture and authentication remain E029, and configuration parsing, file watching, worker restart and live sweeps are not credited.",
       "witnesses": [
         {
           "path": "proofs/34-policy-traces.mech",
@@ -14324,32 +14324,1212 @@
             "Both consumers receive the same current VersionedPolicy value and input identity/authentication flag."
           ],
           "limits": "The three PolicyConsumer constructors read one supplied snapshot. They do not model separate inbound, outbound-dial and outbound-established projections, trusted/bootstrap additions or removals, reload failure or rollback."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadMemberAtEmpty",
+          "statement": "(index : Count) -> Equal Flag (policyMemberAt index noSlots) off",
+          "scope_kind": "general_transition",
+          "establishes": "No identity is a member of the empty slot list.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadSetSlotReads",
+          "statement": "(index : Count) -> (value : Flag) -> (members : Slots) ->\n    Equal Flag (policyMemberAt index (reloadSetSlot index value members)) value",
+          "scope_kind": "general_transition",
+          "establishes": "Setting the slot of an identity makes membership of that identity read the set value.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadSetSlotFrame",
+          "statement": "(index : Count) -> (other : Count) -> (value : Flag) -> (members : Slots) ->\n    Equal Flag (policyMemberAt other (reloadSetSlot index value members))\n      (reloadPick (reloadSameIdentity index other) value (policyMemberAt other members))",
+          "scope_kind": "general_transition",
+          "establishes": "Setting one slot changes the membership of another identity only when the two identities are the same.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadSetSlotKeepsOther",
+          "statement": "(index : Count) -> (other : Count) -> (value : Flag) -> (members : Slots) ->\n    Equal Flag (reloadSameIdentity index other) off ->\n    Equal Flag (policyMemberAt other (reloadSetSlot index value members)) (policyMemberAt other members)",
+          "scope_kind": "general_transition",
+          "establishes": "Setting the slot of one identity keeps the membership of every distinct identity.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadSameIdentityReflexive",
+          "statement": "(identity : Count) -> Equal Flag (reloadSameIdentity identity identity) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every identity is the same identity as itself.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEitherOnRight",
+          "statement": "(first : Flag) -> Equal Flag (either first on) on",
+          "scope_kind": "general_transition",
+          "establishes": "A disjunction with a set right operand is set.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadBothOffRight",
+          "statement": "(first : Flag) -> Equal Flag (both first off) off",
+          "scope_kind": "general_transition",
+          "establishes": "A conjunction with a clear right operand is clear.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEitherOffLeft",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag (either first second) off ->\n    Equal Flag first off",
+          "scope_kind": "general_transition",
+          "establishes": "A clear disjunction has a clear left operand.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEitherOffRight",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag (either first second) off ->\n    Equal Flag second off",
+          "scope_kind": "general_transition",
+          "establishes": "A clear disjunction has a clear right operand.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadInboundEstablishedAgree",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadInbound view peer) (reloadProjection reloadOutboundEstablished view peer)",
+          "scope_kind": "general_transition",
+          "establishes": "The inbound and outbound established decision points read the same trusted membership of every view.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadDialIncludesInbound",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadInbound view peer) on ->\n    Equal Flag (reloadProjection reloadOutboundDial view peer) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every peer the inbound decision point admits is selected by the outbound dial decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadAddedTrustedAllowedEverywhere",
+          "statement": "(point : ReloadDecisionPoint) -> (view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection point (applyReloadDelta (reloadAddTrusted peer) view) peer) on",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted addition admits the added peer at every decision point for every view.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRemovedTrustedDeniedInbound",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadInbound (applyReloadDelta (reloadRemoveTrusted peer) view) peer) off",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted removal denies the removed peer at the inbound decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRemovedTrustedDeniedEstablished",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadOutboundEstablished (applyReloadDelta (reloadRemoveTrusted peer) view) peer) off",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted removal denies the removed peer at the outbound established decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRemovedTrustedDialFallsToBootstrap",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadOutboundDial (applyReloadDelta (reloadRemoveTrusted peer) view) peer)\n      (reloadBootstrapMember view peer)",
+          "scope_kind": "general_transition",
+          "establishes": "After a trusted removal the outbound dial decision for the removed peer equals its bootstrap membership.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadAddedBootstrapSelectedForDial",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection reloadOutboundDial (applyReloadDelta (reloadAddBootstrap peer) view) peer) on",
+          "scope_kind": "general_transition",
+          "establishes": "A bootstrap addition selects the added peer at the outbound dial decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadBootstrapUpdateKeepsInbound",
+          "statement": "(peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->\n    Equal Flag (reloadProjection reloadInbound (reloadSetBootstrap peer value view) target)\n      (reloadProjection reloadInbound view target)",
+          "scope_kind": "general_transition",
+          "establishes": "A bootstrap update keeps the inbound decision for every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadBootstrapUpdateKeepsEstablished",
+          "statement": "(peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->\n    Equal Flag (reloadProjection reloadOutboundEstablished (reloadSetBootstrap peer value view) target)\n      (reloadProjection reloadOutboundEstablished view target)",
+          "scope_kind": "general_transition",
+          "establishes": "A bootstrap update keeps the outbound established decision for every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRemovedEverywhereDenied",
+          "statement": "(point : ReloadDecisionPoint) -> (view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadProjection point\n      (applyReloadDeltas (reloadDeltaEntry (reloadRemoveTrusted peer) (reloadDeltaEntry (reloadRemoveBootstrap peer)\n        noReloadDeltas)) view) peer) off",
+          "scope_kind": "general_transition",
+          "establishes": "Removing a peer from both the trusted and bootstrap sets denies it at every decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTrustedUpdateKeepsOther",
+          "statement": "(point : ReloadDecisionPoint) -> (peer : Count) -> (other : Count) ->\n    (value : Flag) -> (view : ReloadView) -> Equal Flag (reloadSameIdentity peer other) off ->\n    Equal Flag (reloadProjection point (reloadSetTrusted peer value view) other) (reloadProjection point view other)",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted update of one peer keeps every decision for every distinct peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadBootstrapUpdateKeepsOther",
+          "statement": "(point : ReloadDecisionPoint) -> (peer : Count) -> (other : Count) ->\n    (value : Flag) -> (view : ReloadView) -> Equal Flag (reloadSameIdentity peer other) off ->\n    Equal Flag (reloadProjection point (reloadSetBootstrap peer value view) other) (reloadProjection point view other)",
+          "scope_kind": "general_transition",
+          "establishes": "A bootstrap update of one peer keeps every decision for every distinct peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadDeltaKeepsOther",
+          "statement": "(delta : ReloadDelta) -> (point : ReloadDecisionPoint) -> (other : Count) ->\n    (view : ReloadView) -> Equal Flag (reloadSameIdentity (reloadDeltaPeer delta) other) off ->\n    Equal Flag (reloadProjection point (applyReloadDelta delta view) other) (reloadProjection point view other)",
+          "scope_kind": "general_transition",
+          "establishes": "Every addition or removal keeps every decision for every peer it does not name.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadDeltasKeepUnmentioned",
+          "statement": "(deltas : ReloadDeltas) -> (point : ReloadDecisionPoint) -> (peer : Count) ->\n    (view : ReloadView) -> Equal Flag (reloadDeltasMention peer deltas) off ->\n    Equal Flag (reloadProjection point (applyReloadDeltas deltas view) peer) (reloadProjection point view peer)",
+          "scope_kind": "general_transition",
+          "establishes": "Every finite delta list keeps every decision for every peer it does not mention.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadDeltaKeepsRevision",
+          "statement": "(delta : ReloadDelta) -> (view : ReloadView) ->\n    Equal Count (reloadRevision (applyReloadDelta delta view)) (reloadRevision view)",
+          "scope_kind": "general_transition",
+          "establishes": "A single addition or removal keeps the view revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadDeltasKeepRevision",
+          "statement": "(deltas : ReloadDeltas) -> (view : ReloadView) ->\n    Equal Count (reloadRevision (applyReloadDeltas deltas view)) (reloadRevision view)",
+          "scope_kind": "general_transition",
+          "establishes": "Every finite delta list keeps the view revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadStepReadsStagedView",
+          "statement": "(point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    (peer : Count) ->\n    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadSucceeded deltas node) peer)\n      (reloadProjection point (applyReloadDeltas deltas (reloadInstalled node)) peer)",
+          "scope_kind": "general_transition",
+          "establishes": "After a successful reload every decision point reads the installed view that applies the reload deltas.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadKeepsUnmentionedProjection",
+          "statement": "(point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    (peer : Count) -> Equal Flag (reloadDeltasMention peer deltas) off ->\n    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadSucceeded deltas node) peer)\n      (reloadNodeProjection point node peer)",
+          "scope_kind": "general_transition",
+          "establishes": "A successful reload keeps every decision for every peer its deltas do not mention.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadAdvancesRevision",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    Equal Count (reloadRevision (reloadInstalled (reloadNodeStep reloadSucceeded deltas node)))\n      (next (reloadRevision (reloadInstalled node)))",
+          "scope_kind": "general_transition",
+          "establishes": "A successful reload installs the next revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailureKeepsNode",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    Equal ReloadNode (reloadNodeStep reloadFailed deltas node) node",
+          "scope_kind": "general_transition",
+          "establishes": "A failed reload keeps the whole node: installed view, previous view, workers, bound and charge.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailureKeepsEveryProjection",
+          "statement": "(point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) ->\n    (node : ReloadNode) -> (peer : Count) ->\n    Equal Flag (reloadNodeProjection point (reloadNodeStep reloadFailed deltas node) peer)\n      (reloadNodeProjection point node peer)",
+          "scope_kind": "general_transition",
+          "establishes": "A failed reload keeps every decision at every decision point for every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadKeepsPreviousView",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    Equal ReloadView (reloadPrevious (reloadNodeStep reloadSucceeded deltas node)) (reloadInstalled node)",
+          "scope_kind": "general_transition",
+          "establishes": "A successful reload records the view it replaced as the previous view.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadStampedWorkersUniform",
+          "statement": "(revision : Count) -> (workers : ReloadWorkers) ->\n    Equal Flag (reloadWorkersAt revision (stampReloadWorkers revision workers)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Restamping a worker list with a revision makes every listed worker carry that revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadStampKeepsWorkerListing",
+          "statement": "(revision : Count) -> (identity : Count) -> (workers : ReloadWorkers) ->\n    Equal Flag (reloadWorkerListed identity (stampReloadWorkers revision workers)) (reloadWorkerListed identity workers)",
+          "scope_kind": "general_transition",
+          "establishes": "Restamping keeps the listing of every worker identity.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadStampsEveryWorker",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (reloadNodeStep reloadSucceeded deltas node)))\n      (reloadNodeWorkers (reloadNodeStep reloadSucceeded deltas node))) on",
+          "scope_kind": "general_transition",
+          "establishes": "After a successful reload every worker carries the installed revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadStepKeepsWorkerListing",
+          "statement": "(outcome : ReloadOutcome) -> (deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    (identity : Count) ->\n    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (reloadNodeStep outcome deltas node)))\n      (reloadWorkerListed identity (reloadNodeWorkers node))",
+          "scope_kind": "general_transition",
+          "establishes": "A reload with either outcome keeps the listing of every worker identity.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRollbackRestoresView",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) ->\n    Equal ReloadView (reloadInstalled (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)))\n      (reloadInstalled node)",
+          "scope_kind": "general_transition",
+          "establishes": "Rollback after a successful reload reinstalls the view the reload replaced.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRollbackRestoresEveryProjection",
+          "statement": "(point : ReloadDecisionPoint) -> (deltas : ReloadDeltas) ->\n    (node : ReloadNode) -> (peer : Count) ->\n    Equal Flag (reloadNodeProjection point (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)) peer)\n      (reloadNodeProjection point node peer)",
+          "scope_kind": "general_transition",
+          "establishes": "Rollback after a successful reload restores every decision at every decision point for every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRollbackStampsEveryWorker",
+          "statement": "(node : ReloadNode) ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (rollbackReloadNode node)))\n      (reloadNodeWorkers (rollbackReloadNode node))) on",
+          "scope_kind": "general_transition",
+          "establishes": "After rollback every worker carries the reinstalled revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadUnauthenticatedUnprivileged",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadVerifiedPrivilege view peer off) off",
+          "scope_kind": "general_transition",
+          "establishes": "An unauthenticated peer holds no verified privilege in any view.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTrustedAdditionGrantsPrivilege",
+          "statement": "(view : ReloadView) -> (peer : Count) ->\n    Equal Flag (reloadVerifiedPrivilege (applyReloadDelta (reloadAddTrusted peer) view) peer on) on",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted addition grants verified privilege to the authenticated added peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTrustedRemovalRevokesPrivilege",
+          "statement": "(view : ReloadView) -> (peer : Count) -> (authenticated : Flag) ->\n    Equal Flag (reloadVerifiedPrivilege (applyReloadDelta (reloadRemoveTrusted peer) view) peer authenticated) off",
+          "scope_kind": "general_transition",
+          "establishes": "A trusted removal revokes the verified privilege of the removed peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadBootstrapUpdateKeepsPrivilege",
+          "statement": "(peer : Count) -> (value : Flag) -> (view : ReloadView) -> (target : Count) ->\n    (authenticated : Flag) ->\n    Equal Flag (reloadVerifiedPrivilege (reloadSetBootstrap peer value view) target authenticated)\n      (reloadVerifiedPrivilege view target authenticated)",
+          "scope_kind": "general_transition",
+          "establishes": "A bootstrap update keeps the verified privilege of every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailureKeepsPrivilege",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->\n    (authenticated : Flag) ->\n    Equal Flag (reloadNodePrivilege (reloadNodeStep reloadFailed deltas node) peer authenticated)\n      (reloadNodePrivilege node peer authenticated)",
+          "scope_kind": "general_transition",
+          "establishes": "A failed reload keeps the verified privilege of every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadRollbackRestoresPrivilege",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->\n    (authenticated : Flag) ->\n    Equal Flag (reloadNodePrivilege (rollbackReloadNode (reloadNodeStep reloadSucceeded deltas node)) peer authenticated)\n      (reloadNodePrivilege node peer authenticated)",
+          "scope_kind": "general_transition",
+          "establishes": "Rollback after a successful reload restores the verified privilege of every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadKeepsUnmentionedPrivilege",
+          "statement": "(deltas : ReloadDeltas) -> (node : ReloadNode) -> (peer : Count) ->\n    (authenticated : Flag) -> Equal Flag (reloadDeltasMention peer deltas) off ->\n    Equal Flag (reloadNodePrivilege (reloadNodeStep reloadSucceeded deltas node) peer authenticated)\n      (reloadNodePrivilege node peer authenticated)",
+          "scope_kind": "general_transition",
+          "establishes": "A successful reload keeps the verified privilege of every peer its deltas do not mention.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEventKeepsAllocationBound",
+          "statement": "(event : ReloadEvent) -> (node : ReloadNode) ->\n    Equal Count (reloadNodeBound (applyReloadEvent event node)) (reloadNodeBound node)",
+          "scope_kind": "general_transition",
+          "establishes": "Every reload attempt and rollback keeps the allocation bound.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTraceKeepsAllocationBound",
+          "statement": "(events : ReloadEvents) -> (node : ReloadNode) ->\n    Equal Count (reloadNodeBound (runReloadEvents events node)) (reloadNodeBound node)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite reload event trace keeps the allocation bound.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEventKeepsAllocationAdmission",
+          "statement": "(event : ReloadEvent) -> (node : ReloadNode) ->\n    AtMost (reloadNodeCharge node) (reloadNodeBound node) ->\n    AtMost (reloadNodeCharge (applyReloadEvent event node)) (reloadNodeBound (applyReloadEvent event node))",
+          "scope_kind": "general_transition",
+          "establishes": "Every reload attempt and rollback preserves allocation admission, provided the input charge is at most the input bound.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTraceKeepsAllocationAdmission",
+          "statement": "(events : ReloadEvents) -> (node : ReloadNode) ->\n    AtMost (reloadNodeCharge node) (reloadNodeBound node) ->\n    AtMost (reloadNodeCharge (runReloadEvents events node)) (reloadNodeBound (runReloadEvents events node))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite reload event trace preserves allocation admission, provided the initial charge is at most the initial bound.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEventKeepsWorkersUniform",
+          "statement": "(event : ReloadEvent) -> (node : ReloadNode) ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (applyReloadEvent event node)))\n      (reloadNodeWorkers (applyReloadEvent event node))) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every reload attempt and rollback preserves workers at the installed revision, provided all workers initially carry the installed revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTraceKeepsWorkersUniform",
+          "statement": "(events : ReloadEvents) -> (node : ReloadNode) ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled node)) (reloadNodeWorkers node)) on ->\n    Equal Flag (reloadWorkersAt (reloadRevision (reloadInstalled (runReloadEvents events node)))\n      (reloadNodeWorkers (runReloadEvents events node))) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite reload event trace preserves workers at the installed revision, provided all workers initially carry the installed revision.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadEventKeepsWorkerListing",
+          "statement": "(event : ReloadEvent) -> (node : ReloadNode) -> (identity : Count) ->\n    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (applyReloadEvent event node)))\n      (reloadWorkerListed identity (reloadNodeWorkers node))",
+          "scope_kind": "general_transition",
+          "establishes": "Every reload attempt and rollback keeps the listing of every worker identity.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadTraceKeepsWorkerListing",
+          "statement": "(events : ReloadEvents) -> (node : ReloadNode) -> (identity : Count) ->\n    Equal Flag (reloadWorkerListed identity (reloadNodeWorkers (runReloadEvents events node)))\n      (reloadWorkerListed identity (reloadNodeWorkers node))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite reload event trace keeps the listing of every worker identity.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailedTraceKeepsNode",
+          "statement": "(failures : ReloadFailures) -> (node : ReloadNode) ->\n    Equal ReloadNode (runReloadEvents (lowerReloadFailures failures) node) node",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace of failed reload attempts keeps the whole node.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailedTraceKeepsEveryProjection",
+          "statement": "(failures : ReloadFailures) -> (point : ReloadDecisionPoint) ->\n    (node : ReloadNode) -> (peer : Count) ->\n    Equal Flag (reloadNodeProjection point (runReloadEvents (lowerReloadFailures failures) node) peer)\n      (reloadNodeProjection point node peer)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace of failed reload attempts keeps every decision at every decision point.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailedTraceKeepsPrivilege",
+          "statement": "(failures : ReloadFailures) -> (node : ReloadNode) -> (peer : Count) ->\n    (authenticated : Flag) ->\n    Equal Flag (reloadNodePrivilege (runReloadEvents (lowerReloadFailures failures) node) peer authenticated)\n      (reloadNodePrivilege node peer authenticated)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace of failed reload attempts keeps the verified privilege of every peer.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailedTraceRecordsEveryAttempt",
+          "statement": "(failures : ReloadFailures) ->\n    Equal Count (reloadEventsAttempts (lowerReloadFailures failures)) (reloadFailuresCount failures)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "The lowered event trace of failed reloads holds one attempt event for each failure.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
+        },
+        {
+          "path": "proofs/96-reload-removal-lifecycle.mech",
+          "name": "reloadFailedTraceRecordsEveryPeer",
+          "statement": "(peer : Count) -> (failures : ReloadFailures) ->\n    Equal Flag (reloadEventsMention peer (lowerReloadFailures failures)) (reloadFailuresMention peer failures)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "The lowered event trace of failed reloads mentions a peer exactly when one of the failures mentions it.",
+          "premises": [
+            "Each inbound, outbound dial and outbound established decision reads the installed reload view at its atomic model decision point. Runtime capture of that view by the node code paths and the authentication judgment remain E029.",
+            "Reload outcomes are supplied inputs. The model takes the success or failure of each attempt as given and does not model parsing, validation or file access. A failed attempt installs nothing, and rollback reinstalls the previous view.",
+            "Worker identities are a finite supplied list. Successful reload and rollback restamp every listed worker with the installed revision and add or drop no worker; failed reload preserves the node. Worker-uniformity preservation witnesses require workers initially stamped with the installed revision. Worker restart and runtime propagation are external.",
+            "The allocation bound and charge are supplied model parameters carried unchanged in the node. Allocation-admission witnesses require the initial AtMost (reloadNodeCharge node) (reloadNodeBound node) premise. No numeric reload, revision or allocation constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic reload, removal and rollback model over one installed view with supplied outcomes. No runtime refinement, configuration parsing, file watching, worker restart, live-connection sweep or deployment qualification is established."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "reload_same_identity_zero_zero_off",
+          "sha256": "bb9569b6be092cd6fbb28b1029a5c4a22361109b00ce56542cbabb2326ab886c"
+        },
+        {
+          "name": "reload_same_identity_next_zero_on",
+          "sha256": "1819d1366ea5e46674ac8cee9f7604952249fa94a70682e183f6137230954aa0"
+        },
+        {
+          "name": "reload_pick_swapped",
+          "sha256": "9da3694531bc33b6d90a0cbcd6621c474e03195113fc792db7eebbac2f33a57c"
+        },
+        {
+          "name": "reload_set_slot_head_keeps_old",
+          "sha256": "7aa85c4de96f6508c8abc6686f8d4184d5a6965bbd04886d0b05662288b30427"
+        },
+        {
+          "name": "reload_set_slot_pad_on",
+          "sha256": "3a0e30997d82d8fe1b247a512e7621d583bf6fca5b5c1a6c5f9418fabeb9b00a"
+        },
+        {
+          "name": "reload_set_slot_tail_skips_set",
+          "sha256": "183486c3b272bcb01c8f6324267b5a6140b654eb4c92c36ae3545b70ed31536c"
+        },
+        {
+          "name": "reload_trusted_reads_bootstrap",
+          "sha256": "66edf27ec7aec46ceeb9b563a7a7e27e41feba7ab6c28b1dcd3ada613c769f3e"
+        },
+        {
+          "name": "reload_bootstrap_reads_trusted",
+          "sha256": "3dbf342325104487c010495323ea3193efa663f1de776b40bce07893e1ae26a9"
+        },
+        {
+          "name": "reload_revision_reads_zero",
+          "sha256": "c1744713c6c79c0051a6d8213bd7f19428a96afcd01835dc2bd88b3a090bfd9c"
+        },
+        {
+          "name": "reload_set_trusted_writes_bootstrap",
+          "sha256": "9c3a45c41338f7f810470b131657f42bc760252192019f98b15628e32252ed52"
+        },
+        {
+          "name": "reload_set_trusted_ignores_value",
+          "sha256": "145859cfb1141d637cbf20952f6a9321bb513ee5a9fb8edcf565ef8fd7b177bd"
+        },
+        {
+          "name": "reload_set_trusted_bumps_revision",
+          "sha256": "b464bd3a24787875595be207a799530bc393df6b80360aaa1656a1065af4a8a2"
+        },
+        {
+          "name": "reload_set_bootstrap_writes_trusted",
+          "sha256": "85674f5ea5459595bc216805bbf48b1979706f6e5d00e1e25ada34f1087c1c2e"
+        },
+        {
+          "name": "reload_set_bootstrap_ignores_value",
+          "sha256": "da75b2210ed893afe2ab70968fe9f5df28f32d76b2b502fed5710246e3a14734"
+        },
+        {
+          "name": "reload_bump_keeps_revision",
+          "sha256": "1e74e2ecc3c4458c303475dc71eb2e23c4e2b20416ed632eaaf9b767c2e9bd38"
+        },
+        {
+          "name": "reload_bump_clears_trusted",
+          "sha256": "628ede51e91a7ae545af80217b439a0fc4c87666f2e10f92cf32bb49814ffacc"
+        },
+        {
+          "name": "reload_delta_peer_remove_trusted_zero",
+          "sha256": "b1558d7ac4f27731636a819e74ef1a5a05b8f2c2dbedfb20badf08578e33202e"
+        },
+        {
+          "name": "reload_add_trusted_off",
+          "sha256": "06522a93fdfc94fd49feb37b90c96a94ff3d49bd86ac40714ba1d435579d3329"
+        },
+        {
+          "name": "reload_remove_trusted_on",
+          "sha256": "79e6a81090eb17da5a6cdb32c4e5a8a44d9b2d936fd83291d4559e27d84db424"
+        },
+        {
+          "name": "reload_add_bootstrap_off",
+          "sha256": "42f369b6c4a9a0254a826781bb56a4491e73189db58ba21ff313b72b53099366"
+        },
+        {
+          "name": "reload_remove_bootstrap_keeps_view",
+          "sha256": "4be3cec316e63d9d9def441d4e8a400abb870996fae15272b008d3edacd381d6"
+        },
+        {
+          "name": "reload_deltas_drop_head",
+          "sha256": "72c38d59a8233cf031461219dabc1449401725c6f16bea92e906b6c78c9c3d81"
+        },
+        {
+          "name": "reload_deltas_stop_after_head",
+          "sha256": "cc0917413233b7c420fd5078dea0ecc0ddef2f2cb8598aa21f854fbb864db41a"
+        },
+        {
+          "name": "reload_mention_ignores_head",
+          "sha256": "d128cb980dad635666e0fac1bb3251b3788638c69ebecd31349ec70365572167"
+        },
+        {
+          "name": "reload_staged_skips_deltas",
+          "sha256": "92bbb153f750c4871a17f3394bdf53ab5d45537f8d6257534307bc4a560def55"
+        },
+        {
+          "name": "reload_staged_skips_bump",
+          "sha256": "e95c2497332dd687203e6ed827d6fd103adef14dba8eb46d2a34b0e882d69488"
+        },
+        {
+          "name": "reload_trusted_member_reads_bootstrap",
+          "sha256": "69e6a23be7bd30a98568c8baf5ddce9b8e2cab9e48f3d9807313eb16f4874f29"
+        },
+        {
+          "name": "reload_bootstrap_member_reads_trusted",
+          "sha256": "e529ddafaef34d12226768161729267fa24b19efc166d188859de0adee997b0e"
+        },
+        {
+          "name": "reload_inbound_reads_union",
+          "sha256": "279bc34b4c6cdf3a7e3b412769df19b8327bce8ff3fecf483f08b78edbdd95c5"
+        },
+        {
+          "name": "reload_dial_reads_trusted_only",
+          "sha256": "5471efb6176f6c29df66218a2cf78172a43970a5ea737400b1c11c4d475c51cd"
+        },
+        {
+          "name": "reload_dial_reads_bootstrap_only",
+          "sha256": "ba63e0cb37ae53871c7242f2dca2c646b05329dd1d6765fdc3b263f411ad1865"
+        },
+        {
+          "name": "reload_established_reads_union",
+          "sha256": "49b6cd9878286a43f47ca66132d042f49cb3487184b868ff64aad44cbbc407e8"
+        },
+        {
+          "name": "lifecycle_stamp_keeps_old",
+          "sha256": "148249419a75aec1c9fcb16cf2f485cb0e1110c2b2a1db9740a78dbb83d02833"
+        },
+        {
+          "name": "lifecycle_stamp_skips_tail",
+          "sha256": "0041267e33fa208a2050dc663ca0ce957cf76f1e82934a0fa6bb9775e4bebd82"
+        },
+        {
+          "name": "lifecycle_stamp_drops_worker",
+          "sha256": "404980d05b8d6b4431b8741a97ef2a2acc1c9f0e727fe5ca782e5728a0c13d49"
+        },
+        {
+          "name": "lifecycle_workers_at_ignores_head",
+          "sha256": "3cbea2c80d12d9aeb5c2ab7bce4e0c72b54295802b6bf4db5a71e7994a737965"
+        },
+        {
+          "name": "lifecycle_listed_reads_stamp",
+          "sha256": "b1d235f454d61552382fd83d004b9d34dc29ac296c0dd3c2e246880add2287ca"
+        },
+        {
+          "name": "reload_success_keeps_installed",
+          "sha256": "4436f9fade4baec9e2672542ef1400447e79703beb440493a2514aa90f042dc1"
+        },
+        {
+          "name": "reload_success_drops_previous",
+          "sha256": "03010fdbdd3ba13de46bc7658caa6f8fa66c36e2b4758bb1f7a55936463ae1b9"
+        },
+        {
+          "name": "reload_success_skips_restamp",
+          "sha256": "93f62e9b67e0d289bdd04483ea1f31a4cc38cd4bb7b620872c7c2a568047cc28"
+        },
+        {
+          "name": "reload_success_stamps_old_revision",
+          "sha256": "aa3043b4c4bce0546df5f2e2ddba691e47b0c6a4b404cf7eb08da8beab95c307"
+        },
+        {
+          "name": "reload_success_grows_bound",
+          "sha256": "120aba544b5f38b692d868c1309a72c29823e79aae415e147467799d37d21efe"
+        },
+        {
+          "name": "reload_success_clears_charge",
+          "sha256": "ed0864a2a3d501d21b1917646e97d2b5830ff453cee2e2b2ca0b21af9a0d66f6"
+        },
+        {
+          "name": "reload_failure_bumps_revision",
+          "sha256": "f8fff09869300e8297289c50b4936a14667c1fb86b710edbc3119fdd375395fe"
+        },
+        {
+          "name": "lifecycle_rollback_keeps_current",
+          "sha256": "dc8a55de644c146fba3218a1b1fdd73074a9fa4552fc306eb8504d2f02b25f74"
+        },
+        {
+          "name": "lifecycle_rollback_skips_restamp",
+          "sha256": "5f082e2bc6f8e60d2a11329f08a4895c6bacce2462ed655b29a603d29d8b924f"
+        },
+        {
+          "name": "lifecycle_rollback_grows_bound",
+          "sha256": "483bc5f1dea96e3a504dffd05a73db268ca89419c845eb5dc36648a539f1ee03"
+        },
+        {
+          "name": "reload_node_projection_reads_previous",
+          "sha256": "d81b6f1ea108bf49dd3279a9f56605a8b0b9bd3b9cd03a187189619bc1bf81ce"
+        },
+        {
+          "name": "reload_privilege_skips_authentication",
+          "sha256": "bf19278452b762abdcc059c93bf8029d388a78ccff97054d3613362bdd1a541f"
+        },
+        {
+          "name": "reload_node_privilege_reads_previous",
+          "sha256": "26059ba82d029ccf3a6105063b3c1a97213214f8779ee6ca520be95e5b1497fa"
+        },
+        {
+          "name": "lifecycle_attempt_always_succeeds",
+          "sha256": "2f95a84cd9ef8d2806e68344a71e90d392641fa1e1ad6b162d2e4c53f5b12651"
+        },
+        {
+          "name": "lifecycle_rollback_event_ignored",
+          "sha256": "162e823481dae4a292733daf3f958aca60169736b8139df07c04358b84af0ad1"
+        },
+        {
+          "name": "lifecycle_run_drops_step",
+          "sha256": "fc5002ab365d5a53ce9bc1f80c7539f2828c7dcced984e1062fbd72bde64560d"
+        },
+        {
+          "name": "lifecycle_lower_failure_succeeds",
+          "sha256": "afcbd30ba3240fe6a01f04c876a9c0f39d245d156fadaa42cbacccadf20513a4"
+        },
+        {
+          "name": "lifecycle_lower_failures_drops_head",
+          "sha256": "42e2654536afa2346c2533da60149240af3675336b1d3fc2522ac6c8f6c85d8e"
+        },
+        {
+          "name": "lifecycle_lower_failures_drops_deltas",
+          "sha256": "b0e3fc13e4ec9a8d4197695287d8b36fa4bd7a9c89c91866d5ceb2fa472a0189"
+        },
+        {
+          "name": "lifecycle_attempt_count_skips_attempt",
+          "sha256": "788e55c78b4159b31a1fea0eebcf6fd058e1782132903941955361c87380a04c"
+        },
+        {
+          "name": "lifecycle_failure_count_drops_step",
+          "sha256": "0d97c51c9ccacd2c9d0cb14506b9209d1b337ac896c75d6af97987c60c5d2350"
+        },
+        {
+          "name": "lifecycle_event_mention_drops_deltas",
+          "sha256": "4fb6dc0b6deee12fed95b4aa06f684b74e56e59e574d3b07cd2aa80686e68fa7"
+        },
+        {
+          "name": "lifecycle_events_mention_drops_head",
+          "sha256": "48e864080dbde16dd4e1b3342d4cf52f7721692295e7257f00d971f726047725"
+        },
+        {
+          "name": "lifecycle_failures_mention_drops_head",
+          "sha256": "1b1c60a39accf8ff6574725fb37851272b8f8b485d1432fc541186ee096f39da"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/34-policy-traces.mech#policyReplacementUsesNewRoster",
             "proofs/34-policy-traces.mech#policyReplacementClearsResolution",
             "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
-            "proofs/33-policy-readers.mech#capturedPolicyReadersAgree"
+            "proofs/33-policy-readers.mech#capturedPolicyReadersAgree",
+            "proofs/96-reload-removal-lifecycle.mech#reloadMemberAtEmpty",
+            "proofs/96-reload-removal-lifecycle.mech#reloadSetSlotReads",
+            "proofs/96-reload-removal-lifecycle.mech#reloadSetSlotFrame",
+            "proofs/96-reload-removal-lifecycle.mech#reloadSetSlotKeepsOther",
+            "proofs/96-reload-removal-lifecycle.mech#reloadSameIdentityReflexive",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEitherOnRight",
+            "proofs/96-reload-removal-lifecycle.mech#reloadBothOffRight",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEitherOffLeft",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEitherOffRight",
+            "proofs/96-reload-removal-lifecycle.mech#reloadInboundEstablishedAgree",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDialIncludesInbound",
+            "proofs/96-reload-removal-lifecycle.mech#reloadAddedTrustedAllowedEverywhere",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRemovedTrustedDeniedInbound",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRemovedTrustedDeniedEstablished",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRemovedTrustedDialFallsToBootstrap",
+            "proofs/96-reload-removal-lifecycle.mech#reloadAddedBootstrapSelectedForDial",
+            "proofs/96-reload-removal-lifecycle.mech#reloadBootstrapUpdateKeepsInbound",
+            "proofs/96-reload-removal-lifecycle.mech#reloadBootstrapUpdateKeepsEstablished",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRemovedEverywhereDenied",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTrustedUpdateKeepsOther",
+            "proofs/96-reload-removal-lifecycle.mech#reloadBootstrapUpdateKeepsOther",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltaKeepsOther",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltasKeepUnmentioned",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltaKeepsRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltasKeepRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadStepReadsStagedView",
+            "proofs/96-reload-removal-lifecycle.mech#reloadKeepsUnmentionedProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadAdvancesRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailureKeepsEveryProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadStampedWorkersUniform",
+            "proofs/96-reload-removal-lifecycle.mech#reloadStampKeepsWorkerListing",
+            "proofs/96-reload-removal-lifecycle.mech#reloadStampsEveryWorker",
+            "proofs/96-reload-removal-lifecycle.mech#reloadStepKeepsWorkerListing",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackRestoresEveryProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackStampsEveryWorker",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEventKeepsWorkersUniform",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTraceKeepsWorkersUniform",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEventKeepsWorkerListing",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTraceKeepsWorkerListing",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceKeepsEveryProjection"
           ],
-          "rationale": "Generic replacement resets a roster and invalidates old receipts. The three modeled policy consumers agree on one supplied view. Trusted/bootstrap additions/removals and separate decision-point projections are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Model trusted/bootstrap additions/removals in the installed policy view, show that every peer-policy projection, including separate inbound, outbound-dial and outbound-established decision points, reads that view after each reload, and prove consistent reload of all worker identities."
+          "rationale": "Module 96 models trusted and bootstrap additions and removals in the installed view and the separate inbound, outbound dial and outbound established decision points as literal reads of that one view. After every successful reload each point reads the view obtained by applying the reload deltas in order. For an individual update, a trusted addition admits the peer at every point, a trusted removal denies inbound and established admission while dialing follows bootstrap membership, and a bootstrap update keeps inbound and established admission unchanged. A bootstrap addition selects the peer for dialing, and removing it from both sets denies it everywhere; later deltas may overwrite earlier changes to the same membership. Unmentioned peers keep every decision. Successful reload and rollback stamp all workers with the installed revision. Failed reloads preserve the node, so arbitrary finite reload traces preserve worker uniformity when it holds initially. Every event and trace keeps the worker listing. The module 33 and 34 witnesses supply generic replacement and receipt invalidation.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/34-policy-traces.mech#policyReplacementUsesNewRoster",
             "proofs/34-policy-traces.mech#policyReplacementClearsResolution",
-            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt"
+            "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltaKeepsRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadDeltasKeepRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadAdvancesRevision",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailureKeepsNode",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailureKeepsEveryProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadKeepsPreviousView",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackRestoresView",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackRestoresEveryProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackStampsEveryWorker",
+            "proofs/96-reload-removal-lifecycle.mech#reloadUnauthenticatedUnprivileged",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTrustedAdditionGrantsPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTrustedRemovalRevokesPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadBootstrapUpdateKeepsPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailureKeepsPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadRollbackRestoresPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadKeepsUnmentionedPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEventKeepsAllocationBound",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTraceKeepsAllocationBound",
+            "proofs/96-reload-removal-lifecycle.mech#reloadEventKeepsAllocationAdmission",
+            "proofs/96-reload-removal-lifecycle.mech#reloadTraceKeepsAllocationAdmission",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceKeepsNode",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceKeepsEveryProjection",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceKeepsPrivilege",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceRecordsEveryAttempt",
+            "proofs/96-reload-removal-lifecycle.mech#reloadFailedTraceRecordsEveryPeer"
           ],
-          "rationale": "Generic replacement resets a roster and invalidates old receipts; trusted/bootstrap reload projections are absent. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Prove reload success/failure and the selected rollback/fallback preserve verified privileges and bounded allocations across configuration revisions."
+          "rationale": "A failed reload keeps the whole node, and every finite failed trace keeps the node, every decision and every privilege while its lowered event trace records each attempt and each mentioned peer. A successful reload installs the next revision and records the replaced view; rollback after that success reinstalls it with every decision and privilege. Verified privilege requires authentication and trusted membership: an individual trusted addition grants it, a removal revokes it, and a bootstrap update keeps it. Every reload attempt, rollback and finite reload trace keeps the allocation bound. Charge admission is preserved under the explicit initial AtMost charge bound premise; reload does not establish a bound for an already excessive charge. Worker-uniformity preservation likewise requires workers initially stamped with the installed revision; a failed reload does not repair stale worker stamps.",
+          "remaining": ""
         }
       ]
     },
