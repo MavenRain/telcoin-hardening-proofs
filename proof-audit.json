@@ -14184,8 +14184,8 @@
       "id": "M040",
       "closure_packet": "R04",
       "reviewed": true,
-      "scope_complete": false,
-      "scope_review": "Turn 3 batched R03/R04 review. Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The frozen required scope remains a model obligation in R04.",
+      "scope_complete": true,
+      "scope_review": "Turn 7 (R04) closes the scope with module 97. The admission contract leaves the live-connection treatment open, so module 97 makes it a parameter with a recheck case and a retain until close case and proves the results for each case. A rotation event applies one authoritative union change, a stale input event moves one role to the Open or Grace fallback profile, and a periodic sweep event keeps the policy; each event then sweeps the finite live connection list on the primary swarm and every indexed worker swarm. The sweep visits every connection once and in order, each outcome equals the treatment decision at the current policy, and each retained connection gets the current generation as its stamp and the current query as its privilege, so no privilege from the old epoch survives. A removed connection moves its allocation to the released total once, so released plus live charge stays constant and a live charge within the node bound stays within it over every finite rotation, stale input and sweep trace. Stale input keeps union membership and makes the role query equal authentication, so it admits no unauthenticated peer. Admission can widen relative to a closed profile without adding union members. The module 33 receipt witnesses stay cited. The treatment, the policy inputs and the allocation parameters are supplied; runtime capture and authentication remain E029, the fallback rule remains M006, and connection teardown and sweep scheduling are not credited.",
       "witnesses": [
         {
           "path": "proofs/33-policy-readers.mech",
@@ -14208,29 +14208,943 @@
             "Only the explicitly quantified model inputs are used; verification/clock classifications are supplied model judgments where present."
           ],
           "limits": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. These local statements do not establish: Model the selected D05 live-connection treatment during R19/A19 committee rotation and prove every live connection is rechecked/retained/removed according to current policy. Compose all swarm sweeps and stale-input fallback with authentication and hard resource protection."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepSameFlagReflexive",
+          "statement": "(value : Flag) -> Equal Flag (sweepSameFlag value value) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every flag agrees with itself.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepBothOn",
+          "statement": "(first : Flag) -> (second : Flag) -> Equal Flag first on -> Equal Flag second on ->\n    Equal Flag (both first second) on",
+          "scope_kind": "general_transition",
+          "establishes": "A conjunction of two set flags is set.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepBothRepeat",
+          "statement": "(authenticated : Flag) -> (member : Flag) ->\n    Equal Flag (sweepSameFlag (both authenticated (both authenticated member)) (both authenticated member)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Conjoining authentication again with an authenticated membership keeps its value.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepAddAssociative",
+          "statement": "(first : Count) -> (second : Count) -> (third : Count) ->\n    Equal Count (add (add first second) third) (add first (add second third))",
+          "scope_kind": "general_transition",
+          "establishes": "Count addition is associative.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepAddSwapLeft",
+          "statement": "(first : Count) -> (second : Count) -> (third : Count) ->\n    Equal Count (add first (add second third)) (add second (add first third))",
+          "scope_kind": "general_transition",
+          "establishes": "The first two operands of a nested count sum can swap.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "restampKeepsAuthentication",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->\n    Equal Flag (liveSweepAuthentication (restampLiveSweepConn policy conn)) (liveSweepAuthentication conn)",
+          "scope_kind": "general_transition",
+          "establishes": "Restamping a retained connection at the current policy keeps its authentication.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "restampKeepsAllocation",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->\n    Equal Count (liveSweepAllocation (restampLiveSweepConn policy conn)) (liveSweepAllocation conn)",
+          "scope_kind": "general_transition",
+          "establishes": "Restamping a retained connection at the current policy keeps its owned allocation.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepVisitsEveryLiveConnOnce",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) -> Equal LiveSweepConns (sweepVisitedConns (sweepVisitLog treatment policy conns)) conns",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment and policy, the sweep visit log lists every live connection exactly once and in order.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepVisitOutcomesFollowCurrentPolicy",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) -> Equal Flag (sweepVisitsAgree treatment policy (sweepVisitLog treatment policy conns)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Every outcome in the sweep visit log equals the treatment decision for that connection at the current policy.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepCoversEverySwarm",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) -> (swarm : NodePolicySwarm) ->\n    Equal Count (liveSweepOnSwarm swarm (sweepVisitedConns (sweepVisitLog treatment policy conns)))\n      (liveSweepOnSwarm swarm conns)",
+          "scope_kind": "general_transition",
+          "establishes": "For every swarm, the sweep visits as many connections on that swarm as are live on it.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "restampedConnIsCurrent",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->\n    Equal Flag (liveSweepConnCurrent policy (restampLiveSweepConn policy conn)) on",
+          "scope_kind": "general_transition",
+          "establishes": "A connection restamped at a policy is current at that policy.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepKeepOrDropCurrent",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (keep : Flag) -> (conn : LiveSweepConn) ->\n    (rest : LiveSweepConns) -> Equal Flag (liveSweepConnCurrent policy conn) on ->\n    Equal Flag (liveSweepConnsCurrent policy rest) on ->\n    Equal Flag (liveSweepConnsCurrent policy (sweepKeepOrDrop keep conn rest)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Keeping a current connection on a current list, or dropping it, leaves a current list.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepLeavesConnsCurrent",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) -> Equal Flag (liveSweepConnsCurrent policy (sweepLiveConns treatment policy conns)) on",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment, every connection that a sweep retains is current at the swept policy.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepForgetsOldEpoch",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) ->\n    Equal LiveSweepConns (sweepLiveConns treatment policy conns)\n      (sweepLiveConns treatment policy (liveSweepEraseEpoch conns))",
+          "scope_kind": "general_transition",
+          "establishes": "The sweep result does not depend on the stamp or privilege recorded at the old epoch.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "recheckSweepKeepsOnlyPrivileged",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->\n    Equal Flag (liveSweepConnsPrivileged (sweepLiveConns sweepRecheckTreatment policy conns)) on",
+          "scope_kind": "general_transition",
+          "establishes": "Under the recheck treatment every connection that a sweep retains holds privilege.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "retainUntilCloseKeepsEveryConn",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->\n    Equal Count (liveSweepLength (sweepLiveConns sweepRetainUntilCloseTreatment policy conns)) (liveSweepLength conns)",
+          "scope_kind": "general_transition",
+          "establishes": "Under the retain until close treatment a sweep keeps every live connection.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "retainUntilCloseReleasesNothing",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (conns : LiveSweepConns) ->\n    Equal Count (sweepReleased sweepRetainUntilCloseTreatment policy conns) zero",
+          "scope_kind": "general_transition",
+          "establishes": "Under the retain until close treatment a sweep releases no allocation.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepRestampedCharge",
+          "statement": "(keep : Flag) -> (policy : AuthoritativeUnionPolicy) -> (conn : LiveSweepConn) ->\n    (rest : LiveSweepConns) ->\n    Equal Count (liveSweepCharge (sweepKeepOrDrop keep (restampLiveSweepConn policy conn) rest))\n      (sweepKeptCharge keep (liveSweepAllocation conn) (liveSweepCharge rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Keeping or dropping a restamped connection adds its allocation to the live charge only when it is kept.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepStepSplit",
+          "statement": "(keep : Flag) -> (allocation : Count) -> (released : Count) -> (kept : Count) ->\n    Equal Count (add allocation (add released kept))\n      (add (add (sweepReleaseFor keep allocation) released) (sweepKeptCharge keep allocation kept))",
+          "scope_kind": "general_transition",
+          "establishes": "One sweep step divides a connection allocation between the released total and the kept charge with no loss.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepConservesAllocation",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) ->\n    Equal Count (liveSweepCharge conns)\n      (add (sweepReleased treatment policy conns) (liveSweepCharge (sweepLiveConns treatment policy conns)))",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment the live charge before a sweep equals the released allocation plus the live charge after it.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepKeepsChargeWithin",
+          "statement": "(treatment : SweepTreatment) -> (policy : AuthoritativeUnionPolicy) ->\n    (conns : LiveSweepConns) ->\n    AtMost (liveSweepCharge (sweepLiveConns treatment policy conns)) (liveSweepCharge conns)",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment a sweep never increases the live charge.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationStaleSelectsFallback",
+          "statement": "(role : NodePolicyRole) -> (fallback : RotationStaleFallback) ->\n    (policy : AuthoritativeUnionPolicy) ->\n    Equal Profile (roleUnionProfile (authoritativeRolePolicy role (rotationStalePolicy role fallback policy)))\n      (rotationStaleProfile fallback)",
+          "scope_kind": "general_transition",
+          "establishes": "Stale input installs the supplied Open or Grace fallback profile at the affected role.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationStaleQueryIsAuthentication",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) -> (authenticated : Flag) ->\n    (identity : Count) ->\n    Equal Flag (authoritativeUnionQuery role swarm (rotationStalePolicy role fallback policy) authenticated identity)\n      authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "Under the stale fallback the role query on every swarm equals the authentication judgment, so it admits no unauthenticated peer.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationStaleRecheckRetainsAuthenticated",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) -> (identity : Count) ->\n    (authenticated : Flag) -> (stamp : Count) -> (privilege : Flag) -> (allocation : Count) ->\n    Equal Flag (sweepDecisionFor sweepRecheckTreatment (rotationStalePolicy role fallback policy)\n      (liveSweepConn role swarm identity authenticated stamp privilege allocation)) authenticated",
+          "scope_kind": "general_transition",
+          "establishes": "Under the stale fallback the recheck decision for a live connection equals its authentication.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationStaleKeepsMembership",
+          "statement": "(role : NodePolicyRole) -> (other : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (fallback : RotationStaleFallback) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal CommitteePolicyUnion (authoritativeUnionAt other swarm (rotationStalePolicy role fallback policy))\n      (authoritativeUnionAt other swarm policy)",
+          "scope_kind": "general_transition",
+          "establishes": "Stale input keeps the union membership of every role on every swarm.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationUnverifiedChangeKeepsPolicy",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) ->\n    (incoming : CommitteePolicyUnion) -> (policy : AuthoritativeUnionPolicy) ->\n    Equal AuthoritativeUnionPolicy\n      (rotationEventPolicy (rotationCommitteeEvent (committeeUnionChange off role swarm incoming)) policy) policy",
+          "scope_kind": "general_transition",
+          "establishes": "An unverified committee change event keeps the installed policy.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationEventLeavesConnsCurrent",
+          "statement": "(treatment : SweepTreatment) -> (event : RotationSweepEvent) ->\n    (node : RotationSweepNode) ->\n    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy (applyRotationSweepEvent treatment event node))\n      (rotationNodeConns (applyRotationSweepEvent treatment event node))) on",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment, every live connection is current at the installed policy after every rotation, stale input or periodic sweep event.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationEventKeepsBound",
+          "statement": "(treatment : SweepTreatment) -> (event : RotationSweepEvent) -> (node : RotationSweepNode) ->\n    Equal Count (rotationNodeBound (applyRotationSweepEvent treatment event node)) (rotationNodeBound node)",
+          "scope_kind": "general_transition",
+          "establishes": "Every event keeps the node allocation bound.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationEventKeepsAllocationAdmission",
+          "statement": "(treatment : SweepTreatment) -> (event : RotationSweepEvent) ->\n    (node : RotationSweepNode) ->\n    AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node) ->\n    AtMost (liveSweepCharge (rotationNodeConns (applyRotationSweepEvent treatment event node)))\n      (rotationNodeBound (applyRotationSweepEvent treatment event node))",
+          "scope_kind": "general_transition",
+          "establishes": "A live charge within the node bound stays within it after every event.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationEventConservesAllocation",
+          "statement": "(treatment : SweepTreatment) -> (event : RotationSweepEvent) ->\n    (node : RotationSweepNode) ->\n    Equal Count (add (rotationNodeReleased (applyRotationSweepEvent treatment event node))\n        (liveSweepCharge (rotationNodeConns (applyRotationSweepEvent treatment event node))))\n      (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node)))",
+          "scope_kind": "general_transition",
+          "establishes": "Every event keeps the released total plus the live charge.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationTraceKeepsConnsCurrent",
+          "statement": "(treatment : SweepTreatment) -> (events : RotationSweepEvents) ->\n    (node : RotationSweepNode) ->\n    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy node) (rotationNodeConns node)) on ->\n    Equal Flag (liveSweepConnsCurrent (rotationNodePolicy (runRotationSweepEvents treatment events node))\n      (rotationNodeConns (runRotationSweepEvents treatment events node))) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite rotation, stale input and sweep trace that starts current keeps every live connection current at the installed policy.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationTraceKeepsBound",
+          "statement": "(treatment : SweepTreatment) -> (events : RotationSweepEvents) ->\n    (node : RotationSweepNode) ->\n    Equal Count (rotationNodeBound (runRotationSweepEvents treatment events node)) (rotationNodeBound node)",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite rotation, stale input and sweep trace keeps the node allocation bound.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationTraceKeepsAllocationAdmission",
+          "statement": "(treatment : SweepTreatment) -> (events : RotationSweepEvents) ->\n    (node : RotationSweepNode) ->\n    AtMost (liveSweepCharge (rotationNodeConns node)) (rotationNodeBound node) ->\n    AtMost (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment events node)))\n      (rotationNodeBound (runRotationSweepEvents treatment events node))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "A live charge within the node bound stays within it over every finite rotation, stale input and sweep trace.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationTraceConservesAllocation",
+          "statement": "(treatment : SweepTreatment) -> (events : RotationSweepEvents) ->\n    (node : RotationSweepNode) ->\n    Equal Count (add (rotationNodeReleased (runRotationSweepEvents treatment events node))\n        (liveSweepCharge (rotationNodeConns (runRotationSweepEvents treatment events node))))\n      (add (rotationNodeReleased node) (liveSweepCharge (rotationNodeConns node)))",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Every finite trace keeps the released total plus the live charge, so each allocation is released at most once.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "recheckTraceKeepsOnlyPrivileged",
+          "statement": "(events : RotationSweepEvents) -> (node : RotationSweepNode) ->\n    Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on ->\n    Equal Flag (liveSweepConnsPrivileged (rotationNodeConns (runRotationSweepEvents sweepRecheckTreatment events node))) on",
+          "scope_kind": "arbitrary_trace",
+          "establishes": "Under the recheck treatment every finite trace that starts with only privileged live connections keeps only privileged live connections.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "sweepBothOff",
+          "statement": "(first : Flag) -> Equal Flag (both first off) off",
+          "scope_kind": "general_transition",
+          "establishes": "A conjunction with a clear right operand is clear.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "liveSweepLaggingPrivilegeNotCurrent",
+          "statement": "(policy : AuthoritativeUnionPolicy) -> (role : NodePolicyRole) ->\n    (swarm : NodePolicySwarm) -> (identity : Count) -> (authenticated : Flag) -> (stamp : Count) ->\n    (allocation : Count) -> Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) on ->\n    Equal Flag (liveSweepConnCurrent policy (liveSweepConn role swarm identity authenticated stamp off allocation)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A connection whose recorded privilege is off is not current at a policy whose query admits it.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "liveSweepOnOwnSwarmCounts",
+          "statement": "(conn : LiveSweepConn) -> (rest : LiveSweepConns) ->\n    Equal Count (liveSweepOnSwarm (liveSweepSwarm conn) (liveSweepEntry conn rest))\n      (next (liveSweepOnSwarm (liveSweepSwarm conn) rest))",
+          "scope_kind": "general_transition",
+          "establishes": "Adding a connection to a list adds one to the count on its own swarm.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "liveSweepUnprivilegedEntryBlocks",
+          "statement": "(role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->\n    (authenticated : Flag) -> (stamp : Count) -> (allocation : Count) -> (rest : LiveSweepConns) ->\n    Equal Flag (liveSweepConnsPrivileged\n      (liveSweepEntry (liveSweepConn role swarm identity authenticated stamp off allocation) rest)) off",
+          "scope_kind": "general_transition",
+          "establishes": "A list whose first connection has no privilege is not all privileged.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationCommitteeEventInstallsChange",
+          "statement": "(treatment : SweepTreatment) -> (change : AuthoritativeUnionChange) ->\n    (node : RotationSweepNode) ->\n    Equal AuthoritativeUnionPolicy\n      (rotationNodePolicy (applyRotationSweepEvent treatment (rotationCommitteeEvent change) node))\n      (applyAuthoritativeUnionChange change (rotationNodePolicy node))",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment a committee event installs its authoritative union change.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
+        },
+        {
+          "path": "proofs/97-rotation-live-sweep.mech",
+          "name": "rotationStaleEventSelectsFallback",
+          "statement": "(treatment : SweepTreatment) -> (role : NodePolicyRole) ->\n    (fallback : RotationStaleFallback) -> (node : RotationSweepNode) ->\n    Equal Profile\n      (roleUnionProfile (authoritativeRolePolicy role\n        (rotationNodePolicy (applyRotationSweepEvent treatment (rotationStaleEvent role fallback) node))))\n      (rotationStaleProfile fallback)",
+          "scope_kind": "general_transition",
+          "establishes": "For each treatment a stale input event installs the fallback profile at the affected role.",
+          "premises": [
+            "The admission contract decision row selects no live-connection treatment. The treatment is a model parameter with two cases: recheck retains a connection only when the current authoritative union query admits it and removes it otherwise, and retain until close keeps every connection. Each theorem quantifies over the treatment or names its case.",
+            "The authoritative union policy, each committee change with its verification flag and the Open or Grace fallback profile are supplied inputs. Stale-input detection and the fallback rule remain M006. Runtime capture of the live connection set and the authentication judgment remain E029.",
+            "A live connection is a finite record of role, swarm, identity, authentication, stamp, privilege and owned allocation, and the live list is finite and supplied. The swarms are the primary swarm and every indexed worker swarm.",
+            "The allocation bound and each owned allocation are supplied model parameters carried in the node. No numeric sweep cadence, grace length, timeout or budget constant is assumed.",
+            "Any Equal or AtMost premise in the exact statement is required. Counts are unbounded natural numbers; runtime wrapping, connection close, persistence and restart are external."
+          ],
+          "limits": "Finite symbolic rotation, stale input and sweep model over one installed authoritative union policy and a supplied finite live connection list, with the live-connection treatment as a parameter. No runtime refinement, connection teardown, sweep scheduling, stale-input detection, recovery condition or deployment qualification is established."
         }
       ],
-      "controls": [],
+      "controls": [
+        {
+          "name": "sweep_keep_flag_recheck_on",
+          "sha256": "12105bd4d25c1e24e524ae1a98e367981042d1220ddbe6a3a51a1d1f3d5cdc95"
+        },
+        {
+          "name": "sweep_keep_flag_retain_reads_query",
+          "sha256": "77fbc47a40a9cd5a2fcf56227cbe6f762d827d0fc678b5e7876a535e114a3c5d"
+        },
+        {
+          "name": "sweep_same_flag_off_off_off",
+          "sha256": "9fbb698ad0536caca68a413bb1e162497868210f8533a57dfe7e8a43de2dcb60"
+        },
+        {
+          "name": "sweep_same_flag_on_off",
+          "sha256": "4f7a320f41ae6b46dd642de252dc11f983836a1d9bec43f9acd1bdad902e53b0"
+        },
+        {
+          "name": "sweep_privilege_reads_authentication",
+          "sha256": "aa2a2e0edf2c08eae48856804a1738b27821890418d08015f6370dcf8b89c848"
+        },
+        {
+          "name": "sweep_authentication_reads_privilege",
+          "sha256": "0a019fab67e9197468354a5cdcea4392b7e17ad4fb75d358932683c46576bd4b"
+        },
+        {
+          "name": "sweep_allocation_reads_stamp",
+          "sha256": "3c8e8789843eabb2b87733046e207f5daf7d671e9235d2f76e2f84a2b9257ff8"
+        },
+        {
+          "name": "sweep_query_reads_old_privilege",
+          "sha256": "03c2febf1d26e7362adb61fd6ae5e1ec95999b45d83a91192e5f53175996db57"
+        },
+        {
+          "name": "sweep_decision_reads_old_privilege",
+          "sha256": "c54fa530cf982763f8fac166aa6adb90dca0201d84dc6a986af7c4f12edcf290"
+        },
+        {
+          "name": "sweep_decision_ignores_treatment",
+          "sha256": "cbe945dff7fc0ca0706d3fd535e2f859f8e281b4565c77b487db2a9e9ec13b84"
+        },
+        {
+          "name": "sweep_restamp_keeps_old_stamp",
+          "sha256": "105bcb28ce3b158a7324809050744bab525bd7e370c0b37648e0e8b0c6713bf5"
+        },
+        {
+          "name": "sweep_restamp_keeps_old_privilege",
+          "sha256": "a0fc7512ec69c6c5930970de7113a94a58c89a0bbffab537b9d67cee921556a8"
+        },
+        {
+          "name": "sweep_restamp_sets_authenticated",
+          "sha256": "a95224d654ce89c5d2ad9a833c086980c523db47bb7f4999a31d125467dfc404"
+        },
+        {
+          "name": "sweep_restamp_drops_allocation",
+          "sha256": "157306fe36b437a0b9172b08e883e2088ab4074100810b92ea0de8017647d9dd"
+        },
+        {
+          "name": "sweep_erase_drops_authentication",
+          "sha256": "b33038a91b2709c5dac031854df2acd5d701fe3509921c8c22e1e94b372a3ca9"
+        },
+        {
+          "name": "sweep_erase_drops_allocation",
+          "sha256": "a00cf528fbf8be76cc2443e373461e443d2f2fef75e971036413633785e9d915"
+        },
+        {
+          "name": "sweep_current_ignores_stamp",
+          "sha256": "3c136178e603c94bba9bd3c3a2ec30267b7dd642471c5848f603748449921736"
+        },
+        {
+          "name": "sweep_current_privilege_reads_authentication",
+          "sha256": "4c41fd9b405ff44e1aeec83a2d1fda063bbd4b70d3c6dfbebc092d76e53ecdf5"
+        },
+        {
+          "name": "sweep_current_bound_reads_authentication",
+          "sha256": "9d86fe5a4726886e570704cfe8ef10bed7e5708d324358b7398d6083c99f19f1"
+        },
+        {
+          "name": "sweep_keep_or_drop_off_keeps",
+          "sha256": "75c3129108ca8258181e47d5619708d6216473d6f136b31cd1b50095e537d4b4"
+        },
+        {
+          "name": "sweep_keep_or_drop_on_drops",
+          "sha256": "b3c3127d25523281d2f2b53fde3a3df7f30d329ffc143ca9fda3ce1ad49d5b4e"
+        },
+        {
+          "name": "sweep_release_off_zero",
+          "sha256": "0c9ba93b4387ea262b37b7eed0d438500c716cc4a0f90c2f157779aa8e549c39"
+        },
+        {
+          "name": "sweep_release_on_allocation",
+          "sha256": "bd6f147307804a2f0d74723b6273da18f091ed05f21d3f740b98a3a6ea07dced"
+        },
+        {
+          "name": "sweep_kept_charge_off_adds",
+          "sha256": "0401566470d7c6366c27147f20e5d5ab3b47ce54ba67b8118f28bb051ad6bf24"
+        },
+        {
+          "name": "sweep_kept_charge_on_skips",
+          "sha256": "3394784baeb828a0eaf3ac173727cb75c86a80433306549595072f15b7f29473"
+        },
+        {
+          "name": "sweep_live_skips_restamp",
+          "sha256": "c5c282b9fcd3e2c3829bf72b6bc1be5128d7bde7536f30076cbc91ea77c0f5e2"
+        },
+        {
+          "name": "sweep_live_tail_unswept",
+          "sha256": "46616ed26b6f3bdd8500ec95f5191c9559ad9a908ab217e4cc93d0626f6f5f0b"
+        },
+        {
+          "name": "sweep_released_nil_one",
+          "sha256": "fb1886d83e115708966c6c162b0edabf1eec360e3ce478bb908f957e05b6d79d"
+        },
+        {
+          "name": "sweep_released_drops_tail",
+          "sha256": "7c8ac39305c6a6fd7dca4ece1ed1ed861f9e8177974da92b557f1d9df7511af9"
+        },
+        {
+          "name": "sweep_released_ignores_decision",
+          "sha256": "4009d32b3ebd24d59e988d3be49f6c44f0b4e3745a0339befcc970a21eb0698d"
+        },
+        {
+          "name": "sweep_charge_drops_head",
+          "sha256": "86bcae1e9c7de6ef71a3ca3abda0cb899954e1b71e7cfa0bc94c3a3c99de8f13"
+        },
+        {
+          "name": "sweep_length_drops_count",
+          "sha256": "3d57e1d11de431e4d15412a54cb24b218f04238e741935d2d150658c4021196e"
+        },
+        {
+          "name": "sweep_conns_current_skips_head",
+          "sha256": "c6df780be4bf5db0f35bd8c1cbe2534bbe8c6c34c74d333aacdb84b7b49c27d3"
+        },
+        {
+          "name": "sweep_conns_current_nil_off",
+          "sha256": "d640d23facdc3749e0c95b55bc2f4b77d6e5db3d53d92a3b16dbf1870117d8db"
+        },
+        {
+          "name": "sweep_conns_privileged_nil_off",
+          "sha256": "064d1aa26eebbf7f3dc06417091b97d36d420c8b78d0422407dee42eb55858d7"
+        },
+        {
+          "name": "sweep_erase_epoch_drops_tail",
+          "sha256": "a36a9c03b575d86ed4a73d131e6dce6a9be5a2c7d4eca6966e6fcb36eaea95ca"
+        },
+        {
+          "name": "sweep_visit_log_outcome_on",
+          "sha256": "3d176d35232add4f7ff010c817c057389bc9f168e6142c6e2f3f0339238eab7d"
+        },
+        {
+          "name": "sweep_visit_log_records_restamped",
+          "sha256": "60312195be7c50ed8b3235673054b35e23001b72ad5231c969523e8d15dc3b0d"
+        },
+        {
+          "name": "sweep_visit_log_drops_tail",
+          "sha256": "e9fbb20a30c1dbc0c46a66825ae6858d73f26bc9c2fa932e704c8c2d48709860"
+        },
+        {
+          "name": "sweep_visited_skips_head",
+          "sha256": "6e48a8eaff08bdf2d7b95f01ba923dee82272ea973a9a1a53700754fb4f8d2d8"
+        },
+        {
+          "name": "sweep_visits_agree_reads_on",
+          "sha256": "be1eb823094353df2aa1fbc8ed18058edf16e76c9a9bc8b7ede0b6fa37113029"
+        },
+        {
+          "name": "sweep_visits_agree_nil_off",
+          "sha256": "fc159e17b1fd6323dba5515c1647551fbd4444373679ef6a0992e8087956eb07"
+        },
+        {
+          "name": "rotation_stale_open_reads_grace",
+          "sha256": "ca334a2f6ded51c3429ddd2d8733a55c9c994a6df0bc5546f183a0306fecae16"
+        },
+        {
+          "name": "rotation_stale_grace_reads_open",
+          "sha256": "b6b462e607253c129ec3524f515934cdf835ad6390606ac06e5864ef972b9ad6"
+        },
+        {
+          "name": "rotation_stale_policy_ignores_fallback",
+          "sha256": "355f4f160822aaa71a74c12204b158f88c092269d8b7d7fcce1e24020cbdaad7"
+        },
+        {
+          "name": "rotation_node_bound_reads_released",
+          "sha256": "c53f5054dbf4a040315cf87e46756ec8cd4bfe9383eb419e3ba8b3699b3eb7c8"
+        },
+        {
+          "name": "rotation_node_released_reads_bound",
+          "sha256": "d1c283edd54a80534eafafc537bbd6f514a5e9387409a65f8a6d2f602b09728b"
+        },
+        {
+          "name": "rotation_sweep_keeps_old_policy",
+          "sha256": "827338d746320d398f3d8feb16824f435471fea8dbd87fc2cba70a4d9618950d"
+        },
+        {
+          "name": "rotation_sweep_skips_conns",
+          "sha256": "8d88b3ba5b6ef3b95022fc2b2225cdb7555ea818c222966d0f9eab400806afd5"
+        },
+        {
+          "name": "rotation_sweep_grows_bound",
+          "sha256": "9bd5945bf822ad8c8c91b27a9326e4ca4b9be42741df4cb2962464f702e8d54d"
+        },
+        {
+          "name": "rotation_sweep_resets_released",
+          "sha256": "4d3a03fb47acdf68ad25ea54d47cba7713b6abb61e138628b54999c5084f6364"
+        },
+        {
+          "name": "rotation_sweep_drops_released",
+          "sha256": "51d6f04bbe2285509ee2384aec66818e1bfc38fb0fdb2669503fa63eb90029f7"
+        },
+        {
+          "name": "rotation_apply_skips_sweep",
+          "sha256": "66f24f57e0b6c03a843be3d5d70ff99cad0d94cb4e93d85e2c6cde75c49e4dd8"
+        },
+        {
+          "name": "rotation_apply_forces_recheck",
+          "sha256": "a969eaee956f0f60650cc107572050b1821cefbbb3a109aaf1c9f8a8f4d3f3f3"
+        },
+        {
+          "name": "rotation_run_drops_step",
+          "sha256": "8a65a7556707f261febbc7a55f99308d49ba14c57e27710b5f304ad69f459171"
+        },
+        {
+          "name": "rotation_run_stops_after_head",
+          "sha256": "5c01dbff88c6454dbd26d06e95b263ae19a39cf2f771f359ccf6969e81ec5bc5"
+        },
+        {
+          "name": "sweep_same_flag_off_on_on",
+          "sha256": "ec81abe2e80134d20024f508bcc0ca3883c521f824132d8cb76b1e7d0989a047"
+        },
+        {
+          "name": "sweep_count_if_on_skips",
+          "sha256": "550238d5555320c0aea5754a54af0391bf47482e9ad95ebb176845a38abf1d05"
+        },
+        {
+          "name": "sweep_on_swarm_skips_head",
+          "sha256": "7b1c880e7d1fff81f080847892bf8c75afd50bc52a8c0a02cc83f0a54a74b461"
+        },
+        {
+          "name": "sweep_conns_privileged_skips_head",
+          "sha256": "7d33020f83cadfba1571f85899f14a2879abc6d8f63e156826d58acfa38da0b1"
+        },
+        {
+          "name": "rotation_committee_event_ignored",
+          "sha256": "4aa21de2682ef06ee36c0c9656ad15b9a7d9ddaaeca00a24b9d0eea9aad333f5"
+        },
+        {
+          "name": "rotation_stale_event_ignored",
+          "sha256": "3355b183a4c13848910320cd5b686cd4a80c0888564558836ee430258b928810"
+        }
+      ],
       "criteria": [
         {
           "index": 0,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
-            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied",
+            "proofs/97-rotation-live-sweep.mech#sweepSameFlagReflexive",
+            "proofs/97-rotation-live-sweep.mech#sweepBothOn",
+            "proofs/97-rotation-live-sweep.mech#sweepBothRepeat",
+            "proofs/97-rotation-live-sweep.mech#restampKeepsAuthentication",
+            "proofs/97-rotation-live-sweep.mech#sweepVisitsEveryLiveConnOnce",
+            "proofs/97-rotation-live-sweep.mech#sweepVisitOutcomesFollowCurrentPolicy",
+            "proofs/97-rotation-live-sweep.mech#sweepCoversEverySwarm",
+            "proofs/97-rotation-live-sweep.mech#restampedConnIsCurrent",
+            "proofs/97-rotation-live-sweep.mech#sweepKeepOrDropCurrent",
+            "proofs/97-rotation-live-sweep.mech#sweepLeavesConnsCurrent",
+            "proofs/97-rotation-live-sweep.mech#sweepForgetsOldEpoch",
+            "proofs/97-rotation-live-sweep.mech#recheckSweepKeepsOnlyPrivileged",
+            "proofs/97-rotation-live-sweep.mech#retainUntilCloseKeepsEveryConn",
+            "proofs/97-rotation-live-sweep.mech#retainUntilCloseReleasesNothing",
+            "proofs/97-rotation-live-sweep.mech#rotationUnverifiedChangeKeepsPolicy",
+            "proofs/97-rotation-live-sweep.mech#rotationEventLeavesConnsCurrent",
+            "proofs/97-rotation-live-sweep.mech#rotationTraceKeepsConnsCurrent",
+            "proofs/97-rotation-live-sweep.mech#recheckTraceKeepsOnlyPrivileged",
+            "proofs/97-rotation-live-sweep.mech#sweepBothOff",
+            "proofs/97-rotation-live-sweep.mech#liveSweepLaggingPrivilegeNotCurrent",
+            "proofs/97-rotation-live-sweep.mech#liveSweepOnOwnSwarmCounts",
+            "proofs/97-rotation-live-sweep.mech#liveSweepUnprivilegedEntryBlocks",
+            "proofs/97-rotation-live-sweep.mech#rotationCommitteeEventInstallsChange"
           ],
-          "rationale": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Model the selected D05 live-connection treatment during R19/A19 committee rotation and prove every live connection is rechecked/retained/removed according to current policy."
+          "rationale": "Module 97 models the D05 live-connection treatment as a parameter (recheck or retain until close) that every committee rotation, stale input and periodic sweep event applies at the installed policy. The sweep visits every live connection exactly once, in order and on every swarm, and each recorded outcome equals the treatment decision at the current authoritative union policy. Each retained connection is restamped with the current generation and the current query, so it is current and the sweep result does not depend on the old epoch stamp or privilege. Under recheck only privileged connections stay live and a connection whose recorded privilege is off is not current when the current query admits it; under retain until close every connection stays and nothing is released. An unverified committee change keeps the policy, a committee event installs its authoritative change, and every finite trace that starts with current live connections keeps every live connection current. An empty trace preserves the initial state and does not establish currentness without that premise. The module 33 witnesses supply receipt invalidation on policy replacement.",
+          "remaining": ""
         },
         {
           "index": 1,
-          "status": "gap",
+          "status": "witnessed",
           "witnesses": [
             "proofs/33-policy-readers.mech#everyPolicyChangeInvalidatesReceipt",
-            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied"
+            "proofs/33-policy-readers.mech#oldEpochPolicyReceiptDenied",
+            "proofs/97-rotation-live-sweep.mech#sweepAddAssociative",
+            "proofs/97-rotation-live-sweep.mech#sweepAddSwapLeft",
+            "proofs/97-rotation-live-sweep.mech#restampKeepsAuthentication",
+            "proofs/97-rotation-live-sweep.mech#restampKeepsAllocation",
+            "proofs/97-rotation-live-sweep.mech#sweepCoversEverySwarm",
+            "proofs/97-rotation-live-sweep.mech#sweepForgetsOldEpoch",
+            "proofs/97-rotation-live-sweep.mech#recheckSweepKeepsOnlyPrivileged",
+            "proofs/97-rotation-live-sweep.mech#retainUntilCloseReleasesNothing",
+            "proofs/97-rotation-live-sweep.mech#sweepRestampedCharge",
+            "proofs/97-rotation-live-sweep.mech#sweepStepSplit",
+            "proofs/97-rotation-live-sweep.mech#sweepConservesAllocation",
+            "proofs/97-rotation-live-sweep.mech#sweepKeepsChargeWithin",
+            "proofs/97-rotation-live-sweep.mech#rotationStaleSelectsFallback",
+            "proofs/97-rotation-live-sweep.mech#rotationStaleQueryIsAuthentication",
+            "proofs/97-rotation-live-sweep.mech#rotationStaleRecheckRetainsAuthenticated",
+            "proofs/97-rotation-live-sweep.mech#rotationStaleKeepsMembership",
+            "proofs/97-rotation-live-sweep.mech#rotationEventLeavesConnsCurrent",
+            "proofs/97-rotation-live-sweep.mech#rotationEventKeepsBound",
+            "proofs/97-rotation-live-sweep.mech#rotationEventKeepsAllocationAdmission",
+            "proofs/97-rotation-live-sweep.mech#rotationEventConservesAllocation",
+            "proofs/97-rotation-live-sweep.mech#rotationTraceKeepsConnsCurrent",
+            "proofs/97-rotation-live-sweep.mech#rotationTraceKeepsBound",
+            "proofs/97-rotation-live-sweep.mech#rotationTraceKeepsAllocationAdmission",
+            "proofs/97-rotation-live-sweep.mech#rotationTraceConservesAllocation",
+            "proofs/97-rotation-live-sweep.mech#recheckTraceKeepsOnlyPrivileged",
+            "proofs/97-rotation-live-sweep.mech#liveSweepOnOwnSwarmCounts",
+            "proofs/97-rotation-live-sweep.mech#rotationStaleEventSelectsFallback"
           ],
-          "rationale": "Policy replacement invalidates receipts, but no already-live-connection sweep/retention/disconnect transition is present. The cited statements supply only their recorded local results; a full criterion witness is missing.",
-          "remaining": "R04: Compose all swarm sweeps and stale-input fallback with authentication and hard resource protection."
+          "rationale": "The sweep visit log covers the primary swarm and every indexed worker swarm and records the input connection count on each swarm. The retained connection count may decrease under recheck. Stale input installs the Open or Grace fallback profile at the role, keeps union membership at every role and swarm, and makes the role query equal authentication, so a recheck under the fallback retains exactly the authenticated connections at that role. This preserves authentication but may widen admission relative to the prior closed profile without adding union members. A retained connection keeps its authentication and its owned allocation. A removed connection releases its allocation once: released plus live charge is constant for each sweep, each event and every finite trace, no event rewrites the node bound, and a live charge within the bound stays within it. Under recheck every finite trace that starts with only privileged live connections keeps only privileged connections live. An empty trace preserves the initial state and does not establish privilege without that premise.",
+          "remaining": ""
         }
       ]
     },
