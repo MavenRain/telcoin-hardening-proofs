@@ -288,7 +288,8 @@ current Closed union and authentication boundary.
 Faithful identity indexing, correct verification classifications for all five
 sources and authorized operator configuration are premises. Runtime policy and
 record refinement remain E029. Module 92 adds the M023 lifecycle gates below.
-Fallback fault isolation and reload/removal lifecycles remain M006/M042.
+Fallback fault isolation remains M006. Module 96 closes the M042
+reload/removal lifecycle.
 [R04](R04-POLICY.md) records exact witnesses, controls,
 validation and remaining scope.
 
@@ -315,10 +316,10 @@ Each model decision atomically receives its current immutable authority.
 Authentication, source verification and operator authorization are supplied
 judgments; natural-number generations cannot wrap or roll back in this model.
 Runtime authority capture, publication and generation discipline remain E029.
-Runtime receipt provenance also remains E029. Modules 93 to 95 supply
-independent bounded privileges, trusted startup/redial and launch seeding below.
-Live-connection sweeps, fault isolation, resource attribution and reload/removal
-retain their separate model obligations.
+Runtime receipt provenance also remains E029. Modules 93 to 96 supply
+independent bounded privileges, trusted startup/redial, launch seeding and
+reload/removal below. Live-connection sweeps, fault isolation and resource
+attribution retain their separate model obligations.
 
 [93-independent-bounded-privileges.mech](../proofs/93-independent-bounded-privileges.mech)
 closes M024 with three independent finite recipient lists and allocation limits.
@@ -397,6 +398,32 @@ runs no discovery protocol. E029 retains identity mapping, address and key
 resolution and authentication. M031 retains production identity equality, E038
 and E030 retain hub deployment, M027 and M029 retain observer discovery and
 M032 retains epoch reseeding.
+
+[96-reload-removal-lifecycle.mech](../proofs/96-reload-removal-lifecycle.mech)
+closes M042 with an installed policy view: a configuration revision with
+trusted and bootstrap slots. A reload applies a finite list of trusted and
+bootstrap additions and removals in order to stage the next revision. A later
+delta can overwrite an earlier change to the same membership. The inbound and
+outbound-established decision points read the trusted slots and the
+outbound-dial decision point reads the trusted or bootstrap slots, always of
+the installed view. After a successful reload each decision point reads the
+staged view, and identities that the deltas do not mention keep every
+projection.
+
+A reload node holds the installed view, the previous view, the worker
+identities with their revision stamps, an allocation bound and a charge. A
+successful reload installs the staged view, keeps the replaced view and stamps
+every worker with the new revision. A failed reload changes nothing. A
+rollback reinstalls the previous view and restamps every worker. Verified
+privilege is authentication together with installed trusted membership.
+Reload events and finite traces preserve worker membership and the allocation
+bound. Worker revisions stay uniform with the installed revision if they were
+uniform initially, and the charge stays within its bound if it was initially
+within it. A finite trace of
+failed reloads keeps the node, every projection and every privilege, and its
+lowered trace records each attempt and each mentioned peer. Reload outcomes,
+the worker list and the allocation parameters are supplied. E029 retains
+runtime capture and authentication.
 
 ## Policy and resource interleavings
 

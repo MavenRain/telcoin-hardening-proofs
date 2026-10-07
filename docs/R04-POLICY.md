@@ -1,10 +1,11 @@
 # R04 policy, source churn and recovery
 
-R04 turn 5 closes M026 in the sealed source-obligation ledger. Module
-[95-launch-seeding-bootstrap-union.mech](../proofs/95-launch-seeding-bootstrap-union.mech)
-adds 58 proof declarations and 44 semantic weakening controls. M022 to M025
-were closed in turns 1 to 4. R04 remains active: its other 20 model obligations retain
-their recorded gaps. The repository has used 30 of its 50 execution turns.
+R04 turn 6 closes M042 in the sealed source-obligation ledger. Module
+[96-reload-removal-lifecycle.mech](../proofs/96-reload-removal-lifecycle.mech)
+adds 58 proof declarations and 61 semantic weakening controls. M022 to M026
+were closed in turns 1 to 5. R04 remains active: its other 19 model obligations retain
+their recorded gaps. The repository has used 31 of its 50 execution turns.
+R04 has used six turns, one more than its five-turn plan.
 This turn does not change
 the sealed scope, packet allocations or external-obligation boundary. R02 and
 R03 used 12 turns more than planned. This is two more than the ten-turn
@@ -260,7 +261,7 @@ launch work in U0940 and the trusted-peer redial step in U0983. The cold-start
 clauses U0895 and U1350 are covered only for startup selection from configured
 identities. Their launch seeding part, with U1167/U1172, remains M026. Failed-dial
 backoff in U0942/U1179 remains M038, the reconnect bounds in U1289 remain E010 and
-reload/removal in U1187 remains M042. The sources give no numeric retry or backoff
+reload/removal in U1187 is M042 (turn 6). The sources give no numeric retry or backoff
 constants, so the attempt, backoff and work caps are model parameters. Both M025
 criteria are witnessed by 51 new audited statements: 39 general transitions,
 9 arbitrary-trace results and 3 conditional reconnection results.
@@ -301,7 +302,7 @@ identity mapping, address and key resolution and authentication. M031 retains
 equality of the seeded configuration with production identities, hub
 deployment and population remain E038 and E030, observer discovery through
 hubs remains M027 and M029, epoch reseeding remains M032 and configuration
-reload remains M042. All 43 external obligations remain open.
+reload is M042 (turn 6). All 43 external obligations remain open.
 
 The source audit covers the A4 launch seeding anchor U1167, the A9 merged
 bootstrap override and dial confirmation U1172, the seeding of every launch
@@ -329,8 +330,79 @@ record 78 modules, 1669 proof declarations, no disclosed axioms and 1556
 rejected negative checks. Disposition, scope and witness-audit regressions also
 pass.
 
-The census is now 16 covered and 67 partial model obligations. R04 remains
-active at turn 5 and has spent its five planned turns, with 30 of the overall
-50 execution turns used. Its 20 remaining model obligations, among them M039
-recovery threshold, M040 live sweeps and M042 reload and removal, retain their
-recorded gaps.
+The turn-5 census was 16 covered and 67 partial model obligations. Turn 6
+closes M042 below.
+
+## Turn 6: reload and removal lifecycle
+
+Module 96 closes both M042 criteria with 58 new audited witnesses and 61
+semantic weakening controls. The four module 33 and 34 witnesses stay cited.
+The installed policy view holds a configuration revision and the trusted and
+bootstrap slots. A reload stages a finite list of trusted and bootstrap
+additions and removals in order on the installed view and advances its revision. The
+inbound, outbound-dial and outbound-established decision points all read the
+installed view. Inbound and outbound-established admission read the trusted
+slots, and outbound dialing reads the trusted or bootstrap slots. After a
+successful reload every decision point reads the staged view. An added trusted
+identity is allowed at all three. A removed trusted identity is refused
+inbound and established, and its dial decision falls to bootstrap membership.
+An identity removed from both slots is refused everywhere. These addition and
+removal witnesses describe individual updates; a later delta can overwrite an
+earlier change to the same membership. Identities that the deltas do not
+mention keep every projection.
+
+A successful reload keeps the replaced view as the previous view and stamps
+every listed worker identity with the new revision. A failed reload leaves the
+node unchanged. A rollback reinstalls the previous view and stamps every
+worker with its revision, so a rollback after a successful reload restores the
+earlier view and every projection. Every reload event and every finite trace
+preserves worker membership, and keeps every worker at the installed revision when
+that holds before. A finite trace of failed reloads keeps the node, every
+projection and every privilege. Its lowered event trace records one attempt
+for each failure and mentions each peer that a failure mentions.
+
+Verified privilege is authentication together with membership in the installed
+trusted slots. An unauthenticated identity has none. A trusted addition grants
+it to an authenticated identity and a trusted removal revokes it, each for the
+individual update; later deltas can overwrite that membership change. Bootstrap
+updates and failed reloads do not change it, identities that the deltas do not
+mention keep it, and a rollback after a successful reload restores it. Every
+reload event and every finite trace keeps the allocation bound, and a node
+whose charge is within its bound stays within it.
+
+Reload outcomes and the worker list are supplied. The model does not read
+configuration files, decide why a reload fails, discover workers or schedule
+reloads, and it has no clock. The allocation bound and charge are parameters.
+E029 retains runtime capture of the installed view, authentication and work
+accounting. All 43 external obligations remain open.
+
+The source audit covers the A24 trusted and bootstrap configuration reload
+anchor U1187 and the Rotation clause in U0943 that keeps A18 through A25 and
+preserves configuration reload. The sources do not name an installed policy
+view or separate outbound-dial and outbound-established decision points; the
+model defines them from the audit text. Admission on every swarm in U1168,
+policy revisions in U1290, membership and snapshot semantics in U0913, worker
+identities in U0895 and U1254, rollback responsibility in U1297, manual
+re-keying while reload is unavailable in U0966 and the budget and privilege
+rules in U1322 and U1082 are shared context with their own owners. This turn
+takes no credit for them. The sources give no reload interval, revision count
+or allocation size, so these are model parameters. Both M042 criteria are
+witnessed by 58 new audited statements: 49 general transitions and 9
+arbitrary-trace results.
+
+The 61 new semantic controls weaken slot writes and identity comparison, the
+trusted, bootstrap and revision readers, delta application and delta lists,
+the staged view and its revision bump, the inbound, dial and established
+projections, worker stamping and listing, the success, failure and rollback
+steps, the privilege conjunction, the allocation bound and charge, event
+application, trace execution, failure lowering and the attempt and mention
+counts. Every one must fail with a type mismatch; parser failures and crashes
+do not count. The full qualification guard and
+[checked receipt](../evidence/r04-reload-removal-lifecycle-check.json) record
+79 modules, 1727 proof declarations, no disclosed axioms and 1617 rejected
+negative checks. Disposition, scope and witness-audit regressions also pass.
+
+The census is now 17 covered and 66 partial model obligations. R04 remains
+active at turn 6, one turn past its five planned turns, with 31 of the overall
+50 execution turns used. Its 19 remaining model obligations, among them M039
+recovery threshold and M040 live sweeps, retain their recorded gaps.

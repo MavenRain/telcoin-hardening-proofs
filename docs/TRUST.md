@@ -822,3 +822,21 @@ E030 retain hub deployment, M027 and M029 retain observer discovery, M032
 retains epoch reseeding and M042 retains reload and removal. M022 through M026
 are covered; live sweeps and the other R04 gaps, together with all 43 external
 obligations, remain open.
+
+## R04 turn 6 reload and removal lifecycle boundary
+
+Module 96 closes M042's reload of trusted and bootstrap additions and removals
+into the installed policy view, the three decision point projections, worker
+revision stamps, reload failure, rollback, verified privilege and the
+allocation bound. Reload outcomes are supplied: the model does not read
+configuration files, decide why a reload fails, schedule reloads or prove that
+a rollback occurs. The worker list and the allocation bound and charge are
+supplied parameters; worker discovery and runtime work accounting are not
+proved.
+
+Privilege is the supplied authentication judgment together with installed
+trusted membership. E029 retains runtime capture of the installed view,
+authentication and work accounting. E031, E037, E038 and E040 retain rollback
+responsibility and manual re-keying, and M006 retains fallback fault
+isolation. M022 through M026 and M042 are covered; M039, M040 and the other
+R04 gaps, together with all 43 external obligations, remain open.

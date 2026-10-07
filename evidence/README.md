@@ -1387,3 +1387,20 @@ obligations; 67 retain gaps. R04 is active at turn 5, using execution turn 30
 of 50. The turn-4 receipt is now historical. The
 [turn record](../docs/R04-POLICY.md) states the model premises and remaining
 obligations. All 43 external obligations and full qualification remain open.
+
+## R04 turn 6: reload and removal lifecycle
+
+[r04-reload-removal-lifecycle-check.json](r04-reload-removal-lifecycle-check.json)
+records the full gate for module 96: 79 modules, 1727 explicit equality/order
+proofs, empty axiom disclosure and 1617 rejected negative checks. The 61 new
+semantic controls weaken slot writes, delta application, the staged view, the
+three decision point projections, worker stamping, the success, failure and
+rollback steps, verified privilege, the allocation bound and charge, event
+application, trace execution, failure lowering and the attempt and mention
+counts.
+
+Both M042 criteria are witnessed. The current audit covers 17 of 83 model
+obligations; 66 retain gaps. R04 is active at turn 6, using execution turn 31
+of 50. The turn-5 receipt is now historical. The
+[turn record](../docs/R04-POLICY.md) states the model premises and remaining
+obligations. All 43 external obligations and full qualification remain open.
