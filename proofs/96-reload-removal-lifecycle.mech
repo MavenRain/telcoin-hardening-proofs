@@ -833,3 +833,62 @@ def reloadFailedTraceKeepsPrivilege : (failures : ReloadFailures) -> (node : Rel
   fun (failures : ReloadFailures) (node : ReloadNode) (peer : Count) (authenticated : Flag) =>
     congruent ReloadNode Flag (fun (current : ReloadNode) => reloadNodePrivilege current peer authenticated)
       (runReloadEvents (lowerReloadFailures failures) node) node (reloadFailedTraceKeepsNode failures node)
+
+-- The lowered failure trace records every failed reload: one attempt event per failure, carrying its deltas.
+def reloadEventAttemptCount : ReloadEvent -> Count -> Count :=
+  fun (event : ReloadEvent) (count : Count) =>
+    case event as self in ReloadEvent return Count with
+    | reloadAttempt outcome deltas => next count
+    | reloadRollback => count
+
+def rec reloadEventsAttempts : ReloadEvents -> Count :=
+  fun (events : ReloadEvents) =>
+    case events as self in ReloadEvents return Count with
+    | noReloadEvents => zero
+    | reloadEventEntry event rest => reloadEventAttemptCount event (reloadEventsAttempts rest)
+
+def rec reloadFailuresCount : ReloadFailures -> Count :=
+  fun (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return Count with
+    | noReloadFailures => zero
+    | reloadFailure deltas rest => next (reloadFailuresCount rest)
+
+def rec reloadFailedTraceRecordsEveryAttempt : (failures : ReloadFailures) ->
+    Equal Count (reloadEventsAttempts (lowerReloadFailures failures)) (reloadFailuresCount failures) :=
+  fun (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return
+        Equal Count (reloadEventsAttempts (lowerReloadFailures self)) (reloadFailuresCount self) with
+    | noReloadFailures => same
+    | reloadFailure deltas rest =>
+      congruent Count Count (fun (count : Count) => next count)
+        (reloadEventsAttempts (lowerReloadFailures rest)) (reloadFailuresCount rest)
+        (reloadFailedTraceRecordsEveryAttempt rest)
+
+def reloadEventMention : Count -> ReloadEvent -> Flag :=
+  fun (peer : Count) (event : ReloadEvent) =>
+    case event as self in ReloadEvent return Flag with
+    | reloadAttempt outcome deltas => reloadDeltasMention peer deltas
+    | reloadRollback => off
+
+def rec reloadEventsMention : Count -> ReloadEvents -> Flag :=
+  fun (peer : Count) (events : ReloadEvents) =>
+    case events as self in ReloadEvents return Flag with
+    | noReloadEvents => off
+    | reloadEventEntry event rest => either (reloadEventMention peer event) (reloadEventsMention peer rest)
+
+def rec reloadFailuresMention : Count -> ReloadFailures -> Flag :=
+  fun (peer : Count) (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return Flag with
+    | noReloadFailures => off
+    | reloadFailure deltas rest => either (reloadDeltasMention peer deltas) (reloadFailuresMention peer rest)
+
+def rec reloadFailedTraceRecordsEveryPeer : (peer : Count) -> (failures : ReloadFailures) ->
+    Equal Flag (reloadEventsMention peer (lowerReloadFailures failures)) (reloadFailuresMention peer failures) :=
+  fun (peer : Count) (failures : ReloadFailures) =>
+    case failures as self in ReloadFailures return
+        Equal Flag (reloadEventsMention peer (lowerReloadFailures self)) (reloadFailuresMention peer self) with
+    | noReloadFailures => same
+    | reloadFailure deltas rest =>
+      congruent Flag Flag (fun (current : Flag) => either (reloadDeltasMention peer deltas) current)
+        (reloadEventsMention peer (lowerReloadFailures rest)) (reloadFailuresMention peer rest)
+        (reloadFailedTraceRecordsEveryPeer peer rest)

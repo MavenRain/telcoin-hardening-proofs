@@ -3265,6 +3265,13 @@ MUTATIONS += [
     ('lifecycle_rollback_event_ignored', '    | reloadRollback => rollbackReloadNode node', '    | reloadRollback => node'),
     ('lifecycle_run_drops_step', '    | reloadEventEntry event rest => runReloadEvents rest (applyReloadEvent event node)', '    | reloadEventEntry event rest => runReloadEvents rest node'),
     ('lifecycle_lower_failure_succeeds', '    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadFailed deltas) (lowerReloadFailures rest)', '    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadSucceeded deltas) (lowerReloadFailures rest)'),
+    ('lifecycle_lower_failures_drops_head', '    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadFailed deltas) (lowerReloadFailures rest)', '    | reloadFailure deltas rest => lowerReloadFailures rest'),
+    ('lifecycle_lower_failures_drops_deltas', '    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadFailed deltas) (lowerReloadFailures rest)', '    | reloadFailure deltas rest => reloadEventEntry (reloadAttempt reloadFailed noReloadDeltas) (lowerReloadFailures rest)'),
+    ('lifecycle_attempt_count_skips_attempt', '    | reloadAttempt outcome deltas => next count', '    | reloadAttempt outcome deltas => count'),
+    ('lifecycle_failure_count_drops_step', '    | reloadFailure deltas rest => next (reloadFailuresCount rest)', '    | reloadFailure deltas rest => reloadFailuresCount rest'),
+    ('lifecycle_event_mention_drops_deltas', '    | reloadAttempt outcome deltas => reloadDeltasMention peer deltas', '    | reloadAttempt outcome deltas => off'),
+    ('lifecycle_events_mention_drops_head', '    | reloadEventEntry event rest => either (reloadEventMention peer event) (reloadEventsMention peer rest)', '    | reloadEventEntry event rest => reloadEventsMention peer rest'),
+    ('lifecycle_failures_mention_drops_head', '    | reloadFailure deltas rest => either (reloadDeltasMention peer deltas) (reloadFailuresMention peer rest)', '    | reloadFailure deltas rest => reloadFailuresMention peer rest'),
 ]
 
 def negative_checks(compiler: Path, source: str, build: Path, jobs: int = 1) -> list[str]:
