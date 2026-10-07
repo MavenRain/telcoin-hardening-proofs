@@ -794,3 +794,65 @@ def rec recheckTraceKeepsOnlyPrivileged : (events : RotationSweepEvents) -> (nod
       fun (node : RotationSweepNode) (privileged : Equal Flag (liveSweepConnsPrivileged (rotationNodeConns node)) on) =>
         recheckTraceKeepsOnlyPrivileged rest (applyRotationSweepEvent sweepRecheckTreatment event node)
           (recheckSweepKeepsOnlyPrivileged (rotationEventPolicy event (rotationNodePolicy node)) (rotationNodeConns node))
+
+-- Arm witnesses: each one pins a flag, count, privilege or event arm that the theorems above do not read.
+
+def sweepBothOff : (first : Flag) -> Equal Flag (both first off) off :=
+  fun (first : Flag) =>
+    case first as self in Flag return Equal Flag (both self off) off with
+    | off => same
+    | on => same
+
+-- A connection that records no privilege while the current query admits it is not current, so a
+-- privilege from an older epoch does not count as the current privilege.
+def liveSweepLaggingPrivilegeNotCurrent : (policy : AuthoritativeUnionPolicy) -> (role : NodePolicyRole) ->
+    (swarm : NodePolicySwarm) -> (identity : Count) -> (authenticated : Flag) -> (stamp : Count) ->
+    (allocation : Count) -> Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) on ->
+    Equal Flag (liveSweepConnCurrent policy (liveSweepConn role swarm identity authenticated stamp off allocation)) off :=
+  fun (policy : AuthoritativeUnionPolicy) (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count)
+      (authenticated : Flag) (stamp : Count) (allocation : Count)
+      (admitted : Equal Flag (authoritativeUnionQuery role swarm policy authenticated identity) on) =>
+    equalTransitivity Flag
+      (liveSweepConnCurrent policy (liveSweepConn role swarm identity authenticated stamp off allocation))
+      (both (reloadSameIdentity stamp (authoritativeUnionGeneration policy)) off) off
+      (congruent Flag Flag
+        (fun (query : Flag) =>
+          both (reloadSameIdentity stamp (authoritativeUnionGeneration policy))
+            (both (sweepSameFlag off query) (sweepSameFlag (both authenticated off) off)))
+        (authoritativeUnionQuery role swarm policy authenticated identity) on admitted)
+      (sweepBothOff (reloadSameIdentity stamp (authoritativeUnionGeneration policy)))
+
+-- A live connection adds one to the count of its own swarm.
+def liveSweepOnOwnSwarmCounts : (conn : LiveSweepConn) -> (rest : LiveSweepConns) ->
+    Equal Count (liveSweepOnSwarm (liveSweepSwarm conn) (liveSweepEntry conn rest))
+      (next (liveSweepOnSwarm (liveSweepSwarm conn) rest)) :=
+  fun (conn : LiveSweepConn) (rest : LiveSweepConns) =>
+    congruent Flag Count (fun (hit : Flag) => sweepCountIf hit (liveSweepOnSwarm (liveSweepSwarm conn) rest))
+      (sameUnionSwarm (liveSweepSwarm conn) (liveSweepSwarm conn)) on (sameUnionSwarmReflexive (liveSweepSwarm conn))
+
+-- A list that holds a connection without privilege is not privileged.
+def liveSweepUnprivilegedEntryBlocks : (role : NodePolicyRole) -> (swarm : NodePolicySwarm) -> (identity : Count) ->
+    (authenticated : Flag) -> (stamp : Count) -> (allocation : Count) -> (rest : LiveSweepConns) ->
+    Equal Flag (liveSweepConnsPrivileged
+      (liveSweepEntry (liveSweepConn role swarm identity authenticated stamp off allocation) rest)) off :=
+  fun (role : NodePolicyRole) (swarm : NodePolicySwarm) (identity : Count) (authenticated : Flag) (stamp : Count)
+      (allocation : Count) (rest : LiveSweepConns) => same
+
+-- A committee rotation event installs the changed policy, and the sweep then reads that policy.
+def rotationCommitteeEventInstallsChange : (treatment : SweepTreatment) -> (change : AuthoritativeUnionChange) ->
+    (node : RotationSweepNode) ->
+    Equal AuthoritativeUnionPolicy
+      (rotationNodePolicy (applyRotationSweepEvent treatment (rotationCommitteeEvent change) node))
+      (applyAuthoritativeUnionChange change (rotationNodePolicy node)) :=
+  fun (treatment : SweepTreatment) (change : AuthoritativeUnionChange) (node : RotationSweepNode) => same
+
+-- A stale input event installs the Open or Grace fallback profile at its role before the sweep.
+def rotationStaleEventSelectsFallback : (treatment : SweepTreatment) -> (role : NodePolicyRole) ->
+    (fallback : RotationStaleFallback) -> (node : RotationSweepNode) ->
+    Equal Profile
+      (roleUnionProfile (authoritativeRolePolicy role
+        (rotationNodePolicy (applyRotationSweepEvent treatment (rotationStaleEvent role fallback) node))))
+      (rotationStaleProfile fallback) :=
+  fun (treatment : SweepTreatment) (role : NodePolicyRole) (fallback : RotationStaleFallback)
+      (node : RotationSweepNode) =>
+    rotationStaleSelectsFallback role fallback (rotationNodePolicy node)

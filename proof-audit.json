@@ -83,7 +83,7 @@
     "proofs/94-trusted-startup-redial.mech": "77c5488208625c20ac84efe9b75cb2c9b0beac91ead408ecb46e3667a5d8848f",
     "proofs/95-launch-seeding-bootstrap-union.mech": "a4a812eddee745e4e72ef76d0d85273cd0c8381da1e74518aa23e9c64de755cd",
     "proofs/96-reload-removal-lifecycle.mech": "d617254650dbc4e2e5d1748192e884e91e0ec37a4191b12333f53303edfd843d",
-    "proofs/97-rotation-live-sweep.mech": "f584d27db7bb318429b397da82cfe959d247cd90ffab672084d0e68b012eeb12"
+    "proofs/97-rotation-live-sweep.mech": "a36ec84fe1a1bc99dde9ee2fa7fe0652e0e6871cd8c3dbabd0175736d3b1acf5"
   },
   "obligations": [
     {

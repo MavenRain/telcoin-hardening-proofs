@@ -37,7 +37,7 @@ Evidence hashes check freshness. Each exit criterion still requires an audit of 
 
 83/83 model obligations have a first witness review: 17 covered, 66 partial, 0 unreviewed. 0 acceptance criteria still need audit.
 
-The pinned corpus contains 1762 explicit proof declarations in 80 modules. [proof-audit.json](../proof-audit.json) records exact statements, premises, scope limits and outstanding criterion work. See [the R02 audit](R02-AUDIT.md). Statement and hash checks do not establish semantic entailment. Finite examples receive no general coverage credit; external obligations remain open.
+The pinned corpus contains 1768 explicit proof declarations in 80 modules. [proof-audit.json](../proof-audit.json) records exact statements, premises, scope limits and outstanding criterion work. See [the R02 audit](R02-AUDIT.md). Statement and hash checks do not establish semantic entailment. Finite examples receive no general coverage credit; external obligations remain open.
 
 ## Full implementation and deployment claims
 
